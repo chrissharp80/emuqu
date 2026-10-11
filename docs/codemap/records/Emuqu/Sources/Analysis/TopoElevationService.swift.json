@@ -1,0 +1,412 @@
+{
+ "file": "Emuqu/Sources/Analysis/TopoElevationService.swift",
+ "hash": "d1741edba2559e11",
+ "role": "Retroactive DEM elevation lookup: downsamples a workout track to <=100 points, queries OpenTopoData (ned10m for US-ish coords, then srtm30m), and computes sustained-climb gain/loss with a 15 m threshold.",
+ "types": [
+  "TopoElevationService: enum — namespace",
+  "TopoElevationService.Result: struct — gain/loss, per-sample elevations, sampled indices",
+  "TopoElevationService.ServiceError: enum — badResponse/emptyTrack/networkError",
+  "TopoElevationService.ClimbRun: struct (private) — sign-run accumulator",
+  "Envelope/Point: Decodable structs local to decodeOpenTopoData"
+ ],
+ "state": [
+  "static let userAgent = \"Emuqu/<appVersion> iOS (chrissharp80@gmail.com)\"",
+  "net:api.opentopodata.org/v1/{ned10m|srtm30m}"
+ ],
+ "toplevel": "Global static userAgent built from Bundle.main.appVersion. No mutable state.",
+ "flags": [
+  {
+   "kind": "privacy",
+   "sev": "low",
+   "text": "Workout route coordinates (rounded to 4 decimals, ~11 m; first point is often home) are sent in a GET query string to the public third-party api.opentopodata.org; the comment acknowledges this.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift:236",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift:249"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+   "hash": "e40bb1ce43a0cff2",
+   "does": "Throws emptyTrack for an empty track; otherwise downsamples to maxSamples indices, fetches DEM elevations for those coordinates, verifies the count, and returns gain/loss from sustainedClimb plus elevations and indices.",
+   "entry": "Called from FitnessPostSummaryView+Cards.swift:689 when the user taps the elevation lookup on the post-workout summary.",
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+   ],
+   "reads": [
+    "net:api.opentopodata.org"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "track non-empty",
+     "effect": "proceed; otherwise throw ServiceError.emptyTrack"
+    },
+    {
+     "at": "+9",
+     "cond": "elevation count equals coordinate count",
+     "effect": "compute result; otherwise throw badResponse(count mismatch)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchElevations(for:)": "aaa7adca46bf3f8d",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b"
+   }
+  },
+  {
+   "key": "func TopoElevationService.sustainedClimb(in:threshold:)",
+   "hash": "d0e6623b2be6a93e",
+   "does": "Sums consecutive same-sign elevation deltas into runs (flat steps ignored) and commits each run to gain or loss only when |run| >= threshold; returns (gain, loss), (0,0) for <2 samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "more than one elevation",
+     "effect": "iterate; otherwise return (0,0)"
+    },
+    {
+     "at": "+10",
+     "cond": "loop over deltas 1..<count",
+     "effect": "feed each delta to ClimbRun.step"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment says sustainedClimb 'produces the elevation gain shown on every workout and feeds grade-adjusted pace', but its only production caller is elevations(for:) (:99), which is only invoked by the user-tapped DEM lookup in FitnessPostSummaryView+Cards.swift:689 (other references are tests).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:113",
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:99",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:689"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0"
+   }
+  },
+  {
+   "key": "func TopoElevationService.ClimbRun.step(by:threshold:)",
+   "hash": "8d738df8eb75450f",
+   "does": "Advances the run accumulator with one delta: flat ignored, first graded step opens a run, same sign accumulates, opposite sign commits the current run and opens a new one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "delta > 0 / delta < 0 (nested ?:)",
+     "effect": "sign = 1, -1, or 0 for flat"
+    },
+    {
+     "at": "+2",
+     "cond": "sign == 0",
+     "effect": "return without changing the run (flat is not a reversal)"
+    },
+    {
+     "at": "+3",
+     "cond": "no run open yet (runSign == 0)",
+     "effect": "start a run with this delta"
+    },
+    {
+     "at": "+6",
+     "cond": "same sign as the open run",
+     "effect": "accumulate; else (reversal) commit the run and start a new one with this delta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb"
+   }
+  },
+  {
+   "key": "func TopoElevationService.ClimbRun.finish(threshold:)",
+   "hash": "1500ece425f688f0",
+   "does": "Commits the final open run.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb"
+   }
+  },
+  {
+   "key": "func TopoElevationService.ClimbRun.commit(threshold:)",
+   "hash": "2583f43b4f58f765",
+   "does": "Adds runSum to gain (positive) or its magnitude to loss (negative) when |runSum| >= threshold; does not reset runSum (callers overwrite it).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "|runSum| >= threshold",
+     "effect": "commit; otherwise discard the run"
+    },
+    {
+     "at": "+2",
+     "cond": "runSum > 0",
+     "effect": "add to gain; else add -runSum to loss"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TopoElevationService.downsampleIndices(count:target:)",
+   "hash": "5761c9c52cf36665",
+   "does": "Returns `target` evenly spaced, rounded indices from 0 to count-1 (first and last forced), or all indices 0..<count when count<=target or target<=1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count > target and target > 1",
+     "effect": "compute spaced indices; otherwise return every index"
+    },
+    {
+     "at": "+5",
+     "cond": "loop i in 0..<target",
+     "effect": "append round(i*step)"
+    },
+    {
+     "at": "+9",
+     "cond": "first index != 0",
+     "effect": "force it to 0 (defensive; rounding already yields 0)"
+    },
+    {
+     "at": "+10",
+     "cond": "last index != count-1",
+     "effect": "force it to count-1 (defensive)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a"
+   }
+  },
+  {
+   "key": "func TopoElevationService.fetchElevations(for:)",
+   "hash": "9495137d224fea72",
+   "does": "If the first coordinate is in a US bounding box, tries OpenTopoData ned10m and returns its values on success; on any ned10m error (swallowed) or non-US, queries srtm30m and propagates its error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)"
+   ],
+   "reads": [
+    "net:api.opentopodata.org"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "first coordinate exists and is in a US box",
+     "effect": "try ned10m first; otherwise go straight to srtm30m"
+    },
+    {
+     "at": "+4",
+     "cond": "ned10m fetch succeeded (try?)",
+     "effect": "return its values; error swallowed and falls back to srtm30m"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When ned10m fails (e.g. Toronto/Vancouver/Montreal fall inside the US box at :217), the srtm30m request is sent immediately with no delay, contradicting the 1-call-per-second limit the file itself documents (:23-24); any rejection of that second call is surfaced to the user as 'Elevation lookup failed'.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:204",
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:208",
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:23",
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:217"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "9fa41cc35339b178",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.isLikelyUS(coord:)": "dd9067cd70f83265"
+   }
+  },
+  {
+   "key": "func TopoElevationService.isLikelyUS(coord:)",
+   "hash": "30f2c3db2a9e25c0",
+   "does": "Bounding-box test: continental US (lat 24-50, lon -125..-66), Alaska (54-72, -170..-130) or Hawaii (18-23, -162..-154).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "in continental US box",
+     "effect": "true"
+    },
+    {
+     "at": "+5",
+     "cond": "in Alaska box",
+     "effect": "true"
+    },
+    {
+     "at": "+7",
+     "cond": "in Hawaii box",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Box ranges include parts of Canada/Mexico; harmless because the ned10m failure falls through to SRTM, but costs an extra request.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:217",
+      "Emuqu/Sources/Analysis/TopoElevationService.swift:204"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)",
+   "hash": "aec430dc9ec3b146",
+   "does": "Formats coordinates as '%.4f,%.4f' joined by '|', builds the OpenTopoData URL for `dataset`, GETs it, and decodes exactly coords.count elevations.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchJSON(from:label:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.decodeOpenTopoData(_:expecting:dataset:)"
+   ],
+   "reads": [],
+   "writes": [
+    "net:api.opentopodata.org"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.decodeOpenTopoData(_:expecting:dataset:)": "b9ba8fc19447ba79",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchJSON(from:label:)": "9bfdfa0f22f9ce7a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "d6fedefde7c1fb29"
+   }
+  },
+  {
+   "key": "func TopoElevationService.openTopoDataURL(dataset:locations:)",
+   "hash": "46312b121a14623a",
+   "does": "Builds https://api.opentopodata.org/v1/<dataset>?locations=<...>, throwing badResponse when URLComponents or url is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "URLComponents parses",
+     "effect": "continue; otherwise throw badResponse"
+    },
+    {
+     "at": "+5",
+     "cond": "components.url non-nil",
+     "effect": "return url; otherwise throw badResponse"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TopoElevationService.request(for:)",
+   "hash": "3a2c4b9862af0cf6",
+   "does": "Builds a URLRequest with 20 s timeout and the app User-Agent header.",
+   "entry": "Also exercised directly by EmuquTests/TopoElevationServiceTests.swift:125.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+   }
+  },
+  {
+   "key": "func TopoElevationService.fetchJSON(from:label:)",
+   "hash": "3be3dc01335d1ce3",
+   "does": "Performs the GET via URLSession.shared; maps transport errors to networkError and non-2xx/non-HTTP responses to badResponse; returns body data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)",
+    "ext:URLSession.shared.data(for:)"
+   ],
+   "reads": [
+    "net:api.opentopodata.org"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "URLSession throws",
+     "effect": "rethrow as ServiceError.networkError"
+    },
+    {
+     "at": "+8",
+     "cond": "HTTP response with 2xx status",
+     "effect": "return data; otherwise throw badResponse(\"<label> HTTP error\")"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)": "aad4851b997a9adb"
+   }
+  },
+  {
+   "key": "func TopoElevationService.decodeOpenTopoData(_:expecting:dataset:)",
+   "hash": "83166b78af222d89",
+   "does": "Decodes {results:[{elevation:Double?}]}, drops null elevations, and throws badResponse unless the count equals the expected count.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "non-null elevation count == expected",
+     "effect": "return values; otherwise throw badResponse (any null elevation fails the whole lookup)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,711 @@
+{
+ "file": "Emuqu/Sources/Assistant/VoiceConversationController.swift",
+ "hash": "961845d9b5603e3e",
+ "role": "Declares the @Observable @MainActor VoiceConversationController singleton that runs hands-free voice chat (STT -> shared AssistantViewModel -> streaming TTS) during workouts, its typed errors, its State enum (mirrored to the Watch), all its stored tuning constants and state, and the thin forwarding wrappers into VoiceAudioPipeline; also recognizer construction (boot/refreshLanguageForSession).",
+ "types": [
+  "VoiceConversationController: class (@Observable @MainActor, NSObject) — voice chat state machine singleton; extended by +Control/+Pipeline(via VoiceAudioPipeline)/+Speech/+Audio",
+  "VoiceConversationController.VoiceError: enum (LocalizedError) — recognizer/audio-session/audio-input startup failures with localized copy",
+  "VoiceConversationController.State: enum — idle/starting/listening/thinking/speaking/triggerSpeaking with watchLabel strings",
+  "VoiceConversationController.PendingTrigger: enum — queued spokenLiteral(String) or aiPrompt(String)"
+ ],
+ "state": [
+  "mem:VoiceConversationController.shared (static singleton)",
+  "mem:VoiceConversationController.state (observed; didSet pushes to Watch)",
+  "mem:VoiceConversationController.partialTranscript",
+  "mem:VoiceConversationController.currentResponseText",
+  "mem:VoiceConversationController.permissionError",
+  "mem:VoiceConversationController.lastInterjectionText (memory only, read by AssistantChatView:162)",
+  "mem:VoiceConversationController.hasAnnouncedSubsystem",
+  "mem:VoiceConversationController.contextSnapshotProvider (closure, set by consumer/recorder)",
+  "mem:VoiceConversationController.liveWorkoutSnapshotProvider (closure)",
+  "mem:VoiceConversationController.useWhisperKitForCurrentSession",
+  "mem:VoiceConversationController.lastRecognitionRestartAt",
+  "recognitionRestartCooldownSec=1.5",
+  "mem:VoiceConversationController.synthesizer (lazy AVSpeechSynthesizer)",
+  "mem:VoiceConversationController.bestVoice",
+  "mem:VoiceConversationController.bestVoiceLanguage",
+  "mem:VoiceConversationController.recognizer",
+  "mem:VoiceConversationController.audioEngine (lazy AVAudioEngine)",
+  "mem:VoiceConversationController.recognitionRequest",
+  "mem:VoiceConversationController.recognitionTask",
+  "mem:VoiceConversationController.llmTask (interjection stream task only)",
+  "mem:VoiceConversationController.textChunker (SpokenTextChunker)",
+  "mem:VoiceConversationController.assistantObservers",
+  "mem:VoiceConversationController.isStoppingFully",
+  "mem:VoiceConversationController.responseSpeakGeneration",
+  "mem:VoiceConversationController.activeAssistantIndex",
+  "mem:VoiceConversationController.spokenCharCursor",
+  "mem:VoiceConversationController.preemptedState",
+  "mem:VoiceConversationController.pendingTriggers",
+  "mem:VoiceConversationController.silenceTimer",
+  "mem:VoiceConversationController.ttsStartedAt",
+  "mem:VoiceConversationController.bufferLoggedNonSilent/buffersSinceTaskStart/peakRMSSinceTaskStart/lastBufferRMS/bufferTickCount (diagnostics)",
+  "VAD constants: voiceRMSThreshold=0.012, endOfTurnSilenceSec=1.2, minVoiceForTurnSec=0.2, stalledTranscriptCommitSec=3.0, stalledTranscriptMinChars=4, maxTurnDurationSec=30, firstPartialTimeoutSec=5, longIdleRestartSec=45",
+  "mem:VoiceConversationController.turnStartedAt/consecutiveEmptyReArms/firstPartialRestartsThisTurn/lastTranscriptGrowthAt/lastTranscriptLength/lastVoiceDetectedAt/totalVoiceSecondsThisTurn/lastBufferAt",
+  "barge-in constants: bargeInRMSThreshold=0.018, bargeInSustainedSec=0.3, bargeInMinNewWords=2, bargeInGracePeriodSec=0.6 (var)",
+  "mem:VoiceConversationController.lastSubBargeInRMSAt/bargeInBaselineLength/bargeInBaselineWordCount",
+  "mem:VoiceConversationController.interruptionObserver (NotificationCenter token for AVAudioSession.interruptionNotification)"
+ ],
+ "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer and audioEngine are lazy; textChunker = SpokenTextChunker() at construction. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError.",
+ "flags": [
+  {
+   "kind": "unreachable-branch",
+   "sev": "low",
+   "text": "State.thinking is never assigned anywhere in the repo (grep '= .thinking' finds no setter), so every branch that tests for .thinking (toggle's .thinking case, stopAnyOngoingSpeech's wasMidResponse, scheduleListeningRestartAfterStop's guard, VoiceTurnPolicy's thinking branch) is dead; the Watch 'thinking' label is never pushed.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift:94",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:23",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:216",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:242",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:102"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Header comment says an urgent trigger 'stops whatever the conversation is doing' and returns to the prior state, but the trigger path only cancels the interjection llmTask; the shared AssistantViewModel stream and its TTS observers keep running, so the reply's later chunks are still spoken during/after the alert.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift:22",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:431",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:633"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The background-survival comment says interruptionObserver 're-arms the engine when the interruption ends', but handleAudioInterruption's .ended case calls controller.stop() and the docs say voice does NOT auto-resume after an interruption.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift:438",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift:440",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:84",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:87",
+    "docs/VOICE_AND_TOOL_USE.md:595"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var VoiceConversationController.VoiceError.errorDescription",
+   "hash": "bb2d57cf19b36fa1",
+   "does": "Maps each VoiceError case to a localized user-facing string (sample rate printed as 0 when non-finite).",
+   "entry": "LocalizedError.errorDescription read by Foundation when error.localizedDescription is accessed (permissionError strings at Control:112, Pipeline:401)",
+   "calls": [
+    "ext:String(localized:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .recognizerUnavailable",
+     "effect": "returns 'Speech recognizer not created (locale unsupported?)'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .recognizerNotAvailable",
+     "effect": "returns 'Speech recognition isn't available right now…'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .audioSessionUnavailable(reason)",
+     "effect": "returns copy embedding the underlying reason"
+    },
+    {
+     "at": "+8",
+     "cond": "case .audioInputUnusable(sampleRate, channelCount)",
+     "effect": "returns copy with Hz and channel count"
+    },
+    {
+     "at": "+9",
+     "cond": "sampleRate.isFinite ?:",
+     "effect": "finite → Int(sampleRate); NaN/inf → 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var VoiceConversationController.State.watchLabel",
+   "hash": "aec5e17c3e109c53",
+   "does": "Returns the stable string label for each State that is pushed to the Watch ('alert' for triggerSpeaking).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .idle",
+     "effect": "'idle'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .starting",
+     "effect": "'starting'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .listening",
+     "effect": "'listening'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .thinking",
+     "effect": "'thinking' (never reached at runtime: .thinking is never assigned)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .speaking",
+     "effect": "'speaking'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .triggerSpeaking",
+     "effect": "'alert'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VoiceConversationController.state",
+   "hash": "1b324d76c7102e0f",
+   "does": "didSet observer of state: when the value actually changes, pushes state.watchLabel to the Watch through WatchConnectivityBridge.pushVoiceChatState.",
+   "entry": "Swift property observer: runs on every assignment to state",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.pushVoiceChatState(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [
+    "wc:voiceChatState (via pushVoiceChatState)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "state == oldValue",
+     "effect": "no push (early return); otherwise push the new label to the Watch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "49edab9094df9643",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.pushVoiceChatState(_:)": "47d2c9478f11a1ef",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "var VoiceConversationController.audio",
+   "hash": "de08756fa5d2b9e1",
+   "does": "Computed property returning a fresh VoiceAudioPipeline value wrapping self on every access (stateless facade).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceConversationController.beginUserTurn()",
+   "hash": "bf4996287ddb9093",
+   "does": "Forwards to VoiceAudioPipeline.beginUserTurn (restart engine + fresh recognition task, enter .listening).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "e7f4d2cc6fabf52d",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.finalizeUserTurn()",
+   "hash": "652c708067c1c3c8",
+   "does": "Forwards to VoiceAudioPipeline.finalizeUserTurn (commit the current transcript).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "9b86e704dcce060c",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.finishResponseFromAssistant()",
+   "hash": "f341146ab481f9ab",
+   "does": "Forwards to VoiceAudioPipeline.finishResponseFromAssistant. No caller uses the controller wrapper: the only call site (Audio:650) calls controller.audio.finishResponseFromAssistant() directly.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finishResponseFromAssistant()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Controller wrapper finishResponseFromAssistant() has no callers (grep: only Audio:650 which calls the pipeline method via controller.audio).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:153",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:650"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finishResponseFromAssistant()": "4b2e3832924f8c9b",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.observeAssistantStreaming()",
+   "hash": "352e1a245edd64a2",
+   "does": "Forwards to VoiceAudioPipeline.observeAssistantStreaming. No caller uses the controller wrapper; Audio:566/623 call the pipeline's own method.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.observeAssistantStreaming()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Controller wrapper observeAssistantStreaming() has no callers; pipeline code calls its own method.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:154",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:566",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:623"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.observeAssistantStreaming()": "8dce4f3cdfafdfbf",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.startAudioEngineAndRecognizer()",
+   "hash": "81902158db719b75",
+   "does": "Forwards to VoiceAudioPipeline.startAudioEngineAndRecognizer. No caller uses the controller wrapper (Pipeline:398 calls the pipeline method on self).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineAndRecognizer()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Controller wrapper startAudioEngineAndRecognizer() has no callers.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:155",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:398"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineAndRecognizer()": "a98befaf9d4c2e82",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.rms(of:)",
+   "hash": "f07e9924a4358b83",
+   "does": "Static pass-through to VoiceAudioPipeline.rms(of:); exists only so VoiceAudioMeasurementTests can call it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only callers are EmuquTests/VoiceAudioMeasurementTests.swift:25-72; production uses VoiceAudioPipeline.rms directly (Pipeline:464).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:159",
+      "EmuquTests/VoiceAudioMeasurementTests.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.configureAudioSessionForConversation()",
+   "hash": "c206218450f0ab8d",
+   "does": "Forwards to VoiceAudioPipeline.configureAudioSessionForConversation (coordinator claim + setActive).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "5ea693db349960eb",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.installInterruptionObserver()",
+   "hash": "7bebc046392a793a",
+   "does": "Forwards to VoiceAudioPipeline.installInterruptionObserver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.installInterruptionObserver()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.installInterruptionObserver()": "06a82d907331d5cd",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.removeInterruptionObserver()",
+   "hash": "6833d857848feae3",
+   "does": "Forwards to VoiceAudioPipeline.removeInterruptionObserver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()": "ec53aacbf9b9aa78",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.teardownAudioPipeline()",
+   "hash": "f88cbad4230fc27f",
+   "does": "Forwards to VoiceAudioPipeline.teardownAudioPipeline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.teardownAudioPipeline()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.teardownAudioPipeline()": "70cbadb533650bd0",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.startFreshRecognitionTask()",
+   "hash": "ae01cdf015f61ed6",
+   "does": "Forwards to VoiceAudioPipeline.startFreshRecognitionTask.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.cancelLLM()",
+   "hash": "84617b347238c59a",
+   "does": "Forwards to VoiceAudioPipeline.cancelLLM (cancels and nils llmTask).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()": "87daed6dbd5e55c1",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "var VoiceConversationController.assistantViewModel",
+   "hash": "f2b9365e08658407",
+   "does": "Computed accessor returning AppDependencies.current.assistant.assistantViewModel, the shared chat view model voice turns go through.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.current.assistant.assistantViewModel"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.cancelAssistantObservers()",
+   "hash": "3b5d26dfcc70ae3d",
+   "does": "Cancels every ObservationHandle in assistantObservers and empties the array.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationHandle.cancel()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.assistantObservers"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationHandle.cancel()": "547f7a8018872a02"
+   }
+  },
+  {
+   "key": "init VoiceConversationController()",
+   "hash": "22d9ecd0030d4779",
+   "does": "NSObject init: sets the synthesizer delegate to self (forcing the lazy AVSpeechSynthesizer to be created at construction); recognizer creation is deferred to boot().",
+   "entry": "Called once via `static let shared = VoiceConversationController()`",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.synthesizer"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The lazy synthesizer is documented as deferring AVSpeechSynthesizer cold init until the first speak, but init() touches synthesizer.delegate, which instantiates it at controller construction.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:204",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:211",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:458"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceConversationController.boot()",
+   "hash": "ecbc47f80d6b27f3",
+   "does": "Post-launch recognizer construction: if no recognizer yet and the enableVoiceMode performance flag is on, builds an SFSpeechRecognizer for recognizerLocale() (en-US fallback).",
+   "entry": "AppLaunchTasks.swift:147 timedBoot(\"voiceChat\") during launch",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)"
+   ],
+   "reads": [
+    "ud:perf.enableVoiceMode"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.recognizer"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recognizer != nil",
+     "effect": "return (idempotent)"
+    },
+    {
+     "at": "+3",
+     "cond": "enableVoiceMode flag false",
+     "effect": "return; recognizer stays nil so a later start fails in startAudioEngineAndRecognizer with recognizerUnavailable"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The enableVoiceMode flag only skips recognizer construction (boot/refreshLanguageForSession). Nothing hides the voice buttons or gates start(): with the flag off, tapping talk still runs the mic/speech permission prompts, then beginUserTurn fails with 'Couldn't restart the mic: Speech recognizer not created (locale unsupported?)'. The settings copy says speech recognition and TTS don't initialize, but init() builds the AVSpeechSynthesizer anyway. Turning the flag off after launch has no effect because the recognizer already exists.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:467",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:478",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:458",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:40",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:76",
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:186",
+      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:204"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "0a047e5091fa7f95",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "1b4034da736dd774",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.refreshLanguageForSession()",
+   "hash": "0b37ddf56078dda3",
+   "does": "At each voice start: refreshes the TTS voice, and (when voice mode flag is on) rebuilds the recognizer if its locale differs from recognizerLocale().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshVoices()",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)"
+   ],
+   "reads": [
+    "ud:perf.enableVoiceMode",
+    "mem:SettingsManager.settings.forceAIEnglish"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.recognizer"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "enableVoiceMode flag off",
+     "effect": "return after voice refresh; recognizer left unchanged (nil if never booted) → start then fails with 'Speech recognizer not created (locale unsupported?)', a misleading message for a disabled feature"
+    },
+    {
+     "at": "+5",
+     "cond": "recognizer locale already equals target",
+     "effect": "return without rebuilding; otherwise rebuild"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "0a047e5091fa7f95",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "1b4034da736dd774",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshVoices()": "4bc02b6c75a12495",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.refreshVoices()",
+   "hash": "a035831beb2489af",
+   "does": "Records the preferred voice language, prewarms the WorkoutStartCue app-language voice, then looks up the best conversation voice in a detached task and stores it unless a newer lookup replaced the language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.forceAIEnglish",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.bestVoice",
+    "mem:VoiceConversationController.bestVoiceLanguage"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "appLocale languageCode nil ??",
+     "effect": "prewarm 'en'"
+    },
+    {
+     "at": "+9",
+     "cond": "self deallocated or bestVoiceLanguage changed",
+     "effect": "drop the result; else set bestVoice"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "TTS voice language comes from ConversationVoicePicker.preferredLanguage(), which uses Locale.current (device locale), while the recognizer uses LanguageManager.appLocale (in-app language). With an in-app language different from the device language, the user is recognised in one language and answered with a voice for another (an English voice reading Japanese text or vice-versa).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:594",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:509"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "85014ab958e8c3aa",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "ea6835feabb52174",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.recognizerLocale()",
+   "hash": "a066e2b15d5c3269",
+   "does": "Returns en-US when settings.forceAIEnglish is on, else LanguageManager.appLocale.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.forceAIEnglish",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "forceAIEnglish ?:",
+     "effect": "true → Locale en-US; false → app locale"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func VoiceConversationController.makeRecognizer(locale:)",
+   "hash": "4e3bd42167388896",
+   "does": "Builds SFSpeechRecognizer for the locale, falling back to en-US when that locale is unsupported.",
+   "entry": null,
+   "calls": [
+    "ext:SFSpeechRecognizer(locale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "SFSpeechRecognizer(locale:) nil ??",
+     "effect": "falls back to an en-US recognizer (can itself be nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

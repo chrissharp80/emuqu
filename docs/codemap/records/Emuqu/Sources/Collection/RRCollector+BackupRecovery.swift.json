@@ -1,0 +1,1961 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift",
+ "hash": "b41261176a35eed1",
+ "role": "SessionRecoveryCoordinator extension for recovering sessions from the app's own on-disk/iCloud backups, the trash, the H10's internal recording (workout/overnight augment, interrupted-workout auto-recovery), paused-state restore, and the one-time merge-data-loss repair migration; plus file-scope helpers and the InterruptedWorkoutAutoRecovery in-flight registry.",
+ "types": [
+  "SessionRecoveryCoordinator: extension — backup/trash/strap recovery and merge repair",
+  "SessionRecoveryCoordinator.WatchRouteRecoveryResult: enum — recovered/distanceOnly/noRoute/failed outcome of Apple Health route recovery",
+  "SessionRecoveryCoordinator.StrapAugmentResult: enum — merged/notConnected/noStrapData/failed for workout strap merge",
+  "SessionRecoveryCoordinator.OvernightAugmentResult: enum — merged/notReachable/noStrapData/alreadyMerged/failed for overnight strap merge",
+  "SessionRecoveryCoordinator.MergeDamage: struct — which merge-repair conditions a linked child session has",
+  "InterruptedWorkoutAutoRecovery: enum — lock-protected static set of session ids currently being auto-recovered at launch"
+ ],
+ "state": [
+  "ud:reviewedRecoveredWorkoutIds (static let reviewedRecoveredKey, string array capped at 50, :423)",
+  "ud:autoRecoverAttempts_<sessionUUID> (per-session int attempt counter, :519, removed only on successful auto-recovery)",
+  "mem:InterruptedWorkoutAutoRecovery.running (static OSAllocatedUnfairLock<Set<UUID>>, :837)"
+ ],
+ "toplevel": "Declares the three result enums and MergeDamage struct inside the extension; file-scope private helpers unrecoveredBackupIds/newestWorkoutBackup/recordAutoRecoveryAttempt; InterruptedWorkoutAutoRecovery enum with a static lock initialised to an empty set (:837).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "SessionRecoveryCoordinator.pullCloudBackupsToLocal (:33) is only reached through RRCollector.pullCloudBackupsToLocal (RRCollector+RecoveryForwarding.swift:30), which has no caller in the repo; SessionRecoveryService calls its own pullCloudBackupsToLocal internally (SessionRecoveryService.swift:175).",
+   "evidence": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:33",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift:30",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift:175"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SessionRecoveryCoordinator.checkForLostSessions()",
+   "hash": "69d4f927048b0562",
+   "does": "Lists lost sessions (backups with no archive entry) via SessionRecoveryService.checkForLostSessions, excluding ids of recordings currently live (liveRecordingIds) so an in-progress night is not offered for deletion.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()"
+   ],
+   "reads": [
+    "file:RawRRBackup index",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "6ad787f5dcecface",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "c2c4d9998e113bcf"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.liveRecordingIds()",
+   "hash": "63f1cbdd453c2295",
+   "does": "Builds the set of session ids that are live right now: the collector's current session when isCollecting, its paused session, and the WorkoutRecorder's current session when it is recording or finalizing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "mem:SessionState.isCollecting",
+    "mem:SessionState.currentSession",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:RecorderBox.recorder.phase/currentSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "collector.isCollecting and currentSession has an id",
+     "effect": "current session id inserted; otherwise skipped"
+    },
+    {
+     "at": "+3",
+     "cond": "collector.pausedSession is non-nil",
+     "effect": "paused session id inserted; otherwise skipped"
+    },
+    {
+     "at": "+4",
+     "cond": "a WorkoutRecorder exists, its phase is .recording or .finalizing and it has a currentSession",
+     "effect": "recorder session id inserted; otherwise skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "isCollecting is mirrored from polarManager.isRecordingOnDevice by bindRecordingStateTracking, so any running strap recording (even an orphan from a crash) marks collector.currentSession as live when one is set.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:23",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.pullCloudBackupsToLocal()",
+   "hash": "062bb4a8a3444637",
+   "does": "Pass-through to SessionRecoveryService.pullCloudBackupsToLocal (downloads iCloud live backups into local RawRRBackup).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()"
+   ],
+   "reads": [
+    "ck:live backup records"
+   ],
+   "writes": [
+    "file:RawRRBackup"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is RRCollector.pullCloudBackupsToLocal (RRCollector+RecoveryForwarding.swift:30), which nothing in the app or tests calls.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:33",
+      "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift:30"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()": "e66ad2ed5d26eb7f"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.checkForDeletedSessions()",
+   "hash": "0d92062769a1d751",
+   "does": "Pass-through to SessionRecoveryService.checkForDeletedSessions: the trash list (deleted ids with backups) as (id,date,beatCount).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForDeletedSessions()"
+   ],
+   "reads": [
+    "archive:deletedIds",
+    "file:RawRRBackup"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForDeletedSessions()": "2a966538b387033b"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.restoreFromTrash(_:)",
+   "hash": "68ded36e32ebd2d2",
+   "does": "Restores a trashed session: un-marks it deleted (and tells iCloud trashRestore), puts back the trashed file if the trash kept it, else rebuilds from the raw backup; on rebuild failure tells the iCloud trash-restore tracker to abandon.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrash(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.restoreKeptSession(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrashFailed(_:)"
+   ],
+   "reads": [
+    "archive:trashedSession",
+    "file:RawRRBackup"
+   ],
+   "writes": [
+    "archive:deletedIds",
+    "ck:trash restore"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "restoreKeptSession returned a session (trash kept the file and re-archive succeeded)",
+     "effect": "returns it immediately; otherwise falls through to raw-backup rebuild"
+    },
+    {
+     "at": "+4",
+     "cond": "recoverFromBackup returned nil",
+     "effect": "restoreFromTrashFailed abandons the iCloud restore; the unmark-deleted from line 42 is NOT rolled back, so the id is no longer marked deleted while nothing was restored; returns nil either way"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "SessionRecoveryService.restoreFromTrash swallows a failed unmarkAsDeleted (logs only) and this function proceeds; archive.archive then throws sessionWasDeleted inside restoreKeptSession/recoverFromBackup and the user just sees restore fail with no reason.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:42",
+      "Emuqu/Sources/Services/SessionRecoveryService.swift:233",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:36"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)": "0656b7d1b0a6a3b9",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.restoreKeptSession(_:)": "7647a85a9f87a589",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrash(_:)": "1d170a0749aa27cf",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrashFailed(_:)": "7698a37b7b4f8366"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.restoreKeptSession(_:)",
+   "hash": "ba204779d3be50ac",
+   "does": "Puts a trashed session's kept file back: loads it from the trash, links/supersedes any same-night session recorded since, archives it with skipSameNightMerge, discards the trash copy, marks its raw backup archived, force-reuploads to iCloud and bumps the archive signal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.supersedeSameNightSession(newSession:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "archive:trash"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "archive:trash",
+    "file:RawRRBackup index (archived flag)",
+    "ck:session record",
+    "mem:ArchiveSignal.version",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive.trashedSession(id) returns a session",
+     "effect": "continues; nil → returns nil (caller falls back to raw-backup rebuild)"
+    },
+    {
+     "at": "+6",
+     "cond": "archive.archive throws",
+     "effect": "logs error and returns nil (trash copy kept); caller then tries raw-backup rebuild"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.supersedeSameNightSession(newSession:)": "3980a02261a86304",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "d12811237cedc16d",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "6b4063eff71143a9",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "324b3ca4c0060dce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.permanentlyDelete(_:)",
+   "hash": "86bd0c707b5cfeca",
+   "does": "Pass-through to SessionRecoveryService.permanentlyDelete: drop trash copy, raw backup, iCloud live backup and the deleted-id record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:trash",
+    "file:RawRRBackup",
+    "ck:live backup",
+    "archive:deletedIds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "61520cb74cf5575e"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.deleteLostSessions(_:)",
+   "hash": "7d334145238c4162",
+   "does": "Pass-through to SessionRecoveryService.deleteLostSessions: marks each id deleted in the archive (errors logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.deleteLostSessions(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:deletedIds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.deleteLostSessions(_:)": "0faec4cf1c7ec3db"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverFromBackup(_:)",
+   "hash": "7eb14e492d7d0cd1",
+   "does": "Recovers a session from its on-disk backup: workout backups (WorkoutTrackBackup header present) go through recoverWorkoutFromBackup; others through the HRV path, bumping the archive signal when the result is complete.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverHRVFromBackup(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "file:WorkoutTrackBackup"
+   ],
+   "writes": [
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a WorkoutTrackBackup exists for the id",
+     "effect": "routes to recoverWorkoutFromBackup and returns its result; otherwise HRV path"
+    },
+    {
+     "at": "+5",
+     "cond": "HRV result state == .complete",
+     "effect": "notifies archive signal on main; nil result skips. SessionRecoveryService.recoverFromBackup only returns complete sessions, so non-nil always notifies"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverHRVFromBackup(_:)": "cefe8bc834ce4c5f",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)": "8fc20d6346709b6a",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverHRVFromBackup(_:)",
+   "hash": "117892e3fa524c1c",
+   "does": "Runs SessionRecoveryService.recoverFromBackup with closures for windowed/full analysis (collector.analyze), same-night supersede, and enriched recovery scoring; returns the archived recovered session or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:window:flags:peakCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:peakCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.supersedeSameNightSession(newSession:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.enrichedRecoveryScore(session:analysisResult:)",
+    "closure:analyze/analyzeWithCapacity/supersedeSameNight/computeRecoveryScore closures built here and invoked by SessionRecoveryService"
+   ],
+   "reads": [
+    "file:RawRRBackup"
+   ],
+   "writes": [
+    "archive:session file+index"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.enrichedRecoveryScore(session:analysisResult:)": "6c55c2de10d58a3b",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:peakCapacity:)": "403f595112954b34",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:window:flags:peakCapacity:)": "26c146f3c21d0e58",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.supersedeSameNightSession(newSession:)": "3980a02261a86304",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)": "74a44a9da6ef6171"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.enrichedRecoveryScore(session:analysisResult:)",
+   "hash": "aa701e96c4fdbff8",
+   "does": "Ensures the analysis result carries a training context (fetching a fresh one relative to the session's end/start if nil), then computes the composite recovery score via MorningSessionPipeline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)"
+   ],
+   "reads": [
+    "hk:workouts/training load"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "enriched result exists with nil trainingContext AND a fresh context could be created",
+     "effect": "attaches the fresh context; otherwise result passed unchanged (nil analysisResult stays nil, so `enriched?.trainingContext =` is a no-op)"
+    },
+    {
+     "at": "+3",
+     "cond": "session.endDate is nil",
+     "effect": "uses session.startDate as the reference date for the training context"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)": "b6f0ec9cba482ce9",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)",
+   "hash": "7a28b4abb8f7d8b5",
+   "does": "Rebuilds a crashed workout via WorkoutRecoveryService.recover (reason .appCrashed), feeding it the strap's on-device recording when obtainable; on success bumps archive signal and sets the review/trim card on MorningCoordination.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapRecordingForWorkoutRecovery(sessionId:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)"
+   ],
+   "reads": [
+    "file:RawRRBackup",
+    "file:WorkoutTrackBackup"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "mem:ArchiveSignal.version",
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "WorkoutRecoveryService.recover returned nil",
+     "effect": "returns nil with no review card; otherwise publishes and returns outcome.session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapRecordingForWorkoutRecovery(sessionId:)": "fdb2b29656b43b36",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)": "8f3f1b91c9ba0416",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.strapRecordingForWorkoutRecovery(sessionId:)",
+   "hash": "8702b87865a805fb",
+   "does": "Downloads the H10's internal recording made since the workout's start (stopping it if running) and places it on the workout clock; nil means the recovery service uses the disk backup only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)"
+   ],
+   "reads": [
+    "file:WorkoutTrackBackup",
+    "mem:PolarManager.isRecordingOnDevice",
+    "mem:PolarManager.hasStoredExercise",
+    "ble:H10 exercise/recording"
+   ],
+   "writes": [
+    "ble:H10 recording (stopped by fetch)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout track backup has a header start date AND the strap recording does not belong to a live session",
+     "effect": "continues; otherwise returns nil (disk backup only)"
+    },
+    {
+     "at": "+5",
+     "cond": "reconnect succeeds, strap is recording or holds a stored exercise, a recording since workoutStart downloads, and it has points",
+     "effect": "returns points on the workout clock; otherwise logs and returns nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "high",
+     "text": "The live-session guard reads collector.isCollecting, which bindRecordingStateTracking sets to polarManager.isRecordingOnDevice. A crashed workout's strap recording that is still running therefore makes strapRecordingBelongsToLiveSession true, and the H10 pull this function exists for is skipped; launch auto-recovery even requires isRecordingOnDevice==true (strapReadyForAutoRecovery) before calling here, then archives a disk-only (truncated) workout and clears the crash flag.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:157",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:549",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:534"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "0f8299a4d2e9da82",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.retrimRecoveredWorkout(sessionId:endSec:)",
+   "hash": "049688faf5709b48",
+   "does": "Review/trim card Save: clips the archived workout's RR series at endSec and re-finalizes it through WorkoutRecoveryService (discarding backups); with <30 beats left it keeps the workout untrimmed. Either way marks the session reviewed and clears the review card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.markRecoveredWorkoutReviewed(_:)"
+   ],
+   "reads": [
+    "archive:session"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "file:WorkoutTrackBackup/RawRRBackup (discarded on accept)",
+    "ud:reviewedRecoveredWorkoutIds",
+    "mem:MorningCoordination.recoveredWorkoutReview",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archived session or its rrSeries missing",
+     "effect": "`?? []` → clipped empty → <30 → treated as too-short, marked reviewed, nothing changed"
+    },
+    {
+     "at": "+3",
+     "cond": "clipped.count >= 30",
+     "effect": "re-finalizes; otherwise marks reviewed, clears card, returns"
+    },
+    {
+     "at": "+17",
+     "cond": "WorkoutRecoveryService.recover returned non-nil",
+     "effect": "notifies archive signal; on nil (failed re-finalize) still marks reviewed and clears the card"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "When WorkoutRecoveryService.recover fails, the user's trim is not applied but the session is marked reviewed and the card dismissed with no error, so the over-long workout stays and the card never returns for it.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:195",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:196",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:197"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.markRecoveredWorkoutReviewed(_:)": "b9582b0f35d8e332",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.discardRecoveredWorkout(sessionId:)",
+   "hash": "c7ee0e5f9a0afe16",
+   "does": "Review card Discard: deletes the archived recovered workout (failure logged via attempt), bumps archive signal, marks it reviewed and clears the card; raw backup kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.markRecoveredWorkoutReviewed(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session (moved to trash)",
+    "mem:ArchiveSignal.version",
+    "ud:reviewedRecoveredWorkoutIds",
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A failed delete is only logged by attempt(); the card is dismissed and the session marked reviewed, so the rejected workout stays visible with no feedback (the comment at :206-209 acknowledges this).",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:210",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:212"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.markRecoveredWorkoutReviewed(_:)": "b9582b0f35d8e332",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverRouteFromAppleWatch(sessionId:)",
+   "hash": "b712dad7b449ae10",
+   "does": "Recovers a crash-shortened workout's route/distance from Apple Health: first a Watch workout GPS route (>=2 points) re-finalized through WorkoutRecoveryService; else HealthKit passive walking/running distance if it beats the recorded distance by >50 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutRoute(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchPassiveDistanceMeters(from:to:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkout(sessionId:points:track:distanceMeters:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "archive:session",
+    "hk:HKWorkoutRoute",
+    "hk:distanceWalkingRunning"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session or its rrSeries missing",
+     "effect": "returns .failed"
+    },
+    {
+     "at": "+3",
+     "cond": "session.endDate nil",
+     "effect": "end = start (zero-length window)"
+    },
+    {
+     "at": "+4",
+     "cond": "HealthKit route exists with >=2 locations AND recoverWorkout with that track succeeds",
+     "effect": "notifies and returns .recovered; otherwise falls to passive distance"
+    },
+    {
+     "at": "+7",
+     "cond": "recovered workoutMetadata.distanceMeters nil",
+     "effect": "reports 0 m"
+    },
+    {
+     "at": "+11",
+     "cond": "hkDistance > recorded distance (nil→0) + 50 m AND recoverWorkout with that distance succeeds",
+     "effect": "rewrites; otherwise returns .noRoute (also when the rewrite itself failed)"
+    },
+    {
+     "at": "+15",
+     "cond": "recovered distanceMeters nil",
+     "effect": "reports hkDistance"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "A WorkoutRecoveryService failure on the distance-only rewrite returns .noRoute, so the UI reports 'no route' instead of a failure; .failed is only returned when the archive lacks the session.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:243",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:244"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchPassiveDistanceMeters(from:to:)": "1ad16201a52b1038",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutRoute(from:to:)": "1a1ed1ef0264957f",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "8f75d0f668a5ee7f",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkout(sessionId:points:track:distanceMeters:)": "871143ad0b66fd86",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverWorkout(sessionId:points:track:distanceMeters:)",
+   "hash": "c8ae00ebaae30979",
+   "does": "Calls WorkoutRecoveryService.recover with the given RR points and either an override GPS track (discarding backups) or an override distance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session file+index",
+    "file:WorkoutTrackBackup (discarded when track given)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.augmentWorkoutFromStrap(sessionId:)",
+   "hash": "adcfa115825bf62e",
+   "does": "'Recover session' for an archived workout: with the strap connected, downloads its recording of this session, merges it with the archived RR (SessionRecoveryMath.mergedWorkoutPoints), re-finalizes with auto-trim and returns duration/beat count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "archive:session",
+    "ble:H10 recording"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strap connectionState != .connected",
+     "effect": "returns .notConnected"
+    },
+    {
+     "at": "+2",
+     "cond": "archived session not found",
+     "effect": "returns .failed"
+    },
+    {
+     "at": "+5",
+     "cond": "strap download produced no points",
+     "effect": "returns .noStrapData"
+    },
+    {
+     "at": "+7",
+     "cond": "archived session has no rrSeries",
+     "effect": "merges against [] (strap-only)"
+    },
+    {
+     "at": "+10",
+     "cond": "WorkoutRecoveryService.recover returned nil",
+     "effect": "returns .failed"
+    },
+    {
+     "at": "+16",
+     "cond": "recovered endDate nil",
+     "effect": "duration computed from startDate → 0"
+    },
+    {
+     "at": "+17",
+     "cond": "recovered rrSeries nil",
+     "effect": "beat count falls back to merged.count"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "pullStrapRecording refuses whenever strapRecordingBelongsToLiveSession, which is true whenever the strap reports isRecordingOnDevice (mirrored into collector.isCollecting), so a recording still running on the strap is never merged and the user gets .noStrapData.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:383",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "3a953dc1a2898102",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a1112e92280ca01d",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)",
+   "hash": "5cd411324b584719",
+   "does": "'Pull from strap & re-merge' for an overnight scored from the stream: unless already device/composite-sourced, reconnects, downloads the strap's recording of this night, merges via DataSourceSelector (device preferred), persists the merged series + provenance, then re-scores through reanalyzeSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.reconnectStrapForAugment()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.overnightMergePoints(selection:existing:strapRR:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)"
+   ],
+   "reads": [
+    "archive:session",
+    "ble:H10 recording"
+   ],
+   "writes": [
+    "archive:session file+index"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archived session not found",
+     "effect": "returns .failed"
+    },
+    {
+     "at": "+3",
+     "cond": "dataSourceSummary.selectedSource is 'internal' or 'composite'",
+     "effect": "returns .alreadyMerged; otherwise proceeds"
+    },
+    {
+     "at": "+6",
+     "cond": "reconnectStrapForAugment returned false",
+     "effect": "returns .notReachable"
+    },
+    {
+     "at": "+8",
+     "cond": "strap download empty",
+     "effect": "returns .noStrapData (also when refused because the strap's recording is considered live, see pullStrapRecording)"
+    },
+    {
+     "at": "+9",
+     "cond": "session has no rrSeries",
+     "effect": "existing = [] and strap points alone go to the selector"
+    },
+    {
+     "at": "+14",
+     "cond": "merge points nil (selector chose nothing useful) or archiving the merged session failed",
+     "effect": "returns .failed; otherwise rescoreAugmentedOvernight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.overnightMergePoints(selection:existing:strapRR:)": "d41a02934fff47cc",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)": "13c301325c7b3eb2",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "3a953dc1a2898102",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.reconnectStrapForAugment()": "c4eccdc369ee9cc9",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)": "9a3b997557495a85",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.overnightMergePoints(selection:existing:strapRR:)",
+   "hash": "73231e797a34870f",
+   "does": "Chooses the points to persist: the selector's points when it returned any (nil if empty), otherwise the strap's when they outnumber the archived stream, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "selection has points (selection?.points non-nil)",
+     "effect": "returns them, or nil when that array is empty; selection nil → next rule"
+    },
+    {
+     "at": "+4",
+     "cond": "strapRR.count > existing.count",
+     "effect": "returns strapRR; otherwise nil (no merge reported)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)",
+   "hash": "60cdca47239e84e6",
+   "does": "Re-scores the merged overnight via collector.reanalyzeSession (which reloads from disk and re-archives), bumps the archive signal and returns .merged with source, beat count and recovery score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "archive:session"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "reanalyzeSession returned nil",
+     "effect": "uses the persisted-but-unrescored session for the result (score may be the old stream score)"
+    },
+    {
+     "at": "+4",
+     "cond": "final session rrSeries nil",
+     "effect": "beat count 0"
+    },
+    {
+     "at": "+5",
+     "cond": "dataSourceSummary/selectedSource nil (log only)",
+     "effect": "logs '?'"
+    },
+    {
+     "at": "+7",
+     "cond": "selectedSource nil",
+     "effect": "reports 'internal'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A failed reanalysis still returns .merged with the pre-merge recoveryScore, so the UI reports a successful re-merge whose score was not recomputed.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:352",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:354",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:360"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "4fa12f1dba8fbc1e",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.reconnectStrapForAugment()",
+   "hash": "22e9846c7a1d735a",
+   "does": "Begins a strap transfer (BLE hold) and reconnects for it; returns whether the reconnect succeeded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:connection"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.pullStrapRecording(for:)",
+   "hash": "89289dc0cb469ee0",
+   "does": "Downloads the strap recording that belongs to an archived session (started during it), placed on the session's clock; refuses while a live session owns the strap; a downloaded recording dated outside the session (or undated) is handed to the rescue backup instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+    "closure:PolarManager.onUnrecoveredDataRescued, set by RRCollector.setupDataRescueCallback → backUpRescuedRecording",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)"
+   ],
+   "reads": [
+    "mem:PolarManager.storedExerciseDate",
+    "mem:PolarManager.isRecordingOnDevice",
+    "ble:H10 recording"
+   ],
+   "writes": [
+    "file:RawRRBackup (rescue backup via callback)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.endDate nil",
+     "effect": "end = startDate"
+    },
+    {
+     "at": "+3",
+     "cond": "strap reports a storedExerciseDate",
+     "effect": "storedIsThisSession = policy says it belongs to this session AND it began <= end; nil date → false"
+    },
+    {
+     "at": "+8",
+     "cond": "no live session owns the strap AND (strap is recording OR stored exercise is this session's)",
+     "effect": "proceeds to download; otherwise logs and returns []"
+    },
+    {
+     "at": "+12",
+     "cond": "fetchRecordingIfAvailable returned nil",
+     "effect": "returns []"
+    },
+    {
+     "at": "+13",
+     "cond": "downloaded recording has a start date <= session end",
+     "effect": "returns its points on the session clock; otherwise (nil start or later start) rescues it via onUnrecoveredDataRescued and returns []"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Whether a still-running strap recording can be pulled depends on which writer last set collector.isCollecting: the binding sets it to isRecordingOnDevice, which makes strapRecordingBelongsToLiveSession true and refuses the pull, while a later morning/stream stop resets it to false and allows it.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:383",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50",
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "8f75d0f668a5ee7f",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "0f8299a4d2e9da82",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "560f6c23efe28ae7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)",
+   "hash": "6528df0eeae5cd34",
+   "does": "Writes the merged RR series and a new DataSourceSummary (selector's normalized source or 'internal', streamed/device/total beats, kept reconnectCount and deviceModel) into the archived session before re-analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session file+index",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selection nil",
+     "effect": "selectedSource 'internal'"
+    },
+    {
+     "at": "+12",
+     "cond": "existing dataSourceSummary nil",
+     "effect": "reconnectCount 0, deviceModel nil"
+    },
+    {
+     "at": "+18",
+     "cond": "archive.archive throws",
+     "effect": "logs and returns nil (caller returns .failed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "31c50995ae40ae2b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.markRecoveredWorkoutReviewed(_:)",
+   "hash": "82aa2f6a29fbc160",
+   "does": "Appends a session id to the UserDefaults list of reviewed recovered workouts (dedup, keep last 50).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:reviewedRecoveredWorkoutIds"
+   ],
+   "writes": [
+    "ud:reviewedRecoveredWorkoutIds"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key absent",
+     "effect": "starts from []"
+    },
+    {
+     "at": "+2",
+     "cond": "id already present",
+     "effect": "returns without writing"
+    },
+    {
+     "at": "+4",
+     "cond": "list longer than 50",
+     "effect": "trims to the newest 50"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.surfaceExistingRecoveredWorkoutForReview()",
+   "hash": "792a2b7baecb9196",
+   "does": "At launch, surfaces the review/trim card for the newest archived workout from the last 48 h that carries a partialDataReason and has not been reviewed; no-op if a card is already showing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)"
+   ],
+   "reads": [
+    "mem:MorningCoordination.recoveredWorkoutReview",
+    "ud:reviewedRecoveredWorkoutIds",
+    "archive:entries",
+    "archive:session"
+   ],
+   "writes": [
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a review card is already set",
+     "effect": "returns"
+    },
+    {
+     "at": "+2",
+     "cond": "reviewed key absent",
+     "effect": "empty set"
+    },
+    {
+     "at": "+7",
+     "cond": "for each candidate workout entry, newest first",
+     "effect": "iterates until one qualifies"
+    },
+    {
+     "at": "+8",
+     "cond": "entry id is in the reviewed set",
+     "effect": "skips it"
+    },
+    {
+     "at": "+9",
+     "cond": "session loads and has workoutMetadata.partialDataReason",
+     "effect": "sets card and breaks; otherwise continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)": "8f3f1b91c9ba0416",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()",
+   "hash": "27b5345f20fbf0f8",
+   "does": "Resolves the interrupted workout to recover: the persisted crash flag if it is a non-live, un-archived workout; else (off-main) the newest un-archived, un-deleted workout backup indexed and captured in the last 24 h that is not live.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func unrecoveredBackupIds(since:archive:rawBackup:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func newestWorkoutBackup(among:in:capturedSince:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "archive:entries",
+    "archive:deletedIds",
+    "file:RawRRBackup index+files",
+    "file:WorkoutTrackBackup"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "persisted state exists, is a workout, not live, and not archived",
+     "effect": "returns its id; otherwise scans backups in a detached task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "6ad787f5dcecface",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func newestWorkoutBackup(among:in:capturedSince:)": "f6913e963d4ac01d",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func unrecoveredBackupIds(since:archive:rawBackup:)": "926aeac0e6c6e2e6",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverInterruptedWorkoutFromStrap()",
+   "hash": "fd72d34c521fbec0",
+   "does": "Manual 'Recover workout from strap' card: finds the interrupted workout, rebuilds it via recoverWorkoutFromBackup (strap-first), and clears the crash flag if it named that session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no interrupted workout found",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "recovery produced a session",
+     "effect": "clears the persisted flag if it names this id; nil leaves it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)": "7b35187795b62fcc",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()": "a0ae5beeb7837228",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)": "8fc20d6346709b6a"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)",
+   "hash": "46c6e24e84927fe7",
+   "does": "Clears the persisted recording state only when it names the given session id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "persisted state's sessionId == sessionId",
+     "effect": "clears; otherwise returns leaving it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.autoRecoverInterruptedWorkoutOnLaunch()",
+   "hash": "c987684a2884073c",
+   "does": "Launch auto-recovery of a crashed workout: finds it, counts the attempt (max 3), registers it as running, requires the strap reachable and still recording, bails if a different recording has since started, then rebuilds via recoverWorkoutFromBackup and on success clears the flag and attempt counter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func recordAutoRecoveryAttempt(sessionId:attemptKey:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.begin(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapReadyForAutoRecovery()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)"
+   ],
+   "reads": [
+    "ud:autoRecoverAttempts_<id>",
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [
+    "ud:autoRecoverAttempts_<id>",
+    "mem:InterruptedWorkoutAutoRecovery.running",
+    "archive:session file+index",
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no interrupted workout",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "attempt budget exhausted (>=3)",
+     "effect": "returns without recovering"
+    },
+    {
+     "at": "+6",
+     "cond": "strap not reachable or not recording on device",
+     "effect": "logs and returns (flag left for manual card); attempt already counted"
+    },
+    {
+     "at": "+13",
+     "cond": "persisted state now names a different session",
+     "effect": "returns (a new recording started)"
+    },
+    {
+     "at": "+17",
+     "cond": "recoverWorkoutFromBackup returned nil",
+     "effect": "returns leaving flag and counter; otherwise clears both"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The attempt is counted before the strap check, so three launches without the strap in range permanently disable auto-recovery for that workout; the counter is documented as a guard against memory-kill relaunch loops only.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:520",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:523",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:816"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "race",
+     "sev": "med",
+     "text": "InterruptedWorkoutAutoRecovery.begin runs only after the awaited detached backup scan and attempt bookkeeping; AppLaunchRecovery.savedByAutoRecovery calls waitUntilDone, which returns immediately while the id is not yet registered, so the launch alert can rebuild the same workout alongside auto-recovery.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:518",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:521",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:846",
+      "Emuqu/Sources/Services/AppLaunchRecovery.swift:141"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "high",
+     "text": "It requires the strap to still be recording (line 549) and then calls recoverWorkoutFromBackup, whose strap pull refuses because that same recording sets collector.isCollecting (strapRecordingBelongsToLiveSession); it archives the disk-only workout and logs 'merged strap + streamed'.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:549",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:157",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:537",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.begin(_:)": "a98376ad217760b1",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "8f75d0f668a5ee7f",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)": "7b35187795b62fcc",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()": "a0ae5beeb7837228",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)": "8fc20d6346709b6a",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapReadyForAutoRecovery()": "65ef86feefce7445",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func recordAutoRecoveryAttempt(sessionId:attemptKey:)": "29d080801f9eb1fd",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.strapReadyForAutoRecovery()",
+   "hash": "bff00a2590ee2cae",
+   "does": "Begins a transfer, reconnects, refreshes the strap's recording status within the feature-ready window and returns whether it is still recording on device.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)"
+   ],
+   "reads": [
+    "ble:H10 recording status",
+    "mem:PolarManager.isRecordingOnDevice"
+   ],
+   "writes": [
+    "mem:PolarManager.isRecordingOnDevice"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "reconnectForTransfer failed",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "6abe502b8835f3db"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.recoverToPausedState(_:sessionType:)",
+   "hash": "b93f2dc44ad13719",
+   "does": "Launch recovery of an interrupted overnight into a resumable paused state: SessionRecoveryService rebuilds/analyses from backup and archives it paused; then the collector enters paused state, the paused-session marker is persisted and the recording marker cleared.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:window:flags:peakCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:peakCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.enterPausedState(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.persistPausedSessionState(sessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "closure:analyze/analyzeWithCapacity closures passed to SessionRecoveryService"
+   ],
+   "reads": [
+    "file:RawRRBackup"
+   ],
+   "writes": [
+    "archive:session (paused)",
+    "ud:paused session state",
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "mem:SessionState",
+    "mem:StreamingLifecycle"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "service returned nil (no backup or archive failed)",
+     "effect": "returns false; otherwise true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.enterPausedState(_:)": "8180f97679d86c76",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "13bc57053cf73f87",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:peakCapacity:)": "403f595112954b34",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.analyze(_:window:flags:peakCapacity:)": "26c146f3c21d0e58",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "ff65d21f5c654561",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.persistPausedSessionState(sessionId:)": "fb78473f5d60aa9d",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)": "d49dd27c87dbb5e8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.enterPausedState(_:)",
+   "hash": "b58f919fe7d57040",
+   "does": "Main-actor: publishes a recovered paused session as current and paused (beat count, isPaused, phase .paused, needsAcceptance false) and bumps the archive signal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionState.currentSession",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:StreamingLifecycle.pausedBeatCount",
+    "mem:StreamingLifecycle.isPaused",
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.needsAcceptance",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session rrSeries nil",
+     "effect": "pausedBeatCount 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "56176d78ce5cfd35",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.mergedRepairPoints(childSeries:parentSeries:childStartDate:parentStartDate:parentBeatCount:isV5Corrupted:idPrefix:)",
+   "hash": "33340d09cacd0de1",
+   "does": "Pure: rebuilds a child night's beats appended to the parent's, shifted by max(parent duration, wall-clock gap between starts); for v5-corrupted children only the tail after parentBeatCount is taken.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "isV5Corrupted",
+     "effect": "takes childSeries.points.suffix(from: parentBeatCount); otherwise all child points"
+    },
+    {
+     "at": "+16",
+     "cond": "parent last point endMs/t_ms nil (empty parent)",
+     "effect": "parentDurationMs falls to t_ms then 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.repairMergeDataLoss()",
+   "hash": "3710730be2822f88",
+   "does": "One-time migration body: walks linked overnight sessions, repairing each whose merge was lost; bumps the archive signal if any repaired; returns the count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.linkedOvernightEntries()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairLinkedSession(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "ck:session records",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no linked overnight entries",
+     "effect": "returns 0"
+    },
+    {
+     "at": "+8",
+     "cond": "loop over linked entries",
+     "effect": "repairs each"
+    },
+    {
+     "at": "+9",
+     "cond": "Task.isCancelled",
+     "effect": "breaks early"
+    },
+    {
+     "at": "+13",
+     "cond": "repairLinkedSession wrote a repair",
+     "effect": "increments count"
+    },
+    {
+     "at": "+15",
+     "cond": "repairedCount > 0",
+     "effect": "notifies archive signal"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The only caller starts this in a Task.detached whose handle is discarded (RRCollector+Bindings.swift:391), so nothing cancels it and the Task.isCancelled branch never runs; the doc's 'aborts the migration on app termination or a shutdown signal' is not implemented.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:636",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:625",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:391"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.linkedOvernightEntries()": "bcb72f9319f0eef8",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairLinkedSession(_:)": "78801063fc03f267",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.linkedOvernightEntries()",
+   "hash": "2cc35a271469206f",
+   "does": "Reads archive entries on the main actor and returns the overnight ones with a non-empty linkedSessionIds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "linkedSessionIds nil",
+     "effect": "`?? true` treats it as empty (excluded)"
+    },
+    {
+     "at": "+7",
+     "cond": "no linked entries",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.repairLinkedSession(_:)",
+   "hash": "6b43db0aab217bb0",
+   "does": "Loads a linked child and its first parent, computes MergeDamage, builds repaired points and rebuilds/archives; returns whether a repair was written.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergeDamage(session:parent:childSeries:parentSeries:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::var SessionRecoveryCoordinator.MergeDamage.needsRepair",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairedPoints(entry:session:parent:childSeries:parentSeries:damage:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rebuildAndArchive(session:parent:mergedPoints:)"
+   ],
+   "reads": [
+    "archive:session"
+   ],
+   "writes": [
+    "archive:session file+index"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry has no first linked id",
+     "effect": "returns false"
+    },
+    {
+     "at": "+3",
+     "cond": "child or parent fails to load, or either has an empty/nil rrSeries",
+     "effect": "returns false"
+    },
+    {
+     "at": "+9",
+     "cond": "no damage",
+     "effect": "returns false"
+    },
+    {
+     "at": "+10",
+     "cond": "repairedPoints nil (beat-count ceiling)",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergeDamage(session:parent:childSeries:parentSeries:)": "7787423409cb44a1",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rebuildAndArchive(session:parent:mergedPoints:)": "1fa0f099e6a1f4a4",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairedPoints(entry:session:parent:childSeries:parentSeries:damage:)": "844a1956291f8fdf",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::var SessionRecoveryCoordinator.MergeDamage.needsRepair": "593dc85ebca032c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "var SessionRecoveryCoordinator.MergeDamage.needsRepair",
+   "hash": "bb1462db4d805318",
+   "does": "True when any of needsMerge, isV5Corrupted, summaryStale, startDateWrong is set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.mergeDamage(session:parent:childSeries:parentSeries:)",
+   "hash": "2c2032671ed81ceb",
+   "does": "Pure: classifies a linked child: needsMerge when child beats <= parent beats, v5 corruption via SessionRecoveryMath, summaryStale when dataSourceSummary.totalBeats != child beats, startDateWrong when child start is >30 min after parent start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "dataSourceSummary nil",
+     "effect": "summaryStale false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.totalBeats": "01275005edfa9f2e"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.repairedPoints(entry:session:parent:childSeries:parentSeries:damage:)",
+   "hash": "1a8b403f7ce28d5f",
+   "does": "Pure: repaired beat series — merged parent+child (mergedRepairPoints) when a merge or v5 fix is needed, else the child as-is; nil if the result exceeds 2x(parent+child) beats or 200,000 beats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergedRepairPoints(childSeries:parentSeries:childStartDate:parentStartDate:parentBeatCount:isV5Corrupted:idPrefix:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "needsMerge or isV5Corrupted",
+     "effect": "merges; otherwise keeps child points (re-analysis only)"
+    },
+    {
+     "at": "+18",
+     "cond": "merged count within both ceilings",
+     "effect": "returns it; otherwise logs and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergedRepairPoints(childSeries:parentSeries:childStartDate:parentStartDate:parentBeatCount:isV5Corrupted:idPrefix:)": "b0139bf1788b9760",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.rebuildAndArchive(session:parent:mergedPoints:)",
+   "hash": "08789ed6e24a4e6e",
+   "does": "Rebuilds the repaired overnight through the morning pipeline (anchored to the parent's start, background-refinement mode), carries user edits over, then archives and re-uploads.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.carryUserEdits(from:to:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.archiveRepaired(_:originalId:beatCount:)"
+   ],
+   "reads": [
+    "hk:sleep (via pipeline)"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "ck:session record"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "child endDate nil",
+     "effect": "uses Date() (now) as end"
+    },
+    {
+     "at": "+10",
+     "cond": "dataSourceSummary/selectedSource nil",
+     "effect": "dataSource 'streaming'"
+    },
+    {
+     "at": "+11",
+     "cond": "reconnectCount nil",
+     "effect": "0"
+    },
+    {
+     "at": "+12",
+     "cond": "streamingBeats nil",
+     "effect": "0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A child with nil endDate is rebuilt ending at the migration's run time, which can be days after the night, stretching the session duration used for sleep/window selection.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:738"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.archiveRepaired(_:originalId:beatCount:)": "b47eddc9ad18aeac",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.carryUserEdits(from:to:)": "51f9ea6035ced274",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "1abdec3bff1dd1a9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.carryUserEdits(from:to:)",
+   "hash": "09340ccaa8d1d765",
+   "does": "Copies tags, notes, sleepUserAdjusted and (when the rebuild has none) vitalsSnapshot from the old session to the repaired one.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "repaired has no vitalsSnapshot and old has one",
+     "effect": "copies old vitals; otherwise keeps repaired's"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.archiveRepaired(_:originalId:beatCount:)",
+   "hash": "307080b0dfdf4799",
+   "does": "Archives the repaired session on the main actor and fires a force re-upload to iCloud; returns success.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session file+index",
+    "ck:session record",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "recoveryScore nil (log only)",
+     "effect": "logs 'nil'"
+    },
+    {
+     "at": "+11",
+     "cond": "archive throws",
+     "effect": "logs error and returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "6b4063eff71143a9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func unrecoveredBackupIds(since:archive:rawBackup:)",
+   "hash": "08c333344ca1dc5a",
+   "does": "File-scope: backup ids indexed since cutoff that are neither archived nor deleted and are still flagged un-archived in RawRRBackup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:deletedIds",
+    "file:RawRRBackup index"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "e91f888d6e501c65",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.sessionIds(indexedSince:)": "9881e57fec097721",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds": "f5177c422b9377dc"
+   }
+  },
+  {
+   "key": "func newestWorkoutBackup(among:in:capturedSince:)",
+   "hash": "9c2fa8b1ed689a26",
+   "does": "File-scope: among candidate ids, the newest backup that decodes, was captured since cutoff and has a WorkoutTrackBackup; nil if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.readableBackup(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)"
+   ],
+   "reads": [
+    "file:RawRRBackup files",
+    "file:WorkoutTrackBackup"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.readableBackup(_:)": "a1410d0f1b372c99",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func recordAutoRecoveryAttempt(sessionId:attemptKey:)",
+   "hash": "e9ee3c6d333a7e89",
+   "does": "File-scope main-actor: reads the per-session auto-recovery attempt count; under 3 increments it and returns true, otherwise logs and returns false.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:autoRecoverAttempts_<id>"
+   ],
+   "writes": [
+    "ud:autoRecoverAttempts_<id>"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "attempts >= 3",
+     "effect": "returns false without writing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Per-session keys 'autoRecoverAttempts_<uuid>' are removed only on successful recovery, so failed sessions leave keys in standard UserDefaults indefinitely.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:519",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:536",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:828"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func InterruptedWorkoutAutoRecovery.begin(_:)",
+   "hash": "62385f82389fd4ba",
+   "does": "Inserts a session id into the locked running set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:InterruptedWorkoutAutoRecovery.running"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func InterruptedWorkoutAutoRecovery.end(_:)",
+   "hash": "1ba1a6268a6d20c1",
+   "does": "Removes a session id from the locked running set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:InterruptedWorkoutAutoRecovery.running"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func InterruptedWorkoutAutoRecovery.isRunning(_:)",
+   "hash": "5294c60aa8908e91",
+   "does": "Returns whether the id is in the locked running set.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:InterruptedWorkoutAutoRecovery.running"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)",
+   "hash": "e313b1f3f695bd0d",
+   "does": "Polls isRunning every 0.5 s until the id is no longer running or `limit` (default 150 s) passes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.isRunning(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [
+    "mem:InterruptedWorkoutAutoRecovery.running"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id still running and deadline not reached",
+     "effect": "sleeps 0.5 s and re-checks; otherwise returns (also immediately if never registered)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.isRunning(_:)": "9306d292c3a6336e",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  }
+ ],
+ "deps": {}
+}

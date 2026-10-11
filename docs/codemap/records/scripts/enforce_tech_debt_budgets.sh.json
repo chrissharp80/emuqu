@@ -1,0 +1,83 @@
+{
+ "file": "scripts/enforce_tech_debt_budgets.sh",
+ "hash": "3cde2c4c272c2311",
+ "role": "CI gate (make debt-budget; ci.yml, gates.yml) counting `.shared` uses, `try?` uses, `try?` on write-shaped lines, Swift files >= 1500 lines, and `ObservableObject` mentions under $1 (default Emuqu), each against a ratchet budget file.",
+ "types": [],
+ "state": [
+  "file:.ci/shared_usage_budget.txt",
+  "file:.ci/try_optional_budget.txt",
+  "file:.ci/large_swift_files_1500_budget.txt",
+  "file:.ci/legacy_observable_object_budget.txt",
+  "file:.ci/try_optional_write_budget.txt",
+  "env:LARGE_FILE_THRESHOLD (1500)",
+  "env:GITHUB_STEP_SUMMARY (append)"
+ ],
+ "toplevel": "set -euo pipefail; no cd. Reads five budgets via read_budget (no integer validation; a non-integer makes the later (( )) arithmetic error under set -e). Write-path count (python): lines not starting with `//` (trailing and block comments still counted) matching `try?` followed on the same line by a call whose name starts write/save/persist/encode/store/setValue/setAttributes/setResourceValue/create/remove/delete/move/copy, or `.archive(`/`.flush(`/`.commit(`, case-insensitive. Main counts (python): block and line comments blanked, then platform singletons (URLSession, UIApplication, MXMetricManager, AVAudioApplication, WidgetCenter, AppTransaction, AVAudioSession, FileManager, NotificationCenter, UNUserNotificationCenter, WCSession, HKHealthStore `.shared`) blanked; counts `\\.shared\\b`, keyword `try?`, `\\bObservableObject\\b`. Large files: wc -l per file via xargs, rows with $2 == 'total' excluded. Builds summary; note_slack adds SLACK lines when below budget (advisory only); each count > budget adds FAIL and sets failed. Prints summary, appends to GITHUB_STEP_SUMMARY, exits 1 if any FAIL.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn read_budget",
+   "hash": "67b532fe8c3b0fe3",
+   "does": "Reads budget file $1: exit 66 if missing, strips whitespace, exit 65 if empty, echoes value (not validated as an integer).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:.ci/*_budget.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "stderr, exit 66 (terminates script via set -e on the $( ) assignment)"
+    },
+    {
+     "at": "+8",
+     "cond": "value empty after whitespace strip",
+     "effect": "stderr, exit 65; otherwise echo the value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn note_slack",
+   "hash": "b7485e9cea5779f7",
+   "does": "Appends a '- SLACK: <label> is <count> against a budget of <budget>; lower <file> ...' line to slack_lines when count < budget; never fails the run.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "count < budget",
+     "effect": "append SLACK line; otherwise nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Slack is only printed, never failed: at 8d32097 .shared measures 83 against a budget of 90 and try? measures 139 against 170 (script run output), so 7 new .shared reads and 31 new swallowed `try?` errors pass the gate green. The ratchet invariant quoted in the comment ('every budget currently sits exactly at its measured value', from check_budget_monotonicity.sh:8) is false today.",
+     "evidence": [
+      "scripts/enforce_tech_debt_budgets.sh:181",
+      "scripts/enforce_tech_debt_budgets.sh:194",
+      "scripts/enforce_tech_debt_budgets.sh:199",
+      "scripts/enforce_tech_debt_budgets.sh:176",
+      ".ci/shared_usage_budget.txt",
+      ".ci/try_optional_budget.txt",
+      "scripts/check_budget_monotonicity.sh:8"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
+  "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "2baf052b5b2b1f95",
+  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+ }
+}

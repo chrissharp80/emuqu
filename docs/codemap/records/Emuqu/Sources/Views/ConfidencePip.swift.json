@@ -1,0 +1,208 @@
+{
+ "file": "Emuqu/Sources/Views/ConfidencePip.swift",
+ "hash": "0f5e0c721a2bc1b3",
+ "role": "Small tappable baseline-maturity indicator (●○○/●●○/●●● + label) with a popover explaining the building/provisional/full stages.",
+ "types": [
+  "ConfidencePip: struct View — maturity pip"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Labels hard-code '/14' and '/28' instead of ScoreAppearancePolicy.scoreShownNights / fullBaselineNights that decide the stage, so changing the policy constants leaves wrong denominators.",
+   "evidence": [
+    "Emuqu/Sources/Views/ConfidencePip.swift:37",
+    "Emuqu/Sources/Views/ConfidencePip.swift:39",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:335",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:337"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ConfidencePip.stage",
+   "hash": "c8d4d007eda70633",
+   "does": "Stage from ScoreAppearancePolicy.stage(baselineNights: daysCollected).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.stage(baselineNights:)": "ea31274f980b20bf"
+   }
+  },
+  {
+   "key": "var ConfidencePip.pipDots",
+   "hash": "5a152610594361b1",
+   "does": "Dot glyphs for the stage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .building",
+     "effect": "●○○"
+    },
+    {
+     "at": "+3",
+     "cond": "case .provisional",
+     "effect": "●●○"
+    },
+    {
+     "at": "+4",
+     "cond": "case .full",
+     "effect": "●●●"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage": "f8d4d9ff30f2e60b"
+   }
+  },
+  {
+   "key": "var ConfidencePip.labelText",
+   "hash": "119fd1fbf5a07cac",
+   "does": "Localized label for the stage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .building",
+     "effect": "'Building baseline (n/14)'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .provisional",
+     "effect": "'Provisional baseline (n/28)'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .full",
+     "effect": "'Full algorithm'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage": "f8d4d9ff30f2e60b"
+   }
+  },
+  {
+   "key": "var ConfidencePip.explanationText",
+   "hash": "baf97bfb4a54dfb6",
+   "does": "Localized popover explanation for the stage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .building",
+     "effect": "general thresholds for two nights then cautious personal baseline"
+    },
+    {
+     "at": "+4",
+     "cond": "case .provisional",
+     "effect": "z-scoring active, baseline maturing"
+    },
+    {
+     "at": "+6",
+     "cond": "case .full",
+     "effect": "baseline in place, grows to 60 nights"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage": "f8d4d9ff30f2e60b"
+   }
+  },
+  {
+   "key": "var ConfidencePip.body",
+   "hash": "e9cd4fb94457e0ba",
+   "does": "Plain button toggling a popover with the explanation; accessibility label = labelText with hint.",
+   "entry": "SwiftUI body; button tap toggles explanationVisible. Used in DashboardV2View+Cards.swift:368/391 and RecoveryScoreDetailView.swift:278.",
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.bodyLabel",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.labelText",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.explanationText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.bodyLabel": "f61965accf73d354",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.explanationText": "d433b4f94185e524",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.labelText": "ef0f49f33a33a961"
+   }
+  },
+  {
+   "key": "var ConfidencePip.bodyLabel",
+   "hash": "16b6cd48c0ecd578",
+   "does": "HStack of dots and caption label with 44 pt minimum height hit area.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.dots",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.labelText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.dots": "d1024fc02e93fdbb",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.labelText": "ef0f49f33a33a961",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ConfidencePip.dots",
+   "hash": "63ca6a4490ebf6c2",
+   "does": "Monospaced dot glyphs, sage when full else soft gold, hidden from VoiceOver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.pipDots",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stage == .full",
+     "effect": "sage colour; otherwise soft gold"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.pipDots": "6c0a2451947495d9",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage": "f8d4d9ff30f2e60b"
+   }
+  }
+ ],
+ "deps": {}
+}

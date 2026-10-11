@@ -1,0 +1,263 @@
+{
+ "file": "Emuqu/Sources/Analysis/DFAAnalysis.swift",
+ "hash": "13a91598b63d4b00",
+ "role": "Detrended Fluctuation Analysis: computes DFA alpha1 (box sizes 4-16) and alpha2 (16-64) with R² from clean RR intervals, using log-spaced box sizes and per-box least-squares detrending.",
+ "types": [
+  "DFAAnalyzer: enum — namespace for DFA computation",
+  "DFAAnalyzer.DFAResult: struct — alpha1, alpha2?, alpha1R2, alpha2R2?"
+ ],
+ "state": [],
+ "toplevel": "No stored state. Box-size defaults come from HRVConstants.DFA (Utilities/Constants.swift:185-188); alpha2 additionally needs HRVConstants.MinimumBeats.forDFA = 256 beats (Constants.swift:163).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+   "hash": "4dcdc17840c94db8",
+   "does": "Returns DFAResult for >=64 RR intervals: integrates the series, builds log-spaced box sizes for alpha1 (4..min(16,n/4)) and alpha2 (16..min(64,n/4)), regresses log F(n) on log n for alpha1, and adds alpha2 only when alpha2Exponent allows; nil when fewer than 64 beats or fewer than 3 alpha1 box sizes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "rr.count >= 64 (alpha2ScaleMax)",
+     "effect": "false: returns nil; true: continues"
+    },
+    {
+     "at": "+14",
+     "cond": "alpha1Sizes.count >= 3",
+     "effect": "false: returns nil; true: computes alpha1. With default ranges and n>=64, maxBox>=16 so sizes 4..16 always give >=3 entries; only a custom alpha1Range (test DFAAnalysisTests.swift:139) can hit false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "With the default alpha1 range the alpha1Sizes.count >= 3 guard can never fail because the earlier rr.count >= 64 guard makes maxBox >= 16; only the test's custom range exercises it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:34",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:40",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:43",
+      "EmuquTests/DFAAnalysisTests.swift:139"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.integratedSeries(_:)",
+   "hash": "24214c92114a2901",
+   "does": "Cumulative sum of (rr - mean) using vDSP mean: the DFA integrated profile.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each beat",
+     "effect": "accumulates deviation into integrated[i]; empty input yields []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+   "hash": "26b2ffc77a302e7a",
+   "does": "Alpha2 exponent and R²: nil unless there are >=3 alpha2 box sizes and >=256 beats; otherwise log-log regression over those sizes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "alpha2Sizes.count >= 3 && beatCount >= 256",
+     "effect": "false: returns nil (DFAResult.alpha2/alpha2R2 nil); true: returns (slope, r2)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
+   "hash": "884d6498cc63c070",
+   "does": "Integer box sizes from lower to upper spaced by ratio 2^(1/8), deduplicated after rounding, with upper appended if missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "upper >= lower",
+     "effect": "false: returns []; true: generates sizes"
+    },
+    {
+     "at": "+5",
+     "cond": "while round(current) <= upper",
+     "effect": "loops multiplying by 2^(1/8)"
+    },
+    {
+     "at": "+7",
+     "cond": "rounded differs from last size",
+     "effect": "true: appends; false: skips duplicate"
+    },
+    {
+     "at": "+13",
+     "cond": "last size != upper",
+     "effect": "true: appends upper so the range end is always included; false: unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+   "hash": "a35cb8c1090bb566",
+   "does": "RMS fluctuation F(n): splits the integrated profile into non-overlapping boxes of boxSize, sums detrended squared residuals, returns sqrt(total / (boxes*boxSize)); trailing remainder beats are dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "numBoxes > 0",
+     "effect": "false: returns 0 (later mapped to log -10 by logLogRegression); true: computes"
+    },
+    {
+     "at": "+4",
+     "cond": "for each box",
+     "effect": "accumulates detrendedSumOfSquares"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)": "568750a21fdeea90"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.detrendedSumOfSquares(_:)",
+   "hash": "a24339bd9bd98e3d",
+   "does": "Sum of squared residuals of one box after subtracting its least-squares line; falls back to the raw sum of squares when <2 points or the fit is degenerate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "count >= 2 && leastSquaresLine non-nil",
+     "effect": "false: returns raw sum of squares (untrended); true: residual sum"
+    },
+    {
+     "at": "+6",
+     "cond": "for each value",
+     "effect": "adds squared residual"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.leastSquaresLine(_:)": "29cd50667ce25e0a"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.leastSquaresLine(_:)",
+   "hash": "226114817ff5a42b",
+   "does": "Closed-form least-squares slope/intercept of segment values against their 0-based index; nil when the denominator is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each value",
+     "effect": "accumulates sums"
+    },
+    {
+     "at": "+11",
+     "cond": "denominator != 0",
+     "effect": "false: nil; true: returns (slope, intercept)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+   "hash": "47286672d8e61675",
+   "does": "Regresses log(fluctuation) on log(box size) via Statistics.linearRegression; zero fluctuations become log value -10; returns (0,0) for <2 sizes or a failed regression.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n >= 2",
+     "effect": "false: returns (0,0); true: continues"
+    },
+    {
+     "at": "+5",
+     "cond": "fluctuation > 0 ?:",
+     "effect": "true: log(F); false: sentinel -10.0"
+    },
+    {
+     "at": "+7",
+     "cond": "linearRegression non-nil",
+     "effect": "false: returns (0,0) — alpha 0 reported as a value, not nil; true: (slope, r2)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "A zero fluctuation is replaced by the magic log value -10 and a failed regression returns alpha 0 with R² 0 rather than nil, so a degenerate (constant) series reports alpha1 = 0 as a real exponent to callers.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:164",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:167",
+      "Emuqu/Sources/Analysis/DFAAnalysis.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  }
+ ],
+ "deps": {}
+}

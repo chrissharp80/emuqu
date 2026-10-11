@@ -1,0 +1,2863 @@
+{
+ "file": "Emuqu/Sources/Utilities/AppDependencies.swift",
+ "hash": "bfe33940b5b3bbda",
+ "role": "Composition root: the only file (with EmuquApp/WatchApp) allowed to read `Type.shared`. AppDependencies exposes eight lazily-built service groups whose accessors return a test substitute from a lock-guarded Overrides box or the live singleton; also defines the SwiftUI `\\.dependencies` environment key and the shared Overpass client.",
+ "types": [
+  "AppDependencies: struct — container: overrides box + 8 group accessors + static `current`",
+  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 68 optional substitutes",
+  "UtilityServices / AnalysisServices / AssistantServices / CollectionServices / LocationServices / ProviderServices / AppServices / StorageServices: struct — per-layer accessors (substitute ?? .shared)",
+  "OverpassServices: private enum — one OverpassClient shared by RoadGraphService and TrailDiscoveryService",
+  "DependenciesKey: private struct EnvironmentKey — defaultValue = AppDependencies.current",
+  "EnvironmentValues: extension — `dependencies` accessor"
+ ],
+ "state": [
+  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 50)",
+  "mem:AppDependencies.overrides (let, per container, line 26)",
+  "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>, line 127)",
+  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 634-636)",
+  "mem:DependenciesKey.defaultValue (static let snapshot of AppDependencies.current, line 779)"
+ ],
+ "toplevel": "Stored-property initializers: `let overrides = Overrides()` (26); static storage lock seeded with AppDependencies() (50); Overrides.values lock seeded with an all-nil Values (127); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (634-636); DependenciesKey.defaultValue captures AppDependencies.current once (779).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "The whole Overrides substitution layer (68 lock-guarded slots, the `current` setter and reset()) is never exercised: no code in Emuqu, EmuquTests or EmuquUITests assigns any `overrides.<name>`, sets `AppDependencies.current`, or calls `reset()`. Every group accessor's `if let substitute` branch is therefore never taken and the container is only an indirection over `.shared`.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift:55",
+    "Emuqu/Sources/Utilities/AppDependencies.swift:127",
+    "Emuqu/Sources/Utilities/AppDependencies.swift:42",
+    "Emuqu/Sources/Utilities/AppDependencies.swift:48"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "The container is reached as the global `AppDependencies.current` from ~518 sites (static helpers, services, fact resolvers) rather than injected, so the services still form a hidden global graph; the composition-root rule only moved the `.shared` reads here.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift:42",
+    "scripts/check_no_shared_outside_root.sh"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AppDependencies.app",
+   "hash": "fad705588cda497b",
+   "does": "Builds a fresh UtilityServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.analysis",
+   "hash": "a398ca703a79ef92",
+   "does": "Builds a fresh AnalysisServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.assistant",
+   "hash": "18ab8462e40e6eed",
+   "does": "Builds a fresh AssistantServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.collection",
+   "hash": "0c51a875680b20b7",
+   "does": "Builds a fresh CollectionServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.location",
+   "hash": "527d10f29bbb6b1a",
+   "does": "Builds a fresh LocationServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.providers",
+   "hash": "55df0a15bb01aa57",
+   "does": "Builds a fresh ProviderServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.services",
+   "hash": "8a2cb5f0221c8400",
+   "does": "Builds a fresh AppServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.storage",
+   "hash": "7fe16a7ecea7edac",
+   "does": "Builds a fresh StorageServices value sharing this container's Overrides box; every access allocates a new tiny struct.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AppDependencies()",
+   "hash": "03b89b2f9e0c7a5d",
+   "does": "Empty initializer; the container's only stored state is a new Overrides box created by the property initializer (line 26).",
+   "entry": "Called by the static storage initializer (line 50), reset() (line 48) and EmuquTests/OverpassClientTests.swift:78.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.current",
+   "hash": "37a5acd531d5df4f",
+   "does": "Getter returns a copy of the process-wide container from the OSAllocatedUnfairLock (copy shares the same Overrides box); setter replaces the stored container. The getter is read by ~518 `AppDependencies.current` call sites in production; the setter has no caller in the repo.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.storage"
+   ],
+   "writes": [
+    "mem:AppDependencies.storage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The setter documented for tests (lines 17-18, 39-40) is never used: grep for 'AppDependencies.current *=' over all Swift including EmuquTests returns nothing, so the substitution mechanism is untested scaffolding.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:44",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:17"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The documented test-substitution path cannot work for most services: every Overrides slot is typed as the concrete final class (no protocol), and most of those classes have a private init, so no substitute instance can be built outside the type (e.g. SettingsManager, StoreKitManager, EncryptionManager, CloudKitSyncManager, FeatureFlags). Combined with zero callers of the `current` setter, overrides setters or reset(), the container's test seam is unused and largely unusable.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:17",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:67",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:116",
+      "Emuqu/Sources/Models/SettingsManager.swift:87",
+      "Emuqu/Sources/Services/StoreKitManager.swift:159",
+      "Emuqu/Sources/Storage/EncryptionManager.swift:67",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:236"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/MAINTAINERS.md repeats that 'a test makes a fresh container, sets the substitute on its overrides, assigns it to current in setUp, and calls reset() in tearDown'; no test in EmuquTests does any of these (the only direct container use is AppDependencies().location in OverpassClientTests).",
+     "evidence": [
+      "docs/MAINTAINERS.md:843",
+      "docs/MAINTAINERS.md:845",
+      "EmuquTests/OverpassClientTests.swift:78",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:44",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:48"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func AppDependencies.reset()",
+   "hash": "b609e241773c3b81",
+   "does": "Replaces the process-wide container with a fresh AppDependencies() (new, empty Overrides box).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AppDependencies.storage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "reset() has no caller anywhere (production or tests): grep 'AppDependencies.reset' finds only its declaration and the doc comment at line 18.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:48",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:18"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "92c65c092a79595e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "var AppDependencies.Overrides.alpha1StatsCache",
+   "hash": "b76ea8fc43c394aa",
+   "does": "Lock-guarded get/set of the optional Alpha1StatsCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.alpha1StatsCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.alpha1StatsCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.crashLogManager",
+   "hash": "b2a9d1e4558f0019",
+   "does": "Lock-guarded get/set of the optional CrashLogManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.crashLogManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.crashLogManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.debugLogger",
+   "hash": "35027b2eaab8ebe3",
+   "does": "Lock-guarded get/set of the optional DebugLogger test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.debugLogger"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.debugLogger"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.emailContactStore",
+   "hash": "b94cb4725e629c1d",
+   "does": "Lock-guarded get/set of the optional EmailContactStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.emailContactStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.emailContactStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.featureFlags",
+   "hash": "1915467ead361089",
+   "does": "Lock-guarded get/set of the optional FeatureFlags test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.featureFlags"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.featureFlags"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Override slot for FeatureFlags can never be filled: FeatureFlags.init is private and the class is final, so no substitute instance can be constructed outside the type (and no test tries).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:145",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:432"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.globalKeyboardDismissal",
+   "hash": "804e932bb4827748",
+   "does": "Lock-guarded get/set of the optional GlobalKeyboardDismissal test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.globalKeyboardDismissal"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.globalKeyboardDismissal"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Neither the override nor the globalKeyboardDismissal group accessor has any caller: EmuquApp reads GlobalKeyboardDismissal.shared directly (Emuqu/EmuquApp.swift:695-696), which the root-file allowlist permits.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:149"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.keyboardPerfSignpost",
+   "hash": "e1b0f5d5c306e679",
+   "does": "Lock-guarded get/set of the optional KeyboardPerfSignpost test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.keyboardPerfSignpost"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.keyboardPerfSignpost"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.launchCoordinator",
+   "hash": "5c769cc3d2811c4f",
+   "does": "Lock-guarded get/set of the optional LaunchCoordinator test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.launchCoordinator"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.launchCoordinator"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.organizedZonesCache",
+   "hash": "3a45dccc0ba858cf",
+   "does": "Lock-guarded get/set of the optional OrganizedZonesCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.organizedZonesCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.organizedZonesCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.recorderBox",
+   "hash": "a3873e87a9bf06fd",
+   "does": "Lock-guarded get/set of the optional RecorderBox test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.recorderBox"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.recorderBox"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.settingsManager",
+   "hash": "22a449e670a74990",
+   "does": "Lock-guarded get/set of the optional SettingsManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.settingsManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.settingsManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.systemDiagnosticsManager",
+   "hash": "1c4b6f4c981f155c",
+   "does": "Lock-guarded get/set of the optional SystemDiagnosticsManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.systemDiagnosticsManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.systemDiagnosticsManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.beatConsistencyPriorsCache",
+   "hash": "f2e7d06a2a0aed5f",
+   "does": "Lock-guarded get/set of the optional BeatConsistencyPriorsCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.beatConsistencyPriorsCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.beatConsistencyPriorsCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.heatAcclimationCache",
+   "hash": "34712186d3d8b5e1",
+   "does": "Lock-guarded get/set of the optional HeatAcclimationCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.heatAcclimationCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.heatAcclimationCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.trainingMetricsCache",
+   "hash": "f025cdce26000aa4",
+   "does": "Lock-guarded get/set of the optional TrainingMetricsCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.trainingMetricsCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.trainingMetricsCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.analysisSummaryCache",
+   "hash": "92ffec29cdb54708",
+   "does": "Lock-guarded get/set of the optional AnalysisSummaryCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.analysisSummaryCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.analysisSummaryCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.assistantArtifactStore",
+   "hash": "8fab7d905f725041",
+   "does": "Lock-guarded get/set of the optional AssistantArtifactStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.assistantArtifactStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.assistantArtifactStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.assistantContextSource",
+   "hash": "4387047686337e86",
+   "does": "Lock-guarded get/set of the optional AssistantContextSource test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.assistantContextSource"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.assistantContextSource"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.assistantEmailBridge",
+   "hash": "02a1bfbb9795ab3b",
+   "does": "Lock-guarded get/set of the optional AssistantEmailBridge test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.assistantEmailBridge"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.assistantEmailBridge"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.assistantInbox",
+   "hash": "d1bf5aea0939a0a3",
+   "does": "Lock-guarded get/set of the optional AssistantInbox test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.assistantInbox"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.assistantInbox"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.assistantViewModel",
+   "hash": "a13dd42ba54ef9c9",
+   "does": "Lock-guarded get/set of the optional AssistantViewModel test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.assistantViewModel"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.assistantViewModel"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.conversationStore",
+   "hash": "a0b2d7d2ad996e59",
+   "does": "Lock-guarded get/set of the optional ConversationStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.conversationStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.conversationStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.liveHRVBroker",
+   "hash": "3db7b9ddbb7c75be",
+   "does": "Lock-guarded get/set of the optional LiveHRVBroker test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.liveHRVBroker"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.liveHRVBroker"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.liveWorkoutBroker",
+   "hash": "d37e604c6733c7de",
+   "does": "Lock-guarded get/set of the optional LiveWorkoutBroker test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.liveWorkoutBroker"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.liveWorkoutBroker"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.userFactsStore",
+   "hash": "e17735ada9280da1",
+   "does": "Lock-guarded get/set of the optional UserFactsStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.userFactsStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.userFactsStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.voiceConversationController",
+   "hash": "aa8eded0e4c9e0f3",
+   "does": "Lock-guarded get/set of the optional VoiceConversationController test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.voiceConversationController"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.voiceConversationController"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.backgroundAudioManager",
+   "hash": "6aa63a0a58ecc82e",
+   "does": "Lock-guarded get/set of the optional BackgroundAudioManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.backgroundAudioManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.backgroundAudioManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.concept2Manager",
+   "hash": "80fa81f8a34a240c",
+   "does": "Lock-guarded get/set of the optional Concept2Manager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.concept2Manager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.concept2Manager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.footPodManager",
+   "hash": "ccf47aab126bb8a3",
+   "does": "Lock-guarded get/set of the optional FootPodManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.footPodManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.footPodManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.healthKitManager",
+   "hash": "5b730d4f1c26373c",
+   "does": "Lock-guarded get/set of the optional HealthKitManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.healthKitManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.healthKitManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.workoutStartLatencyTracker",
+   "hash": "42010bd7d8e408cf",
+   "does": "Lock-guarded get/set of the optional WorkoutStartLatencyTracker test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.workoutStartLatencyTracker"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.workoutStartLatencyTracker"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.zwiftPeripheralBroadcaster",
+   "hash": "85053774bc1b46e3",
+   "does": "Lock-guarded get/set of the optional ZwiftPeripheralBroadcaster test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.zwiftPeripheralBroadcaster"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.zwiftPeripheralBroadcaster"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.activeRouteSession",
+   "hash": "686aeb33fdc47ef0",
+   "does": "Lock-guarded get/set of the optional ActiveRouteSession test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.activeRouteSession"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.activeRouteSession"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.ambientLocationService",
+   "hash": "3a2e3702e577f53a",
+   "does": "Lock-guarded get/set of the optional AmbientLocationService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.ambientLocationService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.ambientLocationService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.breadcrumbRecorder",
+   "hash": "71f48525317fe2d7",
+   "does": "Lock-guarded get/set of the optional BreadcrumbRecorder test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.breadcrumbRecorder"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.breadcrumbRecorder"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.breadcrumbStore",
+   "hash": "3ba9c3d9ee25220c",
+   "does": "Lock-guarded get/set of the optional BreadcrumbStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.breadcrumbStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.breadcrumbStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.locationFinder",
+   "hash": "614272c261242c1f",
+   "does": "Lock-guarded get/set of the optional LocationFinder test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.locationFinder"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.locationFinder"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Neither the override nor the locationFinder group accessor has any caller: LocationFinder is only used through its static helpers (Emuqu/Sources/Services/AppLaunchTasks.swift:353, Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:528).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:273"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.roadGeocodingService",
+   "hash": "19663093ca362357",
+   "does": "Lock-guarded get/set of the optional RoadGeocodingService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.roadGeocodingService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.roadGeocodingService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.roadGraphService",
+   "hash": "3cea8721960419ca",
+   "does": "Lock-guarded get/set of the optional RoadGraphService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.roadGraphService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.roadGraphService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.savedRouteStore",
+   "hash": "88b9ad3c21fd4797",
+   "does": "Lock-guarded get/set of the optional SavedRouteStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.savedRouteStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.savedRouteStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.surroundingsPOIService",
+   "hash": "5537b8c906f26ed2",
+   "does": "Lock-guarded get/set of the optional SurroundingsPOIService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.surroundingsPOIService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.surroundingsPOIService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.trailDiscoveryService",
+   "hash": "f7b64d0d0c416a13",
+   "does": "Lock-guarded get/set of the optional TrailDiscoveryService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.trailDiscoveryService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.trailDiscoveryService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.weatherService",
+   "hash": "510cbda463232c3f",
+   "does": "Lock-guarded get/set of the optional WeatherService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.weatherService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.weatherService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.apiKeyStore",
+   "hash": "a8c7b99206cca963",
+   "does": "Lock-guarded get/set of the optional APIKeyStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.apiKeyStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.apiKeyStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.appleToolDispatcher",
+   "hash": "3d2f4c8438243eee",
+   "does": "Lock-guarded get/set of the optional AppleToolDispatcher test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.appleToolDispatcher"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.appleToolDispatcher"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.capabilityClassifier",
+   "hash": "7750b85045c49247",
+   "does": "Lock-guarded get/set of the optional CapabilityClassifier test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.capabilityClassifier"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.capabilityClassifier"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.llmCacheTelemetry",
+   "hash": "0da64add37671359",
+   "does": "Lock-guarded get/set of the optional LLMCacheTelemetry test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.llmCacheTelemetry"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.llmCacheTelemetry"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.llmRequestAudit",
+   "hash": "4c103e47eaddae7c",
+   "does": "Lock-guarded get/set of the optional LLMRequestAudit test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.llmRequestAudit"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.llmRequestAudit"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.providerConsentTracker",
+   "hash": "d689f51e7f928844",
+   "does": "Lock-guarded get/set of the optional ProviderConsentTracker test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.providerConsentTracker"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.providerConsentTracker"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.providerRegistry",
+   "hash": "0820cab4e57ceb3a",
+   "does": "Lock-guarded get/set of the optional ProviderRegistry test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.providerRegistry"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.providerRegistry"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.smartProviderRouter",
+   "hash": "fd00fa24784ee58a",
+   "does": "Lock-guarded get/set of the optional SmartProviderRouter test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.smartProviderRouter"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.smartProviderRouter"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.webSearchService",
+   "hash": "f92ce39091482300",
+   "does": "Lock-guarded get/set of the optional WebSearchService test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.webSearchService"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.webSearchService"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.whisperKitSTTBridge",
+   "hash": "ef62b04718ab5b95",
+   "does": "Lock-guarded get/set of the optional WhisperKitSTTBridge test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.whisperKitSTTBridge"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.whisperKitSTTBridge"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.audioSessionCoordinator",
+   "hash": "e4694cd1b5be1a3a",
+   "does": "Lock-guarded get/set of the optional AudioSessionCoordinator test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.audioSessionCoordinator"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.audioSessionCoordinator"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.languageManager",
+   "hash": "385db4ff4cbb5253",
+   "does": "Lock-guarded get/set of the optional LanguageManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.languageManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.languageManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.morningNotificationScheduler",
+   "hash": "3e15480dcb1ec15f",
+   "does": "Lock-guarded get/set of the optional MorningNotificationScheduler test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.morningNotificationScheduler"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.morningNotificationScheduler"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.powerStatePolicy",
+   "hash": "e9b574c0698090b6",
+   "does": "Lock-guarded get/set of the optional PowerStatePolicy test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.powerStatePolicy"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.powerStatePolicy"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.preScorePromptTelemetry",
+   "hash": "4ff0b0bb7b9f71b3",
+   "does": "Lock-guarded get/set of the optional PreScorePromptTelemetry test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.preScorePromptTelemetry"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.preScorePromptTelemetry"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.recoveryScoreFeedbackStore",
+   "hash": "e1bb0950e32f8408",
+   "does": "Lock-guarded get/set of the optional RecoveryScoreFeedbackStore test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.recoveryScoreFeedbackStore"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.recoveryScoreFeedbackStore"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.storeKitManager",
+   "hash": "5e89b032aec152ad",
+   "does": "Lock-guarded get/set of the optional StoreKitManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.storeKitManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.storeKitManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.validationTelemetry",
+   "hash": "b40b7da966a3f192",
+   "does": "Lock-guarded get/set of the optional ValidationTelemetry test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.validationTelemetry"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.validationTelemetry"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.watchConnectivityBridge",
+   "hash": "81aa2fb2d49d4da1",
+   "does": "Lock-guarded get/set of the optional WatchConnectivityBridge test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.watchConnectivityBridge"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.watchConnectivityBridge"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.cloudKitSettingsSync",
+   "hash": "182ffc03ada8d2e6",
+   "does": "Lock-guarded get/set of the optional CloudKitSettingsSync test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.cloudKitSettingsSync"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.cloudKitSettingsSync"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.cloudKitSyncManager",
+   "hash": "13c04f3340dfcf85",
+   "does": "Lock-guarded get/set of the optional CloudKitSyncManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.cloudKitSyncManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.cloudKitSyncManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.encryptionManager",
+   "hash": "46c72e3153f5fa6c",
+   "does": "Lock-guarded get/set of the optional EncryptionManager test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.encryptionManager"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.encryptionManager"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.sessionArchive",
+   "hash": "af5b13efed929ab6",
+   "does": "Lock-guarded get/set of the optional SessionArchive test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.sessionArchive"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.sessionArchive"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.uiStateCache",
+   "hash": "b4251b09f3ca6a66",
+   "does": "Lock-guarded get/set of the optional UIStateCache test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.uiStateCache"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.uiStateCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.workoutTrackBackup",
+   "hash": "ed5b3a98437a0520",
+   "does": "Lock-guarded get/set of the optional WorkoutTrackBackup test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.workoutTrackBackup"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.workoutTrackBackup"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.alpha1StatsCache",
+   "hash": "1b87ef64c9e8c7e5",
+   "does": "Returns the Alpha1StatsCache the app uses: the test substitute from overrides.alpha1StatsCache if one is set, otherwise the Alpha1StatsCache.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Alpha1StatsCache.shared",
+    "mem:AppDependencies.Overrides.values.alpha1StatsCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.alpha1StatsCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return Alpha1StatsCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.crashLogManager",
+   "hash": "791083052414a08b",
+   "does": "Returns the CrashLogManager the app uses: the test substitute from overrides.crashLogManager if one is set, otherwise the CrashLogManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CrashLogManager.shared",
+    "mem:AppDependencies.Overrides.values.crashLogManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.crashLogManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return CrashLogManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.debugLogger",
+   "hash": "e092fd7f3eb35540",
+   "does": "Returns the DebugLogger the app uses: the test substitute from overrides.debugLogger if one is set, otherwise the DebugLogger.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DebugLogger.shared",
+    "mem:AppDependencies.Overrides.values.debugLogger"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.debugLogger is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return DebugLogger.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.emailContactStore",
+   "hash": "4306e348db39ee7b",
+   "does": "Returns the EmailContactStore the app uses: the test substitute from overrides.emailContactStore if one is set, otherwise the EmailContactStore.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:EmailContactStore.shared",
+    "mem:AppDependencies.Overrides.values.emailContactStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.emailContactStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return EmailContactStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.featureFlags",
+   "hash": "f54ab638d111890b",
+   "does": "Returns the FeatureFlags the app uses: the test substitute from overrides.featureFlags if one is set, otherwise the FeatureFlags.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FeatureFlags.shared",
+    "mem:AppDependencies.Overrides.values.featureFlags"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.featureFlags is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return FeatureFlags.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.globalKeyboardDismissal",
+   "hash": "49b8d2af30e04aac",
+   "does": "Returns the GlobalKeyboardDismissal the app uses: the test substitute from overrides.globalKeyboardDismissal if one is set, otherwise the GlobalKeyboardDismissal.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:GlobalKeyboardDismissal.shared",
+    "mem:AppDependencies.Overrides.values.globalKeyboardDismissal"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.globalKeyboardDismissal is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return GlobalKeyboardDismissal.shared."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "UtilityServices.globalKeyboardDismissal has no caller anywhere in the repo (grep '\\.globalKeyboardDismissal\\b' over all Swift, tests included, finds only this file): EmuquApp reads GlobalKeyboardDismissal.shared directly (Emuqu/EmuquApp.swift:695-696), which the root-file allowlist permits.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:430"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.keyboardPerfSignpost",
+   "hash": "3c0a275cdacc94b3",
+   "does": "Returns the KeyboardPerfSignpost the app uses: the test substitute from overrides.keyboardPerfSignpost if one is set, otherwise the KeyboardPerfSignpost.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:KeyboardPerfSignpost.shared",
+    "mem:AppDependencies.Overrides.values.keyboardPerfSignpost"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.keyboardPerfSignpost is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return KeyboardPerfSignpost.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.launchCoordinator",
+   "hash": "446d1deef98ec64b",
+   "does": "Returns the LaunchCoordinator the app uses: the test substitute from overrides.launchCoordinator if one is set, otherwise the LaunchCoordinator.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.shared",
+    "mem:AppDependencies.Overrides.values.launchCoordinator"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.launchCoordinator is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LaunchCoordinator.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.organizedZonesCache",
+   "hash": "02a84d5c15979c7b",
+   "does": "Returns the OrganizedZonesCache the app uses: the test substitute from overrides.organizedZonesCache if one is set, otherwise the OrganizedZonesCache.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:OrganizedZonesCache.shared",
+    "mem:AppDependencies.Overrides.values.organizedZonesCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.organizedZonesCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return OrganizedZonesCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.recorderBox",
+   "hash": "753c9c0436cc6c36",
+   "does": "Returns the RecorderBox the app uses: the test substitute from overrides.recorderBox if one is set, otherwise the RecorderBox.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecorderBox.shared",
+    "mem:AppDependencies.Overrides.values.recorderBox"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.recorderBox is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return RecorderBox.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.settingsManager",
+   "hash": "ec3ddb5621693cfa",
+   "does": "Returns the SettingsManager the app uses: the test substitute from overrides.settingsManager if one is set, otherwise the SettingsManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:AppDependencies.Overrides.values.settingsManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.settingsManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SettingsManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UtilityServices.systemDiagnosticsManager",
+   "hash": "8a675e8fe9090fc8",
+   "does": "Returns the SystemDiagnosticsManager the app uses: the test substitute from overrides.systemDiagnosticsManager if one is set, otherwise the SystemDiagnosticsManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SystemDiagnosticsManager.shared",
+    "mem:AppDependencies.Overrides.values.systemDiagnosticsManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.systemDiagnosticsManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SystemDiagnosticsManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisServices.beatConsistencyPriorsCache",
+   "hash": "c54b0248fc2e05a4",
+   "does": "Returns the BeatConsistencyPriorsCache the app uses: the test substitute from overrides.beatConsistencyPriorsCache if one is set, otherwise the BeatConsistencyPriorsCache.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:BeatConsistencyPriorsCache.shared",
+    "mem:AppDependencies.Overrides.values.beatConsistencyPriorsCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.beatConsistencyPriorsCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return BeatConsistencyPriorsCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisServices.heatAcclimationCache",
+   "hash": "99da677f4480e1e9",
+   "does": "Returns the HeatAcclimationCache the app uses: the test substitute from overrides.heatAcclimationCache if one is set, otherwise the HeatAcclimationCache.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeatAcclimationCache.shared",
+    "mem:AppDependencies.Overrides.values.heatAcclimationCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.heatAcclimationCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return HeatAcclimationCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisServices.trainingMetricsCache",
+   "hash": "1e2bc7ee38305004",
+   "does": "Returns the TrainingMetricsCache the app uses: the test substitute from overrides.trainingMetricsCache if one is set, otherwise the TrainingMetricsCache.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:TrainingMetricsCache.shared",
+    "mem:AppDependencies.Overrides.values.trainingMetricsCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.trainingMetricsCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return TrainingMetricsCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.analysisSummaryCache",
+   "hash": "a2130de97a4f81a4",
+   "does": "Returns the AnalysisSummaryCache the app uses: the test substitute from overrides.analysisSummaryCache if one is set, otherwise the AnalysisSummaryCache.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AnalysisSummaryCache.shared",
+    "mem:AppDependencies.Overrides.values.analysisSummaryCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.analysisSummaryCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AnalysisSummaryCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.assistantArtifactStore",
+   "hash": "9f3ef64faaaf0dd0",
+   "does": "Returns the AssistantArtifactStore the app uses: the test substitute from overrides.assistantArtifactStore if one is set, otherwise the AssistantArtifactStore.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantArtifactStore.shared",
+    "mem:AppDependencies.Overrides.values.assistantArtifactStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.assistantArtifactStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AssistantArtifactStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.assistantContextSource",
+   "hash": "e95a79088c19940c",
+   "does": "Returns the AssistantContextSource the app uses: the test substitute from overrides.assistantContextSource if one is set, otherwise the AssistantContextSource.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantContextSource.shared",
+    "mem:AppDependencies.Overrides.values.assistantContextSource"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.assistantContextSource is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AssistantContextSource.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.assistantEmailBridge",
+   "hash": "fc652444a10d4658",
+   "does": "Returns the AssistantEmailBridge the app uses: the test substitute from overrides.assistantEmailBridge if one is set, otherwise the AssistantEmailBridge.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantEmailBridge.shared",
+    "mem:AppDependencies.Overrides.values.assistantEmailBridge"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.assistantEmailBridge is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AssistantEmailBridge.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.assistantInbox",
+   "hash": "417ac88a9b8b37f5",
+   "does": "Returns the AssistantInbox the app uses: the test substitute from overrides.assistantInbox if one is set, otherwise the AssistantInbox.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantInbox.shared",
+    "mem:AppDependencies.Overrides.values.assistantInbox"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.assistantInbox is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AssistantInbox.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.assistantViewModel",
+   "hash": "12476387507530f3",
+   "does": "Returns the AssistantViewModel the app uses: the test substitute from overrides.assistantViewModel if one is set, otherwise the AssistantViewModel.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AssistantViewModel.shared",
+    "mem:AppDependencies.Overrides.values.assistantViewModel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.assistantViewModel is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AssistantViewModel.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.conversationStore",
+   "hash": "7305c914912bf6e7",
+   "does": "Returns the ConversationStore the app uses: the test substitute from overrides.conversationStore if one is set, otherwise the ConversationStore.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ConversationStore.shared",
+    "mem:AppDependencies.Overrides.values.conversationStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.conversationStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ConversationStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.liveHRVBroker",
+   "hash": "fafc98a437e5912b",
+   "does": "Returns the LiveHRVBroker the app uses: the test substitute from overrides.liveHRVBroker if one is set, otherwise the LiveHRVBroker.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LiveHRVBroker.shared",
+    "mem:AppDependencies.Overrides.values.liveHRVBroker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.liveHRVBroker is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LiveHRVBroker.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.liveWorkoutBroker",
+   "hash": "2a800cf73c7e29c7",
+   "does": "Returns the LiveWorkoutBroker the app uses: the test substitute from overrides.liveWorkoutBroker if one is set, otherwise the LiveWorkoutBroker.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LiveWorkoutBroker.shared",
+    "mem:AppDependencies.Overrides.values.liveWorkoutBroker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.liveWorkoutBroker is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LiveWorkoutBroker.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.userFactsStore",
+   "hash": "05e792d5da8fae9f",
+   "does": "Returns the UserFactsStore the app uses: the test substitute from overrides.userFactsStore if one is set, otherwise the UserFactsStore.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UserFactsStore.shared",
+    "mem:AppDependencies.Overrides.values.userFactsStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.userFactsStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return UserFactsStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantServices.voiceConversationController",
+   "hash": "1c8b83064d2e8a71",
+   "does": "Returns the VoiceConversationController the app uses: the test substitute from overrides.voiceConversationController if one is set, otherwise the VoiceConversationController.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceConversationController.shared",
+    "mem:AppDependencies.Overrides.values.voiceConversationController"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.voiceConversationController is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return VoiceConversationController.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.backgroundAudioManager",
+   "hash": "d76eb661d8406619",
+   "does": "Returns the BackgroundAudioManager the app uses: the test substitute from overrides.backgroundAudioManager if one is set, otherwise the BackgroundAudioManager.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:BackgroundAudioManager.shared",
+    "mem:AppDependencies.Overrides.values.backgroundAudioManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.backgroundAudioManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return BackgroundAudioManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.concept2Manager",
+   "hash": "7f8cc22dfe1be8a0",
+   "does": "Returns the Concept2Manager the app uses: the test substitute from overrides.concept2Manager if one is set, otherwise the Concept2Manager.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Concept2Manager.shared",
+    "mem:AppDependencies.Overrides.values.concept2Manager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.concept2Manager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return Concept2Manager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.footPodManager",
+   "hash": "7e21c5f034015e58",
+   "does": "Returns the FootPodManager the app uses: the test substitute from overrides.footPodManager if one is set, otherwise the FootPodManager.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FootPodManager.shared",
+    "mem:AppDependencies.Overrides.values.footPodManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.footPodManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return FootPodManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.healthKitManager",
+   "hash": "ad2715dcbb447f87",
+   "does": "Returns the HealthKitManager the app uses: the test substitute from overrides.healthKitManager if one is set, otherwise the HealthKitManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HealthKitManager.shared",
+    "mem:AppDependencies.Overrides.values.healthKitManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.healthKitManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return HealthKitManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.workoutStartLatencyTracker",
+   "hash": "1f8ca9353fb64a89",
+   "does": "Returns the WorkoutStartLatencyTracker the app uses: the test substitute from overrides.workoutStartLatencyTracker if one is set, otherwise the WorkoutStartLatencyTracker.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutStartLatencyTracker.shared",
+    "mem:AppDependencies.Overrides.values.workoutStartLatencyTracker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.workoutStartLatencyTracker is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WorkoutStartLatencyTracker.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.zwiftPeripheralBroadcaster",
+   "hash": "ea6024a26b62fc1f",
+   "does": "Returns the ZwiftPeripheralBroadcaster the app uses: the test substitute from overrides.zwiftPeripheralBroadcaster if one is set, otherwise the ZwiftPeripheralBroadcaster.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ZwiftPeripheralBroadcaster.shared",
+    "mem:AppDependencies.Overrides.values.zwiftPeripheralBroadcaster"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.zwiftPeripheralBroadcaster is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ZwiftPeripheralBroadcaster.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.activeRouteSession",
+   "hash": "114931f17541664c",
+   "does": "Returns the ActiveRouteSession the app uses: the test substitute from overrides.activeRouteSession if one is set, otherwise the ActiveRouteSession.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ActiveRouteSession.shared",
+    "mem:AppDependencies.Overrides.values.activeRouteSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.activeRouteSession is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ActiveRouteSession.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.ambientLocationService",
+   "hash": "4fdfcaf1cdafdb22",
+   "does": "Returns the AmbientLocationService the app uses: the test substitute from overrides.ambientLocationService if one is set, otherwise the AmbientLocationService.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AmbientLocationService.shared",
+    "mem:AppDependencies.Overrides.values.ambientLocationService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.ambientLocationService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AmbientLocationService.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.breadcrumbRecorder",
+   "hash": "c7f5607913458441",
+   "does": "Returns the BreadcrumbRecorder the app uses: the test substitute from overrides.breadcrumbRecorder if one is set, otherwise the BreadcrumbRecorder.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:BreadcrumbRecorder.shared",
+    "mem:AppDependencies.Overrides.values.breadcrumbRecorder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.breadcrumbRecorder is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return BreadcrumbRecorder.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.breadcrumbStore",
+   "hash": "af661f8220e9ef6b",
+   "does": "Returns the BreadcrumbStore the app uses: the test substitute from overrides.breadcrumbStore if one is set, otherwise the BreadcrumbStore.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:BreadcrumbStore.shared",
+    "mem:AppDependencies.Overrides.values.breadcrumbStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.breadcrumbStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return BreadcrumbStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.locationFinder",
+   "hash": "6250f06d217c90bd",
+   "does": "Returns the LocationFinder the app uses: the test substitute from overrides.locationFinder if one is set, otherwise the LocationFinder.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LocationFinder.shared",
+    "mem:AppDependencies.Overrides.values.locationFinder"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.locationFinder is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LocationFinder.shared."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "LocationServices.locationFinder has no caller anywhere in the repo (grep '\\.locationFinder\\b' over all Swift, tests included, finds only this file): LocationFinder is only used through its static helpers (Emuqu/Sources/Services/AppLaunchTasks.swift:353, Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:528).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:595"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Because this accessor is the only reader of LocationFinder.shared, the LocationFinder singleton instance itself is never constructed in practice; all real use goes through its nonisolated static helpers.",
+     "evidence": [
+      "Emuqu/Sources/Services/LocationFinder.swift:23",
+      "Emuqu/Sources/Services/LocationFinder.swift:58",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:353"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.roadGeocodingService",
+   "hash": "515b68d888576e20",
+   "does": "Returns the RoadGeocodingService the app uses: the test substitute from overrides.roadGeocodingService if one is set, otherwise the RoadGeocodingService.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RoadGeocodingService.shared",
+    "mem:AppDependencies.Overrides.values.roadGeocodingService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.roadGeocodingService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return RoadGeocodingService.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.roadGraphService",
+   "hash": "5df58a0365680408",
+   "does": "Returns the RoadGraphService the app uses: the test substitute from overrides.roadGraphService if one is set, otherwise the app-wide OverpassServices.roadGraph instance (lazily built once around the single OverpassClient).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)"
+   ],
+   "reads": [
+    "mem:OverpassServices.roadGraph",
+    "mem:AppDependencies.Overrides.values.roadGraphService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.roadGraphService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return OverpassServices.roadGraph."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)": "b4be5b4101ee65e9"
+   }
+  },
+  {
+   "key": "var LocationServices.savedRouteStore",
+   "hash": "584f951505a199ab",
+   "does": "Returns the SavedRouteStore the app uses: the test substitute from overrides.savedRouteStore if one is set, otherwise the SavedRouteStore.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SavedRouteStore.shared",
+    "mem:AppDependencies.Overrides.values.savedRouteStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.savedRouteStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SavedRouteStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.surroundingsPOIService",
+   "hash": "34c2fd376538450b",
+   "does": "Returns the SurroundingsPOIService the app uses: the test substitute from overrides.surroundingsPOIService if one is set, otherwise the SurroundingsPOIService.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SurroundingsPOIService.shared",
+    "mem:AppDependencies.Overrides.values.surroundingsPOIService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.surroundingsPOIService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SurroundingsPOIService.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LocationServices.trailDiscoveryService",
+   "hash": "b83db2ff64779d3a",
+   "does": "Returns the TrailDiscoveryService the app uses: the test substitute from overrides.trailDiscoveryService if one is set, otherwise the app-wide OverpassServices.trailDiscovery instance (lazily built once around the single OverpassClient).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)"
+   ],
+   "reads": [
+    "mem:OverpassServices.trailDiscovery",
+    "mem:AppDependencies.Overrides.values.trailDiscoveryService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.trailDiscoveryService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return OverpassServices.trailDiscovery."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "d1e45b2c3e599b79",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "65b121eb51d69d0e"
+   }
+  },
+  {
+   "key": "var LocationServices.weatherService",
+   "hash": "a4f252ac39e8e10e",
+   "does": "Returns the WeatherService the app uses: the test substitute from overrides.weatherService if one is set, otherwise the WeatherService.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WeatherService.shared",
+    "mem:AppDependencies.Overrides.values.weatherService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.weatherService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WeatherService.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.apiKeyStore",
+   "hash": "a2102dc626276d21",
+   "does": "Returns the APIKeyStore the app uses: the test substitute from overrides.apiKeyStore if one is set, otherwise the APIKeyStore.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:APIKeyStore.shared",
+    "mem:AppDependencies.Overrides.values.apiKeyStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.apiKeyStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return APIKeyStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.appleToolDispatcher",
+   "hash": "332b99dd29d4cd49",
+   "does": "Returns the AppleToolDispatcher the app uses: the test substitute from overrides.appleToolDispatcher if one is set, otherwise the AppleToolDispatcher.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppleToolDispatcher.shared",
+    "mem:AppDependencies.Overrides.values.appleToolDispatcher"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.appleToolDispatcher is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AppleToolDispatcher.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.capabilityClassifier",
+   "hash": "aff947b95a7c8cc1",
+   "does": "Returns the CapabilityClassifier the app uses: the test substitute from overrides.capabilityClassifier if one is set, otherwise the CapabilityClassifier.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CapabilityClassifier.shared",
+    "mem:AppDependencies.Overrides.values.capabilityClassifier"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.capabilityClassifier is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return CapabilityClassifier.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.llmCacheTelemetry",
+   "hash": "b54f4cd907c238a5",
+   "does": "Returns the LLMCacheTelemetry the app uses: the test substitute from overrides.llmCacheTelemetry if one is set, otherwise the LLMCacheTelemetry.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.shared",
+    "mem:AppDependencies.Overrides.values.llmCacheTelemetry"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.llmCacheTelemetry is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LLMCacheTelemetry.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.llmRequestAudit",
+   "hash": "8b153554ca59cb37",
+   "does": "Returns the LLMRequestAudit the app uses: the test substitute from overrides.llmRequestAudit if one is set, otherwise the LLMRequestAudit.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMRequestAudit.shared",
+    "mem:AppDependencies.Overrides.values.llmRequestAudit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.llmRequestAudit is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LLMRequestAudit.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.providerConsentTracker",
+   "hash": "f7d7c7290d50caa6",
+   "does": "Returns the ProviderConsentTracker the app uses: the test substitute from overrides.providerConsentTracker if one is set, otherwise the ProviderConsentTracker.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ProviderConsentTracker.shared",
+    "mem:AppDependencies.Overrides.values.providerConsentTracker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.providerConsentTracker is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ProviderConsentTracker.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.providerRegistry",
+   "hash": "c8e315882a3ad6cd",
+   "does": "Returns the ProviderRegistry the app uses: the test substitute from overrides.providerRegistry if one is set, otherwise the ProviderRegistry.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ProviderRegistry.shared",
+    "mem:AppDependencies.Overrides.values.providerRegistry"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.providerRegistry is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ProviderRegistry.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.smartProviderRouter",
+   "hash": "57165af12ef8be92",
+   "does": "Returns the SmartProviderRouter the app uses: the test substitute from overrides.smartProviderRouter if one is set, otherwise the SmartProviderRouter.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SmartProviderRouter.shared",
+    "mem:AppDependencies.Overrides.values.smartProviderRouter"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.smartProviderRouter is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SmartProviderRouter.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.webSearchService",
+   "hash": "1edf7d436358ca65",
+   "does": "Returns the WebSearchService the app uses: the test substitute from overrides.webSearchService if one is set, otherwise the WebSearchService.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WebSearchService.shared",
+    "mem:AppDependencies.Overrides.values.webSearchService"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.webSearchService is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WebSearchService.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderServices.whisperKitSTTBridge",
+   "hash": "26160ccdbd10c9fb",
+   "does": "Returns the WhisperKitSTTBridge the app uses: the test substitute from overrides.whisperKitSTTBridge if one is set, otherwise the WhisperKitSTTBridge.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WhisperKitSTTBridge.shared",
+    "mem:AppDependencies.Overrides.values.whisperKitSTTBridge"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.whisperKitSTTBridge is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WhisperKitSTTBridge.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.audioSessionCoordinator",
+   "hash": "5d1f9a44e3669ca8",
+   "does": "Returns the AudioSessionCoordinator the app uses: the test substitute from overrides.audioSessionCoordinator if one is set, otherwise the AudioSessionCoordinator.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AudioSessionCoordinator.shared",
+    "mem:AppDependencies.Overrides.values.audioSessionCoordinator"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.audioSessionCoordinator is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return AudioSessionCoordinator.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.languageManager",
+   "hash": "872b1d2713920f3f",
+   "does": "Returns the LanguageManager the app uses: the test substitute from overrides.languageManager if one is set, otherwise the LanguageManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LanguageManager.shared",
+    "mem:AppDependencies.Overrides.values.languageManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.languageManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return LanguageManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.morningNotificationScheduler",
+   "hash": "a1039945546f0bc2",
+   "does": "Returns the MorningNotificationScheduler the app uses: the test substitute from overrides.morningNotificationScheduler if one is set, otherwise the MorningNotificationScheduler.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MorningNotificationScheduler.shared",
+    "mem:AppDependencies.Overrides.values.morningNotificationScheduler"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.morningNotificationScheduler is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return MorningNotificationScheduler.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.powerStatePolicy",
+   "hash": "91878e84d03e6e2e",
+   "does": "Returns the PowerStatePolicy the app uses: the test substitute from overrides.powerStatePolicy if one is set, otherwise the PowerStatePolicy.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PowerStatePolicy.shared",
+    "mem:AppDependencies.Overrides.values.powerStatePolicy"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.powerStatePolicy is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return PowerStatePolicy.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.preScorePromptTelemetry",
+   "hash": "9cdfe870330d3c43",
+   "does": "Returns the PreScorePromptTelemetry the app uses: the test substitute from overrides.preScorePromptTelemetry if one is set, otherwise the PreScorePromptTelemetry.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PreScorePromptTelemetry.shared",
+    "mem:AppDependencies.Overrides.values.preScorePromptTelemetry"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.preScorePromptTelemetry is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return PreScorePromptTelemetry.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.recoveryScoreFeedbackStore",
+   "hash": "a6f9155b9c017262",
+   "does": "Returns the RecoveryScoreFeedbackStore the app uses: the test substitute from overrides.recoveryScoreFeedbackStore if one is set, otherwise the RecoveryScoreFeedbackStore.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecoveryScoreFeedbackStore.shared",
+    "mem:AppDependencies.Overrides.values.recoveryScoreFeedbackStore"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.recoveryScoreFeedbackStore is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return RecoveryScoreFeedbackStore.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.storeKitManager",
+   "hash": "7141c80b1329f7d4",
+   "does": "Returns the StoreKitManager the app uses: the test substitute from overrides.storeKitManager if one is set, otherwise the StoreKitManager.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StoreKitManager.shared",
+    "mem:AppDependencies.Overrides.values.storeKitManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.storeKitManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return StoreKitManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.validationTelemetry",
+   "hash": "8fc5e8cced8ffaee",
+   "does": "Returns the ValidationTelemetry the app uses: the test substitute from overrides.validationTelemetry if one is set, otherwise the ValidationTelemetry.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ValidationTelemetry.shared",
+    "mem:AppDependencies.Overrides.values.validationTelemetry"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.validationTelemetry is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return ValidationTelemetry.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppServices.watchConnectivityBridge",
+   "hash": "48e48e0a3432b962",
+   "does": "Returns the WatchConnectivityBridge the app uses: the test substitute from overrides.watchConnectivityBridge if one is set, otherwise the WatchConnectivityBridge.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchConnectivityBridge.shared",
+    "mem:AppDependencies.Overrides.values.watchConnectivityBridge"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.watchConnectivityBridge is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WatchConnectivityBridge.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.cloudKitSettingsSync",
+   "hash": "e548307d68ab49e1",
+   "does": "Returns the CloudKitSettingsSync the app uses: the test substitute from overrides.cloudKitSettingsSync if one is set, otherwise the CloudKitSettingsSync.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CloudKitSettingsSync.shared",
+    "mem:AppDependencies.Overrides.values.cloudKitSettingsSync"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.cloudKitSettingsSync is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return CloudKitSettingsSync.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.cloudKitSyncManager",
+   "hash": "753cb603750e7d3a",
+   "does": "Returns the CloudKitSyncManager the app uses: the test substitute from overrides.cloudKitSyncManager if one is set, otherwise the CloudKitSyncManager.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CloudKitSyncManager.shared",
+    "mem:AppDependencies.Overrides.values.cloudKitSyncManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.cloudKitSyncManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return CloudKitSyncManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.encryptionManager",
+   "hash": "0487faf46ef10789",
+   "does": "Returns the EncryptionManager the app uses: the test substitute from overrides.encryptionManager if one is set, otherwise the EncryptionManager.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:EncryptionManager.shared",
+    "mem:AppDependencies.Overrides.values.encryptionManager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.encryptionManager is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return EncryptionManager.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.sessionArchive",
+   "hash": "aaf1da6dc594a49e",
+   "does": "Returns the SessionArchive the app uses: the test substitute from overrides.sessionArchive if one is set, otherwise the SessionArchive.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.shared",
+    "mem:AppDependencies.Overrides.values.sessionArchive"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.sessionArchive is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SessionArchive.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.uiStateCache",
+   "hash": "987be7cac0fec7d1",
+   "does": "Returns the UIStateCache the app uses: the test substitute from overrides.uiStateCache if one is set, otherwise the UIStateCache.shared singleton (constructing it on first access). Main-actor isolated.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:UIStateCache.shared",
+    "mem:AppDependencies.Overrides.values.uiStateCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overrides.uiStateCache is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return UIStateCache.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StorageServices.workoutTrackBackup",
+   "hash": "c7bcafabbc077b27",
+   "does": "Returns the WorkoutTrackBackup the app uses: the test substitute from overrides.workoutTrackBackup if one is set, otherwise the WorkoutTrackBackup.shared singleton (constructing it on first access).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutTrackBackup.shared",
+    "mem:AppDependencies.Overrides.values.workoutTrackBackup"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overrides.workoutTrackBackup is non-nil",
+     "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return WorkoutTrackBackup.shared."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var EnvironmentValues.dependencies",
+   "hash": "16a0ecca667c0d17",
+   "does": "SwiftUI EnvironmentValues accessor for the container: get returns self[DependenciesKey] (defaulting to DependenciesKey.defaultValue, a static snapshot of AppDependencies.current taken on first use), set stores an override for a subtree.",
+   "entry": "Read by @Environment(\\.dependencies) in views (e.g. Emuqu/Sources/Views/SettingsView.swift:12); the setter is only used if a view applies .environment(\\.dependencies, ...), which no code in the repo does.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "mem:AppDependencies.storage"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says 'the root injects .current' (line 15) and previews/tests override via .environment(\\.dependencies, ...) (line 784), but no file applies .environment(\\.dependencies, ...); views receive DependenciesKey.defaultValue, a `static let` snapshot of AppDependencies.current taken once. A test that swaps `current` after the first environment read (or calls reset(), which makes a new Overrides box) would not reach views.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/AppDependencies.swift:15",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:779",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:784"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  }
+ ],
+ "deps": {}
+}

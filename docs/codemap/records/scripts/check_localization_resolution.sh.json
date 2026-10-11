@@ -1,0 +1,27 @@
+{
+ "file": "scripts/check_localization_resolution.sh",
+ "hash": "ee13cb67e445c0e6",
+ "role": "CI gate: both the Emuqu and EmuquWatch Watch App targets ship Localizable.xcstrings in Resources, and every localized literal in code resolves to a catalogue key.",
+ "types": [],
+ "state": [
+  "file:Emuqu/Localizable.xcstrings",
+  "file:Emuqu.xcodeproj/project.pbxproj"
+ ],
+ "toplevel": "cd to repo root. SCAN_DIRS Emuqu/Sources and watch app (missing -> 2); catalogue missing -> 2. Python 1 (pbxproj): for each target finds its Resources phase and requires 'Localizable.xcstrings in Resources' (target missing -> 2, missing resource -> 1). Python 2: parse catalogue (error -> 2, empty -> 2); CALL = String(localized:, AttributedString(localized:, LocalizedStringKey(, SwiftUI Text/Button/Label/Toggle/TextField/Picker/Section and modifiers; skips verbatim:; first-argument literals; literals without 2+ letters skipped; each literal's candidate keys must exist or match with %@ widened to a permissive specifier regex; unresolved -> exit 1.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "scan_literal has no triple-quote handling: `String(localized: \"\"\"...\"\"\")` reads as an empty literal, which the 2-letter filter drops, so multi-line localized literals are never checked. NSLocalizedString( literals are also not in CALL. The orphan gate's copy handles both.",
+   "evidence": [
+    "scripts/check_localization_resolution.sh:120",
+    "scripts/check_localization_resolution.sh:275",
+    "scripts/check_localization_resolution.sh:299",
+    "scripts/check_localization_orphans.sh:73"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

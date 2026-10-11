@@ -1,0 +1,121 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapLinkRuntime.swift",
+ "hash": "988e936c2588acb2",
+ "role": "SDK-callback event model (StrapEvent, StrapLinkLoss), the ordered event pump from the SDK queue to the main actor, and the per-link runtime state the link coordinator keeps between events.",
+ "types": [
+  "StrapEvent: enum — reduced Polar SDK callbacks",
+  "StrapLinkLoss: enum — connectionLost/pairingLost/deviceCommand",
+  "StrapEventPump: class (Sendable) — unbounded AsyncStream + continuation",
+  "StrapLinkRuntime: class (@MainActor) — per-link tasks, timestamps and reconnect flags owned by PolarManager.linkRuntime"
+ ],
+ "state": [
+  "StrapLinkRuntime.pump / signal (lets)",
+  "StrapLinkRuntime.deliveryTask/feedTask/healthTask/settleTask/statusCheckTask/reconnectDeadlineTask",
+  "StrapLinkRuntime.linkedAt/linkedPeripheralId/settledAt/lastSampleAt/lastResubscribeAt/lastLinkResetAt",
+  "StrapLinkRuntime.userDisconnectRequested/linkResetInProgress/reconnectTargetId"
+ ],
+ "toplevel": "Stored-property initialisers: pump = StrapEventPump(), signal = StrapSignal(), flags false/nil.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var StrapLinkLoss.needsUserRepair",
+   "hash": "627666960398ce94",
+   "does": "True only for .pairingLost.",
+   "entry": "Read in StrapLinkCoordinator.linkDropped (StrapLinkCoordinator.swift:167) for PolarSDKLogBridge.narrateDisconnect.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .pairingLost",
+     "effect": "true: true; false: false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init StrapEventPump()",
+   "hash": "5d04152a0c8cb2ed",
+   "does": "Creates an unbounded AsyncStream<StrapEvent> and keeps its continuation.",
+   "entry": "Built by StrapLinkRuntime's stored-property initialiser (PolarManager.init, PolarManager.swift:494).",
+   "calls": [
+    "ext:AsyncStream.makeStream"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapEventPump.send(_:)",
+   "hash": "41c03278990ee3c5",
+   "does": "Yields an event into the stream (callable from the SDK queue; yield order is delivery order).",
+   "entry": "Called from PolarManager+Observers.swift:20,24,34,54,60,64,76,84,105,106 (Polar SDK observer callbacks on the SDK queue).",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapEventPump.events"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapEventPump.finish()",
+   "hash": "d7f1bfb4888f5b3f",
+   "does": "Finishes the event stream, ending the delivery loop.",
+   "entry": "Called from StrapLinkRuntime deinit.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapEventPump.events"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "deinit StrapLinkRuntime",
+   "hash": "cbb972e0d8343cde",
+   "does": "On release cancels all six runtime tasks and finishes the event pump.",
+   "entry": "isolated deinit when the PolarManager (owner) is deallocated.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.finish()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StrapLinkRuntime tasks"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.finish()": "6531fc5eb5c0e110"
+   }
+  },
+  {
+   "key": "func StrapLinkRuntime.cancelLinkTasks()",
+   "hash": "c78f7e298fcc04cd",
+   "does": "Cancels and nils the feed, health, settle and status-check tasks and clears linkedAt, settledAt, lastSampleAt and lastResubscribeAt (lastLinkResetAt, linkedPeripheralId and reconnect state are kept).",
+   "entry": "Called from StrapLinkCoordinator.clearPreviousLink, linkDropped and noteUserDisconnect.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapLinkRuntime.feedTask",
+    "mem:StrapLinkRuntime.healthTask",
+    "mem:StrapLinkRuntime.settleTask",
+    "mem:StrapLinkRuntime.statusCheckTask",
+    "mem:StrapLinkRuntime.linkedAt",
+    "mem:StrapLinkRuntime.settledAt",
+    "mem:StrapLinkRuntime.lastSampleAt",
+    "mem:StrapLinkRuntime.lastResubscribeAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

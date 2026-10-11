@@ -1,0 +1,965 @@
+{
+ "file": "EmuquTests/LiveReadinessTests.swift",
+ "hash": "f2bbb268a764bd8a",
+ "role": "XCTest suite for LiveReadiness.compute (the dashboard's 'right now' readiness): morning-only fallbacks, drift flags, day-fraction ATL/CTL interpolation, rest-day acute-fatigue gating, the 72 h recent-load filter, hoursSinceMorning, WorkoutDescriptor selection/phrase, headline and loop-card text.",
+ "types": [
+  "LiveReadinessTests: class — XCTestCase over LiveReadiness and WorkoutDescriptor"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "Workout loads come from WorkoutSummary.userScaledLoad, which reads the host's SettingsManager settingsSnapshot (effective resting/max HR) and the process-global WorkoutLoadRestingHR.lastAppleValue (WorkoutSummary+UserLoad.swift:15-34); results depend on the app host's saved settings, as the test at line 233 admits.",
+   "evidence": [
+    "EmuquTests/LiveReadinessTests.swift:233",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift:28"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var LiveReadinessTests.noonToday",
+   "hash": "55a16e8c19c04263",
+   "does": "Computed fixture: today's date at 12:00 local, or Date() if Calendar cannot set the hour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Calendar date(bySettingHour:) ?? Date()",
+     "effect": "falls back to the current time only if the calendar returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveReadinessTests.testNoSessionAndNoMetricsCollapsesToInputScore()",
+   "hash": "b3e4100bf1b7e670",
+   "does": "Asserts compute(78, no session, no metrics) returns score and morningRecovery 78 with both flags false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testNoLiveMetricsCollapsesToInputScore()",
+   "hash": "e3edc17c9d54e51c",
+   "does": "Asserts compute(85, session, no metrics) returns score 85 and morningRecovery 85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRestDayReadinessTracksMorningRecovery()",
+   "hash": "ee09ae421a5fd88c",
+   "does": "With ATL 30/CTL 35 and no training today asserts readiness is within ±12 of the morning 75 and todayTrimp 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "±12-point tolerance on a 0-100 score lets almost any wrapper behaviour pass; it also uses Date() rather than noonToday, unlike the rest of the suite.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:57",
+      "EmuquTests/LiveReadinessTests.swift:59"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testHardWorkoutPullsReadinessBelowMorning()",
+   "hash": "940ef47163dba9be",
+   "does": "Morning 90, hard 60-min run 3 h ago, todayTrimp 120: asserts score < morning, pulledDownByTodaysTraining true, liftedByRecovery false, and todayPrimaryWorkout typeLabel 'run'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRestDayWithFatigueDissipationLiftsReadiness()",
+   "hash": "0287ba544ef5419a",
+   "does": "Morning ATL 40 → live 35, CTL flat, no training: asserts score ≥ morning recovery.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)": "f427c636000fd0e8",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testFlagsFireOnlyAtAThreePointDrift()",
+   "hash": "bffa601a6ce0306c",
+   "does": "Asserts pulledDownByTodaysTraining == (morning − score ≥ 3), liftedByRecovery == (score − morning ≥ 3) and not both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Re-states the production formula (LiveReadiness.swift:108-109) against whatever score comes out; it never constructs a drift of exactly 3 or 2.9, so the threshold itself is not pinned.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:106",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:108"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testFreshlyAcceptedSessionUsesMorningContextForATL()",
+   "hash": "6833144bec66f592",
+   "does": "Morning ATL 40/CTL 50, live ATL 34: asserts readiness 24 h later is greater than at acceptance (day-fraction interpolation).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)": "f427c636000fd0e8",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testStaleSessionSuppressesFreshnessBonus()",
+   "hash": "71c3756b7cd681bb",
+   "does": "Session ended 36 h ago with morning ATL 60 vs live 35: asserts hoursSinceMorning > 24 and score < 100.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Claims to verify that the stale-session freshness bonus is suppressed (morningATLForReadiness pinned when dayFraction ≥ 1, LiveReadiness.swift:184), but only asserts score < 100; with the bonus left in, the score for morning 70 is still under 100, so the test cannot fail on the regression it names.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:157",
+      "EmuquTests/LiveReadinessTests.swift:159",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:184"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeContext(atl:ctl:)": "f427c636000fd0e8",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRestDayDoesNotDoubleCountYesterdayWorkout()",
+   "hash": "f344c979eaa8f8a7",
+   "does": "Asserts a rest day with a 20 h-old hard workout scores at least the active-day score minus 1 (acute fatigue only applied when todayTrimp > 0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRecentWorkoutLoadsExcludeOlderThan72h()",
+   "hash": "fb481a9fab86ec33",
+   "does": "Asserts recentWorkoutLoads keeps the 24 h-old workout and drops the 96 h-old one, with hoursAgo ≈24.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "loads?.first?.hoursAgo ?? 0",
+     "effect": "0 when no load survives, failing the ≈24 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRecentWorkoutLoadsExcludeFutureDated()",
+   "hash": "7ce91f0a7e7fb8d6",
+   "does": "Asserts a workout dated 2 h in the future is skipped, so recentWorkoutLoads returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testRecentWorkoutLoadsReturnsNilForEmpty()",
+   "hash": "e68908195365a079",
+   "does": "Asserts recentWorkoutLoads returns nil with no workouts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testHoursSinceMorningReflectsSessionEnd()",
+   "hash": "3b9dcff26a52f9a5",
+   "does": "Asserts hoursSinceMorning is 5 for a session that ended 5 h before now.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testHoursSinceMorningClampedAtZero()",
+   "hash": "20716524968cd795",
+   "does": "Asserts hoursSinceMorning ≥ 0 for a session ending 1 h in the future.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testWorkoutDescriptorPicksHighestTrimpToday()",
+   "hash": "bb2fe83ba4d28a07",
+   "does": "Asserts todayPrimary picks the hard 50-min run over an easy 25-min walk (typeLabel 'run').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testWorkoutDescriptorPhraseShape()",
+   "hash": "27e7862f578cdd47",
+   "does": "Asserts WorkoutDescriptor(ride, 60, moderate).phrase == 'moderate 60-min ride'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "phrase is localized through NarrativeLanguage.bundle (LiveReadiness.swift:296) and the test compares to English without pinEnglishLanguage(); outcome depends on the host's narrative language.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:250",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:296"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)": "03b90942a0e14fdd",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testWorkoutDescriptorReturnsNilOnRestDay()",
+   "hash": "fac200a55ec68efe",
+   "does": "Asserts todayPrimary of [] is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testWorkoutDescriptorRejectsAbsurdDuration()",
+   "hash": "6097c84e58bf0e9e",
+   "does": "Asserts an 827-min 'workout' is excluded so the 45-min run is picked (duration ≤ 360).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "descriptor?.durationMinutes ?? 999",
+     "effect": "999 when no descriptor, failing the ≤ 360 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testWorkoutDescriptorReturnsNilWhenAllCandidatesAreAbsurd()",
+   "hash": "dcd1378275bb69d9",
+   "does": "Asserts todayPrimary returns nil when the only workout is 800 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testHeadlineNamesTodaysMarqueeWorkout()",
+   "hash": "7f5f6634d788eec1",
+   "does": "Morning 92, hard 45-min run 2 h ago: if pulledDownByTodaysTraining, asserts the headline contains 'run' and 'min'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settingsSnapshot (effectiveRestingHR/effectiveMaxHR via WorkoutLoadRestingHR.anchors)",
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "pulledDownByTodaysTraining",
+     "effect": "checks headline wording; otherwise the test asserts nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "All assertions sit inside `if r.pulledDownByTodaysTraining`; when the score is not pulled down (e.g. different host max-HR settings) the test passes with zero assertions.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:286"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "When the branch does run, it checks the headline for the English words 'run' and 'min', but the headline and WorkoutDescriptor.phrase are localized through NarrativeLanguage.bundle (LiveReadiness.swift:197, 296; WorkoutDescriptorCopy at 371-395) and the test does not pin the narrative language, so on a host with a non-English narrative language the assertions fail.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:287",
+      "EmuquTests/LiveReadinessTests.swift:289",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:197",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:296"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline": "ea16fa39d7e037ce",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "5cc89bb0617e7559",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)": "7ff474b794f3aeec",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.testLoopCardTextIsNilOnUnremarkableDays()",
+   "hash": "0b57c6545a17d712",
+   "does": "Unremarkable day: if neither flag is set, asserts loopCardText is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "neither drift flag set",
+     "effect": "asserts loopCardText nil; otherwise asserts nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Conditional assertion: if either flag fires the test asserts nothing.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:301"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.loopCardText": "45abb941b9d7ec24",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)": "258372a6e4ca458e",
+    "EmuquTests/LiveReadinessTests.swift::func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)": "77fa2ed90768a7fc",
+    "EmuquTests/LiveReadinessTests.swift::var LiveReadinessTests.noonToday": "66ad6e258f7a381f"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.makeSession(recoveryScore:sessionEndAgoHours:trainingSnapshot:now:)",
+   "hash": "f23a45c48b06b412",
+   "does": "Fixture: overnight session of 8 h ending sessionEndAgoHours before now, with recoveryScore and optional trainingSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.makeContext(atl:ctl:)",
+   "hash": "ded28a607b44028b",
+   "does": "Fixture: TrainingContext with given ATL/CTL, TSB = CTL − ATL.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4"
+   }
+  },
+  {
+   "key": "func LiveReadinessTests.makeMetrics(atl:ctl:todayTrimp:recentWorkouts:)",
+   "hash": "22cb9903bddf0e8e",
+   "does": "Fixture: TrainingMetrics with ATL/CTL/TSB, todayTrimp and recentWorkouts (no todayWorkouts).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "todayWorkouts is always [] so LiveReadiness.readiness always falls back to recentWorkouts for todayPrimaryWorkout (LiveReadiness.swift:111); the todayWorkouts branch is never exercised.",
+     "evidence": [
+      "EmuquTests/LiveReadinessTests.swift:341",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:111"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LiveReadinessTests.makeWorkout(hoursAgo:durationMinutes:avgHR:now:type:)",
+   "hash": "e9b3e9a2ca7e618c",
+   "does": "Fixture: HealthKitManager.WorkoutSummary at now − hoursAgo with type, duration and average HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.typeToString(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.typeToString(_:)": "094e1e7be32b8508",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,135 @@
+{
+ "file": "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift",
+ "hash": "5fd65a2bafc2ac96",
+ "role": "Defines BaselineSnapshot (a Codable cached baseline value with timestamp) and RespiratoryBaselineCache, a UserDefaults-backed 30-day last-known-good 7-day respiratory-rate baseline used when HealthKit is unreachable (locked phone).",
+ "types": [
+  "BaselineSnapshot: struct — Codable value/sampleCount/lastUpdated; shared shape for respiratory and wrist-temperature caches",
+  "RespiratoryBaselineCache: enum — static read/write/clear over UserDefaults"
+ ],
+ "state": [
+  "ud:RespiratoryBaselineCache.v1 (standard suite; JSON-encoded BaselineSnapshot)",
+  "RespiratoryBaselineCache.maxAgeSeconds = 30*86400"
+ ],
+ "toplevel": "The long doc comment describing RespiratoryBaselineCache (lines 3-19) is attached to BaselineSnapshot because the BaselineSnapshot doc comment follows it with no blank line before struct (line 20-23); cosmetic.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "BaselineSnapshot.sampleCount is never populated: both write(value:sampleCount:) callers pass only value (VitalsHealthQueries+Queries.swift:113,262) so it is always 0, and no reader uses sampleCount (callers read only .value).",
+   "evidence": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift:25",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:113",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:262",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:100"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says every successful HK baseline fetch from any caller writes the cache; the writers only write when referenceDate is today (refreshesBaselineCache), so reanalysis of past nights never refreshes it.",
+   "evidence": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift:14",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:70",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:113"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func BaselineSnapshot.read(key:maxAgeSeconds:)",
+   "hash": "ac39f5bcb1a90b52",
+   "does": "Reads Data at UserDefaults.standard[key], JSON-decodes a BaselineSnapshot and returns it unless it is older than maxAgeSeconds measured from Date() now.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:<key> (RespiratoryBaselineCache.v1 or WristTemperatureBaselineCache.v1)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data under key, or JSON decode fails (try?)",
+     "effect": "returns nil; decode error swallowed silently (no log), else continue"
+    },
+    {
+     "at": "+4",
+     "cond": "snapshot lastUpdated more than maxAgeSeconds before now",
+     "effect": "returns nil (stale), else returns snapshot"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Age is measured against wall-clock now, not the reference date being scored; a reanalysis of an old session (fetchRespiratoryRateBaseline(relativeTo:) with HK unreachable) gets whatever baseline was cached in the last 30 days, not one near that session.",
+     "evidence": [
+      "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift:34",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:116",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:265"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RespiratoryBaselineCache.read()",
+   "hash": "ff09ee4a21fc7d36",
+   "does": "Returns the cached respiratory baseline snapshot (<=30 days old) via BaselineSnapshot.read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)"
+   ],
+   "reads": [
+    "ud:RespiratoryBaselineCache.v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)": "66b4800cd4f00eb8"
+   }
+  },
+  {
+   "key": "func RespiratoryBaselineCache.write(value:sampleCount:)",
+   "hash": "001af1f5df342aa9",
+   "does": "Encodes a new BaselineSnapshot(value, sampleCount, now) and stores it under RespiratoryBaselineCache.v1. Called from VitalsHealthQueries+Queries.swift:113 after a successful live HK baseline query.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RespiratoryBaselineCache.v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "JSON encoding succeeds (attempt returns non-nil)",
+     "effect": "true: data written to UserDefaults; false: encode error logged by attempt and nothing written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func RespiratoryBaselineCache.clear()",
+   "hash": "c6fb1bf52bd8739e",
+   "does": "Removes RespiratoryBaselineCache.v1 from UserDefaults. Called by DataPurgeService.swift:701.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:RespiratoryBaselineCache.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

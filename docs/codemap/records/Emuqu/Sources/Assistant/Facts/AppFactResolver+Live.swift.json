@@ -1,0 +1,1239 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift",
+ "hash": "29e41e8dcaf17ff3",
+ "role": "Declares four fact namespaces: HRVLiveNamespace (hrv.live.* from LiveHRVBroker snapshot), TagsNamespace (tags.* over archive index tags/recovery scores), HRRNamespace (hrr.* averages/trend from archived workouts' HRR samples) and CompositesNamespace (user.profile.snapshot, training.load.snapshot, walks.summary, recovery.today.full, recovery.week.summary).",
+ "types": [
+  "HRVLiveNamespace: struct (FactNamespaceResolver) — live HRV recording state",
+  "TagsNamespace: struct (FactNamespaceResolver) — tag counts/lists/correlation",
+  "HRRNamespace: struct (FactNamespaceResolver) — heart-rate recovery aggregates",
+  "CompositesNamespace: struct (FactNamespaceResolver) — multi-key composite facts"
+ ],
+ "state": [
+  "HRVLiveNamespace.namespace = 'hrv.live'",
+  "TagsNamespace.namespace = 'tags'; let archive",
+  "HRRNamespace.namespace = 'hrr'; let archive",
+  "CompositesNamespace.namespace = 'composites'"
+ ],
+ "toplevel": "Struct conformances; registered in AppFactResolverFactory (HRVLive/HRR/Tags in registerHealthNamespaces, Composites last in build).",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "HRVLiveNamespace.namespace is 'hrv.live', but the registry's primary dispatch compares the key's FIRST token ('hrv') with ns.namespace (FactResolverRegistry.swift:126), so hrv.live.* keys never take the primary path and resolve only through the fallback scan after every 'hrv'-headed namespace misses.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:23",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:126",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:129"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var HRVLiveNamespace.snapshot",
+   "hash": "1a3587c29381db17",
+   "does": "Returns LiveHRVBroker.currentSnapshot() — the provider closure RRCollector registered, or nil when no HRV recording is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveHRVBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()",
+    "closure:LiveHRVBroker.provider installed by the RRCollector owner via registerProvider"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9544923aae2a6add",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveHRVBroker": "1064e6fbd1638349"
+   }
+  },
+  {
+   "key": "func HRVLiveNamespace.missing(_:)",
+   "hash": "2c75d13a87e18d30",
+   "does": "Returns .missing(.notRecorded, detail) with default detail 'no HRV recording active'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVLiveNamespace.snapshotRecord()",
+   "hash": "b28b0441b147134a",
+   "does": "Builds the full live-HRV record {phase, phase_description, is_collecting, beat_count, snapshot_at, elapsed_sec?, session_started_at?, last_error?} or missing when no snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot exists",
+     "effect": "builds record; else missing"
+    },
+    {
+     "at": "+9",
+     "cond": "elapsedSeconds non-nil",
+     "effect": "adds elapsed_sec"
+    },
+    {
+     "at": "+10",
+     "cond": "sessionStartAt non-nil",
+     "effect": "adds session_started_at"
+    },
+    {
+     "at": "+11",
+     "cond": "lastErrorDescription non-nil and non-empty",
+     "effect": "adds last_error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.entries",
+   "hash": "2444fa510c7fa175",
+   "does": "Returns the 9 hrv.live entries.",
+   "entry": "FactNamespaceResolver protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveActiveEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveSnapshotEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLivePhaseEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLivePhaseDescriptionEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveIsCollectingEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveBeatCountEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveElapsedSecEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveSessionStartedAtEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveLastErrorEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveActiveEntry": "6b6c4150a1bbf00f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveBeatCountEntry": "e6c886340ca261e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveElapsedSecEntry": "5d7c31c8084204ce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveIsCollectingEntry": "836c6285d13cd39c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveLastErrorEntry": "dbc345dcd798fd13",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLivePhaseDescriptionEntry": "509a2693adf66d60",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLivePhaseEntry": "a7cc463796c6eef9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveSessionStartedAtEntry": "87bbd45a6ea1201a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.hrvLiveSnapshotEntry": "25d0895bf17aa0c9"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveActiveEntry",
+   "hash": "48299929dfdc81e8",
+   "does": "Fixed fact `hrv.live.active`: true when a live HRV snapshot exists.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveSnapshotEntry",
+   "hash": "4a1299d16fca89f9",
+   "does": "Fixed fact `hrv.live.snapshot`: snapshotRecord().",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.snapshotRecord()"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.snapshotRecord()": "5cbfec12a6220a82",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLivePhaseEntry",
+   "hash": "94a2608ad5e6c6eb",
+   "does": "Fixed fact `hrv.live.phase`: snapshot.phase string or missing.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot is nil",
+     "effect": "?? missing('no HRV recording active')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLivePhaseDescriptionEntry",
+   "hash": "af06a19af965b9d3",
+   "does": "Fixed fact `hrv.live.phase_description`: snapshot.phaseDescription or missing.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot is nil",
+     "effect": "?? missing('no HRV recording active')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveIsCollectingEntry",
+   "hash": "2ff115fec934e3de",
+   "does": "Fixed fact `hrv.live.is_collecting`: snapshot.isCollecting or missing.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot is nil",
+     "effect": "?? missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveBeatCountEntry",
+   "hash": "2c222fb758e855bc",
+   "does": "Fixed fact `hrv.live.beat_count`: snapshot.beatCount or missing.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot is nil",
+     "effect": "?? missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveElapsedSecEntry",
+   "hash": "d195e9b5d404bf1f",
+   "does": "Fixed fact `hrv.live.elapsed_sec`: snapshot.elapsedSeconds, missing when no snapshot or not started.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot exists",
+     "effect": "continues; else missing 'no HRV recording active'"
+    },
+    {
+     "at": "+7",
+     "cond": "elapsedSeconds is nil",
+     "effect": "?? missing('session not started yet')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveSessionStartedAtEntry",
+   "hash": "b206726ca206ea89",
+   "does": "Fixed fact `hrv.live.session_started_at`: snapshot.sessionStartAt date, missing when absent.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot exists",
+     "effect": "continues; else missing"
+    },
+    {
+     "at": "+7",
+     "cond": "sessionStartAt is nil",
+     "effect": "?? missing('session not started yet')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var HRVLiveNamespace.hrvLiveLastErrorEntry",
+   "hash": "32f54667d8438bb9",
+   "does": "Fixed fact `hrv.live.last_error`: non-empty lastErrorDescription, else missing 'no error on the recording path'.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "snapshot exists",
+     "effect": "continues; else missing"
+    },
+    {
+     "at": "+7",
+     "cond": "lastErrorDescription non-empty",
+     "effect": "returns .string; empty string maps to nil"
+    },
+    {
+     "at": "+7",
+     "cond": "no usable error",
+     "effect": "?? missing('no error on the recording path')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRVLiveNamespace.snapshot": "a23d4e31a70d8c1b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func TagsNamespace.nameMatches(_:tag:)",
+   "hash": "872f1f4456f4f9d3",
+   "does": "Case-insensitive tag-name match, also matching after removing '-' and ' ' from both sides ('postexercise' matches 'Post-Exercise').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TagsNamespace.sessionsWithTag(_:)",
+   "hash": "c16d4f93331320b6",
+   "does": "Archive index entries whose tags match the name, newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.nameMatches(_:tag:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.nameMatches(_:tag:)": "d5937fb9c2bd94a1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func TagsNamespace.displayScore(_:)",
+   "hash": "d2bbfec38d3124c1",
+   "does": "Converts a stored 0–10 recovery score to the 0–100 display integer via RecoveryScoreCalculator.displayScore (clamped, rounded).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06"
+   }
+  },
+  {
+   "key": "func TagsNamespace.tagsAvailability()",
+   "hash": "49793a4c1c926e85",
+   "does": "Availability for tags.*: unavailable on empty archive; otherwise range from earliest to latest entry date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive has entries",
+     "effect": "continues; else .unavailable"
+    },
+    {
+     "at": "+4",
+     "cond": "min/max dates exist",
+     "effect": "returns ranged availability; else .alwaysAvailable (unreachable: non-empty array always has min/max)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func TagsNamespace.sessionsOn(_:)",
+   "hash": "d385fe9b5e261e0c",
+   "does": "Parses a yyyy-MM-dd local date and returns archive entries on that calendar day.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "param parses as a local date",
+     "effect": "filters entries; else returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "var TagsNamespace.entries",
+   "hash": "414fdc52ea62bd5a",
+   "does": "Returns the 5 tags entries.",
+   "entry": "FactNamespaceResolver protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountTagEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountInPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsRecentTaggedTagEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsListActiveDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCorrelationTagEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCorrelationTagEntry": "1b57b069932eaf90",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountInPeriodEntry": "c1fe01382d67ba8d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsCountTagEntry": "10562429eb834fd6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsListActiveDateEntry": "024fe83923b1a7d3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var TagsNamespace.tagsRecentTaggedTagEntry": "aff91cec3b1c459e"
+   }
+  },
+  {
+   "key": "var TagsNamespace.tagsCountTagEntry",
+   "hash": "6f037a914c7c58e0",
+   "does": "Parameterized fact `tags.count($tag)`: count of sessions carrying the tag.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)": "86ee4a0d3fd684c8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
+   }
+  },
+  {
+   "key": "var TagsNamespace.tagsCountInPeriodEntry",
+   "hash": "341016fd4050a5b2",
+   "does": "Parameterized fact `tags.count_in_period($params)` executing resolveTagsCountInPeriod.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCountInPeriod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCountInPeriod(_:)": "9a29e0dd0c99487d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
+   }
+  },
+  {
+   "key": "func TagsNamespace.resolveTagsCountInPeriod(_:)",
+   "hash": "b99834c92b1a40f4",
+   "does": "Splits 'tag,period' at the last comma, parses the period with PeriodParser, and counts tagged sessions with start ≤ date < end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "param contains a comma",
+     "effect": "continues; else missing invalidParameter 'expected tag,period'"
+    },
+    {
+     "at": "+6",
+     "cond": "tag non-empty and period parses",
+     "effect": "returns count; else missing invalidParameter 'unknown tag or period'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)": "86ee4a0d3fd684c8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86"
+   }
+  },
+  {
+   "key": "var TagsNamespace.tagsRecentTaggedTagEntry",
+   "hash": "7072bab7069ac210",
+   "does": "Parameterized fact `tags.recent_tagged($tag)` executing resolveTagsRecentTaggedTag.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsRecentTaggedTag(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsRecentTaggedTag(_:)": "51e91e1c67558be7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
+   }
+  },
+  {
+   "key": "func TagsNamespace.resolveTagsRecentTaggedTag(_:)",
+   "hash": "fb4fbff18e001791",
+   "does": "Returns up to 10 newest sessions carrying the tag as {date, session_id, session_type, recovery_score (0–100)?}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.displayScore(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags, recoveryScore)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "at least one tagged session",
+     "effect": "builds list; else missing notRecorded"
+    },
+    {
+     "at": "+11",
+     "cond": "entry has recoveryScore",
+     "effect": "adds recovery_score; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.displayScore(_:)": "49d00b02570472b1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsWithTag(_:)": "86ee4a0d3fd684c8"
+   }
+  },
+  {
+   "key": "var TagsNamespace.tagsListActiveDateEntry",
+   "hash": "e3ad8af4d57dcd7c",
+   "does": "Parameterized fact `tags.list_active($date)` executing resolveTagsListActive.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsListActive(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsListActive(_:)": "6bd8b304fa85a525",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
+   }
+  },
+  {
+   "key": "func TagsNamespace.resolveTagsListActive(_:)",
+   "hash": "38acb37d8c97ba75",
+   "does": "Returns the sorted distinct tag names across all sessions on the given local date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsOn(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessions exist that day",
+     "effect": "continues; else missing notRecorded 'no sessions on …' (also for an unparseable date)"
+    },
+    {
+     "at": "+6",
+     "cond": "loop over sessions",
+     "effect": "collects tags"
+    },
+    {
+     "at": "+7",
+     "cond": "loop over each session's tags",
+     "effect": "inserts names"
+    },
+    {
+     "at": "+9",
+     "cond": "at least one tag name",
+     "effect": "returns sorted list; else missing notRecorded 'no tags on any session that day'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A malformed date makes sessionsOn return [] and the reply is notRecorded 'no sessions on <param>' instead of invalidParameter, so the model tells the user they had no sessions.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:208",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:297"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.sessionsOn(_:)": "64b42a3174b32554"
+   }
+  },
+  {
+   "key": "var TagsNamespace.tagsCorrelationTagEntry",
+   "hash": "fbb544068c4a0c6b",
+   "does": "Composite fact `tags.correlation($tag)` (no child dependencies) executing resolveTagsCorrelationTag.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCorrelationTag(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.resolveTagsCorrelationTag(_:)": "6d551b224bddaf3b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.tagsAvailability()": "1fe0e46bf4c15944"
+   }
+  },
+  {
+   "key": "func TagsNamespace.resolveTagsCorrelationTag(_:)",
+   "hash": "ec82be055ac8e511",
+   "does": "Averages stored recovery scores ×10 for sessions with vs without the tag; returns {tagged_avg, untagged_avg (or nested missing), sample_size, total_sessions}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.taggedScores(matching:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags, recoveryScore)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "param supplied",
+     "effect": "continues; else missing invalidParameter 'missing tag arg'"
+    },
+    {
+     "at": "+5",
+     "cond": "at least one scored tagged session",
+     "effect": "builds record; else missing notRecorded"
+    },
+    {
+     "at": "+10",
+     "cond": "no untagged scored sessions",
+     "effect": "untagged_avg = nested .missing(notRecorded); else the average"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Correlation mixes every scored session regardless of session type and isReliableForHRVAggregates, while dashboard recovery averages exclude unreliable sessions (DashboardSessionPolicy.swift:45), so tagged/untagged averages include readings the app itself refuses to aggregate.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:341",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.taggedScores(matching:)": "d90bab21b6cb127d"
+   }
+  },
+  {
+   "key": "func TagsNamespace.taggedScores(matching:)",
+   "hash": "a684a4a842910c53",
+   "does": "Splits archive entries with a recoveryScore into tagged / untagged 0–10 score arrays by tag-name match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.nameMatches(_:tag:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (tags, recoveryScore)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loop over all archive entries",
+     "effect": "each entry classified"
+    },
+    {
+     "at": "+4",
+     "cond": "entry has a recoveryScore",
+     "effect": "continues; else skipped"
+    },
+    {
+     "at": "+6",
+     "cond": "entry carries the tag",
+     "effect": "appended to tagged; else to untagged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func TagsNamespace.nameMatches(_:tag:)": "d5937fb9c2bd94a1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func HRRNamespace.sessionsWithHRR(_:)",
+   "hash": "90c7cd5ed3355f6d",
+   "does": "Workout sessions in the period (newest first), loaded lightweight from the archive, keeping only those whose workoutMetadata.hrrSamples is non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (workout)",
+    "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period parses",
+     "effect": "continues; else returns [] (callers then report 'no HRR samples in period' instead of invalid period)"
+    },
+    {
+     "at": "+6",
+     "cond": "hrrSamples is nil",
+     "effect": "?? [] — session excluded"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "An unparseable period returns [] so every hrr.* entry answers notRecorded/notYetComputed ('no 1-min HRR samples in period') rather than invalidParameter.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:362",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:392"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func HRRNamespace.hrrAvailability()",
+   "hash": "a9c5910e8ba73fd9",
+   "does": "Availability: Availability.workouts(in: archive) — range of workout entry dates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (workout)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)": "e1541cf846f9e85c"
+   }
+  },
+  {
+   "key": "var HRRNamespace.entries",
+   "hash": "ac5c646bd84267f6",
+   "does": "Returns the 3 hrr entries.",
+   "entry": "FactNamespaceResolver protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg1minPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg2minPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrTrendPeriodEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg1minPeriodEntry": "51f57b6e55ac5e51",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrRecentAvg2minPeriodEntry": "baf9cc2b6bff7133",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var HRRNamespace.hrrTrendPeriodEntry": "fd67708687e25af5"
+   }
+  },
+  {
+   "key": "var HRRNamespace.hrrRecentAvg1minPeriodEntry",
+   "hash": "77a8e6c80c7af673",
+   "does": "Parameterized fact `hrr.recent_avg_1min($period)`: mean of bestAtOneMinute.drop over HRR-bearing workouts in the period.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "any 1-min drops",
+     "effect": "returns mean; else missing notRecorded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var HRRNamespace.hrrRecentAvg2minPeriodEntry",
+   "hash": "505d9f60058429d2",
+   "does": "Parameterized fact `hrr.recent_avg_2min($period)`: mean of bestAtTwoMinutes.drop over HRR-bearing workouts in the period.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "any 2-min drops",
+     "effect": "returns mean; else missing notRecorded"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Closure duplicates hrrRecentAvg1minPeriodEntry's except for the bestAtTwoMinutes key path.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:388",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:406"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var HRRNamespace.hrrTrendPeriodEntry",
+   "hash": "5a31e8bbbc6b7692",
+   "does": "Parameterized fact `hrr.trend($period)` executing resolveHrrTrendPeriod.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.resolveHrrTrendPeriod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.hrrAvailability()": "b5339f8c5264de8f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.resolveHrrTrendPeriod(_:)": "7bde7fceeefaba3a"
+   }
+  },
+  {
+   "key": "func HRRNamespace.resolveHrrTrendPeriod(_:)",
+   "hash": "a6d39c5592e1166a",
+   "does": "Sorts HRR-bearing workouts' 1-min drops oldest→newest, splits by count into halves (first half smaller on odd counts) and returns {first_half_avg, second_half_avg, change_bpm, sample_size}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (workoutMetadata.hrrSamples)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session has a 1-min drop",
+     "effect": "included; else dropped"
+    },
+    {
+     "at": "+7",
+     "cond": "≥2 drops",
+     "effect": "computes halves; else missing notYetComputed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Description says it 'splits the window in half', but the split is by sample count (sessions.count/2), not by time; clustered workouts make 'first half' and 'second half' cover very different spans.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:422",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:438"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRRNamespace.sessionsWithHRR(_:)": "cb2ed231f797a44e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.entries",
+   "hash": "4ddcbb182c33f5a6",
+   "does": "Returns the 5 composite entries.",
+   "entry": "FactNamespaceResolver protocol requirement",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.userProfileSnapshotEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.trainingLoadSnapshotEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.walksSummaryPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.recoveryTodayFullEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.recoveryWeekSummaryEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.recoveryTodayFullEntry": "e6b14df683ad9e6b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.recoveryWeekSummaryEntry": "f56729cee8a8fb9d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.trainingLoadSnapshotEntry": "f0731982ee0b209e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.userProfileSnapshotEntry": "33b9ce2d55bfc954",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::var CompositesNamespace.walksSummaryPeriodEntry": "88b751c697779012"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.userProfileSnapshotEntry",
+   "hash": "dc1426157901aa5e",
+   "does": "Composite `user.profile.snapshot` with 8 user.profile/user.settings dependencies, executing resolveUserProfileSnapshot.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveUserProfileSnapshot(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveUserProfileSnapshot(_:)": "5049dc06a0f34cb2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b"
+   }
+  },
+  {
+   "key": "func CompositesNamespace.resolveUserProfileSnapshot(_:)",
+   "hash": "ca2a9369baa492ca",
+   "does": "Resolves the 8 profile/settings keys through the registry (served from the prefetched children when called via the composite path) and wraps them in CompositeResult.recordFromChildren (present/missing lists, partialData status).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)"
+   ],
+   "reads": [
+    "mem:UserSettings (via user.* namespace)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.trainingLoadSnapshotEntry",
+   "hash": "e279a086b610ccd1",
+   "does": "Composite `training.load.snapshot` over ctl/atl/tsb/acwr, executing resolveTrainingLoadSnapshot.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveTrainingLoadSnapshot(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveTrainingLoadSnapshot(_:)": "3c5924b524fb0a4c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b"
+   }
+  },
+  {
+   "key": "func CompositesNamespace.resolveTrainingLoadSnapshot(_:)",
+   "hash": "3daadb5d577b7bf7",
+   "does": "Resolves training.load.ctl/atl/tsb/acwr through the registry and builds the composite record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.walksSummaryPeriodEntry",
+   "hash": "4e978b306196f0e3",
+   "does": "Composite `walks.summary($period)` over walks.count/total_distance_m/total_trimp/hardest, executing resolveWalksSummaryPeriod.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveWalksSummaryPeriod(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveWalksSummaryPeriod(_:_:)": "9c92190943ffdbdd",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b"
+   }
+  },
+  {
+   "key": "func CompositesNamespace.resolveWalksSummaryPeriod(_:_:)",
+   "hash": "bd0fd89484811cf9",
+   "does": "Substitutes the period into the four walks.* keys, resolves them via the registry and builds the composite record (children keyed by full key string; the short labels in specs are unused).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period param supplied",
+     "effect": "continues; else missing invalidParameter 'missing period arg'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func HRVLiveNamespace.missing(_:)": "a6963a4dcd508b24",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.recoveryTodayFullEntry",
+   "hash": "9feefa97c5632142",
+   "does": "Composite `recovery.today.full` over recovery.score.latest, sleep.latest, hrv.latest, vitals.latest, executing resolveRecoveryTodayFull.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveRecoveryTodayFull(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift::func CompositesNamespace.resolveRecoveryTodayFull(_:)": "9ab2a30e09f39dae",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b"
+   }
+  },
+  {
+   "key": "func CompositesNamespace.resolveRecoveryTodayFull(_:)",
+   "hash": "cac73dcd30b3e938",
+   "does": "Resolves the four 'today' keys through the registry and builds the composite record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517"
+   }
+  },
+  {
+   "key": "var CompositesNamespace.recoveryWeekSummaryEntry",
+   "hash": "c3dbb779c8637a77",
+   "does": "Composite `recovery.week.summary`: inline closure resolving recovery.score.recent(last_7d), sleep.recent(last_7d), hrv.recent(last_7d) and wrapping them with CompositeResult.recordFromChildren.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517"
+   }
+  }
+ ],
+ "deps": {}
+}

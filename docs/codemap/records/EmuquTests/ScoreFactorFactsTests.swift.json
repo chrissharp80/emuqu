@@ -1,0 +1,414 @@
+{
+ "file": "EmuquTests/ScoreFactorFactsTests.swift",
+ "hash": "ff408cbe9d947f41",
+ "role": "Tests that score-factor detail lines and penalty lines are rendered at display time from stored facts in the current app language and temperature unit (not frozen scoring-time text), with fallbacks to stored text for legacy/unknown data.",
+ "types": [
+  "ScoreFactorFactsTests: class (@MainActor) — XCTestCase for ScoreFactor.displayDetail and ScoreBreakdown.displayPenalties"
+ ],
+ "state": [
+  "mem:ScoreFactorFactsTests.pinnedLanguage (AppLanguage saved in setUp)",
+  "ud:AppleLanguages (via LanguageManager.setLanguage)"
+ ],
+ "toplevel": "Stored var pinnedLanguage defaults to .system and is overwritten in setUp.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Language switching goes through LanguageManager.shared.setLanguage, which persists to UserDefaults.standard 'AppleLanguages' and posts languageDidChangeNotification in the app host; if a test crashes before tearDown the host's persisted language stays changed.",
+   "evidence": [
+    "EmuquTests/ScoreFactorFactsTests.swift:17",
+    "Emuqu/Sources/Services/LanguageManager.swift:130",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ScoreFactorFactsTests.setUp()",
+   "hash": "d9381ea8a7244166",
+   "does": "setUp: saves AppLanguage.current and sets the app language to English (does not call super.setUp).",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()"
+   ],
+   "reads": [
+    "ud:AppleLanguages"
+   ],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.tearDown()",
+   "hash": "d5d49b36f5ef41d1",
+   "does": "tearDown: restores the saved app language.",
+   "entry": "XCTest runner: async tearDown after each test",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014"
+   }
+  },
+  {
+   "key": "var ScoreFactorFactsTests.baseline",
+   "hash": "d13db0aaf091d1df",
+   "does": "Computed baseline stats: lnRMSSD mean ln(40), SD 0.3, CV7 6.0, HR baseline 58±3, 30 days.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)",
+   "hash": "bb1f88b2a95c6db4",
+   "does": "Builds RecoveryVitals with only optional wrist temperature deviation and resting HR (default 61).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreFactorFactsTests.englishVitalsFactor(_:)",
+   "hash": "043129f32e3c1805",
+   "does": "Builds the Vitals ScoreFactor (score 80, weight 0.15) inside NarrativeLanguage.english.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "3d1a132ab2d018b6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.englishHRVFactor()",
+   "hash": "362cae4447cde78e",
+   "does": "Builds the HRV ScoreFactor (tier1 70, weight 0.6) from describeHRV(rmssd 40, mean HR 61, alpha1 0.9) inside NarrativeLanguage.english.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "72e31dd9d03ba37e",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)": "13027e34a726ae9a",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.roundTripped(_:)",
+   "hash": "a1169d4f5fe879c8",
+   "does": "JSON-encodes and decodes a ScoreFactor.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testVitalsLineScoredInEnglishIsShownInTheAppLanguage()",
+   "hash": "1c073731d3e77491",
+   "does": "Stores an English vitals factor (detail starts 'Sleep HR'), switches to German and asserts displayDetail equals the German buildVitalsDetail output and starts 'Schlaf-HF'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)": "f487f1c8fa4b20a4",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1",
+    "EmuquTests/ScoreFactorFactsTests.swift::var ScoreFactorFactsTests.baseline": "5e9c0b579813f95a"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testHRVLineScoredInEnglishIsShownInTheAppLanguage()",
+   "hash": "35718063dd6ce7e6",
+   "does": "Stores an English HRV factor ('near your average'), switches to German and asserts displayDetail contains 'nahe deinem Durchschnitt' and not the English phrase.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "34df17839bca99d1",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testFixedLinesFollowTheAppLanguage()",
+   "hash": "6b90fffa0008c62a",
+   "does": "Stores an English no-sleep factor ('No sleep data'), switches to German and asserts display 'Keine Schlafdaten'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)": "b17865feb70556d5",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testEnglishScopeStillWritesEnglish()",
+   "hash": "350af7f67441623a",
+   "does": "With the app in German, asserts displayDetail inside NarrativeLanguage.english equals the stored English detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.roundTripped(_:)": "5d7d57796f108a16",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testFactorWithoutFactsShowsItsStoredLine()",
+   "hash": "b8d9bb8fcab5145c",
+   "does": "Asserts a ScoreFactor built without facts displays its stored detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testUnknownAdjustmentKindFallsBackToTheStoredLine()",
+   "hash": "d650ed71f6860bdb",
+   "does": "Replaces the 'alphaBalanced' adjustment kind with an unknown kind in the encoded HRV factor JSON and asserts it decodes and displays the stored English detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishHRVFactor()": "34df17839bca99d1"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testFactorArchivedWithoutFactsDecodes()",
+   "hash": "356b00c6fad2dddf",
+   "does": "Decodes a factor JSON with no facts key and asserts facts is nil and display is the stored '42ms'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testTemperatureDeviationIsShownInTheUsersUnit()",
+   "hash": "939fc6229df5e27a",
+   "does": "For a +0.5 °C wrist deviation asserts English display shows '+0.9°F' (no °C) in Fahrenheit and '+0.5°C' in Celsius.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.englishVitalsFactor(_:)": "dfdcd9a49c35133f",
+    "EmuquTests/ScoreFactorFactsTests.swift::func ScoreFactorFactsTests.vitals(wristTemperature:restingHeartRate:)": "04290f39433f9eb1"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testPenaltyStoredInAnotherLanguageIsShownInTheAppLanguage()",
+   "hash": "ec87f5467f92db1d",
+   "does": "Captures German penalty strings, switches to English and asserts displayPenalties re-renders them as the English penalty lines starting 'Low blood oxygen'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.shared.locale/bundle",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Never asserts the captured 'german' lines are actually German (differ from the English lines); if setLanguage(.de) did not reach NarrativeLanguage.bundle, both arrays would be the English strings and the equality plus the 'Low blood oxygen' prefix check would still pass, so the cross-language re-wording path is not proven.",
+     "evidence": [
+      "EmuquTests/ScoreFactorFactsTests.swift:152",
+      "EmuquTests/ScoreFactorFactsTests.swift:153",
+      "EmuquTests/ScoreFactorFactsTests.swift:158",
+      "EmuquTests/ScoreFactorFactsTests.swift:162"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.displayPenalties": "b00211681964aa8b",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "dc48db705e4d2fae",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.lowBloodOxygenPenalty": "1a35092f9956bc5c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::var ScoreBreakdownCopy.missingSleepPenalty": "ea5bd1b2b4098085",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05"
+   }
+  },
+  {
+   "key": "func ScoreFactorFactsTests.testUnrecognisedPenaltyLineIsShownAsStored()",
+   "hash": "8bd2dab90254553c",
+   "does": "Asserts displayPenalty returns an unrecognised line unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.displayPenalty(_:)": "dc48db705e4d2fae",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.penaltyName(_:)": "d746e1b81f630a98"
+   }
+  }
+ ],
+ "deps": {}
+}

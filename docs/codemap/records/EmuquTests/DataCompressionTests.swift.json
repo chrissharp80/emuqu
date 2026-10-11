@@ -1,0 +1,198 @@
+{
+ "file": "EmuquTests/DataCompressionTests.swift",
+ "hash": "0641f79602883036",
+ "role": "XCTest suite for DataCompression (ZLIB compress/decompress used for CloudKit session assets): round-trips (text, 10 KB JSON, single byte, 1 KB binary), compression ratio < 30% on repetitive JSON, empty input, garbage input throws, error descriptions non-nil.",
+ "types": [
+  "DataCompressionTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DataCompressionTests.testCompressDecompressRoundtrip()",
+   "hash": "a78b6b77139f46d8",
+   "does": "Round-trips a short UTF-8 string and asserts equality.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testLargeDataRoundtrip()",
+   "hash": "ed02b433e0a350a6",
+   "does": "Round-trips 500 repetitions of a 31-byte JSON record (~15.5 KB) and asserts equality. The repetitive input compresses by far more than 16x, so decompress's first 16x buffer fills and the grow-and-retry doubling path in DataCompression.decompress is exercised.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testCompressionReducesSize()",
+   "hash": "8d58d4e1178098e6",
+   "does": "Compresses 200 repeated JSON records and asserts output is smaller and < 30% of the input size.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testEmptyData()",
+   "hash": "20c5897e452d4d1f",
+   "does": "Compresses empty Data: if it succeeds asserts non-empty output, if it throws asserts the error is a CompressionError. Either path passes.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "compress throws",
+     "effect": "asserts error is DataCompression.CompressionError (production throws .invalidBufferPointer when the empty buffer has no base address); success path asserts non-empty"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Accepts both outcomes for empty input, so it pins no behaviour: a CloudKit push of an empty payload may throw or upload a header and this test cannot tell which the app does.",
+     "evidence": [
+      "EmuquTests/DataCompressionTests.swift:53",
+      "EmuquTests/DataCompressionTests.swift:58",
+      "Emuqu/Sources/Storage/DataCompression.swift:55"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testSingleByte()",
+   "hash": "cd8e71f684d8f04a",
+   "does": "Round-trips a single 0x42 byte.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testBinaryData()",
+   "hash": "f8064921a9cdc934",
+   "does": "Round-trips a 1024-byte 0..255 ramp.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<1024",
+     "effect": "fills bytes[i] = i % 256"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testDecompressInvalidData()",
+   "hash": "464f569395b80ba6",
+   "does": "Asserts decompress of 5 garbage bytes throws (decodeOnce returns 0 → .decompressionFailed).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)": "b7f61a21e2a99d9a",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.withSourcePointer(_:_:)": "8849db2410d7667a"
+   }
+  },
+  {
+   "key": "func DataCompressionTests.testCompressionErrorDescriptions()",
+   "hash": "281fcdae661169d7",
+   "does": "Asserts errorDescription is non-nil for all three CompressionError cases.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/DataCompression.swift::var DataCompression.CompressionError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/DataCompression.swift::var DataCompression.CompressionError.errorDescription": "baaf20cb4987bf27"
+   }
+  }
+ ],
+ "deps": {}
+}

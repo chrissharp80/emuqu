@@ -1,0 +1,400 @@
+{
+ "file": "EmuquTests/StatisticsTests.swift",
+ "hash": "50eb4ee8ab88aeb4",
+ "role": "XCTest suite for Utilities/Statistics.swift: mean, sample variance/SD, RMS, coefficient of variation, linear regression and the [Double] convenience properties.",
+ "types": [
+  "StatisticsTests: class — XCTestCase for Statistics"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StatisticsTests.testMeanEmptyArray()",
+   "hash": "161a0f749cb79b9e",
+   "does": "Asserts mean([]) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testMeanSingleElement()",
+   "hash": "54e8bacf04abedeb",
+   "does": "Asserts mean([42]) == 42.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testMeanKnownValues()",
+   "hash": "012eb661f01a4d21",
+   "does": "Asserts mean([1..5]) == 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testMeanNegativeValues()",
+   "hash": "4ab6c7b15027c117",
+   "does": "Asserts mean([-10,10]) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testMeanLargeArray()",
+   "hash": "0d9a63434a142696",
+   "does": "Asserts mean(1...1000) == 500.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testSampleVarianceEmptyArray()",
+   "hash": "44ba923d3fe60dd0",
+   "does": "Asserts sampleVariance([]) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testSampleVarianceSingleElement()",
+   "hash": "4cb27204dfa4be29",
+   "does": "Asserts sampleVariance of one element == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testSampleVarianceKnownValues()",
+   "hash": "98dfc13d120f2989",
+   "does": "Asserts sampleVariance([2,4,4,4,5,5,7,9]) ≈ 4.571428571 (n−1 denominator).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testSampleStandardDeviationKnownValues()",
+   "hash": "22092bcaef4bb23d",
+   "does": "Asserts sampleStandardDeviation of the same data ≈ sqrt(4.571428571).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testSampleStandardDeviationUniform()",
+   "hash": "90b08710bb941c8a",
+   "does": "Asserts SD of 100 equal values == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testRMSEmpty()",
+   "hash": "a36e9bdd35041802",
+   "does": "Asserts rootMeanSquare([]) == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testRMSKnownValues()",
+   "hash": "f0fba344c9abe88c",
+   "does": "Asserts RMS([3,4]) == sqrt(12.5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testRMSAllEqual()",
+   "hash": "18f6ee68218dc89d",
+   "does": "Asserts RMS of [5,5,5,5] == 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testCVZeroMean()",
+   "hash": "43aa35f6adcb3740",
+   "does": "Asserts coefficientOfVariation([-1,1]) is nil (zero mean).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testCVKnownValues()",
+   "hash": "115b92eb19524019",
+   "does": "Asserts CV([10,10,10]) is non-nil and 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testCVPositiveValues()",
+   "hash": "d786399f19fc5950",
+   "does": "Asserts CV([100,200]) is non-nil and > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testLinearRegressionPerfectLine()",
+   "hash": "3770edec760970a1",
+   "does": "Asserts regression of y=2x+1 gives slope 2, intercept 1, r² 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testLinearRegressionInsufficientData()",
+   "hash": "707a5ac364d42538",
+   "does": "Asserts regression is nil for one point and for empty arrays.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testLinearRegressionMismatchedArrays()",
+   "hash": "2bb210fdb55ad6d9",
+   "does": "Asserts regression is nil for mismatched x/y lengths.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testLinearRegressionConstantX()",
+   "hash": "00dd7f9e5598aa6a",
+   "does": "Asserts regression is nil when all x are equal.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testLinearRegressionR2LowForNoise()",
+   "hash": "ed2e449f1fb7775e",
+   "does": "Asserts r² < 0.5 for uncorrelated 10-point data.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testArrayMean()",
+   "hash": "884de9dd75c270ed",
+   "does": "Asserts [1,2,3].mean == 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testArraySampleSD()",
+   "hash": "173f5903c9e984b7",
+   "does": "Asserts [Double].sampleSD equals Statistics.sampleStandardDeviation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "ae142517b1b31736"
+   }
+  },
+  {
+   "key": "func StatisticsTests.testArrayRMS()",
+   "hash": "7f82ced6c27b7154",
+   "does": "Asserts [3,4].rms == sqrt(12.5).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].rms"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].rms": "53c0c7df371cdea3"
+   }
+  }
+ ],
+ "deps": {}
+}

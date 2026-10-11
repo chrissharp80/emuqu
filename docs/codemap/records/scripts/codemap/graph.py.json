@@ -1,0 +1,488 @@
+{
+ "file": "scripts/codemap/graph.py",
+ "hash": "5f3f59cc727daedf",
+ "role": "The code map's call graph: parses every Swift file with tree-sitter for calls, property reads, bare references, conformances and closure assignments; resolves each to unit keys as certain or possible edges; adds recorded calls, protocol-requirement dispatch and Makefile/workflow/script wiring. Imported by codemap.py (check, stamp, impact, callers) and report.py.",
+ "types": [],
+ "state": [
+  "COMMON: member names (count, map, load, save, start, reset, ...) so common in Swift/Foundation/SwiftUI that a unique repo match on an unknown receiver is only a possible edge",
+  "NOT_A_REFERENCE: syntax-node parent types under which a simple_identifier is a declaration, label, type or member name rather than a reference",
+  "FUNC_KINDS / PROP_KINDS: inventory unit kinds that can be called / read as properties"
+ ],
+ "toplevel": "Module docstring defining certain and possible edges, `from __future__ import annotations`, imports (collections, re, Path, NS_CODE from inventory) and the three constants above. tree_sitter is imported inside build().",
+ "flags": [],
+ "units": [
+  {
+   "key": "def _swift_refs",
+   "hash": "824caa76d8e9a018",
+   "does": "Parses one Swift file and walks it once, returning four things: refs (unit start line -> list of (kind 'call'|'prop', name, argument labels, trailing-closure count, (receiver kind, receiver type))), params (function/init/subscript start line -> [(external label, has default)]), conforms (type or protocol name -> names in its inheritance clause; extensions included, generic arguments and module prefixes stripped) and closure_assigns (stored-property name -> start lines of units that assign a closure literal to it). References in code outside every unit (Swift top-level code) are not collected.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs.walk",
+    "ext:tree_sitter Parser.parse"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "14a514cf4b086558",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "098897dc0f6ee9e0",
+    "scripts/codemap/graph.py::def _swift_refs.txt": "fcc360956047eaa1",
+    "scripts/codemap/graph.py::def _swift_refs.walk": "d5365ad6f5c9dbb1"
+   }
+  },
+  {
+   "key": "def _swift_refs.txt",
+   "hash": "dc6cbb687a9949a8",
+   "does": "Source text of a node: the raw bytes in its byte range, decoded with replacement.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _swift_refs.arg_labels",
+   "hash": "df563d88abe97803",
+   "does": "For a call_expression, returns the label of each value argument in its call_suffix ('_' when unlabeled) and the number of trailing closures.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "child is not the call suffix",
+     "effect": "skipped"
+    },
+    {
+     "at": "+6",
+     "cond": "parenthesised argument list",
+     "effect": "one label per value_argument"
+    },
+    {
+     "at": "+10",
+     "cond": "argument has a name field",
+     "effect": "its label; otherwise \"_\""
+    },
+    {
+     "at": "+11",
+     "cond": "trailing closure",
+     "effect": "trailing count + 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _swift_refs.txt": "fcc360956047eaa1"
+   }
+  },
+  {
+   "key": "def _swift_refs.receiver",
+   "hash": "fd7464536fa17e62",
+   "does": "Classifies what a member reference is made on: no target -> ('implicit', None); self or Self -> ('self', None); super -> ('super', None); a call whose callee is a capitalised identifier (a constructor, `Foo(...)`) -> ('type', 'Foo'); a capitalised dotted name -> ('type', its last component); anything else (a variable, a chain) -> ('unknown', None).",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no receiver",
+     "effect": "('implicit', None)"
+    },
+    {
+     "at": "+3",
+     "cond": "self",
+     "effect": "('self', None)"
+    },
+    {
+     "at": "+5",
+     "cond": "super",
+     "effect": "('super', None)"
+    },
+    {
+     "at": "+7",
+     "cond": "constructor call of a capitalised name",
+     "effect": "('type', name)"
+    },
+    {
+     "at": "+11",
+     "cond": "Self",
+     "effect": "('self', None)"
+    },
+    {
+     "at": "+13",
+     "cond": "capitalised (dotted) type name",
+     "effect": "('type', last component); otherwise ('unknown', None)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _swift_refs.txt": "fcc360956047eaa1"
+   }
+  },
+  {
+   "key": "def _swift_refs.walk",
+   "hash": "8eaf60207f178b3b",
+   "does": "Recursive walk carrying the start line of the innermost enclosing unit. A class/struct/enum/extension/protocol declaration adds its inheritance clause to conforms. A function/init/deinit/subscript/protocol-function/property declaration that starts on a unit's start line becomes the current unit; for non-properties its parameters (external name, else name, else '_'; with whether a default follows) go to params. Inside a unit: a call on a bare identifier is an implicit-receiver call; a call on a navigation expression is a call with its receiver classified; a call on `.name` (implicit member) is a call with unknown receiver; prefix operators (`!f()`, `-f()`) are unwrapped to their operand first. A navigation expression that is not itself a callee is a property read with its receiver. A bare identifier not under a NOT_A_REFERENCE parent and not a callee is an implicit-receiver property read. An assignment whose right side is a closure literal records the target's last identifier in closure_assigns.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs.txt",
+    "scripts/codemap/graph.py::def _swift_refs.arg_labels",
+    "scripts/codemap/graph.py::def _swift_refs.receiver"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type, extension or protocol declaration",
+     "effect": "its inheritance specifiers added to conforms[name]"
+    },
+    {
+     "at": "+8",
+     "cond": "declaration node on a unit's start line",
+     "effect": "that unit becomes current"
+    },
+    {
+     "at": "+12",
+     "cond": "function-like unit",
+     "effect": "parameter list recorded"
+    },
+    {
+     "at": "+20",
+     "cond": "a default value follows a parameter",
+     "effect": "that parameter marked defaulted"
+    },
+    {
+     "at": "+23",
+     "cond": "inside a unit",
+     "effect": "references collected; outside every unit nothing is"
+    },
+    {
+     "at": "+24",
+     "cond": "call expression",
+     "effect": "callee classified below"
+    },
+    {
+     "at": "+28",
+     "cond": "callee is a prefix operator expression (not .member)",
+     "effect": "unwrapped to its operand"
+    },
+    {
+     "at": "+30",
+     "cond": "bare callee",
+     "effect": "implicit-receiver call"
+    },
+    {
+     "at": "+32",
+     "cond": "member callee",
+     "effect": "call with classified receiver"
+    },
+    {
+     "at": "+36",
+     "cond": "implicit member `.name(...)`",
+     "effect": "call with unknown receiver"
+    },
+    {
+     "at": "+38",
+     "cond": "member access that is not a callee",
+     "effect": "property read with classified receiver"
+    },
+    {
+     "at": "+43",
+     "cond": "bare identifier in a reference position",
+     "effect": "implicit-receiver property read"
+    },
+    {
+     "at": "+49",
+     "cond": "assignment of a closure literal",
+     "effect": "target name recorded in closure_assigns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "14a514cf4b086558",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "098897dc0f6ee9e0",
+    "scripts/codemap/graph.py::def _swift_refs.txt": "fcc360956047eaa1"
+   }
+  },
+  {
+   "key": "def _labels_match",
+   "hash": "fcf87bc882511fa1",
+   "does": "Whether a call's argument labels plus trailing closures can bind to a declared parameter list: labels must appear in order, defaulted parameters may be skipped, and the parameters left after the last label must number at least the required (non-defaulted) ones and at least the trailing closures. No parameter list known (None) matches anything.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no parameter list recorded for the unit",
+     "effect": "True"
+    },
+    {
+     "at": "+7",
+     "cond": "next parameter is defaulted and does not match the label",
+     "effect": "skipped"
+    },
+    {
+     "at": "+9",
+     "cond": "label cannot bind",
+     "effect": "False"
+    },
+    {
+     "at": "+14",
+     "cond": "labels consumed",
+     "effect": "trailing closures must cover the remaining required parameters and not exceed the remaining parameters"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build",
+   "hash": "16672124a5a11ec5",
+   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}}.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs",
+    "scripts/codemap/graph.py::def _labels_match",
+    "scripts/codemap/graph.py::def build.add",
+    "scripts/codemap/graph.py::def build.short",
+    "scripts/codemap/graph.py::def build.family",
+    "scripts/codemap/graph.py::def build.candidates",
+    "ext:tree_sitter Parser"
+   ],
+   "reads": [
+    "file:every in-scope source file"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+24",
+     "cond": "recorded unit no longer in the inventory",
+     "effect": "its recorded calls skipped"
+    },
+    {
+     "at": "+27",
+     "cond": "recorded call names a unit",
+     "effect": "certain edge"
+    },
+    {
+     "at": "+92",
+     "cond": "bare call of a repo type name",
+     "effect": "edges to its label-matching inits"
+    },
+    {
+     "at": "+98",
+     "cond": "own-instance reference",
+     "effect": "candidates within the own type family"
+    },
+    {
+     "at": "+100",
+     "cond": "implicit reference with no own-family match",
+     "effect": "same-file units, else global functions"
+    },
+    {
+     "at": "+105",
+     "cond": "receiver is a repo type",
+     "effect": "candidates within that type family"
+    },
+    {
+     "at": "+109",
+     "cond": "unknown receiver, unique match, common name",
+     "effect": "possible edge only"
+    },
+    {
+     "at": "+112",
+     "cond": "bare name with no unit match",
+     "effect": "ignored (local variable or framework symbol)"
+    },
+    {
+     "at": "+115",
+     "cond": "candidates found",
+     "effect": "certain when exactly one, else possible to each"
+    },
+    {
+     "at": "+116",
+     "cond": "no candidate, name is an assigned closure property",
+     "effect": "possible edges to each assigning unit"
+    },
+    {
+     "at": "+122",
+     "cond": "unit is not a protocol requirement",
+     "effect": "skipped by the dispatch pass"
+    },
+    {
+     "at": "+129",
+     "cond": "same-named function in a conforming type with compatible labels",
+     "effect": "certain requirement -> implementation edge"
+    },
+    {
+     "at": "+135",
+     "cond": "not a script, Makefile, hook or workflow",
+     "effect": "skipped by the wiring pass"
+    },
+    {
+     "at": "+139",
+     "cond": "Python file",
+     "effect": "sibling-module imports added to the local names"
+    },
+    {
+     "at": "+157",
+     "cond": "Makefile target",
+     "effect": "prerequisite edges"
+    },
+    {
+     "at": "+162",
+     "cond": "target recipe, workflow job or step",
+     "effect": "make-target and script-path edges"
+    },
+    {
+     "at": "+169",
+     "cond": "workflow job",
+     "effect": "edges to its steps"
+    },
+    {
+     "at": "+173",
+     "cond": "Python or shell function",
+     "effect": "edges to local functions named in its body"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _labels_match": "cd8eb1eb8ff298e1",
+    "scripts/codemap/graph.py::def _swift_refs": "03f128b93290a27f",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "098897dc0f6ee9e0",
+    "scripts/codemap/graph.py::def build.add": "f67f848a1d9a10af",
+    "scripts/codemap/graph.py::def build.candidates": "84d93fb21ad9602d",
+    "scripts/codemap/graph.py::def build.family": "5805fb0c1394208a",
+    "scripts/codemap/graph.py::def build.short": "552c3cd155ea94f7"
+   }
+  },
+  {
+   "key": "def build.add",
+   "hash": "06b058f0ace640d7",
+   "does": "Adds edge a -> b of the given kind unless it is a self-edge or b is not a node; an existing certain edge is never downgraded to possible.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self-edge or unknown target",
+     "effect": "nothing added"
+    },
+    {
+     "at": "+3",
+     "cond": "no certain edge yet",
+     "effect": "set to the given kind"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build.short",
+   "hash": "7f009d8d4e405c9e",
+   "does": "Last dot-separated component of a type path ('' for None).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build.family",
+   "hash": "8451eaa133ec10f8",
+   "does": "A type's short name with every name reachable through conforms (superclasses, protocols, their ancestors), transitively.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def build.short"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "name not yet visited",
+     "effect": "added and its inherited names queued"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def build.short": "552c3cd155ea94f7"
+   }
+  },
+  {
+   "key": "def build.candidates",
+   "hash": "cbf805c9920e35e2",
+   "does": "Units named `name` (Swift units and C/ObjC functions) that fit the reference: a call matches functions (whose labels bind, via _labels_match) and properties (a stored closure or computed value called); a property read matches properties and functions (a function reference). Optionally restricted to units with no enclosing type (global_only) or to units whose type is in `types`.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _labels_match",
+    "scripts/codemap/graph.py::def build.short"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "call to something neither callable nor a property",
+     "effect": "excluded"
+    },
+    {
+     "at": "+6",
+     "cond": "read of something neither a property nor a function",
+     "effect": "excluded"
+    },
+    {
+     "at": "+8",
+     "cond": "function whose parameters cannot take these labels",
+     "effect": "excluded"
+    },
+    {
+     "at": "+10",
+     "cond": "global functions only, unit has a type",
+     "effect": "excluded"
+    },
+    {
+     "at": "+12",
+     "cond": "type restriction, unit outside it",
+     "effect": "excluded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _labels_match": "cd8eb1eb8ff298e1",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "098897dc0f6ee9e0",
+    "scripts/codemap/graph.py::def build.short": "552c3cd155ea94f7"
+   }
+  },
+  {
+   "key": "def callers",
+   "hash": "f3bc31da810380df",
+   "does": "Inverts the graph's edges: {callee: {caller: kind}}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/codemap/graph.py::def _swift_refs.receiver": "098897dc0f6ee9e0"
+ }
+}

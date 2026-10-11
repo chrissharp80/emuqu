@@ -1,0 +1,178 @@
+{
+ "file": "docs/runbooks/hotfix.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Runbook for shipping a P0 hotfix: criteria, branch from main, verification via make ci, version bump, archive and expedited review.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Runbook: Hotfix Deployment",
+   "hash": "034a005314babdd8",
+   "does": "no behavioural claim: trigger and goal (24-48 h).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 1. Confirm the bug is actually P0",
+   "hash": "cf57003811c64cf2",
+   "does": "no behavioural claim: P0 criteria.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 2. Start from `main`",
+   "hash": "9bc9f9a6b8d59f44",
+   "does": "no behavioural claim: branch from main and merge back by PR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 3. Land the smallest possible change",
+   "hash": "bec90898f5baab19",
+   "does": "no behavioural claim: smallest change plus regression test.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 4. Run the verification checklist",
+   "hash": "6b2bdb8467f93ce9",
+   "does": "Claims make ci must pass (lint, budget, infoplist-guard, sendable-guard, test-coverage, with values in .ci/*.txt), the budget gate fails on new .shared or ObservableObject, Release build command, cold-start os_signpost 'init.*' events in EmuquApp.swift. Verified: Makefile:272 ci target includes these; EmuquApp.swift:129-159 emits init.collector, init.cloudKitSyncManager etc. via signpostStart/End.",
+   "entry": null,
+   "calls": [
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 5. Bump versions",
+   "hash": "f9b357dfb9bfee36",
+   "does": "Claims MARKETING_VERSION is bumped manually in every configuration; CI build number is run_number.run_attempt passed as CURRENT_PROJECT_VERSION; agvtool unusable because VERSIONING_SYSTEM is not set. Verified: testflight.yml:150-159; project.pbxproj has 0 VERSIONING_SYSTEM lines.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/testflight.yml::step deploy/Build archive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/testflight.yml::step deploy/Build archive": "8bedf20553a6138b"
+   }
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 6. Cut the archive",
+   "hash": "492e458e43973572",
+   "does": "no behavioural claim: Xcode archive and upload steps.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 7. Create the App Store submission",
+   "hash": "1baec32e74c29914",
+   "does": "no behavioural claim: App Store Connect submission steps.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 8. Request expedited review",
+   "hash": "e0ae7638ca9606ea",
+   "does": "no behavioural claim: expedited review request.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 9. Once approved",
+   "hash": "dfed2137f0ad065a",
+   "does": "no behavioural claim: release and phased rollout.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > 10. Post-mortem",
+   "hash": "756520e56aa854d0",
+   "does": "no behavioural claim: post-mortem guidance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Hotfix Deployment > Hard \"do not\" list",
+   "hash": "26c7ee141d114d95",
+   "does": "Claims the pre-commit hook is a SwiftLint gate that does not run make ci and can be bypassed with --no-verify. .githooks/pre-commit exists (installed by scripts/install-git-hooks.sh / make setup-hooks) and documents --no-verify as the emergency bypass.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci",
+    "Makefile::target setup-hooks",
+    ".githooks/pre-commit::fn fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".githooks/pre-commit::fn fail": "c9514843e832b1c2",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target setup-hooks": "974b9e2eda3668e0"
+   }
+  }
+ ],
+ "deps": {}
+}

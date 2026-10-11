@@ -1,0 +1,677 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/FactValue.swift",
+ "hash": "9e38c66f7254bd26",
+ "role": "Defines the typed value union every fact resolver returns (FactValue), its structured absence reasons (MissingReason), per-fact availability metadata (Availability), human-readable renderers and the JSON tool_result envelope sent back to LLM providers.",
+ "types": [
+  "MissingReason: enum (String, Codable) — 9 structured absence reasons (notRecorded, notYetComputed, outOfRange, sensorDropout, invalidParameter, internalError, tooMuchData, rateLimited, partialData)",
+  "Availability: struct — hasData / validRange / lastUpdated for schema-build gating; statics alwaysAvailable, unavailable, workouts(in:)",
+  "FactValue: enum — integer/double/string/date/durationSec/boolean/missing(reason,detail)/list/record with rendering and JSON envelope",
+  "AnyFactJSON: struct (private, Encodable) — wraps Foundation values for JSONEncoder with sortedKeys"
+ ],
+ "state": [
+  "mem:Availability.alwaysAvailable (static let)",
+  "mem:Availability.unavailable (static let)"
+ ],
+ "toplevel": "Static lets Availability.alwaysAvailable (hasData true, nil range) and Availability.unavailable (hasData false). FactValue and Availability are Sendable; MissingReason is Codable with raw string values used on the wire.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says .string renders 'quoted, truncated for display if very long', but humanReadable returns the raw string unquoted and untruncated.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift:104",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift:156"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func Availability.workouts(in:)",
+   "hash": "31383d1d88b3cfab",
+   "does": "Builds Availability for workout-backed namespaces from the in-memory SessionArchive: unavailable when no entry has sessionType .workout, otherwise hasData true with validRange earliest...latest workout date and lastUpdated = latest.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "archive:SessionArchive.entries (sessionType == .workout, date)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive holds at least one workout entry",
+     "effect": "false: returns .unavailable; true: continues to compute date range"
+    },
+    {
+     "at": "+4",
+     "cond": "min and max of the workout dates exist",
+     "effect": "true: returns Availability(hasData: true, validRange: earliest...latest, lastUpdated: latest); false: returns .alwaysAvailable (unreachable because line 86 guaranteed a non-empty date list)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `guard let earliest = dates.min(), let latest = dates.max() else { return .alwaysAvailable }` fallback can never run: the preceding guard ensured at least one workout, so dates is non-empty.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:86",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func FactValue.trimmed(_:)",
+   "hash": "79c5df88e0980e64",
+   "does": "Formats a Double for display: integral values as '%.0f', otherwise '%.2f' with a regex stripping an optional decimal point and trailing zeros (5.20 -> '5.2', 5.00x -> '5').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "d has no fractional part",
+     "effect": "true: String(format: \"%.0f\"); false: two-decimal string with trailing zeros/point removed by regex \\.?0+$"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactValue.humanReadable",
+   "hash": "96afe50e87aa58c3",
+   "does": "Single-line human rendering of a FactValue: numbers via trimmed/plain, string raw, date as local ISO 8601, duration via formatDuration, bool yes/no, missing as 'unknown (reason[: detail])', list bracketed comma-joined, record as {k: v} with keys sorted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.trimmed(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .integer",
+     "effect": "\"\\(n)\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .double",
+     "effect": "Self.trimmed(d)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .string",
+     "effect": "the raw string, unquoted, untruncated"
+    },
+    {
+     "at": "+6",
+     "cond": "case .date",
+     "effect": "FactValue.localISO8601(d)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .durationSec",
+     "effect": "formatDuration(sec)"
+    },
+    {
+     "at": "+10",
+     "cond": "case .boolean / ternary b",
+     "effect": "true -> 'yes', false -> 'no'"
+    },
+    {
+     "at": "+11",
+     "cond": "case .missing",
+     "effect": "renders unknown (reason) with detail appended when present"
+    },
+    {
+     "at": "+12",
+     "cond": "detail ?? fallback",
+     "effect": "detail non-nil: 'unknown (<reason>: <detail>)'; nil: 'unknown (<reason>)'"
+    },
+    {
+     "at": "+13",
+     "cond": "case .list",
+     "effect": "'[' + items' humanReadable joined ', ' + ']'"
+    },
+    {
+     "at": "+15",
+     "cond": "case .record",
+     "effect": "'{' + sorted key: value pairs joined ', ' + '}'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.formatDuration(_:)": "d3ff741bd85e8d5c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.trimmed(_:)": "7c963de064cf6f69"
+   }
+  },
+  {
+   "key": "func FactValue.prettyMultiline(indent:)",
+   "hash": "f65ff3c04bef9a6a",
+   "does": "Multi-line indented rendering: records become sorted 'key: value' lines (nested lists/records indented a level deeper, trailing whitespace trimmed), lists become '- item' lines or '(empty)', scalars pad + humanReadable. Only exercised by FactValueTests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.nestedRendering(of:indent:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .record",
+     "effect": "joins pad+key+': '+nestedRendering lines, strips trailing whitespace, returns"
+    },
+    {
+     "at": "+9",
+     "cond": "while last char is whitespace",
+     "effect": "removes trailing whitespace/newlines one by one"
+    },
+    {
+     "at": "+11",
+     "cond": "case .list",
+     "effect": "renders items as '- ' lines"
+    },
+    {
+     "at": "+12",
+     "cond": "items empty",
+     "effect": "true: returns pad+'(empty)'; false: maps items"
+    },
+    {
+     "at": "+14",
+     "cond": "item isScalar (ternary)",
+     "effect": "scalar: inline humanReadable; non-scalar: newline + prettyMultiline(indent+1)"
+    },
+    {
+     "at": "+16",
+     "cond": "default (scalar)",
+     "effect": "pad + humanReadable"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "prettyMultiline (and its helpers nestedRendering / isScalar) has no production caller; grep finds uses only in EmuquTests/FactValueTests.swift. The doc says it serves 'the catalog dump', which no app code calls.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:175",
+      "EmuquTests/FactValueTests.swift:274"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.nestedRendering(of:indent:)": "5f4c3d5d7d613afc",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isScalar": "4ff9e01db7c521f9"
+   }
+  },
+  {
+   "key": "func FactValue.nestedRendering(of:indent:)",
+   "hash": "37e74956c15aac4a",
+   "does": "Renders one record field value for prettyMultiline: nested record/list drops to an indented block wrapped in newlines; scalars inline followed by newline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value is .record or .list",
+     "effect": "returns '\\n' + prettyMultiline(indent+1) + '\\n'"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "humanReadable + '\\n'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.prettyMultiline(indent:)": "57215d97e7d82240",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6"
+   }
+  },
+  {
+   "key": "var FactValue.isScalar",
+   "hash": "97191b219ae4d54c",
+   "does": "True unless the value is a .record or .list.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .record, .list",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "default",
+     "effect": "true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactValue.isMissing",
+   "hash": "56628fddc2f28af9",
+   "does": "True when the value is .missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .missing",
+     "effect": "returns true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValue.from(_: Int?, reason: MissingReason, detail: String?)",
+   "hash": "42fa374092d23eba",
+   "does": "Convenience builder: wraps a non-nil Int? as .integer(value), otherwise returns .missing(reason: reason [default .notRecorded], detail: detail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value ?? missing",
+     "effect": "value non-nil -> .integer(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+   "hash": "976430e6637f635c",
+   "does": "Convenience builder: wraps a non-nil Double? as .double(value), otherwise returns .missing(reason: reason [default .notRecorded], detail: detail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value ?? missing",
+     "effect": "value non-nil -> .double(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValue.from(_: String?, reason: MissingReason, detail: String?)",
+   "hash": "5f8d3bc42441f854",
+   "does": "Convenience builder: wraps a non-nil String? as .string(value), otherwise returns .missing(reason: reason [default .notRecorded], detail: detail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value ?? missing",
+     "effect": "value non-nil -> .string(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValue.from(_: Date?, reason: MissingReason, detail: String?)",
+   "hash": "b10ff6c155a58a67",
+   "does": "Convenience builder: wraps a non-nil Date? as .date(value), otherwise returns .missing(reason: reason [default .notRecorded], detail: detail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value ?? missing",
+     "effect": "value non-nil -> .date(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactValue.from(_: Bool?, reason: MissingReason, detail: String?)",
+   "hash": "ac24017348fedead",
+   "does": "Convenience builder: wraps a non-nil Bool? as .boolean(value), otherwise returns .missing(reason: reason [default .notRecorded], detail: detail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value ?? missing",
+     "effect": "value non-nil -> .boolean(value); nil -> .missing(reason:detail:) with caller's reason (default .notRecorded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactValue.toolResultJSON",
+   "hash": "6c32e0d480ada75c",
+   "does": "Encodes envelope() through JSONEncoder (.sortedKeys) via AnyFactJSON to a UTF-8 JSON string used as the cloud-provider tool_result content; falls back to a fixed internalError JSON literal when encoding or UTF-8 decoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encode succeeded and data decodes as UTF-8",
+     "effect": "true: returns the JSON string; false: returns '{\"missingReason\":\"internalError\",\"detail\":\"encoding failed\"}' (attempt() logs the thrown error); this fallback lacks the 'value' key the envelope contract promises"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "toolResultJSON (JSONEncoder + AnyFactJSON) and toToolResultJSON() (JSONSerialization) serialise the same envelope() with two different encoders and two different failure literals; tests at FactValueTests.swift:385-400 exist only to keep them in step.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:277",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:294",
+      "EmuquTests/FactValueTests.swift:385"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)": "1f64c918453d58e4",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "edeaea80b1d7c934",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func FactValue.toToolResultJSON()",
+   "hash": "7491a7a497e51e4e",
+   "does": "Serialises envelope() with JSONSerialization (.sortedKeys) for the Apple Foundation tool path; returns a fixed internalError JSON when the dictionary is not a valid JSON object or serialisation throws, and '{}' if UTF-8 decoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "env is a valid JSON object and JSONSerialization succeeds",
+     "effect": "false: returns '{\"value\":null,\"missingReason\":\"internalError\",\"detail\":\"FactValue not JSON-serialisable\"}' (error swallowed by try?); true: continues"
+    },
+    {
+     "at": "+7",
+     "cond": "String(data:encoding:.utf8) ?? '{}'",
+     "effect": "non-nil string returned; nil -> '{}' (an envelope with no fields)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()": "d302e6f6601daddf"
+   }
+  },
+  {
+   "key": "func FactValue.envelope()",
+   "hash": "cf172062fd5c3604",
+   "does": "Builds the wire envelope dictionary: asOf = localISO8601(now), confidence = 'high', and either value = NSNull + missingReason (+detail) for .missing, or value = toAnyJSON() otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "self is .missing",
+     "effect": "sets value NSNull and missingReason rawValue"
+    },
+    {
+     "at": "+9",
+     "cond": "detail non-nil",
+     "effect": "adds 'detail' key; otherwise omitted"
+    },
+    {
+     "at": "+10",
+     "cond": "default (non-missing)",
+     "effect": "value = toAnyJSON(); missingReason omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()": "d302e6f6601daddf"
+   }
+  },
+  {
+   "key": "func FactValue.toAnyJSON()",
+   "hash": "831f58dcb4b2696d",
+   "does": "Recursively converts the FactValue tree into Foundation JSON types: Int, Double (non-finite -> NSNull), String, ISO date string, duration seconds Int, Bool, nested missing -> full envelope dict, list -> [Any], record -> [String: Any].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.toAnyJSON()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .integer",
+     "effect": "returns Int"
+    },
+    {
+     "at": "+3",
+     "cond": "case .double",
+     "effect": "returns d, or NSNull when not finite"
+    },
+    {
+     "at": "+6",
+     "cond": "d.isFinite (ternary)",
+     "effect": "finite -> d; NaN/inf -> NSNull"
+    },
+    {
+     "at": "+7",
+     "cond": "case .string",
+     "effect": "returns string"
+    },
+    {
+     "at": "+8",
+     "cond": "case .date",
+     "effect": "returns localISO8601 string"
+    },
+    {
+     "at": "+9",
+     "cond": "case .durationSec",
+     "effect": "returns seconds Int"
+    },
+    {
+     "at": "+10",
+     "cond": "case .boolean",
+     "effect": "returns Bool"
+    },
+    {
+     "at": "+11",
+     "cond": "case .missing",
+     "effect": "returns envelope() (nested envelope with its own asOf/confidence)"
+    },
+    {
+     "at": "+15",
+     "cond": "case .list",
+     "effect": "maps items recursively"
+    },
+    {
+     "at": "+17",
+     "cond": "case .record",
+     "effect": "mapValues recursively"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.envelope()": "35310e35baf598c2",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a"
+   }
+  },
+  {
+   "key": "func FactValue.localISO8601(_:)",
+   "hash": "a0ff644e53679aeb",
+   "does": "Formats a Date as ISO 8601 with colon-separated current local UTC offset (e.g. 2026-04-21T19:30:00-07:00) using a fresh Date.ISO8601FormatStyle each call.",
+   "entry": null,
+   "calls": [
+    "ext:Date.ISO8601FormatStyle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a"
+   }
+  },
+  {
+   "key": "func FactValue.formatDuration(_:)",
+   "hash": "9cbd8bfad3500307",
+   "does": "Formats seconds as 'Hh Mm Ss' when >= 1h, 'Mm SSs' when >= 1 min, else 'Ss'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "h > 0",
+     "effect": "returns '%dh %dm %ds'"
+    },
+    {
+     "at": "+3",
+     "cond": "m > 0",
+     "effect": "returns '%dm %02ds'; else falls to '\\(s)s'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The FactValue doc says .duration renders as \"63m 07s\", but formatDuration switches to an hours form at 3600 s: 3787 s renders \"1h 3m 7s\". Minutes are zero-padded only when there is no hour part.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:106",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:360",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:361",
+      "Emuqu/Sources/Assistant/Facts/FactValue.swift:362"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init AnyFactJSON(_:)",
+   "hash": "a978d38af5fc5e50",
+   "does": "Stores the wrapped Foundation value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnyFactJSON.encode(to:)",
+   "hash": "bb1064c92b0c1dad",
+   "does": "Encodable witness: encodes the wrapped value as String/Bool/Int/Double/array/dict (recursively wrapping), NSNull or any other type as JSON null.",
+   "entry": "Encodable.encode(to:) witness invoked by JSONEncoder from toolResultJSON",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func AnyFactJSON.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "value is String",
+     "effect": "encode string"
+    },
+    {
+     "at": "+4",
+     "cond": "value is Bool",
+     "effect": "encode bool"
+    },
+    {
+     "at": "+5",
+     "cond": "value is Int",
+     "effect": "encode int"
+    },
+    {
+     "at": "+6",
+     "cond": "value is Double",
+     "effect": "encode double"
+    },
+    {
+     "at": "+7",
+     "cond": "value is [Any]",
+     "effect": "encode array of AnyFactJSON"
+    },
+    {
+     "at": "+8",
+     "cond": "value is [String: Any]",
+     "effect": "encode dict of AnyFactJSON (sortedKeys from encoder)"
+    },
+    {
+     "at": "+10",
+     "cond": "value is NSNull",
+     "effect": "encodeNil"
+    },
+    {
+     "at": "+11",
+     "cond": "default (unknown type)",
+     "effect": "encodeNil — silently emits null for any unhandled type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::init AnyFactJSON(_:)": "edeaea80b1d7c934"
+   }
+  }
+ ],
+ "deps": {}
+}

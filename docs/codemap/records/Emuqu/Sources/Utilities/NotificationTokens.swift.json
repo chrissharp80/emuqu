@@ -1,0 +1,60 @@
+{
+ "file": "Emuqu/Sources/Utilities/NotificationTokens.swift",
+ "hash": "927f86ffc141f795",
+ "role": "Sendable lock-wrapped bag of NotificationCenter block-observer tokens that a deinit can remove.",
+ "types": [
+  "NotificationTokens: struct (Sendable) — token holder"
+ ],
+ "state": [
+  "lock-protected [NSObjectProtocol] tokens"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "init NotificationTokens()",
+   "hash": "03b89b2f9e0c7a5d",
+   "does": "Creates an empty holder.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NotificationTokens.add(_:)",
+   "hash": "e05c2da6d1c05bea",
+   "does": "Appends a token under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NotificationTokens.removeAll(from:)",
+   "hash": "194e00861ec891f2",
+   "does": "Takes and clears all tokens under the lock, then removes each from center.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.removeObserver"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each held token",
+     "effect": "removeObserver"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

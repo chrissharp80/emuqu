@@ -1,0 +1,160 @@
+{
+ "file": "EmuquTests/MedicalQueryGuardTests+Injury.swift",
+ "hash": "48595c62106db641",
+ "role": "Extension of MedicalQueryGuardTests for injury reports: English and per-locale injury statements get .injury and injuryReply, injury idioms still reach the model, acute symptom outranks injury, reply wording, and rule B quoting the injury reply.",
+ "types": [
+  "MedicalQueryGuardTests: extension — injury-report tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MedicalQueryGuardTests.testInjuryReportsGetTheEmergencyNumberReply()",
+   "hash": "3305150fbaa820c7",
+   "does": "For 14 English injury reports asserts classify == .injury and evaluate refuses with injuryReply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "for each report",
+     "effect": "asserts .injury"
+    },
+    {
+     "at": "+19",
+     "cond": "evaluate returns .refuse",
+     "effect": "asserts injuryReply; otherwise XCTFail and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testInjuryReportsAreCaughtInEveryShippedLocale()",
+   "hash": "c9f41b61839e7b85",
+   "does": "Asserts one injury report per shipped locale (16) classifies as .injury.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each (locale, text)",
+     "effect": "asserts .injury"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testInjuryIdiomsStillReachTheModel()",
+   "hash": "54f7a77dc69391b3",
+   "does": "Asserts 13 idioms (fell asleep, broke my PR, legs hurt after a run, bleeding edge, …) classify as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "for each idiom",
+     "effect": "asserts nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testAnAcuteSymptomOutranksAnInjury()",
+   "hash": "ebf3a5df896d6b2d",
+   "does": "Asserts 'I fell and now I have chest pain' classifies as .symptom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testInjuryReplyPointsAtTheEmergencyNumberWithoutDiagnosing()",
+   "hash": "9840c9a107a80ff4",
+   "does": "Asserts injuryReply contains 'call your local emergency number' and \"I can't assess injuries\" and does not itself classify as a trigger.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+   }
+  },
+  {
+   "key": "func MedicalQueryGuardTests.testRuleBQuotesTheInjuryReplyVerbatim()",
+   "hash": "46a7adb4b4d5109a",
+   "does": "Asserts both system prompts contain injuryReply verbatim after whitespace collapsing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements the whitespace-collapsing helper inline instead of reusing MedicalQueryGuardTests.collapsingWhitespace (private in the other file).",
+     "evidence": [
+      "EmuquTests/MedicalQueryGuardTests+Injury.swift:100",
+      "EmuquTests/MedicalQueryGuardTests.swift:260"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd"
+   }
+  }
+ ],
+ "deps": {}
+}

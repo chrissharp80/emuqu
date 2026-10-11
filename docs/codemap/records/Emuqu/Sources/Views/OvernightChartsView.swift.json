@@ -1,0 +1,1193 @@
+{
+ "file": "Emuqu/Sources/Views/OvernightChartsView.swift",
+ "hash": "14f013131d3fb8d0",
+ "role": "Overnight HR/HRV chart screen section: shared drawing helpers for the HR and HRV canvases, and OvernightChartsView, which computes OvernightStats in a detached task, gap-fills HR from HealthKit, and renders summary cards, the HRV chart and the HR chart.",
+ "types": [
+  "OvernightChartFormatters: enum — shared clock-time formatter accessor",
+  "OvernightChartViewport: protocol — size/totalDurationMs/x(forMs:) shared by HR and HRV chart geometry",
+  "OvernightChartDrawing: enum — @MainActor static drawing helpers (axis labels, pill, tooltip clamp, sleep segment shading, grid)",
+  "OvernightChartsView: struct — generic SwiftUI view rendering overnight stats and charts with optional inter-chart content"
+ ],
+ "state": [
+  "mem:OvernightChartsView.cachedOvernightStats (@State, view-local)"
+ ],
+ "toplevel": "OvernightChartsView stored properties: session, result, healthKitSleep, onReanalyzeAt (non-nil only in manual-window mode from MorningResultsView.swift:390), isManualWindowMode=false, manualResult, hideSleepRow=false, interChartContent. Convenience inits live in OvernightChartsView+Init.swift.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OvernightChartFormatters.clockTimeFormatter",
+   "hash": "4a0a2ffd50639edc",
+   "does": "Returns a DateFormatter for the 'jmm' template in the app language (LocalizedDateFormat.formatter).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+   }
+  },
+  {
+   "key": "requirement OvernightChartViewport.x(forMs:)",
+   "hash": "ee7568bf3b1519bb",
+   "does": "Protocol requirement: x position for a ms offset; implemented by HRVChart ChartGeometry and the HR canvas geometry.",
+   "entry": "protocol requirement; witnesses OvernightHRVChartCanvas.ChartGeometry.x and OvernightHRChartCanvas.HRChartGeometry.x",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "970c66e7858206e3"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.xAxisLabels(session:stats:width:)",
+   "hash": "3563e792179189e9",
+   "does": "Builds the x-axis label row: five clock-time labels positioned along the width with first/last anchored to the edges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisLabel(_:anchor:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.labelAnchor(index:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisLabel(_:anchor:)": "9971f724209c8d8c",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)": "a4ebc21aa4b668fc",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.labelAnchor(index:count:)": "62ec6e4b02e0e6bb"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.axisLabel(_:anchor:)",
+   "hash": "f4125d2ec04e330e",
+   "does": "One axis label Text aligned so its anchor point sits at the label's x.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.labelAnchor(index:count:)",
+   "hash": "a9591b123a834197",
+   "does": "Anchor fraction for a label: 0 for first, 1 for last, 0.5 otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "first label",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "last label",
+     "effect": "1; else 0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightChartDrawing.drawPill(_:text:centerX:top:canvasWidth:color:)",
+   "hash": "91917738488bbd48",
+   "does": "Draws a rounded pill with text in a GraphicsContext, centred on centerX but clamped inside the canvas; returns the centre used.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "5821424cd726dd1d"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.clockTimeLabels(session:stats:width:)",
+   "hash": "dde0ee43097d04d4",
+   "does": "Five evenly spaced clock-time labels from chartStartMs over chartEnd-chartStart (wall-clock from session.startDate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no RR series or empty",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "chart duration <= 0",
+     "effect": "[]"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md says x-axis labels use series.startDate and series.actualEndDate; code spaces labels linearly from session.startDate + stats.chartStartMs over chartEndMs-chartStartMs (t_ms offsets, possibly widened by HealthKit).",
+     "evidence": [
+      "docs/FLOWCHART.md:440",
+      "docs/FLOWCHART.md:441",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:76",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:78",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:84"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Axis labels convert t_ms linearly from session.startDate, while the nadir, peak and window labels convert t_ms through RRSeries.wallClockTime(forTMs:) (wallClockMs of the nearest beat). On a streamed recording where t_ms drifted behind wall clock after BLE drops, a marker's card time and the axis time under it disagree.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView.swift:78",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:68",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:70",
+      "Emuqu/Sources/Models/RRModels.swift:181",
+      "Emuqu/Sources/Models/RRModels.swift:9"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.tooltipX(_:size:)",
+   "hash": "03883acb362bf6c9",
+   "does": "Clamps a tooltip x to [50, width-50].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "x < 50",
+     "effect": "50"
+    },
+    {
+     "at": "+4",
+     "cond": "x > width-50",
+     "effect": "width-50; else x"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "5821424cd726dd1d"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.drawSleepSegments(_:_:stats:)",
+   "hash": "10856b2e9610a431",
+   "does": "Shades each sleep segment range on split nights.",
+   "entry": null,
+   "calls": [
+    "dyn:OvernightChartViewport.x → Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:350|Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 segments or zero duration",
+     "effect": "return without drawing"
+    },
+    {
+     "at": "+2",
+     "cond": "loop over segments",
+     "effect": "each segment shaded"
+    },
+    {
+     "at": "+5",
+     "cond": "clamped width <= 0",
+     "effect": "skip segment"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func OvernightChartDrawing.drawGrid(_:_:)",
+   "hash": "c68447305f31f6b3",
+   "does": "Draws 5 horizontal grid lines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loop i 0...4",
+     "effect": "one line each"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OvernightChartsView.body",
+   "hash": "0b359a550ce67891",
+   "does": "Shows a spinner until cachedOvernightStats is set, then the chart sections; runs loadOvernightStats in .task(id: statsTaskKey).",
+   "entry": "SwiftUI body; .task(id:) fires on appear and when statsTaskKey changes",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartsPlaceholder",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartSections",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.statsTaskKey",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()"
+   ],
+   "reads": [
+    "mem:OvernightChartsView.cachedOvernightStats"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "cachedOvernightStats nil",
+     "effect": "placeholder spinner; else chart sections"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()": "8700f518eef8160c",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartSections": "5de6ae36e81ec41a",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartsPlaceholder": "c368ffc713e47047",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.statsTaskKey": "0b8afddac2be2616"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.statsTaskKey",
+   "hash": "65d210b935ac67d4",
+   "does": "Task identity string: session id, window indices, beat count, HK sleep start/end in whole minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no HK sleepStart",
+     "effect": "-1"
+    },
+    {
+     "at": "+2",
+     "cond": "no HK sleepEnd",
+     "effect": "-1"
+    },
+    {
+     "at": "+3",
+     "cond": "no rrSeries",
+     "effect": "beats 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Key omits result.windowStartMs/windowEndMs, result.organizedRecoveryZones and HK segments; a reanalysis that keeps the same beat indices, or a segment-only HK change, does not recompute stats.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView.swift:166"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.chartsPlaceholder",
+   "hash": "e32b89e8d7c53f51",
+   "does": "Spinner and 'Preparing charts...' placeholder.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.chartSections",
+   "hash": "e9407073f2a7a749",
+   "does": "Stats section, injected inter-chart content, HRV section, HR section.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStatsSection",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "09d1af30550d026f",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection": "7a676297aa030ea2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStatsSection": "93ba5c997481ccca"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.loadOvernightStats()",
+   "hash": "249fd7bae8f73860",
+   "does": "Snapshots whether zones need disk backfill (result has none and cache miss), computes stats in a detached userInitiated task, triggers zone backfill if the scan ran, applies HealthKit HR gap-fill, and stores the result in @State.",
+   "entry": "called from .task(id: statsTaskKey) in body",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)"
+   ],
+   "reads": [
+    "mem:OrganizedZonesCache.shared"
+   ],
+   "writes": [
+    "mem:OvernightChartsView.cachedOvernightStats",
+    "archive:SessionArchive.archive"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "zones needed backfill and cache now holds zones",
+     "effect": "fire backfillZonesToArchive; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "med",
+     "text": "No cancellation check: when statsTaskKey changes, SwiftUI cancels the old .task, but the Task.detached compute is not cancelled by that and the HealthKit gap-fill await does not check Task.isCancelled, so the old run still assigns cachedOvernightStats. If the old run finishes after the new one (e.g. its HK fetch is slower), the chart shows stats for the previous window/sleep bounds.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView.swift:151",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:212",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:220",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:222"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "f98e9c73c61cdf4f",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)": "b6b9e6ac24c9d80c",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "990364246517631a",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "e785c60cf55223b2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)": "a250624efd78f503"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.withHealthKitGapFill(_:)",
+   "hash": "33154f3a4102c069",
+   "does": "If gap-fill is needed and HK sleep exists, fetches HK HR for uncovered segments and extends stats with it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)"
+   ],
+   "reads": [
+    "hk:HKQuantityTypeIdentifierHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "needsGapFill false",
+     "effect": "return stats unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "healthKitSleep nil",
+     "effect": "return stats unchanged"
+    },
+    {
+     "at": "+7",
+     "cond": "no first RR point",
+     "effect": "recordingStartMs 0"
+    },
+    {
+     "at": "+8",
+     "cond": "no last RR point",
+     "effect": "recordingEndMs 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)": "96663114bdde956c",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)": "1ffd3292fc3f6383",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)": "3bfb7c9c839e4c79"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.needsGapFill(_:)",
+   "hash": "42d5d2c01e726955",
+   "does": "True on split nights, when the recording covers under half the HK sleep span, or under half of settings.typicalSleepHours.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.typicalSleepHours"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no first point",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "no last point",
+     "effect": "0"
+    },
+    {
+     "at": "+5",
+     "cond": "HK sleep missing start/end",
+     "effect": "sleepDurationMs 0 (half-of-sleep test false)"
+    },
+    {
+     "at": "+12",
+     "cond": "healthKitSleep nil (log text)",
+     "effect": "logs 'nil' else 'yes'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)",
+   "hash": "498bbf3554eeaf98",
+   "does": "Widens chart bounds to segment and HK sleep bounds and, when any HK HR sample falls inside, returns stats with HK HR folded in (OvernightStats.withHealthKitHR); otherwise returns stats unchanged (no widening).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no first RR point",
+     "effect": "dataStartMs = stats.chartStartMs"
+    },
+    {
+     "at": "+17",
+     "cond": "some HK samples in widened viewport",
+     "effect": "withHealthKitHR with new bounds; else unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)": "8f97ce2690bc5ec7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)": "62094d1cf2efaceb"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.segmentBounds(_:dataStartMs:)",
+   "hash": "54dc24b606133bbe",
+   "does": "Earliest segment start (ignored if before the recording's first point) and latest segment end.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "min start exists and >= dataStartMs",
+     "effect": "use it; else .max (no extension)"
+    },
+    {
+     "at": "+8",
+     "cond": "no segment ends",
+     "effect": "Int64.min"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 'ignore starts before the data' rule is ineffective: OvernightStatsComputer.chartStart already set chartStartMs to min(first point, earliest segment start) on split nights, and viewportBounds takes min(stats.chartStartMs, …).",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView.swift:318",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:330",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:198"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)",
+   "hash": "125c5c13353f53a1",
+   "does": "Combines current chart bounds, segment bounds, and HK sleep start/end (start only if not before the data) into extended chart bounds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.segmentBounds(_:dataStartMs:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "HK sleepStart and sleepEnd present",
+     "effect": "consider HK bounds; else segment bounds only"
+    },
+    {
+     "at": "+14",
+     "cond": "HK start at/after first data point",
+     "effect": "extend start; else log skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.segmentBounds(_:dataStartMs:)": "ce4b2f32d526bc7d"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.overnightStats",
+   "hash": "e33d00642e4fc249",
+   "does": "Cached stats or OvernightStats.empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:OvernightChartsView.cachedOvernightStats"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cachedOvernightStats nil",
+     "effect": "?? .empty"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OvernightChartsView.overnightStatsSection",
+   "hash": "699c8bf0e1da180f",
+   "does": "Card with summary header, core metrics row and sleep metrics row.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightSummaryHeader",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.coreMetricsRow",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepMetricsRow",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.coreMetricsRow": "dbb1bd51e4497969",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightSummaryHeader": "663e9f8763932bf5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepMetricsRow": "9f4ed7be64fc911e",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.overnightSummaryHeader",
+   "hash": "82d1d70c08d2d9b5",
+   "does": "Header with moon icon and 'Overnight Summary' or 'Session Summary'.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "healthKitSleep non-nil",
+     "effect": "'Overnight Summary'; else 'Session Summary'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.coreMetricsRow",
+   "hash": "0ed9be352a889c37",
+   "does": "Row of HR nadir, peak HRV and avg HR cards.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrNadirCard",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.peakHRVCard",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard": "70bc41733ad2d767",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrNadirCard": "8c8a8ea44bd78ee1",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.peakHRVCard": "68c3e1d5b69d2d28"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.avgHRCard",
+   "hash": "8f0317fff39328ae",
+   "does": "Avg HR card (trimmed mean).",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.peakHRVCard",
+   "hash": "7c370444c10cecf4",
+   "does": "Peak HRV card with peak time subtitle.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrNadirCard",
+   "hash": "e1b4a35e8d1e2549",
+   "does": "HR nadir card with nadir time subtitle.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.sleepMetricsRow",
+   "hash": "65e4c36d1124d992",
+   "does": "Sleep cards plus quality note, unless hideSleepRow or zero sleep minutes.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepStatCards",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepQualityNote"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hideSleepRow false and sleep minutes > 0",
+     "effect": "show; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepQualityNote": "05d7191f49ca7ab9",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepStatCards": "ee06aeae5c433d8b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.sleepStatCards",
+   "hash": "a1c1792c7f487f10",
+   "does": "Time asleep card, plus deep sleep and awakenings cards when present.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.timeAsleepCard",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepCard(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningsCard(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "deepSleepMinutes present",
+     "effect": "show deep card"
+    },
+    {
+     "at": "+6",
+     "cond": "awakeningsCount present",
+     "effect": "show awakenings card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningsCard(_:)": "1d5c94961553ee03",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepCard(_:)": "f792c7ad5e1fc44e",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.timeAsleepCard": "b10c56ae10675a9d"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.awakeningsCard(_:)",
+   "hash": "34e5764e6d835dd9",
+   "does": "Awakenings card, terracotta when count > 3 else sage.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "count > 3",
+     "effect": "terracotta; else sage"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Card turns 'bad' colour above 3 awakenings while the note calls sleep fragmented only above 5 (awakeningNotes), so 4–5 awakenings is coloured as a problem with no matching note.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView.swift:450",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:515"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.deepSleepCard(_:)",
+   "hash": "88bb9ce4eda74f8f",
+   "does": "Deep sleep card with localized hours/minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.timeAsleepCard",
+   "hash": "064bc86bdfca7b43",
+   "does": "'Time Asleep'/'from Apple Health' or 'Est. Sleep'/'from recording length' card.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isHealthKitData",
+     "effect": "'Time Asleep'; else 'Est. Sleep'"
+    },
+    {
+     "at": "+5",
+     "cond": "isHealthKitData",
+     "effect": "'from Apple Health'; else 'from recording length'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.sleepQualityNote",
+   "hash": "451eae6958047082",
+   "does": "Sleep note: fixed rough-estimate sentence for non-HK data, else joined duration/deep/awakening notes with first letter capitalised.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.durationNotes(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepNotes(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningNotes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not HealthKit data",
+     "effect": "return fixed estimate sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningNotes(_:)": "f67937cfaf50c636",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepNotes(_:)": "9fd6375f9bd65a16",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.durationNotes(_:)": "488a4e885540c098",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.durationNotes(_:)",
+   "hash": "c0629c62a18f13b6",
+   "does": "'Short sleep detected' under 5 h, 'Good sleep duration' at ≥7 h.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "minutes < 300",
+     "effect": "short note"
+    },
+    {
+     "at": "+4",
+     "cond": "minutes >= 420",
+     "effect": "good note; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.deepSleepNotes(_:)",
+   "hash": "fbfa781f9e567650",
+   "does": "Deep-sleep share note: <15% low, >25% excellent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no deep minutes or zero sleep",
+     "effect": "none"
+    },
+    {
+     "at": "+3",
+     "cond": "share < 15%",
+     "effect": "'low deep sleep'"
+    },
+    {
+     "at": "+6",
+     "cond": "share > 25%",
+     "effect": "'excellent deep sleep'; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.awakeningNotes(_:)",
+   "hash": "7bf4e0520a351fea",
+   "does": "Awakening note: >5 fragmented, ≤1 uninterrupted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no count",
+     "effect": "none"
+    },
+    {
+     "at": "+2",
+     "cond": "count > 5",
+     "effect": "'fragmented sleep'"
+    },
+    {
+     "at": "+3",
+     "cond": "count <= 1",
+     "effect": "'uninterrupted sleep'; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.overnightHRSection",
+   "hash": "0ad9d307cc3b1ecb",
+   "does": "HR section card: header, OvernightHRChartCanvas (180pt, accessibility summary) and legend.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrChartLegend",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrChartLegend": "123dd961d805f45b",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader": "2257e055540f2cd9",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrChartLegend",
+   "hash": "aa3f746f424a9cb9",
+   "does": "HR legend: HR, optional Apple Watch, Nadir, Analysis Window.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.appleWatchLegendItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.appleWatchLegendItem": "ea482a28dd176e05",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.appleWatchLegendItem",
+   "hash": "07c5365f7e355ddf",
+   "does": "'Apple Watch' legend item when HK HR is present.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "healthKitHR non-empty",
+     "effect": "show item; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrSectionHeader",
+   "hash": "3259f87965f9121d",
+   "does": "HR header: 'Heart Rate Overnight' or 'Heart Rate' plus min–max bpm.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "healthKitSleep non-nil",
+     "effect": "'Heart Rate Overnight'; else 'Heart Rate'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.analyzeAtPeakAction",
+   "hash": "122053419bd144a4",
+   "does": "VoiceOver action 'Analyze at peak HRV' calling onReanalyzeAt(peakHRVTimeMs).",
+   "entry": "VoiceOver custom accessibility action on the HRV chart",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats",
+    "closure:onReanalyzeAt set by MorningResultsView (handleManualReanalysis), non-nil only in manual-window mode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onReanalyzeAt set and peakRMSSD > 0",
+     "effect": "offer action; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.overnightHRVSection",
+   "hash": "ad546c9993a8b35a",
+   "does": "HRV section card: header, canvas, legend.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvSectionHeader",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartCanvas",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartLegend",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartCanvas": "2f0c98ce945763bc",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartLegend": "b7983624f25bf75f",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvSectionHeader": "7a0243f069257353",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrvChartCanvas",
+   "hash": "0f3a868bcc5f94ea",
+   "does": "OvernightHRVChartCanvas (180pt) with accessibility label and the peak reanalysis action.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.analyzeAtPeakAction",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.analyzeAtPeakAction": "e7b9a79f00f5af75",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrvChartLegend",
+   "hash": "6290a8fcf55861a6",
+   "does": "HRV legend: RMSSD, Peak HRV, Analysis Window.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OvernightChartsView.hrvSectionHeader",
+   "hash": "d574fed24530c0e8",
+   "does": "HRV header: title variant plus 'Peak: N ms'.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "healthKitSleep non-nil",
+     "effect": "'HRV Overnight (Rolling RMSSD)'; else 'HRV (Rolling RMSSD)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  }
+ ],
+ "deps": {}
+}

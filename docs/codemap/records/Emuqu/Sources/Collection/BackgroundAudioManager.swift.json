@@ -1,0 +1,642 @@
+{
+ "file": "Emuqu/Sources/Collection/BackgroundAudioManager.swift",
+ "hash": "c3f3adba6319cb0b",
+ "role": "Owns the AVAudioSession lifecycle for spoken workout cues: per-cue tokens, a serial transition queue that claims/activates and releases/deactivates the shared session via AudioSessionCoordinator, interruption handling, and a speech-synthesizer delegate (CueAudioSessionReleaser) that ends a cue's hold when its utterance finishes.",
+ "types": [
+  "BackgroundAudioManager: class (Sendable) — cue-scoped audio session manager",
+  "BackgroundAudioManager.CueToken: struct — one cue's hold id",
+  "BackgroundAudioManager.State: struct — held cue ids, last token id, wasInterrupted",
+  "CueAudioSession: protocol — seam over the shared session (claim/release/hasActiveClaims/activate/deactivate)",
+  "SystemCueAudioSession: struct — real AVAudioSession + AudioSessionCoordinator implementation",
+  "CueAudioSessionReleaser: class (NSObject, AVSpeechSynthesizerDelegate) — maps utterances to cue tokens and ends them on finish/cancel"
+ ],
+ "state": [
+  "static BackgroundAudioManager.shared (returned by CollectionServices.backgroundAudioManager, AppDependencies.swift:546)",
+  "state: OSAllocatedUnfairLock<State>",
+  "transitions: DispatchQueue 'com.emuqu.cue-audio-session' (.userInitiated)",
+  "observers: NotificationTokens",
+  "CueAudioSessionReleaser.pending: OSAllocatedUnfairLock<[ObjectIdentifier: CueToken]>",
+  "notif:AVAudioSession.interruptionNotification (observed)"
+ ],
+ "toplevel": "`static let shared` is created lazily on first access with SystemCueAudioSession and interruption observation on.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BackgroundAudioManager.State.holdNewCue()",
+   "hash": "3efb10aaf8343b4b",
+   "does": "Increments lastTokenID, records whether no cue was held (and if so clears wasInterrupted), inserts the new id, returns (id, isFirst).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no cue currently held",
+     "effect": "clears wasInterrupted (a fresh cue after an interruption resets the flag); otherwise leaves it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.State.endHold(_:)",
+   "hash": "7b699351791b56c4",
+   "does": "Removes id from heldCues; returns true only when it was present and the set is now empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BackgroundAudioManager.State.endAllHoldsForInterruption()",
+   "hash": "d1e7918e50a8e28b",
+   "does": "Clears all held cues; if any were held sets wasInterrupted; returns whether any were held.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "at least one cue was held",
+     "effect": "sets wasInterrupted = true; else leaves it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+   }
+  },
+  {
+   "key": "var BackgroundAudioManager.isRunning",
+   "hash": "c21c20caa54089fc",
+   "does": "True while at least one cue token holds the session (lock read).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only read by tests (BackgroundOperationsTests.swift:25-42); no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:78",
+      "EmuquTests/BackgroundOperationsTests.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var BackgroundAudioManager.wasInterrupted",
+   "hash": "5bf8f697faa1a98f",
+   "does": "Returns State.wasInterrupted under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only read by tests (BackgroundOperationsTests.swift:85, RRCollectorStateMachineTests.swift:414); no production reader, so the interrupted state is never surfaced to the user.",
+     "evidence": [
+      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:82",
+      "EmuquTests/BackgroundOperationsTests.swift:85"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init BackgroundAudioManager(session:observesInterruptions:)",
+   "hash": "3dc2cfd9a8da4f8d",
+   "does": "Stores the session seam and, unless disabled (tests), registers the AVAudioSession interruption observer.",
+   "entry": "`BackgroundAudioManager.shared` lazy static init; tests construct with a recording session.",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.setupInterruptionObserver()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "observesInterruptions is true",
+     "effect": "installs observer; tests pass false and skip it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.setupInterruptionObserver()": "2f297af19cbf2015"
+   }
+  },
+  {
+   "key": "deinit BackgroundAudioManager",
+   "hash": "6efd850d5a5986bc",
+   "does": "Removes registered notification observers from NotificationCenter.default.",
+   "entry": "Swift deinit.",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.beginCue()",
+   "hash": "0f81794d477c920d",
+   "does": "Synchronously on the transition queue: holds a new cue; if it is the first held cue, claims .workoutCue playback and activates the session; returns the cue's token. Blocks the caller until activation finishes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.holdNewCue()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundAudioManager.state"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "this is the only held cue",
+     "effect": "calls activateForCues (claim + setActive(true)); otherwise session already up, nothing done"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.holdNewCue()": "762a8174754e86db",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()": "722e40aafc25042c"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.endCue(_:)",
+   "hash": "c8a2518a0e22ad18",
+   "does": "Asynchronously on the transition queue ends the token's hold; when that was the last held cue, releases the claim and deactivates if no other claimant holds the session. Stale tokens are no-ops.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endHold(_:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundAudioManager.state"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "token was held and was the last",
+     "effect": "calls releaseWhenIdle; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endHold(_:)": "11d505c21c4590f7",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.stopBackgroundAudio()",
+   "hash": "1fb29fa7c02f19d9",
+   "does": "Workout ended: asynchronously on the transition queue clears wasInterrupted and, if no cue is held, releases the cue claim and deactivates the session when no other claimant remains. Called from WorkoutRecorder+Stop.swift:152 (releaseWorkoutCueAudioAndDiagnostics).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundAudioManager.state"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no cue held",
+     "effect": "releaseWhenIdle; if a cue is still speaking, its finish callback will release later"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var BackgroundAudioManager.wasInterrupted": "33ebb070395b6b6d"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.deactivateIfIdle(completion:)",
+   "hash": "be1000da32485888",
+   "does": "Asynchronously on the transition queue: if no cue is held and no coordinator claim remains, deactivates the session and reports the error (or nil) to completion; otherwise completes with nil without deactivating. Used by voice chat teardown (VoiceConversationController+Audio.swift:138).",
+   "entry": null,
+   "calls": [
+    "dyn:CueAudioSession.deactivate → Emuqu/Sources/Collection/BackgroundAudioManager.swift:252",
+    "dyn:CueAudioSession.hasActiveClaims → Emuqu/Sources/Collection/BackgroundAudioManager.swift:246"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "a cue is held or another claimant still holds the session",
+     "effect": "calls completion(nil) and returns without deactivating"
+    },
+    {
+     "at": "+7",
+     "cond": "deactivate throws",
+     "effect": "completion(error); success path completion(nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BackgroundAudioManager.waitForPendingTransitions()",
+   "hash": "c58858b01af6afaa",
+   "does": "Blocks until all queued transitions have run (empty sync block).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only called from tests (BackgroundOperationsTests.swift); no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:156",
+      "EmuquTests/BackgroundOperationsTests.swift:32"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func BackgroundAudioManager.activateForCues()",
+   "hash": "def9e983762b0785",
+   "does": "On the transition queue: claims .workoutCue playback through the session seam, then setActive(true); an activation error is only logged and the cue stays held.",
+   "entry": null,
+   "calls": [
+    "dyn:CueAudioSession.claimCuePlayback → Emuqu/Sources/Collection/BackgroundAudioManager.swift:238",
+    "dyn:CueAudioSession.activate → Emuqu/Sources/Collection/BackgroundAudioManager.swift:248",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "activate throws",
+     "effect": "logs and continues; cue remains held so its finish callback still releases the claim"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.releaseWhenIdle()",
+   "hash": "1688fc281c4c26b0",
+   "does": "On the transition queue: releases the .workoutCue claim, then deactivates with notifyOthersOnDeactivation only if no other claimant (voice, dictation, breathing guide) remains; deactivation errors are logged at info.",
+   "entry": null,
+   "calls": [
+    "dyn:CueAudioSession.releaseCuePlayback → Emuqu/Sources/Collection/BackgroundAudioManager.swift:242",
+    "dyn:CueAudioSession.hasActiveClaims → Emuqu/Sources/Collection/BackgroundAudioManager.swift:246",
+    "dyn:CueAudioSession.deactivate → Emuqu/Sources/Collection/BackgroundAudioManager.swift:252",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "another claimant still holds the session",
+     "effect": "returns leaving the session active; otherwise deactivates"
+    },
+    {
+     "at": "+5",
+     "cond": "deactivate throws",
+     "effect": "error logged at .info and swallowed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.setupInterruptionObserver()",
+   "hash": "9f7d129912a12e37",
+   "does": "Registers a queue:nil observer on AVAudioSession.interruptionNotification for the shared session; only an interruption of type .began calls interruptionBegan.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.interruptionBegan()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:AVAudioSession.interruptionNotification"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "userInfo has a type value equal to .began",
+     "effect": "calls interruptionBegan; .ended or missing type returns without action (nothing is resumed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.interruptionBegan()": "d55ecf3208909170",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func BackgroundAudioManager.interruptionBegan()",
+   "hash": "5eb6e1bed804ccfe",
+   "does": "Asynchronously ends every held cue, setting wasInterrupted, and releases/deactivates via releaseWhenIdle if any cue was held.",
+   "entry": "AVAudioSession.interruptionNotification (.began) via the observer from setupInterruptionObserver; also called by tests.",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endAllHoldsForInterruption()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundAudioManager.state"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "any cue was held",
+     "effect": "releaseWhenIdle; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.State.endAllHoldsForInterruption()": "db189674be6511c4",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4"
+   }
+  },
+  {
+   "key": "requirement CueAudioSession.claimCuePlayback()",
+   "hash": "ed3e44bdf767c7c3",
+   "does": "Protocol requirement: claim .workoutCue playback.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "144dce4190f28369",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.claimCuePlayback()": "9303a4a51cf91270",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "63f3fa35011b423a"
+   }
+  },
+  {
+   "key": "requirement CueAudioSession.releaseCuePlayback()",
+   "hash": "bcf574f9e6fc4f88",
+   "does": "Protocol requirement: release the .workoutCue claim.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.releaseCuePlayback()": "9d566c963df29444",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.releaseCuePlayback()": "a5758f6c73f80826",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "88e1121f6d6d3ae0"
+   }
+  },
+  {
+   "key": "requirement CueAudioSession.activate()",
+   "hash": "8a77312f64744891",
+   "does": "Protocol requirement: activate the session (throws).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.activate()": "6f6299036e8ae128",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.activate()": "1aa20341c1c37a1d",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "4a6774a9d46d3c08"
+   }
+  },
+  {
+   "key": "requirement CueAudioSession.deactivate()",
+   "hash": "5f9d0c572f86a3e5",
+   "does": "Protocol requirement: deactivate with notifyOthersOnDeactivation (throws).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.deactivate()": "e6502476480213cb",
+    "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.deactivate()": "4dd8c4f67edb8458",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "9a2d95bd7c944abb"
+   }
+  },
+  {
+   "key": "var SystemCueAudioSession.coordinator",
+   "hash": "e76062d9eb6fc8b4",
+   "does": "Returns the app's AudioSessionCoordinator from AppDependencies.current.services.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func SystemCueAudioSession.claimCuePlayback()",
+   "hash": "8e5c2ce6e9fe5922",
+   "does": "Claims .workoutCue with .playback mode on the AudioSessionCoordinator (which re-resolves the session category).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754"
+   }
+  },
+  {
+   "key": "func SystemCueAudioSession.releaseCuePlayback()",
+   "hash": "b48e17e06e0fab6d",
+   "does": "Releases the .workoutCue claim on the AudioSessionCoordinator.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae"
+   }
+  },
+  {
+   "key": "var SystemCueAudioSession.hasActiveClaims",
+   "hash": "fe2fd87de90b3ce3",
+   "does": "True when the AudioSessionCoordinator has any claim.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()"
+   ],
+   "reads": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::var SystemCueAudioSession.coordinator": "1c56830bce5016ed",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "2b1ef60dc554e6ae"
+   }
+  },
+  {
+   "key": "func SystemCueAudioSession.activate()",
+   "hash": "a1324bebd73ccdee",
+   "does": "AVAudioSession.sharedInstance().setActive(true).",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioSession.setActive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SystemCueAudioSession.deactivate()",
+   "hash": "fc39e56558c5ab31",
+   "does": "AVAudioSession.sharedInstance().setActive(false, .notifyOthersOnDeactivation).",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioSession.setActive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init CueAudioSessionReleaser(manager:)",
+   "hash": "bb662cbb7ec7e8d3",
+   "does": "Stores the BackgroundAudioManager whose cues it ends.",
+   "entry": "Constructed by WorkoutVoiceCoach (lazy cueReleaser) and WorkoutStartCue.cueReleaser.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CueAudioSessionReleaser.track(_:token:)",
+   "hash": "b83694b30a98ab29",
+   "does": "Records utterance identity → cue token under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CueAudioSessionReleaser.release(_:)",
+   "hash": "92e42e08a76cefd1",
+   "does": "Removes the utterance's token from the map and ends that cue; untracked utterances do nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no token recorded for this utterance",
+     "effect": "returns; else calls manager.endCue(token)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c"
+   }
+  },
+  {
+   "key": "func CueAudioSessionReleaser.speechSynthesizer(_:didFinish:)",
+   "hash": "56470697d6a15880",
+   "does": "AVSpeechSynthesizerDelegate didFinish: releases the utterance's cue.",
+   "entry": "AVSpeechSynthesizer delegate callback (finish).",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5"
+   }
+  },
+  {
+   "key": "func CueAudioSessionReleaser.speechSynthesizer(_:didCancel:)",
+   "hash": "d195bda50c268508",
+   "does": "AVSpeechSynthesizerDelegate didCancel: releases the utterance's cue.",
+   "entry": "AVSpeechSynthesizer delegate callback (cancel).",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "e30c8b132cebf5e5"
+   }
+  }
+ ],
+ "deps": {}
+}

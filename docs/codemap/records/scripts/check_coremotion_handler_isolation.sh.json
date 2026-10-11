@@ -1,0 +1,38 @@
+{
+ "file": "scripts/check_coremotion_handler_isolation.sh",
+ "hash": "b37d17c53832945f",
+ "role": "CI gate: every CoreMotion handler closure passed to start*/query* APIs must be queue-delivered (`to:` on queue APIs) or start with `@Sendable`, preventing main-actor isolation SIGTRAPs on CoreMotion threads.",
+ "types": [],
+ "state": [
+  "dir:Emuqu",
+  "dir:EmuquWatch Watch App"
+ ],
+ "toplevel": "cd to repo root. Roots = args or Emuqu and 'EmuquWatch Watch App'; exit 2 if no Swift file found. Python strips // comments (string-aware), finds `.startRelativeAltitudeUpdates(` etc. and `.startUpdates(`/`.queryPedometerData(`; looks in a 400-char window for the first `{`; no `{` -> skipped; queue APIs with `to:` -> ok; body starting `@Sendable` -> ok; else violation (exit 1). Wired: ci.yml (manual only) and Makefile coremotion-isolation-guard; NOT run by gates.yml on push.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "Not executed by the push workflow gates.yml (its make target list omits coremotion-isolation-guard); it only runs in manual ci.yml or local `make ci`, although it guards a crash that ended a user's walk. check_gates_wired.sh only inspects ci.yml so it does not notice.",
+   "evidence": [
+    ".github/workflows/gates.yml:60",
+    "Makefile:50",
+    "scripts/check_gates_wired.sh:17"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The trailing-closure test uses the first `{` within 400 characters of the call. A handler passed by name with no `{` in that window is skipped; with a later unrelated `{` in the window, that brace's body is tested instead of the handler. strip_comments blanks only // comments, so a call written inside a /* */ block is reported. CMPedometer.startEventUpdates is not in the API list.",
+   "evidence": [
+    "scripts/check_coremotion_handler_isolation.sh:120",
+    "scripts/check_coremotion_handler_isolation.sh:121",
+    "scripts/check_coremotion_handler_isolation.sh:79",
+    "scripts/check_coremotion_handler_isolation.sh:60"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

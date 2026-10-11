@@ -1,0 +1,157 @@
+{
+ "file": "Emuqu/Sources/Views/ToastBanner.swift",
+ "hash": "5d3293d48e7f7810",
+ "role": "Transient top-of-screen toast: banner view, payload type, a ViewModifier that overlays it, announces it to VoiceOver and auto-clears it after 2.5 s, and a .toastBanner(_:) View extension. Only caller: DashboardV2View.",
+ "types": [
+  "ToastBanner: struct (View) — capsule with glyph + message",
+  "ToastPayload: struct (Equatable, Identifiable) — glyph/message/tint with a fresh UUID id",
+  "ToastBannerModifier: struct (ViewModifier) — overlay + timed dismissal",
+  "View: extension — toastBanner(_:)"
+ ],
+ "state": [
+  "binding:ToastBannerModifier.toast (ToastPayload?)",
+  "env:accessibilityReduceTransparency"
+ ],
+ "toplevel": "ToastPayload.id = UUID() initialised per instance; tint defaults to AppTheme.wongOptimal. Doc says slide in 250ms/hold 2.5s/slide out 200ms; code matches (0.25 easeOut insertion, 2.5 s sleep, 0.2 easeOut removal).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ToastBanner.body",
+   "hash": "e9a3b1b224f8c98a",
+   "does": "Renders glyph (scaled 14pt, tint) and message (scaled 13pt, textPrimary) in a capsule filled with AdaptiveMaterial.ultraThin (opaque under Reduce Transparency), shadowed, combined into one accessibility element labelled with the message.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.appearanceTheme"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)": "c4738b7db48b800b",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ToastPayload.==(lhs:rhs:)",
+   "hash": "9a6b676519f07436",
+   "does": "Equality compares only the UUID id, so two toasts with identical text are distinct.",
+   "entry": "Equatable conformance used by SwiftUI value comparison",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ToastBannerModifier.body(content:)",
+   "hash": "68aeb9920eb8ee42",
+   "does": "Overlays the banner at the top of content and animates changes keyed on toast?.id with 0.25 s easeOut.",
+   "entry": "SwiftUI ViewModifier.body",
+   "calls": [
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Toast insert/remove animations (.easeOut 0.25 and withAnimation .easeOut 0.2) ignore Reduce Motion, contrary to the policy in Animation+ReduceMotion that interactive transitions must consult it.",
+     "evidence": [
+      "Emuqu/Sources/Views/ToastBanner.swift:59",
+      "Emuqu/Sources/Views/ToastBanner.swift:83",
+      "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift:5"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBannerModifier.banner": "09164b8422962260"
+   }
+  },
+  {
+   "key": "var ToastBannerModifier.banner",
+   "hash": "661e87c1dcde355e",
+   "does": "When toast is non-nil, shows ToastBanner padded 16pt from top with move+opacity insertion / opacity removal and a .task(id: toast.id) that runs announceThenDismiss.",
+   "entry": "SwiftUI view builder; .task(id:) starts/cancels per toast id",
+   "calls": [
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBanner.body",
+    "Emuqu/Sources/Views/ToastBanner.swift::func ToastBannerModifier.announceThenDismiss(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "toast non-nil",
+     "effect": "render banner and start its task; nil → empty"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Header says the toast slides out over 200 ms; the removal transition is .opacity only, no slide.",
+     "evidence": [
+      "Emuqu/Sources/Views/ToastBanner.swift:5",
+      "Emuqu/Sources/Views/ToastBanner.swift:69"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/ToastBanner.swift::func ToastBannerModifier.announceThenDismiss(_:)": "a7e85c7487b42b2c",
+    "Emuqu/Sources/Views/ToastBanner.swift::var ToastBanner.body": "4c6b57a12e18cc66"
+   }
+  },
+  {
+   "key": "func ToastBannerModifier.announceThenDismiss(_:)",
+   "hash": "c76bd0885d3623ed",
+   "does": "Posts a VoiceOver announcement with the message, sleeps 2.5 s (cancellation swallowed by sleepQuietly), then if the task wasn't cancelled and the binding still holds the same toast id, sets toast to nil with 0.2 s easeOut.",
+   "entry": ".task(id: toast.id) in banner",
+   "calls": [
+    "ext:UIAccessibility.post(.announcement)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ToastBannerModifier.toast binding (DashboardV2View @State toast)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "!Task.isCancelled && self.toast?.id == toast.id",
+     "effect": "clear toast; cancelled or replaced by a newer toast → return without clearing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func View.toastBanner(_:)",
+   "hash": "5d8eba3050819548",
+   "does": "Applies ToastBannerModifier with the given binding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

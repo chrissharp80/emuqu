@@ -1,0 +1,90 @@
+{
+ "file": "Emuqu/Sources/Export/ReportSectionRenderer.swift",
+ "hash": "0f3b726f34e79b36",
+ "role": "Defines ReportSectionRenderer, a stateless value holding its PDFReportGenerator, plus forwarders to the generator's config, settings provider, section heading, metric grid and score colour so the +Charts/+Sections extensions can draw body sections.",
+ "types": [
+  "ReportSectionRenderer: struct — body-section/chart renderer built on demand by PDFReportGenerator.sections"
+ ],
+ "state": [
+  "generator (let PDFReportGenerator, strong reference)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ReportSectionRenderer.config",
+   "hash": "af019438def0108a",
+   "does": "Returns generator.config.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportSectionRenderer.settingsProvider",
+   "hash": "48f97c5c200eb2e9",
+   "does": "Returns generator.settingsProvider closure.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (via settingsProvider)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+   "hash": "1b920ecabc513075",
+   "does": "Forwards to PDFReportGenerator.drawSectionHeading (heading text in primary colour, returns y+20).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+   "hash": "f5d35943ef85f23c",
+   "does": "Forwards to PDFReportGenerator.drawCompactMetricsGrid (4-column name/value grid).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawCompactMetricsGrid(_:yPosition:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawCompactMetricsGrid(_:yPosition:pageRect:)": "ca3cc02d3896fd99"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.diagnosticColorForScore(_:)",
+   "hash": "a3a69eae0af271ac",
+   "does": "Forwards to PDFReportGenerator.diagnosticColorForScore (→ OvernightReportRenderer: ≥80 green, ≥60 blue, ≥40 orange, else red).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)": "7794af47773b0c31"
+   }
+  }
+ ],
+ "deps": {}
+}

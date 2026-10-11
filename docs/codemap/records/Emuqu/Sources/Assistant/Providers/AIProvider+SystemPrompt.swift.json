@@ -1,0 +1,750 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift",
+ "hash": "bac205c8fe9ae656",
+ "role": "Composer of the shared AI-coach system prompt: picks sections per provider/turn (tool vs no-tool, voice, app reference, units/locale, disabled features), splits a cacheable stable half from a per-send variable half (clock, training load, live workout marker, pending verifier corrections, prior summary, rendered data), and rebuilds a condensed prompt for Apple on-device.",
+ "types": [
+  "AssistantSystemPrompt: enum — prompt composer",
+  "AssistantSystemPrompt.Composed: struct — stable/variable halves + combined forms + cacheSplitMarker"
+ ],
+ "state": [
+  "mem:AssistantSystemPrompt.pendingRecentUserMessages (@MainActor static var; set/cleared by AssistantViewModel callers)",
+  "static let Composed.cacheSplitMarker = '\\n\\n<<<__FLOW_CACHE_SPLIT__>>>\\n\\n' (read by Anthropic/Gemini/OpenAI-compatible providers)",
+  "static let userFactsHeader / englishOnlySection / routeLoadingGuidance / locationToolGuidance / locationPhrasingGuidance / dashboardCacheFooter (prompt text)"
+ ],
+ "toplevel": "Static prompt-text constants (lines 149-151, 394-449, 662-667).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "In tool mode the stable half carries toolOverlay ('There is NO data pre-loaded into this context', 'Every numeric claim ... MUST come from a tool call made in THIS turn'), while the variable half of the same prompt injects the '# Dashboard cache' load block / '# Today' recovery line and base rule 1 names the dashboard cache as a valid source. The model gets contradictory sourcing rules on every tool-mode send.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:369",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:453",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:59",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:279",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:589"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AssistantSystemPrompt.Composed.combined",
+   "hash": "032554ba4c6edaf9",
+   "does": "Returns stable alone when variable is empty, else stable + blank line + variable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "variable is empty",
+     "effect": "returns stable only; else joined"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Composed.combined has no caller in the repo (grep of '.combined' finds only SwiftUI/CryptoKit uses); the doc's 'fallback for Apple, OpenAI' is not how those providers get the prompt (they strip the marker from combinedWithMarker).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:26",
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:259"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantSystemPrompt.Composed.combinedWithMarker",
+   "hash": "9dbbe5f48b9b0931",
+   "does": "Returns stable alone when variable is empty, else stable + cacheSplitMarker + variable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "variable is empty",
+     "effect": "returns stable only (unreachable in practice: variableSections always contains nowSnapshot); else joined with the marker"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "variable.isEmpty is never true for a composed prompt: variableSections always starts with nowSnapshot(), so the stable-only return is unreachable.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:35",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:278"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+   "hash": "cc3c4e6142c5de2f",
+   "does": "MainActor single-string composer: composeSplit(...).combinedWithMarker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combinedWithMarker": "39fc175515f81bbd"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+   "hash": "7b89347f70973d69",
+   "does": "Builds the stable sections and variable sections and joins each with blank lines into a Composed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "c45e112f4774b840"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+   "hash": "ef8ab87c8de2a557",
+   "does": "Stable half in order: base, locale/feature sections, tool or no-tool overlay(+capability index), voice overlay (voice turns), app reference (full or compact), user facts with header.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndFeatureSections(settings:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "voiceMode",
+     "effect": "appends voiceOverlay; else omitted"
+    },
+    {
+     "at": "+20",
+     "cond": "includeAppReference",
+     "effect": "appends AppKnowledgeBase reference; else none"
+    },
+    {
+     "at": "+21",
+     "cond": "compactAppReference",
+     "effect": "referenceCompact else full reference"
+    },
+    {
+     "at": "+23",
+     "cond": "userFacts non-empty",
+     "effect": "appends userFactsHeader + facts; else omitted"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Both production callers pass compactAppReference: true and never pass includeAppReference, so the full AppKnowledgeBase.reference (line 140 false arm) and the no-reference path (139 false) are reached only from tests using defaults; the comment says the compact variant is for small-context providers (Apple) but every provider gets it.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:137",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:140",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:588",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:619",
+      "EmuquTests/AssistantContextBuilderTests.swift:372"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndFeatureSections(settings:)": "421c2670418bd878",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "9172792d4d8e2d62",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.appleInstructions(fromComposed:)",
+   "hash": "6ee9fee1821994c5",
+   "does": "Rebuilds the Apple on-device prompt: appleBase, English-only (if set), one-line units, disabled features, Apple tool/no-tool overlay (chosen by whether the composed stable half contains toolOverlay), Apple voice overlay (if it contained voiceOverlay), the user-facts tail of the stable half, then the composed variable half unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleUnitsLine(settings:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "composed prompt has no cacheSplitMarker (or first half missing)",
+     "effect": "returns the prompt unchanged"
+    },
+    {
+     "at": "+6",
+     "cond": "settings.forceAIEnglish",
+     "effect": "adds englishOnlySection"
+    },
+    {
+     "at": "+9",
+     "cond": "disabled-features summary non-empty",
+     "effect": "adds it"
+    },
+    {
+     "at": "+10",
+     "cond": "stable contains toolOverlay",
+     "effect": "appleToolOverlay else appleNoToolsOverlay"
+    },
+    {
+     "at": "+11",
+     "cond": "stable contains voiceOverlay",
+     "effect": "adds appleVoiceOverlay"
+    },
+    {
+     "at": "+12",
+     "cond": "stable contains userFactsHeader",
+     "effect": "appends stable from header to end (facts are the last stable section)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleUnitsLine(settings:)": "57b95b6b50276022",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "80a725a36c5abe94",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.appleUnitsLine(settings:)",
+   "hash": "ae893af32a3fcd1d",
+   "does": "One-line units directive for Apple: imperial vs metric words, °F/°C, Locale region.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite via UnitsPreferenceStore.current; legacy UserDefaults.standard fallback copied into the suite)",
+    "mem:SettingsManager.settings.temperatureUnit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "resolved units imperial",
+     "effect": "miles/min per mile/feet else km/min per km/meters"
+    },
+    {
+     "at": "+4",
+     "cond": "temperatureUnit == .fahrenheit",
+     "effect": "°F else °C"
+    },
+    {
+     "at": "+5",
+     "cond": "Locale.current.region nil",
+     "effect": "'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.localeAndFeatureSections(settings:)",
+   "hash": "fe707b5e48b9e0fc",
+   "does": "English-only section (if forced), the locale/units directive with route/location guidance, and the disabled-features summary when non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndUnitsDirective(settings:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "settings.forceAIEnglish",
+     "effect": "appends englishOnlySection"
+    },
+    {
+     "at": "+8",
+     "cond": "disabled summary non-empty",
+     "effect": "appends it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeaturesSummary(settings:)": "80a725a36c5abe94",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.localeAndUnitsDirective(settings:)": "a78677073e86aa73"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.toolModeSections(toolMode:)",
+   "hash": "1a5fc95f2bb01e29",
+   "does": "Tool mode: [toolOverlay, CompactToolRouter.capabilityIndex()]; otherwise [nonToolModeOverlay].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "toolMode",
+     "effect": "tool overlay + capability index; else non-tool overlay"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)",
+   "hash": "afb5748b317f656d",
+   "does": "Variable half: now snapshot, training-load sections, live workout marker (if any), pending verifier corrections (consumed), prior summary, rendered data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a live workout snapshot exists",
+     "effect": "appends marker"
+    },
+    {
+     "at": "+5",
+     "cond": "pending corrections exist",
+     "effect": "appends correction block (buffer cleared)"
+    },
+    {
+     "at": "+8",
+     "cond": "priorSummary non-nil and non-empty",
+     "effect": "appends '# Earlier in this conversation'"
+    },
+    {
+     "at": "+11",
+     "cond": "contextRendered non-empty",
+     "effect": "appends '# Current data'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.activeWorkoutMarker()": "ff8d7e972f84bffd",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.nowSnapshot()": "24cf72076d0d30a6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.trainingLoadSections()": "9b8b1adefbb8dbeb"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.trainingLoadSections()",
+   "hash": "bf42b24925d41057",
+   "does": "Training-load per-send sections: user-asserted values block from recent user messages; if load is paused only '# Today' recovery line; else (unless the user contradicted the cache or asked to override) the dashboard snapshot block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.dashboardLoadSnapshot()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app"
+   ],
+   "reads": [
+    "mem:AssistantSystemPrompt.pendingRecentUserMessages",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "renderAssertedBlock returns a block",
+     "effect": "appends user-stated block"
+    },
+    {
+     "at": "+11",
+     "cond": "training load paused (integration off or on break)",
+     "effect": "only the recovery line (if any) under '# Today'"
+    },
+    {
+     "at": "+12",
+     "cond": "todayRecoveryLine non-nil",
+     "effect": "appended; else nothing"
+    },
+    {
+     "at": "+13",
+     "cond": "not suppressed and dashboard snapshot available",
+     "effect": "appends snapshot; suppressed when dashboardContradicted or explicitOverrideRequested, omitted when cache cold"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.dashboardLoadSnapshot()": "708342bf412bbb71",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "3345d0f08cd28f84",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.localeAndUnitsDirective(settings:)",
+   "hash": "506128a0df7e61ac",
+   "does": "Joins the units/locale block with the route-loading, location-tool and location-phrasing guidance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.unitsAndLocaleBlock(settings:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.unitsAndLocaleBlock(settings:)": "a8a85044cc49cb0e"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.unitsAndLocaleBlock(settings:)",
+   "hash": "bca30621239d1f39",
+   "does": "Interpolated '# Units & locale' block: units system, distance/pace/elevation words, temperature, region name+code, conversion instruction.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite via UnitsPreferenceStore.current; legacy UserDefaults.standard fallback copied into the suite)",
+    "mem:SettingsManager.settings.temperatureUnit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "temperatureUnit == .fahrenheit",
+     "effect": "'Fahrenheit (°F, NOT Celsius)' else 'Celsius (°C)'"
+    },
+    {
+     "at": "+6",
+     "cond": "region nil",
+     "effect": "'unknown'"
+    },
+    {
+     "at": "+7",
+     "cond": "localizedString nil",
+     "effect": "falls back to the region code"
+    },
+    {
+     "at": "+10",
+     "cond": "imperial",
+     "effect": "'imperial' else 'metric'"
+    },
+    {
+     "at": "+11",
+     "cond": "imperial",
+     "effect": "miles else kilometers"
+    },
+    {
+     "at": "+12",
+     "cond": "imperial",
+     "effect": "minutes per mile else per km"
+    },
+    {
+     "at": "+13",
+     "cond": "imperial",
+     "effect": "feet else meters"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.disabledFeaturesSummary(settings:)",
+   "hash": "83a1a6f10a7da312",
+   "does": "Returns a '# Disabled features' section listing switched-off features, or '' when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeatureLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no disabled lines",
+     "effect": "returns ''"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.disabledFeatureLines(_:)": "b7fb2ec061df4851"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.disabledFeatureLines(_:)",
+   "hash": "6c1ae2f44109a541",
+   "does": "Bullets for hidden Fitness tab, training load off, sleep integration off, and training break (with dates/reason).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings (hideFitnessTab, enableTrainingLoadIntegration, enableSleepIntegration, isOnTrainingBreak, trainingBreak*)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hideFitnessTab",
+     "effect": "adds fitness_tab_hidden"
+    },
+    {
+     "at": "+9",
+     "cond": "training load integration off",
+     "effect": "adds training_load_disabled"
+    },
+    {
+     "at": "+12",
+     "cond": "sleep integration off",
+     "effect": "adds sleep_integration_disabled"
+    },
+    {
+     "at": "+15",
+     "cond": "isOnTrainingBreak",
+     "effect": "adds on_training_break"
+    },
+    {
+     "at": "+16",
+     "cond": "break start/end/reason nil",
+     "effect": "start -> 'open', end -> ' (ongoing)', reason omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.activeWorkoutMarker()",
+   "hash": "0cd6668c99d0d864",
+   "does": "When a live workout snapshot exists, returns a '# Live workout snapshot' block with start time, elapsed minutes (min 1), sport, strap_connected and the get_workout_live instruction; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker current snapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no live workout snapshot",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "elapsed minutes changes every minute, so the marker's text changes each minute; it is in the variable half so the cache is unaffected, but the comment's claim that it 'holds across many rapid sends' only applies within one minute.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:510",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:493"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "6d3db3f64fb1239d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.nowSnapshot()",
+   "hash": "8ef4fb6c7f9f0f28",
+   "does": "'# Current time' block: now rounded down to the minute as ISO8601, local date, timezone id and weekday (Gregorian, en_US_POSIX).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Calendar.date(from:) returns nil",
+     "effect": "falls back to the unrounded now"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.formatted(_:_:)": "6d3db3f64fb1239d"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.formatted(_:_:)",
+   "hash": "4757bead14b5f88e",
+   "does": "Formats a date with a fixed pattern in the current time zone, en_US_POSIX locale, Gregorian calendar.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantSystemPrompt.dashboardLoadSnapshot()",
+   "hash": "0d820c316f443f1e",
+   "does": "Dashboard load block from TrainingLoadRegistry.live(): as-of, instructions, atl/ctl/tsb/acwr lines, optional today's recovery line and footer; logs the emitted values; nil when the cache is cold.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.logDashboardSnapshot(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current (TrainingLoadRegistry.live)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "registry returns nil",
+     "effect": "returns nil (block omitted)"
+    },
+    {
+     "at": "+4",
+     "cond": "acwr nil",
+     "effect": "'n/a (ctl=0)'"
+    },
+    {
+     "at": "+18",
+     "cond": "today's recovery line exists",
+     "effect": "appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.logDashboardSnapshot(_:)": "ff1c5a5106c74c66",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.todayRecoveryLine()": "3345d0f08cd28f84",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.logDashboardSnapshot(_:)",
+   "hash": "c94e647e93539daa",
+   "does": "debugLogs the atl/ctl/tsb/as-of being emitted to the prompt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug log"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func AssistantSystemPrompt.todayRecoveryLine()",
+   "hash": "6920a359341efd74",
+   "does": "Today's recovery line from the reliable overnight whose midpoint is today: 'recovery_score_today: N / 100' via displayScore(score*10); nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (recoveryScore on entry)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no today's reliable overnight or no recoveryScore",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "30b0039a7f4b7999",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f"
+   }
+  }
+ ],
+ "deps": {}
+}

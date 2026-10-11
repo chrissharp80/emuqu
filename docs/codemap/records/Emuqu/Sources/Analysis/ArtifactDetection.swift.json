@@ -1,0 +1,369 @@
+{
+ "file": "Emuqu/Sources/Analysis/ArtifactDetection.swift",
+ "hash": "f9849477c491349c",
+ "role": "RR-interval artifact detector: classifies every beat against a rolling median of its neighbourhood as technical (out of range), extra, missed, ectopic or clean, and computes the artifact percentage of a window; also declares the sorted-[Double] binary-search helpers shared with WindowSelector.",
+ "types": [
+  "ArtifactDetector: class (Sendable) — rolling-median artifact classifier",
+  "ArtifactDetector.Config: struct — windowSize (HRVConstants.Artifacts.windowSize = 50), ectopic 0.20, missed 0.50, extra 0.30, minRR/maxRR",
+  "Array where Element == Double: extension — sortedInsertionIndex/sortedFirstIndex binary searches"
+ ],
+ "state": [
+  "mem:ArtifactDetector.Config.default (static let)"
+ ],
+ "toplevel": "Config default values: ectopicThreshold 0.20, missedThreshold 0.50, extraThreshold 0.30, windowSize/minRR/maxRR from HRVConstants. The rolling median is computed over ALL raw values including out-of-range (technical) beats, so a burst of technical artifacts shifts the median used to judge neighbouring beats.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "computeRollingMedian is fed every raw rr_ms including beats that classify() then rejects as technical (outside minRR..maxRR), so dropouts/zeros or huge values bias the reference median for nearby valid beats.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift:38",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift:50"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ArtifactDetector(config:)",
+   "hash": "1fdee26bb5694629",
+   "does": "Stores the Config (default .default).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArtifactDetector.detectArtifacts(in:)",
+   "hash": "2d454e5c99c9ac75",
+   "does": "Returns one ArtifactFlags per RR point: computes the rolling median of rr_ms over config.windowSize and classifies each beat against its median.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "series has no points",
+     "effect": "return []; else classify"
+    },
+    {
+     "at": "+6",
+     "cond": "loop over every point",
+     "effect": "each point appended with classify(rrMs:median:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "6c413577ca564e84",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "deee4ec70514c56e"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.classify(rrMs:median:)",
+   "hash": "48dc495b819a5d4b",
+   "does": "Classifies one beat: out of [minRR,maxRR] → technical artifact (confidence 1); shorter than 0.7×median → shortBeatFlags; longer than 1.2×median → longBeatFlags; deviation ratio > 0.20 → ectopic; else clean.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rrMs outside [minRR, maxRR]",
+     "effect": "return technical artifact, confidence 1.0; else continue"
+    },
+    {
+     "at": "+7",
+     "cond": "rr < median*(1-extraThreshold) (below 70% of median)",
+     "effect": "return shortBeatFlags; else continue"
+    },
+    {
+     "at": "+10",
+     "cond": "rr > median*(1+ectopicThreshold) (above 120% of median)",
+     "effect": "return longBeatFlags; else continue"
+    },
+    {
+     "at": "+13",
+     "cond": "ratio > ectopicThreshold (only reachable for rr in [0.7m,0.8m))",
+     "effect": "ectopic artifact with confidence min(1, ratio/0.2); else .clean"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "With the default Config every artifact gets confidence 1.0: each branch divides a ratio already above its threshold by that threshold (generic 0.2-0.3 ratio / 0.2, short >0.3 / 0.3, long-ectopic >0.2 / 0.2, missed >0.5 / 0.5) and clamps to 1.0, so ArtifactFlags.confidence carries no information; no production code reads it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:65",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:74",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:99",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:104",
+      "Emuqu/Sources/Models/RRModels.swift:244"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/ARCHITECTURE.md's table says a short beat is ectopic only below median x 0.7 (outer gate) with deviation > 20%; the code also flags beats between 0.7 and 0.8 x median as ectopic through the generic `ratio > ectopicThreshold` branch.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:173",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:55",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)": "9e61ebf73719db70",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)": "f7caacd0c831fcf0",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.shortBeatFlags(rr:median:ratio:)",
+   "hash": "2978e92fda294700",
+   "does": "Short beat: below 50% of median → extra-beat artifact; otherwise ectopic, flagged as artifact when ratio > ectopicThreshold; confidence min(1, ratio/extraThreshold).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rr < median*0.5",
+     "effect": "return .extra artifact; else .ectopic with isArtifact = ratio > 0.20"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "shortBeatFlags is only reached when rr < 0.7×median, i.e. ratio > 0.30, so with the default config `isArtifact: ratio > config.ectopicThreshold` (0.20) is always true; the non-artifact outcome is unreachable unless a custom Config sets extraThreshold < ectopicThreshold.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:55",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.longBeatFlags(rr:median:ratio:)",
+   "hash": "b62e6152e9f52075",
+   "does": "Long beat (>120% of median): above (1+missedThreshold)×median → missed-beat artifact (confidence ratio/0.5); otherwise ectopic artifact (confidence ratio/0.2).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr > median*1.5",
+     "effect": "return .missed artifact; else .ectopic artifact"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.artifactPercentage(_:start:end:)",
+   "hash": "7d265c40da2047d2",
+   "does": "Percentage (0-100) of flags marked isArtifact in the clamped half-open window [start,end).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "clamped window empty",
+     "effect": "return 0; else artifactCount/count*100"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "ImportDataView.assembleResult recomputes the window artifact percentage inline instead of calling artifactPercentage, without the index clamping or the empty-window guard (divides by windowEnd - windowStart).",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:253",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:254",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:117"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ArtifactDetector.computeRollingMedian(_:windowSize:)",
+   "hash": "09c8c8fd60ed8c10",
+   "does": "Rolling median per index using an insertion-sorted window centred on i (halfWindow = windowSize/2 each side, truncated at edges).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.medianOf(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.slideWindow(_:values:to:halfWindow:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "return []; else compute"
+    },
+    {
+     "at": "+8",
+     "cond": "bootstrap loop over the first min(count, halfWindow+1) values",
+     "effect": "each inserted into sorted at its binary-search index"
+    },
+    {
+     "at": "+12",
+     "cond": "loop i in 1..<count",
+     "effect": "slide window and append median; if count == 1 the range 1..<1 is empty and only the bootstrap median is returned"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/ARCHITECTURE.md says a 'centered 50-beat sliding window'; with windowSize 50, halfWindow = 25 on each side plus the beat itself gives a 51-beat window (and the median includes the beat being judged).",
+     "evidence": [
+      "docs/ARCHITECTURE.md:167",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:132",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:152",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:156",
+      "Emuqu/Sources/Utilities/Constants.swift:205"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.medianOf(_:)": "91917bfd67312a6a",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.slideWindow(_:values:to:halfWindow:)": "b0ecbcd44748e7d0"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.slideWindow(_:values:to:halfWindow:)",
+   "hash": "68893a4a97eaa458",
+   "does": "Slides the sorted window to position i: inserts values[i+halfWindow] when in range, removes one copy of values[i-halfWindow-1] when it exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newRight < values.count",
+     "effect": "insert the entering value; else nothing enters (right edge)"
+    },
+    {
+     "at": "+6",
+     "cond": "oldLeft >= 0 and the value is found in sorted",
+     "effect": "remove it; else nothing removed (left edge, or not found — which cannot happen since every leaving value was inserted earlier)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "WindowSelector.slideWindow is a line-for-line copy of this function (same signature and body); only the shared sortedInsertionIndex/sortedFirstIndex helpers were factored out.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:68",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:151"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)": "9fbe2b4ef9db0b69",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f"
+   }
+  },
+  {
+   "key": "func ArtifactDetector.medianOf(_:)",
+   "hash": "7c4348e5070f1c75",
+   "does": "Median of a sorted array: mean of the two middle elements for even count, middle element for odd.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "count is even",
+     "effect": "average of sorted[mid-1] and sorted[mid] (for empty input this would index -1 and crash, but callers never pass empty); else sorted[mid]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Array.sortedInsertionIndex(of:)",
+   "hash": "f3893ce6ad24ee75",
+   "does": "Binary search: lower-bound index at which value inserts keeping the ascending array sorted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lo < hi",
+     "effect": "keep halving; exits with lo = first index whose element >= value"
+    },
+    {
+     "at": "+4",
+     "cond": "self[mid] < value",
+     "effect": "lo = mid+1; else hi = mid"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Array.sortedFirstIndex(of:)",
+   "hash": "d9c5523d46251243",
+   "does": "Index of the first element exactly equal to value, nil when absent (uses sortedInsertionIndex).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lo out of bounds or element != value",
+     "effect": "return nil; else lo"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f"
+   }
+  }
+ ],
+ "deps": {}
+}

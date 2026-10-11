@@ -1,0 +1,363 @@
+{
+ "file": "Emuqu/Sources/Models/IntervalPlan.swift",
+ "hash": "713c0ba7921ecec8",
+ "role": "Codable model for structured interval workouts: IntervalStep (timed or distance step with a target and label) and IntervalPlan (ordered steps + whole-plan repeatCount), plus three built-in preset plans shown in WorkoutPreflightView.",
+ "types": [
+  "IntervalStep: struct (Codable, Equatable, Identifiable) — one step; id = index",
+  "IntervalStep.Target: enum — zone / hrRange / paceSecPerKm / effort",
+  "IntervalStep.Target.EffortCue: enum — recovery/easy/moderate/hard/allOut",
+  "IntervalPlan: struct (Codable, Equatable, Identifiable) — named step list with repeatCount and presets"
+ ],
+ "state": [
+  "mem:IntervalPlan.presets (static let: 'Easy base (30 min Z2)' id 1111…, \"5×3' tempo @ Z4\" id 2222…, '4×30/30 VO₂ (2 sets)' id 3333…)"
+ ],
+ "toplevel": "IntervalPlan.presets is a static let evaluated lazily on first access (WorkoutPreflightView.swift:785); it builds three plans with fixed UUID literals via presetID and the 30/30 plan via thirtyThirtySteps(sets: 2). All Codable/Equatable conformances are synthesized.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "displayName/displayLabel comments speak of 'a user plan's name as written' and 'a label the user wrote', but no code outside IntervalPlan.presets ever constructs an IntervalStep/IntervalPlan (grep 'IntervalStep(' finds only IntervalPlan.swift), so only preset plans exist.",
+   "evidence": [
+    "Emuqu/Sources/Models/IntervalPlan.swift:53",
+    "Emuqu/Sources/Models/IntervalPlan.swift:115",
+    "Emuqu/Sources/Models/IntervalPlan.swift:164"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says per-step stats (avg HR, distance, pace) are captured at finalize so the post-summary shows a per-interval breakdown; no code in the repo computes or stores per-interval stats (grep for interval stats/breakdown finds only this comment).",
+   "evidence": [
+    "Emuqu/Sources/Models/IntervalPlan.swift:17",
+    "Emuqu/Sources/Models/IntervalPlan.swift:19"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "IntervalStep.isWork is documented as driving session-level TRIMP weighting, but nothing reads it (grep '.isWork' finds no reader in app or tests); it is set only in the preset literals.",
+   "evidence": [
+    "Emuqu/Sources/Models/IntervalPlan.swift:48",
+    "Emuqu/Sources/Models/IntervalPlan.swift:51",
+    "Emuqu/Sources/Models/IntervalPlan.swift:160"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var IntervalStep.id",
+   "hash": "5b07194704af31c4",
+   "does": "Identifiable id = step index (stable only within one plan).",
+   "entry": "Identifiable conformance requirement only; no SwiftUI ForEach or other identity use of IntervalStep exists in the repo (ForEach is only over IntervalPlan.presets at WorkoutPreflightView.swift:785).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var IntervalStep.displayLabel",
+   "hash": "1404eef93210abf1",
+   "does": "Maps the stored English label to its localized string for the 8 preset labels via LanguageManager.appBundle; any other label is returned unchanged. Used by FitnessRecordingView.swift:433 for the live step row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "label == 'warm up'",
+     "effect": "localized 'warm up'"
+    },
+    {
+     "at": "+4",
+     "cond": "label == 'aerobic base'",
+     "effect": "localized 'aerobic base'"
+    },
+    {
+     "at": "+5",
+     "cond": "label == 'cool down'",
+     "effect": "localized 'cool down'"
+    },
+    {
+     "at": "+6",
+     "cond": "label == 'interval'",
+     "effect": "localized 'interval'"
+    },
+    {
+     "at": "+7",
+     "cond": "label == 'recovery'",
+     "effect": "localized 'recovery'"
+    },
+    {
+     "at": "+8",
+     "cond": "label == 'easy'",
+     "effect": "localized 'easy'"
+    },
+    {
+     "at": "+9",
+     "cond": "label == 'hard'",
+     "effect": "localized 'hard'"
+    },
+    {
+     "at": "+10",
+     "cond": "label == 'rest'",
+     "effect": "localized 'rest'"
+    },
+    {
+     "at": "+11",
+     "cond": "any other label",
+     "effect": "returns label as stored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var IntervalStep.intervalAILabel",
+   "hash": "b1ada8e24d3ff019",
+   "does": "English AI-facing phrase: label, then amount (duration or distance, omitted when neither), then target, joined by ' — ' (e.g. 'warm up — 5 min — @ Zone 2'). Read by WorkoutRecorder+Context.liveIntervalProgressSnapshot for workout.live.interval.* facts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.amountPart",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.targetPart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The doc comment's examples ('warm up — 5 min @ Zone 2', 'interval 3 of 5 — 800 m @ Zone 4') do not match the output: the target is joined with a second ' — ' separator ('warm up — 5 min — @ Zone 2') and no 'N of M' counter is ever produced.",
+     "evidence": [
+      "Emuqu/Sources/Models/IntervalPlan.swift:73",
+      "Emuqu/Sources/Models/IntervalPlan.swift:74",
+      "Emuqu/Sources/Models/IntervalPlan.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.amountPart": "17dea327fcce5f1a",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.targetPart": "2147c3bb32011fbe"
+   }
+  },
+  {
+   "key": "var IntervalStep.amountPart",
+   "hash": "93c1d1397d77a0aa",
+   "does": "Duration text when durationSec is set ('N min', 'N min S s', or 'S s'), else distance text ('X.X km' at >=1000 m, else 'N m'), else [] for an open-ended step.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "durationSec set",
+     "effect": "true: formats time (distance ignored even if also set); false: falls to distance"
+    },
+    {
+     "at": "+4",
+     "cond": "whole minutes (mins>0 and secs==0)",
+     "effect": "returns ['N min']"
+    },
+    {
+     "at": "+5",
+     "cond": "mins > 0",
+     "effect": "true: ['N min S s']; false: ['S s']"
+    },
+    {
+     "at": "+7",
+     "cond": "distanceMeters nil",
+     "effect": "returns [] (no amount part)"
+    },
+    {
+     "at": "+8",
+     "cond": "distance >= 1000 m",
+     "effect": "true: '%.1f km'; false: 'N m' (truncated Int)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var IntervalStep.targetPart",
+   "hash": "32f7938649a9eb61",
+   "does": "Formats the target: '@ Zone z', '@ lo–hi bpm', '@ m:ss/km', or '@ <effort rawValue> effort'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".zone",
+     "effect": "'@ Zone z'"
+    },
+    {
+     "at": "+3",
+     "cond": ".hrRange",
+     "effect": "'@ lo–hi bpm'"
+    },
+    {
+     "at": "+4",
+     "cond": ".paceSecPerKm",
+     "effect": "'@ m:ss/km'"
+    },
+    {
+     "at": "+5",
+     "cond": ".effort",
+     "effect": "'@ <rawValue> effort' (e.g. 'allOut effort')"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var IntervalPlan.totalSteps",
+   "hash": "abc413e6592f49d7",
+   "does": "Total steps across all repeats = steps.count x max(1, repeatCount). Not read anywhere: FitnessRecordingView.swift:430 and WorkoutRecorder+Context.swift:340 read IntervalController.totalSteps (flatSteps.count), not this property.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "IntervalPlan.totalSteps has no reader in app or tests; every '.totalSteps' use resolves to IntervalController.totalSteps.",
+     "evidence": [
+      "Emuqu/Sources/Models/IntervalPlan.swift:113",
+      "Emuqu/Sources/Views/FitnessRecordingView.swift:430",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:340"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same computation as IntervalController.totalSteps, which expands steps max(1, repeatCount) times in load(plan:) and returns the count.",
+     "evidence": [
+      "Emuqu/Sources/Models/IntervalPlan.swift:113",
+      "Emuqu/Sources/Collection/IntervalController.swift:53",
+      "Emuqu/Sources/Collection/IntervalController.swift:120"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var IntervalPlan.displayName",
+   "hash": "4d69c16c50870ef9",
+   "does": "Localized plan name for the three preset names; any other name returned as stored. Used by WorkoutPreflightView.swift:786 preset chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "name == 'Easy base (30 min Z2)'",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "name == \"5×3' tempo @ Z4\"",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "name == '4×30/30 VO₂ (2 sets)'",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "any other name",
+     "effect": "returned unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var IntervalPlan.estimatedDurationSec",
+   "hash": "073d7c050c4a016c",
+   "does": "Sum of timed steps' durationSec × max(1, repeatCount); distance-only steps contribute 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "estimatedDurationSec has no reader anywhere in the repo (grep across .swift and .md finds only its declaration), tests included.",
+     "evidence": [
+      "Emuqu/Sources/Models/IntervalPlan.swift:127"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func IntervalPlan.presetID(_:)",
+   "hash": "ed82b725a7958e13",
+   "does": "Builds a UUID from a literal; traps with preconditionFailure naming the literal if malformed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "UUID(uuidString:) returns nil",
+     "effect": "preconditionFailure (crash at first presets access); all three literals are valid so this never fires"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.id": "653ea27bde644721"
+   }
+  },
+  {
+   "key": "func IntervalPlan.thirtyThirtySteps(sets:)",
+   "hash": "126674b627fa7fef",
+   "does": "Builds the flat 30/30 step list: a 10-min Z2 warm-up then `sets` copies of [30s hard Z5, 30s easy Z2 ×3 alternations, 30s hard, 3-min rest Z1], with sequential indices and isWork true only for 'hard'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "label missing from the zones dictionary",
+     "effect": "falls back to zone 2; unreachable because every spec label ('warm up','hard','easy','rest') is a key"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

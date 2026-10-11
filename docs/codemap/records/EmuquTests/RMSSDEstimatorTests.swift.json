@@ -1,0 +1,417 @@
+{
+ "file": "EmuquTests/RMSSDEstimatorTests.swift",
+ "hash": "f011c52c2d40180b",
+ "role": "XCTest suite pinning TimeDomainAnalyzer's clean-array RMSSD, masked (artifact/break-skipping) RMSSD, point-range RMSSD and peak-scan RMSSD, plus the overnight RMSSD chart builder's handling of recording breaks.",
+ "types": [
+  "RMSSDEstimatorTests: class — XCTestCase for TimeDomainAnalyzer RMSSD estimators"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RMSSDEstimatorTests.testCleanEstimatorMatchesTheTextbookDefinition()",
+   "hash": "4b6453cdd5042c3e",
+   "does": "Asserts rmssd(fromCleanRRs:[800,810,820,830]) == 10 (textbook √mean(ΔRR²)).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testCleanEstimatorNeedsTwoBeats()",
+   "hash": "91abec3b7ae339dc",
+   "does": "Asserts rmssd(fromCleanRRs:) is nil for 0 or 1 beats and non-nil for 2 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testEstimatorsAgreeWhenNothingIsInvalid()",
+   "hash": "c4f1279d35e83ea6",
+   "does": "Asserts clean and masked estimators agree (1e-9) on a 6-beat series when isValid always returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testMaskedEstimatorIsLowerAcrossAnArtifactGap()",
+   "hash": "5144033cf83027e0",
+   "does": "With beat 3 (1400 ms) masked out of [800,805,810,1400,900,905], asserts masked RMSSD == 5 and is less than collapse-then-difference RMSSD (~45.21).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testMaskedEstimatorNeedsOneAdjacentValidPair()",
+   "hash": "bbab35242519d35f",
+   "does": "Asserts masked estimator returns nil when no two adjacent beats are valid (alternating or all invalid) and non-nil when beats 0,1 are valid.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testMaskedEstimatorIgnoresLeadingAndTrailingInvalidBeats()",
+   "hash": "1c0d1ebd6f3307f3",
+   "does": "Asserts masked estimator over [9999,800,810,820,9999] with only indices 1..3 valid equals clean RMSSD of [800,810,820].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testBothEstimatorsAreFiniteAndNonNegative()",
+   "hash": "89621719d915e8db",
+   "does": "Over 200 synthetic beats asserts clean RMSSD and masked RMSSD (every 7th beat invalid) are finite and >= 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for value in [clean, masked]",
+     "effect": "asserts isFinite and >= 0 for each of the two values; fixed two iterations"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Weak assertion: only finiteness and non-negativity are checked on a fixed deterministic series, so any wrong-but-finite estimator passes.",
+     "evidence": [
+      "EmuquTests/RMSSDEstimatorTests.swift:100"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.alternatingPoints(_:)",
+   "hash": "bfceec549da06dd3",
+   "does": "Test helper: builds `count` RRPoints at t_ms = i*810 alternating rr 800/820 ms (every successive difference 20 ms).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "$0 % 2 == 0 ?: ternary",
+     "effect": "even index → rr 800, odd → rr 820"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPeakScanMatchesTheTextbookValueOnACleanWindow()",
+   "hash": "925431ceca4b4aac",
+   "does": "Asserts peakScanRMSSD over 60 clean alternating points (range 0..<60) == 20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)": "69361b188100e177"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPeakScanSkipsPairsAcrossAnArtifact()",
+   "hash": "6f6c0e0f0a219b71",
+   "does": "Sets point 30 to rr 1400 and flags it as technical artifact; asserts peakScanRMSSD still == 20 (pairs adjacent to artifact skipped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)": "69361b188100e177"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPeakScanNeedsThirtyCleanBeats()",
+   "hash": "4d62fef10c259913",
+   "does": "With 40 points and the first 11 flagged (29 clean), asserts peakScanRMSSD nil; also nil for empty range 5..<5 and out-of-bounds range 0..<41.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0..<11",
+     "effect": "flags beats 0..10 as technical artifacts, leaving 29 clean beats (below the 30-beat floor)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)": "69361b188100e177"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.pointsWithBreak(_:)",
+   "hash": "187a278e18376922",
+   "does": "Test helper: two alternating runs of `count` beats (800/820 then 1000/1020 ms), the second starting 60 s after the first's last beat end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "first.last?.endMs ?? 0",
+     "effect": "fallback 0 used only when count==0 (first is empty); resume = end + 60000 ms"
+    },
+    {
+     "at": "+4",
+     "cond": "$0 % 2 == 0 ?: ternary",
+     "effect": "even index → rr 1000, odd → 1020"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)": "69361b188100e177"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testMaskedEstimatorSkipsAPairTheCallerMarksAsABreak()",
+   "hash": "561a721a3945dd12",
+   "does": "Asserts masked RMSSD of [800,820,1000,1020] with followsBreak at index 2 == 20, and without followsBreak is > 100 (bridged jump).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPointEstimatorFindsTheBreakFromTimestamps()",
+   "hash": "f011fdbed87459b4",
+   "does": "Asserts rmssd(points:range:isValid:) over pointsWithBreak(20) == 20, i.e. the timestamp gap is detected as a break and its pair skipped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)": "10674848ec98f071"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPointEstimatorTreatsAnArrivalClockJumpAsABreak()",
+   "hash": "73b1ac7bc8073062",
+   "does": "Builds 20 points with continuous t_ms but wallClockMs jumping 120 s at beat 10 (and rr level change); asserts rmssd(points:range:isValid:) == 20, i.e. an arrival-clock jump counts as a recording break.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "i < 10 ? (i%2==0 ? 800:820) : (i%2==0 ? 1000:1020)",
+     "effect": "first 10 beats alternate 800/820, last 10 alternate 1000/1020"
+    },
+    {
+     "at": "+3",
+     "cond": "i >= 10 ? 120_000 : 0",
+     "effect": "adds a 120 s wall-clock jump to beats 10..19; 0 otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPeakScanSkipsTheDifferenceAcrossARecordingBreak()",
+   "hash": "8a3f6f2e8859cb1d",
+   "does": "Asserts peakScanRMSSD over pointsWithBreak(30) (60 points, full range) == 20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)": "10674848ec98f071"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testPointEstimatorRejectsARangeOutsideThePoints()",
+   "hash": "f982e6ee22df8f57",
+   "does": "Asserts rmssd(points:range:isValid:) returns nil for range 0..<11 on 10 points.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.alternatingPoints(_:)": "69361b188100e177"
+   }
+  },
+  {
+   "key": "func RMSSDEstimatorTests.testOvernightChartSkipsTheDifferenceAcrossARecordingBreak()",
+   "hash": "86a325df42b45584",
+   "does": "Builds an RRSeries from pointsWithBreak(450), runs RecoveryScoreCharts.buildRMSSDSeries with nil flags, asserts the chart is non-empty and every point's rmssd == 20 (no 5-min window bridges the break).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildRMSSDSeries(series:flags:sessionStartDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for point in chart",
+     "effect": "asserts each chart point's rmssd == 20"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.buildRMSSDSeries(series:flags:sessionStartDate:)": "483fc07fa929c744",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)": "d15e4bbaa1220e1c",
+    "EmuquTests/RMSSDEstimatorTests.swift::func RMSSDEstimatorTests.pointsWithBreak(_:)": "10674848ec98f071"
+   }
+  }
+ ],
+ "deps": {}
+}

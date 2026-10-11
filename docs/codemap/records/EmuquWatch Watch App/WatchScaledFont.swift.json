@@ -1,0 +1,73 @@
+{
+ "file": "EmuquWatch Watch App/WatchScaledFont.swift",
+ "hash": "97d4a78b588be224",
+ "role": "Watch-local Dynamic Type helper: a view modifier that applies a fixed-point system font whose size scales with the watch's text-size setting via @ScaledMetric.",
+ "types": [
+  "View: extension — watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+  "WatchScaledSystemFont: struct (private ViewModifier) — holds the @ScaledMetric size and applies Font.system"
+ ],
+ "state": [],
+ "toplevel": "Header comment (1-29) explains the deliberate duplication of the iOS ScaledFont.swift because the Watch target compiles only its own folder.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "Re-implements the iOS app's ScaledFont helper on purpose (documented at WatchScaledFont.swift:13-23); two copies of the same scaling rule must be kept in step by hand.",
+   "evidence": [
+    "EmuquWatch Watch App/WatchScaledFont.swift:13",
+    "EmuquWatch Watch App/WatchScaledFont.swift:48"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+   "hash": "982463ced69f7cb1",
+   "does": "Returns content.modifier(WatchScaledSystemFont(...)) with the given base size, weight, design, monospaced-digit flag and text style to scale relative to.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchScaledFont.swift::init WatchScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchScaledFont.swift::func WatchScaledSystemFont.body(content:)": "e366b73bdbd77b45",
+    "EmuquWatch Watch App/WatchScaledFont.swift::init WatchScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)": "44789bbb409bb27e"
+   }
+  },
+  {
+   "key": "init WatchScaledSystemFont(size:weight:design:monospacedDigit:textStyle:)",
+   "hash": "403cf9f2873a99c9",
+   "does": "Initialises the modifier: wraps size in ScaledMetric(wrappedValue: size, relativeTo: textStyle) and stores weight, design and monospacedDigit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchScaledSystemFont.body(content:)",
+   "hash": "bfb08ddd50c9b28d",
+   "does": "Applies Font.system(size: scaled size, weight, design) to the content, made monospacedDigit when requested.",
+   "entry": "SwiftUI ViewModifier.body(content:) on each render",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "monospacedDigit",
+     "effect": "true: font.monospacedDigit(); false: plain font"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

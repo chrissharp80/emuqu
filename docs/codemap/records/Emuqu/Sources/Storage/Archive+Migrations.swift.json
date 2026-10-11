@@ -1,0 +1,1190 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+Migrations.swift",
+ "hash": "aa6c72a816815e8d",
+ "role": "ArchiveMigrations' deferred repairs: flag-gated index backfills (recovery score, endDate, meanHR/stress, sleep index fields), duplicate quarantine of same-night overnights, and re-linking of same-night split segments, plus the reupload notification name.",
+ "types": [
+  "ArchiveMigrations: extension — migrations over SessionArchive state",
+  "ArchiveMigrations.MigrationFlag: enum (private) — UserDefaults done-flag keys",
+  "ArchiveMigrations.RelinkWork: struct (private) — parent entry, file URL, ids to link",
+  "ArchiveMigrations.RelinkResult: struct (private) — new hash and link chain",
+  "Notification.Name: extension — flowRecoveryArchiveSessionsNeedReupload"
+ ],
+ "state": [
+  "ud:FlowRecovery.migration.recoveryScores.v1.done",
+  "ud:FlowRecovery.migration.endDates.v1.done",
+  "ud:FlowRecovery.migration.metrics.v1.done",
+  "ud:FlowRecovery.migration.sleepIndexFields.v1.done",
+  "notif:flowRecoveryArchiveSessionsNeedReupload (declared here; userInfo['sessionIds']: Set<UUID>)",
+  "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>.json and README.txt",
+  "static ArchiveMigrations.quarantineReadme (README text)",
+  "static ArchiveMigrations.relinkEncoder (iso8601, prettyPrinted+sortedKeys)"
+ ],
+ "toplevel": "relinkEncoder and quarantineReadme static initialisers; Notification.Name.flowRecoveryArchiveSessionsNeedReupload = 'flowRecoveryArchiveSessionsNeedReupload'. The header says migrations are one-time, but runDeferredMigrations runs at every launch housekeeping and after every CloudKit pull.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveMigrations.runDeferredMigrations()",
+   "hash": "4bd79b0221bf4216",
+   "does": "Runs, in order: re-encryption of pending plaintext sessions, recovery-score/endDate/metrics/sleep-index index backfills, duplicate quarantine, and same-night relink. Each step takes/releases the archive lock itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/ARCHITECTURE.md says runDeferredMigrations runs '7 one-time passes ... at launch' and 'each is a no-op if already complete'; removeDuplicates and relinkSameNightSessions are deliberately not flag-gated and re-run every time, and the whole pass also runs after every CloudKit pull.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:680",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:19",
+      "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:139"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()": "151dd8974689268a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()": "f32eaa790f8e4a89",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "5281f269523d2d1b",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "ff24114f2e704a1b",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "7dd5112bc4d61533",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "6cc361fb8ad878b5",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.migrateSleepIndexFields()",
+   "hash": "a5770108535ef86e",
+   "does": "Flag-gated backfill of sleepEnd + sleepSegmentCount on entries where both are nil, from each session's sleep snapshot/stored segments.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.sleepIndexPatch(entry:session:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.migration.sleepIndexFields.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:FlowRecovery.migration.sleepIndexFields.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.sleepIndexPatch(entry:session:)": "6a2bbbccd8e3352a",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+   "hash": "2b5395d1fb4d2b8e",
+   "does": "Generic 3-phase backfill: returns 0 if its done flag is set; snapshots entries needing work + file URLs under the lock; loads each session lightweight without the lock and builds patches; applies patches under lock (hash-guarded) and saves; sets the done flag only when every session loaded. Returns patch count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.loadForMigration(at:entry:label:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.applyIndexPatches(_:label:)"
+   ],
+   "reads": [
+    "ud:<flag>",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:<flag>",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "UserDefaults flag already true",
+     "effect": "return 0 (skip entirely)"
+    },
+    {
+     "at": "+12",
+     "cond": "for each work item",
+     "effect": "load and patch"
+    },
+    {
+     "at": "+13",
+     "cond": "session failed to load",
+     "effect": "loadedAll=false (flag stays off; retried next launch) and continue"
+    },
+    {
+     "at": "+14",
+     "cond": "patch closure returned an entry",
+     "effect": "append it; nil means nothing to patch"
+    },
+    {
+     "at": "+17",
+     "cond": "all sessions loaded",
+     "effect": "set flag true; else leave unset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.applyIndexPatches(_:label:)": "addf0e33cb2361b8",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.loadForMigration(at:entry:label:)": "50d18ff3c7b1de3f"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.loadForMigration(at:entry:label:)",
+   "hash": "d033bbfa3380df1b",
+   "does": "Decodes a session file through the dual-format loader with the lightweight (no rrSeries) decoder; logs and returns nil on any error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "catch: load/decrypt/decode threw",
+     "effect": "log warning, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)": "9fd9fd666aa6ecd9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.lightweightSessionDecoder": "b3507d359d8aaa16",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.applyIndexPatches(_:label:)",
+   "hash": "6c7fe24ffc6b932b",
+   "does": "Under the lock, replaces each patched entry only if the current entry's fileHash still matches the patch's (drops patches for sessions re-archived since phase 1), then saves the index (failure logged only).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "patches empty",
+     "effect": "return without locking"
+    },
+    {
+     "at": "+3",
+     "cond": "for each patch",
+     "effect": "iterate"
+    },
+    {
+     "at": "+4",
+     "cond": "entry still present AND hash unchanged",
+     "effect": "replace it; else drop patch"
+    },
+    {
+     "at": "+9",
+     "cond": "catch: saveIndex threw",
+     "effect": "log and continue (in-memory index patched, disk index stale)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.sleepIndexPatch(entry:session:)",
+   "hash": "041bef5d6ac5530b",
+   "does": "Builds a copy of the entry with sleepEnd/sleepSegmentCount from deriveSleepIndexFields and sleep mirrors from the session; nil when neither field resolves.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.deriveSleepIndexFields(from:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "both derived fields nil",
+     "effect": "return nil (entry left as is)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)": "29432208cba72021",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.deriveSleepIndexFields(from:)": "11856f250e1889f9",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.migrateRecoveryScores()",
+   "hash": "b8dfd331387b0781",
+   "does": "Flag-gated backfill of recoveryScore = session.readinessScore for entries with nil recoveryScore and non-nil meanRMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.recoveryScorePatch(entry:session:readiness:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore"
+   ],
+   "reads": [
+    "ud:FlowRecovery.migration.recoveryScores.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:FlowRecovery.migration.recoveryScores.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.recoveryScorePatch(entry:session:readiness:)": "0d966323a8ff3862",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.recoveryScorePatch(entry:session:readiness:)",
+   "hash": "9dd42ffc26c2c227",
+   "does": "Rebuilds an entry with recoveryScore = readiness, endDate/meanHR/stressIndex filled from the session where nil, linkedSessionIds taken from the SESSION, then overlays sleep mirrors; sleepEnd and sleepSegmentCount are not passed and become nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "entry.endDate nil (?? session.endDate)",
+     "effect": "use session's endDate"
+    },
+    {
+     "at": "+11",
+     "cond": "entry.meanHR nil (?? session.meanHR)",
+     "effect": "use session's meanHR"
+    },
+    {
+     "at": "+12",
+     "cond": "entry.stressIndex nil (?? session.stressIndex)",
+     "effect": "use session's stressIndex"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unlike the other patches, linkedSessionIds is taken from the lightweight-loaded session rather than the entry, so a link chain written into the index but not the file (or vice versa) is silently swapped.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:185",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:219"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)": "29432208cba72021"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.migrateEndDates()",
+   "hash": "3007ea516cda0495",
+   "does": "Flag-gated backfill of endDate for entries with nil endDate from the session's endDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.endDatePatch(entry:session:endDate:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.migration.endDates.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:FlowRecovery.migration.endDates.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.endDatePatch(entry:session:endDate:)": "5ab46ae53f266fb8",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.endDatePatch(entry:session:endDate:)",
+   "hash": "eae538ce117d5250",
+   "does": "Rebuilds an entry with the given endDate, meanHR/stressIndex filled from the session where nil, plus sleep mirrors; sleepEnd/sleepSegmentCount become nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "entry.meanHR nil (?? session.meanHR)",
+     "effect": "use session value"
+    },
+    {
+     "at": "+12",
+     "cond": "entry.stressIndex nil (?? session.stressIndex)",
+     "effect": "use session value"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)": "29432208cba72021"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.migrateMetrics()",
+   "hash": "ed4319a0cd92041c",
+   "does": "Flag-gated backfill of meanHR + stressIndex for entries with nil meanHR and non-nil meanRMSSD; logs the count when >0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.metricsPatch(entry:session:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.migration.metrics.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "ud:FlowRecovery.migration.metrics.v1.done",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "patched > 0",
+     "effect": "log count; else silent"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.metricsPatch(entry:session:)": "b4234ce606d558f2",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runIndexMigration(flag:label:needsWork:patch:)": "836ec1f15fdf12d0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.metricsPatch(entry:session:)",
+   "hash": "280db47b7248241f",
+   "does": "Rebuilds an entry with meanHR and stressIndex from the session (overwriting), plus sleep mirrors; sleepEnd/sleepSegmentCount become nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "recoveryScorePatch, endDatePatch and metricsPatch rebuild the entry through the memberwise init without sleepEnd/sleepSegmentCount (defaults nil) and mirroringSleepFields copies those two from the rebuilt entry (sleepEnd: sleepEnd), so every entry these migrations patch loses its wake time and split-night segment count. On a first pass migrateSleepIndexFields (run after them) refills them, but if the sleep-index flag was set on an earlier launch while one of these three kept its flag off (a session failed to load, loadedAll=false), the later patch nulls the fields and the done sleep-index migration never refills them: history shows recording-stop time instead of wake time and drops the split-night badge.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:171",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:205",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:238",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:357",
+      "Emuqu/Sources/Models/SessionMetadata.swift:812",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:87",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.mirroringSleepFields(from:)": "29432208cba72021"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.removeDuplicates()",
+   "hash": "02e719a7166be53e",
+   "does": "Unless merge mode is .off: picks same-night overnight duplicates (≥85% contained in a better-ranked keeper, nights older than 24 h, unlinked), moves their files to QuarantinedDuplicates/ outside the lock, then under the lock drops their index entries, tombstones them with deletion times and saves both indexes (failures logged only).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "ud:archive.deletionTimes",
+    "file:<archiveDirectory>/index.json",
+    "file:<archiveDirectory>/deleted.json",
+    "file:<archiveDirectory>/<uuid>.json",
+    "file:<archiveDirectory>/QuarantinedDuplicates/"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionMergeMode == .off",
+     "effect": "return (user opted out)"
+    },
+    {
+     "at": "+3",
+     "cond": "no work",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "no file was actually moved",
+     "effect": "return without touching the index"
+    },
+    {
+     "at": "+16",
+     "cond": "catch: saveIndex threw",
+     "effect": "log only; in-memory index lacks the entries, disk index still lists files that are now in quarantine"
+    },
+    {
+     "at": "+17",
+     "cond": "catch: saveDeletedIndex threw",
+     "effect": "log only; tombstones exist only in memory and in deletion times"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Files are moved before the index saves; a failed save is only logged, so after relaunch the stored index points at moved files (fileNotFound on read) and, if deleted.json also failed, the duplicates lack tombstones.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:291",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:301",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:302"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "e981eb22030b74fa",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "6bbc00cc0219c31c",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()": "a168f5126a0bc0dd",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)": "41a3ec7f403b36ff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.duplicateQuarantineWork()",
+   "hash": "04c448db05246e64",
+   "does": "Under the lock, runs the pure duplicatesToQuarantine over overnight entries (linked ids protected, current schedule/now/merge mode) and maps the chosen ids to their file URLs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "ext:Date()"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "cc7339a6e88ee7d0",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)": "554721c550c49305"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.quarantineFiles(_:)",
+   "hash": "c93c559f1743938f",
+   "does": "Ensures QuarantinedDuplicates/ (+README) exists and moves each work file there, returning the ids whose move succeeded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.prepareQuarantineDirectory(at:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.moveToQuarantine(_:id:dir:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<archiveDirectory>/QuarantinedDuplicates/",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each work item where moveToQuarantine succeeded",
+     "effect": "insert id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.moveToQuarantine(_:id:dir:)": "a662ddc2cbd70e04",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.prepareQuarantineDirectory(at:)": "f9fe75f4b4fcbefa"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.moveToQuarantine(_:id:dir:)",
+   "hash": "09e8539dedab4320",
+   "does": "Moves one session file into the quarantine dir, replacing an existing file of the same name; false when the source is already gone (another run moved it) or the move throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.moveItem",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "file:<archiveDirectory>/QuarantinedDuplicates/"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "source file missing",
+     "effect": "log 'already moved by another run' and return false"
+    },
+    {
+     "at": "+7",
+     "cond": "destination already exists",
+     "effect": "remove it first"
+    },
+    {
+     "at": "+13",
+     "cond": "catch: remove/move threw",
+     "effect": "log, return false (entry kept)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.linkedSessionIdSet(in:)",
+   "hash": "582fc6bb4bf68caf",
+   "does": "Pure: set of every id that links others plus every id it links, among the given entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each entry",
+     "effect": "iterate"
+    },
+    {
+     "at": "+3",
+     "cond": "linkedSessionIds nil or empty",
+     "effect": "skip; else insert the entry id and its links"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+   "hash": "2c2c6911131864ea",
+   "does": "Pure: groups overnight entries by night anchor; for nights with >1 unlinked entry and no entry younger than dedupeSafetyWindow (24 h), returns ids of losers ≥85% contained in the keeper.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.containedDuplicates(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "mergeMode == .off",
+     "effect": "return []"
+    },
+    {
+     "at": "+12",
+     "cond": "for each night with more than one entry",
+     "effect": "process"
+    },
+    {
+     "at": "+14",
+     "cond": "fewer than two unlinked entries",
+     "effect": "skip night"
+    },
+    {
+     "at": "+16",
+     "cond": "any unlinked entry younger than 24 h",
+     "effect": "skip night; else add containedDuplicates"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The 24-hour recency predicate is written inline here and again as hasRecentEntry for relink.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:415",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:579"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.containedDuplicates(in:)": "43e387636de2d4fa",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.hasRecentEntry(_:now:)": "fd71ab83901daac5"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.containedDuplicates(in:)",
+   "hash": "94791ce2ade26386",
+   "does": "Pure: ranks a night's entries (has recoveryScore > has meanRMSSD > later start) and returns ids of the non-keepers whose ranges are mostly inside the keeper's; [] when the keeper has no endDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.isContained(_:inKeeper:keeperEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "exactly one of the pair has a recoveryScore",
+     "effect": "the scored one ranks first"
+    },
+    {
+     "at": "+7",
+     "cond": "exactly one has meanRMSSD",
+     "effect": "that one ranks first; else later date first"
+    },
+    {
+     "at": "+10",
+     "cond": "no keeper or keeper.endDate nil",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.isContained(_:inKeeper:keeperEnd:)": "f1e3a116853685c7"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.isContained(_:inKeeper:keeperEnd:)",
+   "hash": "b1f7dceac4ef2386",
+   "does": "Pure: true when the loser's span is ≥ duplicateContainmentRatio (0.85) overlapped by the keeper's, or (zero-length loser) its start lies inside the keeper; logs and returns false otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loser endDate nil",
+     "effect": "return false"
+    },
+    {
+     "at": "+7",
+     "cond": "loser duration > 0",
+     "effect": "ratio test; else point-in-range test"
+    },
+    {
+     "at": "+12",
+     "cond": "contained",
+     "effect": "return true; else log overlap % and return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.prepareQuarantineDirectory(at:)",
+   "hash": "c1c9eb230905ab04",
+   "does": "Creates the quarantine directory if missing and writes README.txt (once) with UntilFirstUserAuthentication protection; failures logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/QuarantinedDuplicates/"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/QuarantinedDuplicates/"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "directory missing",
+     "effect": "create it"
+    },
+    {
+     "at": "+4",
+     "cond": "catch: createDirectory threw",
+     "effect": "log and return (moves will then fail individually)"
+    },
+    {
+     "at": "+10",
+     "cond": "README already exists",
+     "effect": "return"
+    },
+    {
+     "at": "+14",
+     "cond": "catch: README write threw",
+     "effect": "log only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.relinkSameNightSessions()",
+   "hash": "02e1f57fdec1f852",
+   "does": "Builds per-sleep relink work, rewrites each parent's file under the lock with missing links appended, and posts flowRecoveryArchiveSessionsNeedReupload with the changed ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkWorkItems()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkUnderLock(_:)",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "notif:flowRecoveryArchiveSessionsNeedReupload",
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no work items",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "no session was rewritten",
+     "effect": "return without posting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkUnderLock(_:)": "e0ae84c5ad3080f3",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkWorkItems()": "584235139439a635"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.relinkWorkItems()",
+   "hash": "448d8eec58b95c46",
+   "does": "Under the lock: groups overnight entries by night anchor, skips single-entry nights and nights with an entry younger than 24 h, splits each night into sleeps by the merge gap (0 when merge mode .off), and makes a work item per sleep with >1 recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.hasRecentEntry(_:now:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkWork(for:)",
+    "ext:Date()"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "sessionMergeMode == .off",
+     "effect": "gap = 0 (only touching/overlapping recordings form one sleep); else the user's merge gap"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.hasRecentEntry(_:now:)": "fd71ab83901daac5",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkWork(for:)": "c16771b67ad22e63",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)": "9d0a68e89de1e721",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "5a5f691630e9fec2"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.relinkWork(for:)",
+   "hash": "4fee1d33dd5cd349",
+   "does": "For one sleep's entries: latest-starting entry is the parent; others become ids to link. Nil for a single recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than two recordings",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.hasRecentEntry(_:now:)",
+   "hash": "2a36d618165dcb8d",
+   "does": "Pure: true when any entry started less than dedupeSafetyWindow (24 h) before now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveMigrations.relinkUnderLock(_:)",
+   "hash": "098a2021e9e03c65",
+   "does": "Under the lock: skips the work if the parent entry vanished or its hash changed since phase 1; otherwise relinks (rewrites the file), replaces the entry with the new hash + links and saves the index (failure logged only).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relink(_:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinked(_:result:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "parent missing, hash changed, or relink returned nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+7",
+     "cond": "catch: saveIndex threw",
+     "effect": "log only; return result"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The parent's file has already been rewritten (new bytes, new hash) when saveIndex is attempted; a failed save is only logged, so the persisted index keeps the old hash and after relaunch every read of that night fails verifyHash (hashMismatch) until the sync push path happens to call repairSessionHashIfDecodable.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:595",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:596",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:641",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:936"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relink(_:)": "b6016c5a94f8cbf7",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinked(_:result:)": "86df18a8f552dc83",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.relink(_:)",
+   "hash": "231fb0d9355591e0",
+   "does": "Loads the parent with the full decoder, appends work.otherIds not already linked, writes it back and returns the new hash + link chain; nil when nothing to add or load/write failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.loadForRelink(_:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.writeRelinked(_:to:id:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "ud:storage.pendingReencryption.sessionIDs"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "load failed",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "session.linkedSessionIds nil (?? [])",
+     "effect": "start from empty"
+    },
+    {
+     "at": "+4",
+     "cond": "no missing links",
+     "effect": "return nil (no write)"
+    },
+    {
+     "at": "+7",
+     "cond": "write failed",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.loadForRelink(_:)": "3afefd9811a8c9a2",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.writeRelinked(_:to:id:)": "4a262ae6c5d26e82"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.loadForRelink(_:)",
+   "hash": "ea82cb027112d7e4",
+   "does": "Decodes the parent file with the full sessionDecoder via the dual-format loader; logs and returns nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "catch: load threw",
+     "effect": "log warning, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)": "9fd9fd666aa6ecd9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.writeRelinked(_:to:id:)",
+   "hash": "cd02c7ff7c4a14d6",
+   "does": "Encodes with relinkEncoder (encrypt if available), writes with format-dependent protection options (ledger updated), returns hash of bytes-as-written; logs and returns nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "ud:storage.pendingReencryption.sessionIDs"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "catch: encode/write threw",
+     "effect": "log, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::let ArchiveMigrations.relinkEncoder": "6a2b69f1daa0c6e6",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d9ad1255ee6ca7c4",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "2975e4eff5812cf9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "c7d7a73258ef0964"
+   }
+  },
+  {
+   "key": "let ArchiveMigrations.relinkEncoder",
+   "hash": "e98bcd115821ae6b",
+   "does": "Static JSONEncoder with iso8601 dates and prettyPrinted+sortedKeys output used for relinked files.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveMigrations.relinked(_:result:)",
+   "hash": "7e03ef00b8f7b09c",
+   "does": "Copies every field of the old entry, replacing fileHash and linkedSessionIds with the relink result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "5ca9dd19997838d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71"
+   }
+  }
+ ],
+ "deps": {}
+}

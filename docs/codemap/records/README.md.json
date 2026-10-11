@@ -1,0 +1,436 @@
+{
+ "file": "README.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Project README: what the app does, engineering approach, scoring pipeline diagram, requirements, layout, local checks, CI, documentation map, privacy table, authorship, license.",
+ "types": [],
+ "state": [],
+ "toplevel": "Badges (Gates workflow, Swift 6, iOS 17+, 3,000+ unit tests, 17 locales, PolyForm Strict) and screenshot images under docs/screenshots (all 8 referenced PNGs exist).",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Emuqu",
+   "hash": "232cb9c458495a0a",
+   "does": "Records every beat from a Polar strap overnight and in training, scores against own baseline; one-time purchase after a 30-day trial (EntitlementAnchor durationDays = 30, EntitlementAnchor.swift:460).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "§ Emuqu > What it does",
+   "hash": "19bf095f5a8af99d",
+   "does": "Overnight recovery scored against up to last 60 recorded nights (BaselineTracker.swift:210-213 suffix(60)); workouts across sensors; assistant on Apple Intelligence or BYOK for five providers with a MedicalQueryGuard that refuses diagnosis/self-harm etc.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "0eab476b41d21f36",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea"
+   }
+  },
+  {
+   "key": "§ Emuqu > The hard parts",
+   "hash": "72f7ed0bc3700cb1",
+   "does": "Scoring version v3.1.oct2026 (ScoringVersion.current, ScoringVersion.swift:29), shown on score detail as 'Scored by <version>' (RecoveryScoreDetailView+Sections.swift:275-279); science register at Tools/science_register/register.json (exists); copy linter checks the 12 MedicalTermLexicon.neverInStaticCopy concepts (MedicalTermLexicon.swift:866-870) across translated catalogue strings in 17 locales; background BLE capture.",
+   "entry": null,
+   "calls": [
+    "Makefile::target copy-perimeter",
+    "Makefile::target science-register",
+    "Makefile::target scoring-governance",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu > How it is built",
+   "hash": "3a703f03af84c991",
+   "does": "46 scripted gates in `make ci` (Makefile:272 has exactly 46 prerequisites, counting lint and test-coverage); verify-gates, gate-preflight, gates-wired-guard meta-gates exist; >3,000 unit tests (3,611 func test in EmuquTests) and ~100 UI tests (102); warnings-as-errors; Swift 6 complete strict concurrency (project.pbxproj:4851-4852); no try!/as!/fatalError/TODO/FIXME in Emuqu/Sources (0 hits); ~220k lines (223,966 in Emuqu/Sources); SBOM for eleven packages; Actions pinned to SHAs (verified in all workflows).",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci",
+    "Makefile::target verify-gates",
+    "Makefile::target gate-preflight",
+    "Makefile::target gates-wired-guard",
+    "Makefile::target strict-concurrency-enabled",
+    "Makefile::target doc-counts-guard",
+    "Makefile::target doc-links"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says three preconditionFailure calls guard hard-coded literals; there are four: IntervalPlan.swift:145, HRVSession.swift:18, HRVSession.swift:113, DemoSessionSeeder.swift:58.",
+     "evidence": [
+      "README.md:105",
+      "Emuqu/Sources/Models/IntervalPlan.swift:145",
+      "Emuqu/Sources/Models/HRVSession.swift:18",
+      "Emuqu/Sources/Models/HRVSession.swift:113",
+      "Emuqu/Sources/Services/DemoSessionSeeder.swift:58"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
+    "Makefile::target verify-gates": "585e699b6307cf8d"
+   }
+  },
+  {
+   "key": "§ Emuqu > How a night becomes a score",
+   "hash": "5d61f6359e866278",
+   "does": "Pipeline: RRCollector → artifact detection → WindowSelector (window at 30-70% of sleep: minRelativePosition 0.30 / maxRelativePosition 0.70, WindowSelection+Scoring.swift:54-57) → HRVAnalysisPipeline → RecoveryScoreCalculator weights HRV 0.60/Sleep 0.25/Vitals 0.15 (Constants.swift:400-402; alternate weight sets exist at 410-424 when inputs are missing) → views/facts/Flo; SessionArchive encrypted with optional CloudKit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "0eab476b41d21f36",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "4199736e0169638a",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)": "fc05f16d5d71d6fe",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)": "590efb2c7a569284",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3"
+   }
+  },
+  {
+   "key": "§ Emuqu > Requirements",
+   "hash": "98c33b0a0714844b",
+   "does": "no behavioural claim: section header for requirements.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu > Requirements > Hardware",
+   "hash": "6a3b92378743cd04",
+   "does": "Requires Polar H10 or Verity Sense; Apple Watch recommended for sleep stages. Verified fallback order when Health has no sleep: MorningProcessingService.applySleepEstimates first applies the strap-RR estimate (estimateSleepFromHR) when sleepStartMs is nil, and only if fetchedSleepData is still nil the Watch background-HR estimate (estimateSleepFromHealthKitHR); applyEstimate sets fetchedSleepData so the RR estimate blocks the HK-HR one. Without a Watch, SleepResolver.resolve row 2 (session only) classifies from RR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "53fa6f4023e7b437",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "79f0f89f4f7e769a",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "30864de341a2b936"
+   }
+  },
+  {
+   "key": "§ Emuqu > Requirements > Software",
+   "hash": "e351cd57b5c31051",
+   "does": "iOS 17.0 minimum (IPHONEOS_DEPLOYMENT_TARGET = 17.0 in project.pbxproj); iOS 26 for Apple Intelligence (AppleFoundationProvider gates on #available(iOS 26), AppleFoundationProvider.swift:45,61,90); claims iOS 18 on-device translation of narratives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Claims iOS 18+ provides on-device translation of the narrative text (and 'Translation for the narratives' in Technical notes, README.md:168), with earlier iOS showing English. No Swift file imports or uses the Translation framework (grep for 'import Translation', 'TranslationSession', 'translationTask' returns nothing), and docs/FEATURES.md:147 says narratives are built from translated catalogue sentences on every supported iOS version.",
+     "evidence": [
+      "README.md:152",
+      "README.md:153",
+      "README.md:168",
+      "docs/FEATURES.md:147"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
+   }
+  },
+  {
+   "key": "§ Emuqu > Technical notes",
+   "hash": "9c3ba97804cf1f43",
+   "does": "SwiftUI/Concurrency; Polar BLE SDK plus direct BLE for Stryd/FTMS/PM5; HealthKit; Foundation Models, Speech, Translation; streaming HTTP/SSE for five cloud providers; encrypted archive, opt-in CloudKit with Apple Health data stripped (CloudSessionPayload.trainingWithoutHealthKitReadings / withoutHealthKitHR, CloudKitSyncSupport.swift:599-659); StoreKit 2 trial anchor surviving reinstalls (EntitlementAnchor synchronizable keychain).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "3529061e84a8ccd8",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "6d8018ee6c5ae5f3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6"
+   }
+  },
+  {
+   "key": "§ Emuqu > Layout",
+   "hash": "83386e4c8fa10b14",
+   "does": "Directory layout of Emuqu/Sources; every listed directory exists (Views/MorningResults, Onboarding, Record, Results, Utilities; Analysis/CauseDetection; Assistant/Context, Facts, Providers, Keys, Chat, ViewModel, Views; Services, Protocols, Storage, Import, Export, Utilities). Omits the watch target and top-level Assistant/*.swift files.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "33c627035da22f46",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "06595f475ba57e9c",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "9240bd70f7839f61",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb"
+   }
+  },
+  {
+   "key": "§ Emuqu > Working on it",
+   "hash": "0ad3c3f9491b3ac7",
+   "does": "no behavioural claim: section header.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu > Working on it > Local checks",
+   "hash": "3b130026ab76f2cf",
+   "does": "`make lint`, `make test-coverage`, `make debt-budget` exist (Makefile:8,22,25); `make setup-hooks` installs .githooks/pre-commit (SwiftLint errors block, swiftformat lint only); `make format` rewrites (Makefile:14).",
+   "entry": null,
+   "calls": [
+    "Makefile::target lint",
+    "Makefile::target test-coverage",
+    "Makefile::target debt-budget",
+    "Makefile::target format",
+    "Makefile::target setup-hooks",
+    "Makefile::target ci"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target format": "ab574043de036daa",
+    "Makefile::target lint": "ee78d83b950fa63a",
+    "Makefile::target setup-hooks": "974b9e2eda3668e0",
+    "Makefile::target test-coverage": "06ed85ce10572ea0"
+   }
+  },
+  {
+   "key": "§ Emuqu > Working on it > CI",
+   "hash": "b94b7d99e72093b6",
+   "does": "Five workflows: gates.yml on push (also pull_request) runs bash/python gates plus gates-wired-guard and gate-preflight; ci.yml manual and workflow_call from testflight.yml (default scope full when called); performance.yml, security.yml (CodeQL + dependency review) manual; testflight.yml deploy needs quality-gate success. ~1,080 billable minutes per full run (ci.yml comment: 1083). scripts/evidence_report.sh exists.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::job lint-and-budgets",
+    ".github/workflows/ci.yml::job strict-concurrency",
+    ".github/workflows/ci.yml::job thread-sanitizer",
+    ".github/workflows/ci.yml::job tests",
+    ".github/workflows/performance.yml::job performance-tests",
+    ".github/workflows/security.yml::job codeql",
+    ".github/workflows/security.yml::job dependency-review",
+    ".github/workflows/testflight.yml::job quality-gate",
+    ".github/workflows/testflight.yml::job deploy"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says ci.yml (manual) runs lint/budgets, tests with coverage, strict concurrency and Thread Sanitizer. A manual dispatch defaults to scope 'gates', which skips the thread-sanitizer and tests jobs (ci.yml:36-42 default gates; jobs gated by `if: inputs.scope != 'gates'` at ci.yml:417,437); only the workflow_call path defaults to full.",
+     "evidence": [
+      "README.md:234",
+      "README.md:237",
+      ".github/workflows/ci.yml:39",
+      ".github/workflows/ci.yml:417",
+      ".github/workflows/ci.yml:437"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says gates.yml 'runs on every push'. Its push trigger is limited to branches [main]; pushes to other branches run no gates.",
+     "evidence": [
+      "README.md:231",
+      ".github/workflows/gates.yml:35"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
+    ".github/workflows/ci.yml::job strict-concurrency": "973e976fafe9cc2c",
+    ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
+    ".github/workflows/ci.yml::job thread-sanitizer": "4c7ffda1b575ecff",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/performance.yml::job performance-tests": "ea47f6c01763284e",
+    ".github/workflows/security.yml::job codeql": "f381c1459fc44cc4",
+    ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
+    ".github/workflows/testflight.yml::job deploy": "5a04643631148159",
+    ".github/workflows/testflight.yml::job quality-gate": "cbcc490220e8dd12"
+   }
+  },
+  {
+   "key": "§ Emuqu > Documentation",
+   "hash": "2fef5a8f9b360da0",
+   "does": "Documentation index; every linked file/directory exists (MAINTAINERS, FEATURES, USERS_MANUAL, ARCHITECTURE, API_REFERENCE, FLOWCHART, TRAINING_LOAD, VOICE_AND_TOOL_USE, LOCALIZATION, REFACTOR_SPEC, REVIEW, runbooks/, adr/, CI_POSTURE). `make doc-links` checks relative links (Makefile:177).",
+   "entry": null,
+   "calls": [
+    "Makefile::target doc-links"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target doc-links": "a8f084188e2d717b"
+   }
+  },
+  {
+   "key": "§ Emuqu > Privacy",
+   "hash": "3931a3274dba1831",
+   "does": "No server/accounts; iCloud sync off until enabled; table of third-party egress: CloudKit (encrypted, no HealthKit data), hosted AI (with consent; DeepSeek PRC disclosure in ProviderConsentSheet.swift:36), Apple speech, Tavily/Anthropic web search, MET Norway at ~1 km (WeatherService rounds to 2 decimals, WeatherService.swift:115-118,144-145), Overpass, Apple geocoder, OpenTopoData ~11 m, Hugging Face for WhisperKit model. API keys in Keychain ThisDeviceOnly, never synced (APIKeyStore.swift:65,174). Overpass requests carry a User-Agent with the author's email (OverpassClient.swift:66) — identifies the app to the operator, not data sent to the author.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "high",
+     "text": "Privacy table row 'AI assistant, Apple Intelligence' says nothing leaves the device apart from web search/map lookups and, in Quick/Auto/Deep, voice turns and email/directions/web-search requests. In Auto, reasoning turns (classifier flags >=1) go to consented Grok/DeepSeek; in Deep every turn goes to consented Grok/DeepSeek (TierProviderMapper.autoMapping/deepMapping), with their health live-state context. README:309-310 also implies only Quick-style hand-offs. The privacy table understates egress for Auto/Deep users.",
+     "evidence": [
+      "README.md:293",
+      "README.md:309",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:80",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:92",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:107",
+      "Emuqu/Sources/Models/UserSettings.swift:113"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "d6fedefde7c1fb29",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "83f74b14faa3ed8a",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "29c68a4cf0ee9f26",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "a0643cefe3e7fc35"
+   }
+  },
+  {
+   "key": "§ Emuqu > Who built it",
+   "hash": "60acd3a3dedf8ee7",
+   "does": "no behavioural claim: authorship and beta statistics.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu > License",
+   "hash": "5d4bea00e217a0d0",
+   "does": "no behavioural claim: PolyForm Strict 1.0.0 license (LICENSE exists) with permission to change signing/bundle/app-group/iCloud identifiers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1094 @@
+{
+ "file": "EmuquTests/PDFReportGeneratorSmokeTests.swift",
+ "hash": "1389a968f6baa863",
+ "role": "Smoke suite for PDFReportGenerator: nil without analysis, every style/preset/section renders a readable multi-page PDF, degenerate inputs (no RR, flatline, single beat, nil DFA/LF-HF, every session type, history) do not trap, Arabic RTL mirroring of pages/text/header, box-alignment anchoring, and generateReportURL writes a readable temp file.",
+ "types": [
+  "PDFReportGeneratorSmokeTests: class — @MainActor XCTestCase over PDFReportGenerator and PDFReadingDirection"
+ ],
+ "state": [
+  "mem:PDFReportGeneratorSmokeTests.probePage (static CGRect 600x800)"
+ ],
+ "toplevel": "probePage static let.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFReportGeneratorSmokeTests.makeGenerator()",
+   "hash": "00edad31b714ddb7",
+   "does": "Helper: PDFReportGenerator with settingsProvider returning default UserSettings() (isolated from SettingsManager.shared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+   "hash": "53754ba060ea6fad",
+   "does": "Helper: deterministic RRSeries of `beats` beats around rrMs with sine jitter (clamped ≥300 ms), start 1_700_000_000.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for i in 0..<beats",
+     "effect": "appends one beat per iteration"
+    },
+    {
+     "at": "+12",
+     "cond": "jitter == 0",
+     "effect": "wobble 0 (flatline); else jitter·sin(i/12) rounded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+   "hash": "ea1249282d0b3cc0",
+   "does": "Helper: fully populated HRVAnalysisResult (RMSSD 45 default, DFA α1 0.95, LF/HF 1.2) flagged consolidated/organized.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+21",
+     "cond": "lfHfRatio ?? 1.0",
+     "effect": "when lfHfRatio is nil HF is computed as 800/1.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+   "hash": "c53b3d019411cfde",
+   "does": "Helper: complete 8 h HRVSession of the given type with the series and result (default analysisResult()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "result ?? analysisResult()",
+     "effect": "nil result is replaced by the default fixture, so a session without analysis cannot be built through this helper"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.fullSession()",
+   "hash": "1c6831f513a6d77d",
+   "does": "Helper: session with default result and 600-beat series.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "var PDFReportGeneratorSmokeTests.vitals",
+   "hash": "45e7a45ed30b6818",
+   "does": "Helper: PDF VitalsData fixture.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(respiratoryRate:respiratoryRateBaseline:oxygenSaturation:oxygenSaturationMin:wristTemperature:restingHeartRate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(respiratoryRate:respiratoryRateBaseline:oxygenSaturation:oxygenSaturationMin:wristTemperature:restingHeartRate:)": "f58c6bc3a794d06b"
+   }
+  },
+  {
+   "key": "var PDFReportGeneratorSmokeTests.sleep",
+   "hash": "c3aa6885e6231aae",
+   "does": "Helper: PDF SleepData fixture (452 min asleep).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "bee13aa0f06b3126"
+   }
+  },
+  {
+   "key": "var PDFReportGeneratorSmokeTests.sleepTrend",
+   "hash": "a2bab097aec7358c",
+   "does": "Helper: SleepTrendData fixture (14 nights, stable).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepTrendData(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepTrendData(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)": "1d490e021f38f368"
+   }
+  },
+  {
+   "key": "var PDFReportGeneratorSmokeTests.heartRate",
+   "hash": "390bed1761480072",
+   "does": "Helper: HeartRateStats fixture.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+   "hash": "85bdc6fe1fccfa17",
+   "does": "Helper: fails when data is nil, asserts >1000 bytes, parses with PDFDocument and asserts ≥1 page; returns the document.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "data is nil",
+     "effect": "XCTFail and return nil; else continues"
+    },
+    {
+     "at": "+12",
+     "cond": "PDFDocument(data:) fails",
+     "effect": "XCTFail and return nil; else asserts pageCount>0 and returns it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testNoReportWithoutAnAnalysisResult()",
+   "hash": "a0f677c734ded5dd",
+   "does": "Asserts generateReport returns nil for a session with no analysisResult.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testComprehensiveReportRenders()",
+   "hash": "c085c9331582367b",
+   "does": "Renders the comprehensive style with all sections and all optional data and asserts a readable PDF with more than 2 pages.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "document?.pageCount ?? 0",
+     "effect": "nil document is treated as 0 pages so the >2 assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate": "bff2d59ce50bd15e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testSummaryReportRenders()",
+   "hash": "8edefa4c5e779288",
+   "does": "Renders the summary style with summaryPreset and asserts a readable PDF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testSummaryIsShorterThanComprehensive()",
+   "hash": "adf89cd266b518ec",
+   "does": "Renders comprehensive/all and summary/summaryPreset and asserts the comprehensive one has more pages.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "either render fails to produce a document",
+     "effect": "returns after assertRendersPDF already failed; else compares page counts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate": "bff2d59ce50bd15e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testSleepPresetRenders()",
+   "hash": "f6ff5f09822a39c3",
+   "does": "Renders sleepPreset sections and asserts a readable PDF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testEverySectionRendersOnItsOwn()",
+   "hash": "7e0ec72e6e5af7bb",
+   "does": "Renders each of 8 report sections alone and asserts each is a readable PDF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "for each of 8 (section, name) pairs",
+     "effect": "renders and asserts a PDF for that section alone"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate": "bff2d59ce50bd15e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testNoSectionsStillProducesADocument()",
+   "hash": "5b75ea0f50968f5a",
+   "does": "Asserts an empty section set still yields a readable PDF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithoutAnRRSeries()",
+   "hash": "592477be5e0c5181",
+   "does": "Asserts a session with no RR series renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithNoOptionalDataAtAll()",
+   "hash": "477781f3fdd0d16b",
+   "does": "Asserts a session with no optional data (no sleep, vitals, HR, score, history) renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithAFlatlineSeries()",
+   "hash": "3db393c9564f56b5",
+   "does": "Asserts a 300-beat zero-variance series renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithASingleBeat()",
+   "hash": "e710b18e994466df",
+   "does": "Asserts a 1-beat series renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithMissingNonlinearMetrics()",
+   "hash": "14d6cb0a09a42e40",
+   "does": "Asserts a result with nil DFA α1 and nil LF/HF renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersForEverySessionType()",
+   "hash": "9f44ee9ef7f6f5f6",
+   "does": "For overnight, nap, quick, breathe, workout session types asserts a 120-beat session renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 5 session types",
+     "effect": "renders and asserts a PDF"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportRendersWithRecentSessionHistory()",
+   "hash": "a4e102e8a9b4929d",
+   "does": "Asserts a report with 14 recent-history sessions renders all sections.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.useArabic()",
+   "hash": "d12ef0ebf651f034",
+   "does": "Helper: switches LanguageManager to Arabic and registers a teardown that restores the language found before.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()"
+   ],
+   "reads": [
+    "ud:AppleLanguages (app persistent domain)"
+   ],
+   "writes": [
+    "ud:AppleLanguages (app persistent domain, via AppLanguage.apply; restored by teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testEveryReportStyleRendersInArabic()",
+   "hash": "124fc216fe34b555",
+   "does": "With the app in Arabic asserts the comprehensive, summary and no-RR reports render readable PDFs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (app persistent domain, via AppLanguage.apply; restored by teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.assertRendersPDF(_:_:file:line:)": "b4a491a30806507d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()": "a5275d1a3debf736",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.heartRate": "bff2d59ce50bd15e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testArabicPageMirrorsTextIntoTheRightMargin()",
+   "hash": "b204ee7ac8fde5d1",
+   "does": "Draws 'PROBE' at x=50 in English and in Arabic and asserts English minX≈50, Arabic maxX≈550 and equal widths (page mirrored, glyphs not squashed).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.probeBounds()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (app persistent domain, via AppLanguage.apply; restored by teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.probeBounds()": "e1701151d4ca0e16",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()": "a5275d1a3debf736"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testOnlyTheArabicPageIsMirroredAndTextIsDrawnUnmirrored()",
+   "hash": "47d16396f5a03ac8",
+   "does": "Asserts page/text-box mirroring states are [false,false] in English and [true,false] in Arabic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.mirroringStates()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (app persistent domain, via AppLanguage.apply; restored by teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.mirroringStates()": "3a03f2f55d549ea4",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()": "a5275d1a3debf736"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testRecoveryReportHeaderMovesToTheRightInArabic()",
+   "hash": "a63bdcbf71b86329",
+   "does": "Asserts the page-1 'Emuqu' header brand sits in the left half in English and the right half in Arabic, mirrored to within 3 pt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.headerBrandBounds()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (app persistent domain, via AppLanguage.apply; restored by teardown block)",
+    "notif:LanguageManager.languageDidChangeNotification",
+    "mem:LanguageManager.shared locale/bundle"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.headerBrandBounds()": "574fc138b27d24bb",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.useArabic()": "a5275d1a3debf736"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testBoxAlignmentIsPinnedToThePage()",
+   "hash": "0a47caef9fd7c49b",
+   "does": "Asserts anchoredAttributes maps nil/natural to .left unmirrored and .right mirrored, swaps left/right when mirrored, and keeps .right unmirrored and .center mirrored.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.alignment(_:mirrored:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)": "d4cc343b889b0a9d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.alignment(_:mirrored:)": "9e891f93346b3dbc"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.alignment(_:mirrored:)",
+   "hash": "6dc12eb611606d4b",
+   "does": "Nested helper: builds attributes with the given alignment (nil → no attributes) and returns the paragraph alignment anchoredAttributes produces.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value ?? .natural",
+     "effect": "nil alignment uses .natural for the unused style"
+    },
+    {
+     "at": "+3",
+     "cond": "value == nil",
+     "effect": "passes nil attributes; else passes a paragraphStyle with the alignment"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)": "d4cc343b889b0a9d"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.probeBounds()",
+   "hash": "321c74a3c51bdf3a",
+   "does": "Helper: renders a one-page PDF drawing 'PROBE' at (50,100) after PDFReadingDirection.beginPage and returns its found-text bounds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "PDFDocument or page 0 missing",
+     "effect": "returns nil; else returns the first found 'PROBE' bounds (nil if not found)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.mirroringStates()",
+   "hash": "789b66d0ef698fc8",
+   "does": "Helper: records isDrawingMirrored after beginPage and inside drawingLeftToRight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.headerBrandBounds()",
+   "hash": "733ed126fcef265e",
+   "does": "Helper: renders a report with no sections and returns the bounds of the topmost 'Emuqu' text on page 1.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "report data, PDFDocument or page 0 missing",
+     "effect": "returns nil; else returns the max-Y match bounds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be"
+   }
+  },
+  {
+   "key": "func PDFReportGeneratorSmokeTests.testReportURLWritesAReadableFile()",
+   "hash": "00e179f2bf42ed49",
+   "does": "Asserts generateReportURL writes an existing .pdf file that PDFDocument can open with ≥1 page; removes it on teardown.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals"
+   ],
+   "reads": [],
+   "writes": [
+    "file:temporary PDF report written by writeReport (removed in teardown)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "generateReportURL returns nil",
+     "effect": "XCTFail and return; else continues"
+    },
+    {
+     "at": "+13",
+     "cond": "PDFDocument(url:) fails",
+     "effect": "XCTFail and return; else asserts pageCount>0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)": "4eff787372ad663f",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.analysisResult(rmssd:dfaAlpha1:lfHfRatio:)": "67dac30db72439cc",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.fullSession()": "f7694bc7e8890495",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.makeGenerator()": "9f475837e8b944be",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.rrSeries(beats:rrMs:jitter:sessionId:)": "7e056b2e8990fc7e",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.session(result:series:type:)": "f4e5ba39dc7102ab",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.vitals": "723f8f48ef4578c6"
+   }
+  }
+ ],
+ "deps": {}
+}

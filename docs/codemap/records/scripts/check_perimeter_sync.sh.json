@@ -1,0 +1,38 @@
+{
+ "file": "scripts/check_perimeter_sync.sh",
+ "hash": "d39e3209ad154db1",
+ "role": "CI gate: every regex in Tools/copy_linter/prohibited_terms.json user_facing_prohibited must be matched by some alternative from MedicalTermLexicon*.swift latin:/unbounded: arrays.",
+ "types": [],
+ "state": [
+  "file:Tools/copy_linter/prohibited_terms.json",
+  "file:Emuqu/Sources/Assistant/MedicalTermLexicon*.swift"
+ ],
+ "toplevel": "cd to repo root. CONFIG missing -> 2; no lexicon file -> 2. Python: parse JSON (error -> 2); bracket-walk latin:/unbounded: arrays; unescape; latin wrapped in \\b(?:...)\\b; compile errors or empty-matching alternatives -> 2; fewer than 100 alternatives -> 2. For each build-time pattern synthesise a probe via probe_for (empty probe -> skipped); probe not matching its own pattern -> 2; probe matched by no lexicon alternative -> missing -> exit 1. Else clean.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says none of the three lists may grow past the others, but only user_facing_prohibited -> lexicon is checked; coach_response_prohibited and lexicon -> build-time are not. A pattern whose synthesised probe is empty is skipped silently (`if not probe: continue`).",
+   "evidence": [
+    "scripts/check_perimeter_sync.sh:4",
+    "scripts/check_perimeter_sync.sh:185",
+    "scripts/check_perimeter_sync.sh:188"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "probe_for reduces each alternation to its first branch ((a|b) -> a), so only one spelling per build-time pattern is checked against the lexicon. Spellings that prohibited_terms.json forbids are currently matched by no lexicon alternative while the gate prints 'Every build-time prohibited term is also matched': 'undiagnosed' (:42), 'curing' and 'curative' (:50), 'pathological'/'pathologically' (:70), 'ischaemic' (:110). Verified by running the gate's own extracted alternatives against those words.",
+   "evidence": [
+    "scripts/check_perimeter_sync.sh:174",
+    "scripts/check_perimeter_sync.sh:223",
+    "Tools/copy_linter/prohibited_terms.json:50",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:317"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

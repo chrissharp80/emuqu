@@ -1,0 +1,338 @@
+{
+ "file": "Emuqu/Sources/Views/MoreMenuView.swift",
+ "hash": "090701a1d91411d0",
+ "role": "More tab menu (Purchase row until bought, Trends, Settings, Help & Learn, About) and the About Emuqu screen with privacy/disclaimer/methodology links and the bundle version.",
+ "types": [
+  "MoreMenuView: struct (View) — More tab root list",
+  "AboutFlowView: struct (View) — About Emuqu screen"
+ ],
+ "state": [
+  "global private computed appVersionLine (reads Info.plist CFBundleShortVersionString)"
+ ],
+ "toplevel": "appVersionLine is a file-private global computed var.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MoreMenuView.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Returns SettingsManager from dependencies.app (declared but not read by any member of MoreMenuView).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "settingsManager is declared but nothing in MoreMenuView reads it (grep of MoreMenuView.swift finds only the declaration).",
+     "evidence": [
+      "Emuqu/Sources/Views/MoreMenuView.swift:16"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var MoreMenuView.body",
+   "hash": "01215dafb857bc0c",
+   "does": "Inset-grouped List of the purchase section and the four navigation rows, titled 'More'.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseSection",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.junkDrawerItemSection",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.junkDrawerItemSection": "a2909ca275b3c4c8",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseSection": "dfdfa95cdef240e1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var MoreMenuView.junkDrawerItemSection",
+   "hash": "8c32aeecf5f170be",
+   "does": "Section with Trends, Settings, Help and About rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.trendsRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.settingsRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.helpRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.aboutRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.aboutRow": "d79844935748fdf3",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.helpRow": "07ed472053988e07",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.settingsRow": "ddeb23bcf1cc7861",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.trendsRow": "93f108accbdf0726"
+   }
+  },
+  {
+   "key": "var MoreMenuView.purchaseSection",
+   "hash": "4e9a124df00e092e",
+   "does": "Purchase section shown only when the paywall is enabled and no product has been purchased.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseRow",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager"
+   ],
+   "reads": [
+    "mem:StoreKitManager.paywallEnabled",
+    "mem:StoreKitManager.hasPurchasedProduct"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "StoreKitManager.paywallEnabled && !hasPurchasedProduct",
+     "effect": "show Purchase row; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager": "4be01038d1a2e60a",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseRow": "0af22151bfa52261"
+   }
+  },
+  {
+   "key": "var MoreMenuView.purchaseRow",
+   "hash": "6f6e4c5618ad353d",
+   "does": "NavigationLink to PaywallView(isGate: false) with id more.purchase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)": "0e7d2047b333d9ed"
+   }
+  },
+  {
+   "key": "var MoreMenuView.trendsRow",
+   "hash": "ebb16d180805dc91",
+   "does": "NavigationLink to TrendsV2View (more.trends).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)": "0e7d2047b333d9ed"
+   }
+  },
+  {
+   "key": "var MoreMenuView.settingsRow",
+   "hash": "829213e59dc6ff94",
+   "does": "NavigationLink to SettingsView passing scrollToTopToken (more.settings).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)": "0e7d2047b333d9ed"
+   }
+  },
+  {
+   "key": "var MoreMenuView.helpRow",
+   "hash": "4a1e842e5b505a71",
+   "does": "NavigationLink to HelpCenterV2View (more.help).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)": "0e7d2047b333d9ed"
+   }
+  },
+  {
+   "key": "var MoreMenuView.aboutRow",
+   "hash": "180204113c9f898e",
+   "does": "NavigationLink to AboutFlowView (more.about).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::func MoreMenuView.rowLabel(systemImage:title:subtitle:)": "0e7d2047b333d9ed"
+   }
+  },
+  {
+   "key": "func MoreMenuView.rowLabel(systemImage:title:subtitle:)",
+   "hash": "272fe19b0550c5c3",
+   "does": "Icon + title + subtitle row label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var AboutFlowView.body",
+   "hash": "37842c176703b465",
+   "does": "About list: author/about text, privacy & methodology links, version line with a thank-you footer.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutSection",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.privacyMethodologySection",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var appVersionLine",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutSection": "56a4a26dbabcea87",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.privacyMethodologySection": "5c07acab6977569b",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var appVersionLine": "841cd6dfb91518f8",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var AboutFlowView.aboutSection",
+   "hash": "a35476d212b4d5a7",
+   "does": "Section 'Emuqu' with 'Made by Chris Sharp.' and the about text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutText",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var AboutFlowView.aboutText": "adac28bfc6436515",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AboutFlowView.aboutText",
+   "hash": "bff5833a438fe459",
+   "does": "Three localized sentences: what the app is, data stays on the iPhone with optional encrypted iCloud sync that leaves out Apple Health readings, data leaves only in sent reports or an enabled cloud AI.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "About text says 'data leaves the iPhone only in reports you send or to a cloud AI you turn on', but the app's own privacy policy lists automatic sends: location rounded to ~1 km to MET Norway for weather during outdoor workouts, coordinates to Overpass for nearby roads during outdoor workouts and trail discovery, and route points to OpenTopoData for elevation lookups.",
+     "evidence": [
+      "Emuqu/Sources/Views/MoreMenuView.swift:192",
+      "Emuqu/Sources/Views/PrivacyPolicyView.swift:217",
+      "Emuqu/Sources/Views/PrivacyPolicyView.swift:219",
+      "Emuqu/Sources/Views/PrivacyPolicyView.swift:220",
+      "Emuqu/Sources/Views/PrivacyPolicyView.swift:222"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AboutFlowView.privacyMethodologySection",
+   "hash": "f1c1b950a47043c5",
+   "does": "Section with links to HealthDisclaimerView and RecoveryMethodologyView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var appVersionLine",
+   "hash": "5811158985ab94ce",
+   "does": "'v' + CFBundleShortVersionString.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:Info.plist CFBundleShortVersionString"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "version missing from Info.plist",
+     "effect": "?? \"\" gives just 'v'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

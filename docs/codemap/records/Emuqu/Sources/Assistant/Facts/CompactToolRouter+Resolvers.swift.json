@@ -1,0 +1,864 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift",
+ "hash": "e9d7c86b02b232b6",
+ "role": "Per-tool resolvers for CompactToolRouter's read tools (get_session, get_recovery, get_hrv, get_sleep, get_workout, list_workouts, get_walks, get_baseline, get_user, get_app_state, get_training_load, get_score_meta, get_breadcrumbs, get_routes, get_tags, get_workout_live, get_assistant_state): each maps the model's JSON args to fact keys and resolves them through FactResolverRegistry.resolveAsync; plus arg parsing and record bundling helpers.",
+ "types": [
+  "CompactToolRouter: extension — resolver half of the compact tool router",
+  "CompactToolRouter.ParameterizedRow: struct — key template + argument name + hint",
+  "FactValue: private extension — isMissingUnknownKey"
+ ],
+ "state": [
+  "mem:CompactToolRouter.datedWorkoutKeySuffixes (static which→key suffix table, 12 rows)",
+  "mem:CompactToolRouter.baselineWindows (rmssd/hr window→key)",
+  "mem:CompactToolRouter.userBundles (profile 13 keys, settings 5 keys)",
+  "mem:CompactToolRouter.appStateBundles (now, devices, settings)",
+  "mem:CompactToolRouter.appStateSingletons (healthkit, capabilities, version)",
+  "mem:CompactToolRouter.trainingLoadKeys (11 plain)",
+  "mem:CompactToolRouter.trainingLoadParameterized (11 one-arg)"
+ ],
+ "toplevel": "Static dispatch tables only. Resolvers are invoked from CompactToolRouter.uniformReadResolvers (CompactToolRouter.swift:454-472) inside resolveReadTool, which parses args with parseArgs first. All referenced fact keys are declared in fact namespaces (verified by grep of key:/pattern: declarations).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init CompactToolRouter.ParameterizedRow(_:_:hint:)",
+   "hash": "953c3a51a8fa4d0a",
+   "does": "Stores key, arg and optional hint.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)",
+   "hash": "c0fe12adda0305a8",
+   "does": "Shared which-style dispatch: plain[which] → resolveAsync(key); parameterized[which] → requires args[row.arg] and resolves 'key(value)'; anything else → invalidParameter missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "which found in plain table",
+     "effect": "resolves the no-arg key"
+    },
+    {
+     "at": "+9",
+     "cond": "which not in parameterized table",
+     "effect": "missing(invalidParameter,'unknown <selector>=... for <tool>')"
+    },
+    {
+     "at": "+12",
+     "cond": "required argument absent",
+     "effect": "missing(invalidParameter,'... requires <arg><hint>'); else resolves key(value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveSession(args:)",
+   "hash": "a06cc520ce4e091e",
+   "does": "get_session: which (default 'latest') → session.latest, or session.by_date(date) / by_id(id) / by_ordinal(n) via dispatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "which arg absent (?? fallback)",
+     "effect": "defaults to 'latest'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::init CompactToolRouter.ParameterizedRow(_:_:hint:)": "89502603e16a4cee"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveRecovery(args:)",
+   "hash": "785fe17f718095fa",
+   "does": "get_recovery: which (default 'latest') → recovery.score.latest / recovery.today.full / recovery.week.summary, or by_date(date), recent(period), trend(period).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "which absent (?? fallback)",
+     "effect": "defaults to 'latest'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::init CompactToolRouter.ParameterizedRow(_:_:hint:)": "89502603e16a4cee"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveHRV(args:)",
+   "hash": "c0df6126372341f4",
+   "does": "get_hrv: 'window' returns a record bundle of hrv.window.classification/is_consolidated/is_organized_recovery; else dispatch latest, live_snapshot, by_date(date), recent(period).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which absent (?? fallback)",
+     "effect": "'latest'"
+    },
+    {
+     "at": "+4",
+     "cond": "which == 'window'",
+     "effect": "returns three-field bundle; else shared dispatch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)": "97953d434bbf7f5d",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::init CompactToolRouter.ParameterizedRow(_:_:hint:)": "89502603e16a4cee"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveSleep(args:)",
+   "hash": "7aad4b35dce66808",
+   "does": "get_sleep: latest → sleep.latest; by_date → sleep.by_date(date); recent → sleep.recent(period); other → invalidParameter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which absent (?? fallback)",
+     "effect": "'latest'"
+    },
+    {
+     "at": "+3",
+     "cond": "case latest",
+     "effect": "sleep.latest"
+    },
+    {
+     "at": "+5",
+     "cond": "case by_date",
+     "effect": "needs date"
+    },
+    {
+     "at": "+6",
+     "cond": "date absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+10",
+     "cond": "case recent",
+     "effect": "needs period"
+    },
+    {
+     "at": "+11",
+     "cond": "period absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+15",
+     "cond": "default",
+     "effect": "missing(invalidParameter,'unknown which=...')"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "resolveSleep hand-codes the same plain/parameterized which-dispatch that dispatch(_:) implements as a table (used by resolveSession/Recovery/HRV/Baseline/TrainingLoad); the same holds for resolveListWorkouts, resolveWalks, resolveScoreMeta, resolveRoutes, resolveAssistantState.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:105",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:29"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveWorkout(args:)",
+   "hash": "fcc2ecef5ed41b8d",
+   "does": "get_workout: requires which; by_ordinal → workout.by_ordinal(n); one of 12 dated variants → workout.<suffix>(date); else invalidParameter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which absent",
+     "effect": "missing('get_workout requires which')"
+    },
+    {
+     "at": "+6",
+     "cond": "which == by_ordinal",
+     "effect": "requires n"
+    },
+    {
+     "at": "+7",
+     "cond": "n absent",
+     "effect": "missing(... requires 'n')"
+    },
+    {
+     "at": "+11",
+     "cond": "which in datedWorkoutKeySuffixes",
+     "effect": "key built only if date present"
+    },
+    {
+     "at": "+17",
+     "cond": "key nil (date missing)",
+     "effect": "missing(... requires 'date' (YYYY-MM-DD)); else resolves key"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveListWorkouts(args:)",
+   "hash": "62b8b8486d52ed90",
+   "does": "list_workouts: requires period; which (default list) → workout.list/count/recent(period).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period absent",
+     "effect": "missing('list_workouts requires period')"
+    },
+    {
+     "at": "+4",
+     "cond": "which absent (?? fallback)",
+     "effect": "'list'"
+    },
+    {
+     "at": "+6",
+     "cond": "case list",
+     "effect": "workout.list(period)"
+    },
+    {
+     "at": "+8",
+     "cond": "case count",
+     "effect": "workout.count(period)"
+    },
+    {
+     "at": "+10",
+     "cond": "case recent",
+     "effect": "workout.recent(period)"
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveWalks(args:)",
+   "hash": "4fc37bc56fed4f2a",
+   "does": "get_walks: requires which and period; count/list/total_distance_m/total_trimp/hardest → walks.<which>(period).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which or period absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+5",
+     "cond": "case count",
+     "effect": "walks.count"
+    },
+    {
+     "at": "+6",
+     "cond": "case list",
+     "effect": "walks.list"
+    },
+    {
+     "at": "+7",
+     "cond": "case total_distance_m",
+     "effect": "walks.total_distance_m"
+    },
+    {
+     "at": "+8",
+     "cond": "case total_trimp",
+     "effect": "walks.total_trimp"
+    },
+    {
+     "at": "+9",
+     "cond": "case hardest",
+     "effect": "walks.hardest"
+    },
+    {
+     "at": "+10",
+     "cond": "default",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveBaseline(args:)",
+   "hash": "439e78c205b9741f",
+   "does": "get_baseline: requires metric; rmssd/hr go through windowedBaseline; else dispatch days_of_history / is_established.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.windowedBaseline(metric:windows:args:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metric absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+4",
+     "cond": "metric has window table (rmssd, hr)",
+     "effect": "windowedBaseline; else dispatch with selector 'metric'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.windowedBaseline(metric:windows:args:)": "021536c8128e8ccc"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.windowedBaseline(metric:windows:args:)",
+   "hash": "03a85abe3322fd31",
+   "does": "Resolves the baseline key for window (default '30d') from the metric's window table.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "window absent (?? fallback)",
+     "effect": "'30d'"
+    },
+    {
+     "at": "+6",
+     "cond": "window not supported for metric",
+     "effect": "missing(invalidParameter,'unknown window=...'); else resolves key"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveUser(args:)",
+   "hash": "ffa1ad72e2208355",
+   "does": "get_user: field (default 'profile'); 'profile'/'settings' return a bundle record; otherwise tries user.profile.<field> and falls back to user.settings.<field> when the profile key does not exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::var FactValue.isMissingUnknownKey"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent (?? fallback)",
+     "effect": "'profile'"
+    },
+    {
+     "at": "+2",
+     "cond": "field is a bundle name",
+     "effect": "returns bundle record"
+    },
+    {
+     "at": "+5",
+     "cond": "profile result is not 'no such key'",
+     "effect": "returns it; else resolves user.settings.<field>"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)": "97953d434bbf7f5d",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::var FactValue.isMissingUnknownKey": "98ac8f8ef9e4917a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveAppState(args:)",
+   "hash": "67212832ef2557e3",
+   "does": "get_app_state: requires aspect; now/devices/settings → bundle record; healthkit/capabilities/version → single fact; else invalidParameter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "aspect absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+4",
+     "cond": "aspect is a bundle",
+     "effect": "resolves bundle"
+    },
+    {
+     "at": "+7",
+     "cond": "aspect not a singleton",
+     "effect": "missing('unknown aspect=...'); else resolves key"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBundle(_:)": "97953d434bbf7f5d",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveTrainingLoad(args:)",
+   "hash": "6ab41d17dcb4ba4c",
+   "does": "get_training_load: requires which; dispatches through trainingLoadKeys (11 plain) and trainingLoadParameterized (11 one-arg).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which absent",
+     "effect": "missing('get_training_load requires which'); else dispatch"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The get_training_load description tells the model 'snapshot' is the default `which`, but the resolver returns invalidParameter 'get_training_load requires which' when it is omitted (schema also marks it required), contradicting the advertised default.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:314",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:324",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:342"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveScoreMeta(args:)",
+   "hash": "456ac6f978c461d7",
+   "does": "get_score_meta: field algorithm_version → score.algorithm.version; history_recomputed → score.history.recomputed_under_v2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+5",
+     "cond": "case algorithm_version",
+     "effect": "score.algorithm.version"
+    },
+    {
+     "at": "+6",
+     "cond": "case history_recomputed",
+     "effect": "score.history.recomputed_under_v2"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveBreadcrumbs(args:)",
+   "hash": "0add5c20ec28ca83",
+   "does": "get_breadcrumbs: resolves breadcrumb.<field> verbatim (unknown fields yield the registry's 'no such key').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveRoutes(args:)",
+   "hash": "4aa5e3bbcdf66a34",
+   "does": "get_routes: count → routes.library.count; list → routes.library.list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+5",
+     "cond": "case count",
+     "effect": "routes.library.count"
+    },
+    {
+     "at": "+6",
+     "cond": "case list",
+     "effect": "routes.library.list"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "invalidParameter missing pointing at action tools"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveTags(args:)",
+   "hash": "37d03abd1f7004db",
+   "does": "get_tags: correlation(tag), count (delegates to resolveTagCount), list_active(date), recent_tagged(tag).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTagCount(args:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "which absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+5",
+     "cond": "case correlation",
+     "effect": "needs tag"
+    },
+    {
+     "at": "+6",
+     "cond": "tag absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+8",
+     "cond": "case count",
+     "effect": "resolveTagCount"
+    },
+    {
+     "at": "+10",
+     "cond": "case list_active",
+     "effect": "needs date"
+    },
+    {
+     "at": "+11",
+     "cond": "date absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+13",
+     "cond": "case recent_tagged",
+     "effect": "needs tag"
+    },
+    {
+     "at": "+14",
+     "cond": "tag absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+16",
+     "cond": "default",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTagCount(args:)": "8825c35c483e73c4",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveTagCount(args:)",
+   "hash": "4845a77792e10145",
+   "does": "Requires tag; with a non-empty period resolves tags.count_in_period(tag,period), else tags.count(tag) over the whole archive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tag absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+2",
+     "cond": "period present and non-empty",
+     "effect": "count_in_period; else whole-archive count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveWorkoutLive(args:)",
+   "hash": "f32a0d6fb77c22ad",
+   "does": "get_workout_live: resolves workout.live.<field> with field defaulting to 'snapshot'; the field is passed verbatim (so 'timeline(300)' reaches the parameterized entry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent (?? fallback)",
+     "effect": "'snapshot'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.resolveAssistantState(args:)",
+   "hash": "f96fc8a56afefa2a",
+   "does": "get_assistant_state: memory_list / memory_count / memory_auto_extract_enabled / contacts_list → assistant.* keys.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "field absent",
+     "effect": "invalidParameter missing"
+    },
+    {
+     "at": "+5",
+     "cond": "case memory_list",
+     "effect": "assistant.memory.list"
+    },
+    {
+     "at": "+6",
+     "cond": "case memory_count",
+     "effect": "assistant.memory.count"
+    },
+    {
+     "at": "+7",
+     "cond": "case memory_auto_extract_enabled",
+     "effect": "assistant.memory.auto_extract_enabled"
+    },
+    {
+     "at": "+8",
+     "cond": "case contacts_list",
+     "effect": "assistant.contacts.list"
+    },
+    {
+     "at": "+9",
+     "cond": "default",
+     "effect": "invalidParameter missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func CompactToolRouter.parseArgs(_:)",
+   "hash": "d3dd47316b3c1ea9",
+   "does": "Parses a JSON object into [String:String]: strings kept, Int/Double converted with String(), Bool to 'true'/'false'; invalid JSON or non-object → [:] (silently, so the tool then reports a missing required arg).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "JSON not UTF-8 / not an object",
+     "effect": "returns [:]"
+    },
+    {
+     "at": "+5",
+     "cond": "for each key/value",
+     "effect": "coerces to string"
+    },
+    {
+     "at": "+6",
+     "cond": "value type chain String → Int → Double → Bool",
+     "effect": "first matching cast wins; other types (arrays, objects, null) dropped. JSONSerialization booleans are NSNumber and bridge to Int first, so the Bool branch is unreachable and true/false become '1'/'0'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "JSONSerialization returns booleans as NSNumber, and `value as? Int` succeeds for them before the Bool check, so the Bool branch never runs and boolean args arrive as '1'/'0' rather than 'true'/'false'.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:477"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same coercion chain as FactResolverRegistry.parseActionArgs (and parseSingleStringArg) re-implemented here.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:471",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:518",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:598"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CompactToolRouter.resolveBundle(_:)",
+   "hash": "149fca701855e402",
+   "does": "Resolves each (label,key) pair sequentially with resolveAsync and returns a record keyed by label, keeping missing children in place.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pair",
+     "effect": "awaits that key in order (no concurrency)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "var FactValue.isMissingUnknownKey",
+   "hash": "556303b3b85677b8",
+   "does": "True when the value is .missing(.notRecorded) whose detail starts with 'no such key' (the registry's unknown-key envelope).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "missing with notRecorded and detail prefix 'no such key'",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unknown-key detection matches the human-readable detail prefix 'no such key' produced at FactResolverRegistry.swift:131/162; rewording that message silently breaks get_user's settings fallback.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:506",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:131"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

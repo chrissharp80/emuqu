@@ -1,0 +1,177 @@
+{
+ "file": "Tools/validation/port_live_dfa_clean.py",
+ "hash": "0354349cddf95b02",
+ "role": "Python port of LiveDFAAnalyzer.cleanRRForDFA (LiveDFAAnalyzer.swift @ e028039): 5-beat trailing-median artifact mask (300-2000 ms gate, 20 % deviation) and in-place linear interpolation, with the 3 %/6 % corrected-fraction thresholds. Checked: the only Swift change since e028039 (to 8d32097) is comment text, so the port still matches main.",
+ "types": [],
+ "state": [
+  "LOW_CONFIDENCE_CORRECTED_FRACTION=0.03, MAX_CORRECTED_FRACTION=0.06 (lines 12-13), mirror LiveDFAAnalyzer.swift:213,216"
+ ],
+ "toplevel": "Constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def _is_artifact_beat",
+   "hash": "c7d1ac08e13bd131",
+   "does": "isArtifactBeat: true outside 300-2000 ms; false while fewer than 3 recent clean beats; else true when |rr-median|/median > 0.20 (upper median of the recent list).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr < 300 or rr > 2000",
+     "effect": "True"
+    },
+    {
+     "at": "+3",
+     "cond": "fewer than 3 recent clean beats",
+     "effect": "False"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def artifact_mask",
+   "hash": "a861bce7943a5c04",
+   "does": "Builds the artifact mask, appending each clean beat to a 5-element trailing list.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each beat",
+     "effect": "classify"
+    },
+    {
+     "at": "+5",
+     "cond": "beat flagged",
+     "effect": "not added to recent list"
+    },
+    {
+     "at": "+8",
+     "cond": "recent list > 5",
+     "effect": "drop oldest"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The same mask as LiveDFAAnalyzer.artifactMask (trailing 5-beat median, 20 % gate, flagged beats never enter the median) marks normal sinus beats as artifacts: on nsr2db it corrected >= 1 interval in 21.6 % of artifact-free 120-s windows (every beat annotated N), and in 7.3 % of all artifact-free windows the corrected fraction exceeded 6 %, so the app withholds alpha1 on clean data; correction shifted alpha1 by +0.041 (LoA -0.26 to +0.34) in the touched windows.",
+     "evidence": [
+      "Tools/validation/port_live_dfa_clean.py:23",
+      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:489",
+      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:503",
+      "Tools/validation/RESULTS.md:364",
+      "Tools/validation/results/dfa_injection_nsr2db.json:1"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat": "21a54b8e88d15a26"
+   }
+  },
+  {
+   "key": "def _interpolate",
+   "hash": "a43e14a6e4a2d8b0",
+   "does": "Replaces each flagged beat by linear interpolation between nearest clean neighbours (or copies the only neighbour); fully-flagged series stay unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "forward scan",
+     "effect": "nearest left clean index"
+    },
+    {
+     "at": "+8",
+     "cond": "beat clean",
+     "effect": "becomes new left"
+    },
+    {
+     "at": "+12",
+     "cond": "backward scan",
+     "effect": "nearest right clean index"
+    },
+    {
+     "at": "+14",
+     "cond": "beat clean",
+     "effect": "becomes new right"
+    },
+    {
+     "at": "+16",
+     "cond": "for each beat",
+     "effect": "fill"
+    },
+    {
+     "at": "+17",
+     "cond": "beat clean",
+     "effect": "skip"
+    },
+    {
+     "at": "+20",
+     "cond": "both neighbours exist",
+     "effect": "interpolate"
+    },
+    {
+     "at": "+22",
+     "cond": "only left",
+     "effect": "copy left"
+    },
+    {
+     "at": "+24",
+     "cond": "only right",
+     "effect": "copy right; neither: unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def clean_rr_for_dfa",
+   "hash": "01567d936c0ef6c7",
+   "does": "cleanRRForDFA: series shorter than 8 returned unchanged with 0 corrections; else (interpolated values, number flagged).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask",
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 8 beats",
+     "effect": "returns input, 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "580d6907059f0bb1"
+   }
+  },
+  {
+   "key": "def corrected_fraction",
+   "hash": "5e55f72314dd2b7c",
+   "does": "Corrected fraction count/len, 0 for an empty series.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

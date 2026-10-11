@@ -1,0 +1,722 @@
+{
+ "file": "EmuquTests/ArchiveIntegrityTests.swift",
+ "hash": "f23840b5c2a9017c",
+ "role": "XCTest suite for SessionArchive storage integrity on a private temp directory: archive/retrieve, SHA256 hash, duplicates, re-upload notifications and modifiedAt stamping, trash, deletion, tags, concurrency, batch archive, integrity verification, encrypted repair, nearby-session detection and edge cases.",
+ "types": [
+  "ArchiveIntegrityTests: class — XCTestCase over a hermetic SessionArchive (more tests in ArchiveIntegrityTests+Codec.swift)"
+ ],
+ "state": [
+  "mem:ArchiveIntegrityTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)",
+  "file:FileManager.temporaryDirectory/ArchiveIntegrityTests-<UUID> (archiveDirectory, per test instance)",
+  "mem:ArchiveIntegrityTests.archive (lazy SessionArchive with injected 22:00/8h schedule, .defaultGap merge mode, 4.5h merge gap)",
+  "mem:ArchiveIntegrityTests.testSessionIds / sessionCounter (per-instance)"
+ ],
+ "toplevel": "archiveDirectory is a per-instance temp URL; archive is a lazy SessionArchive(directory:archiveDirectory, schedule 22:00+8h, mergeMode .defaultGap, mergeGap 4.5h) so tests do not depend on SettingsManager. Class setUp pins NSTimeZone.default to UTC and warms static singletons.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveIntegrityTests.setUp()",
+   "hash": "2d4da4a77320b9eb",
+   "does": "Class setUp: saves NSTimeZone.default, pins it to UTC, and touches DebugLogger.shared, EncryptionManager.shared and the four SessionArchive static coders single-threaded so concurrent tests cannot deadlock on dispatch_once.",
+   "entry": "XCTest: class setUp() before the first test of the suite",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchiveIntegrityTests.savedDefaultTimeZone",
+    "mem:DebugLogger.shared",
+    "mem:EncryptionManager.shared"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.lightweightSessionDecoder": "b3507d359d8aaa16",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "d0cc6fdb1e766587",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved default time zone and clears the saved value.",
+   "entry": "XCTest: class tearDown() after the suite",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [
+    "mem:ArchiveIntegrityTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchiveIntegrityTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a zone was saved",
+     "effect": "restores it; otherwise leaves NSTimeZone.default unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveIntegrityTests.setUp() #2",
+   "hash": "17cd53d22efe8f6b",
+   "does": "Per-test setUp: resets testSessionIds and sessionCounter.",
+   "entry": "XCTest: instance setUp() before each test",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveIntegrityTests.tearDown() #2",
+   "hash": "e27d04ab6c7e13eb",
+   "does": "Per-test tearDown: deletes each recorded session id from the archive (errors ignored) and removes the temp archive directory.",
+   "entry": "XCTest: instance tearDown() after each test",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "ud:archive.deletionTimes (UserDefaults.standard, via ArchiveStore.recordDeletionTime)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each recorded session id",
+     "effect": "try? archive.delete(id); failures swallowed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The archive directory is hermetic but delete() also records each deleted id in process-wide UserDefaults.standard[\"archive.deletionTimes\"]; every teardown (and testDeletion / testDeletedSessionIsKeptWholeInTheTrash) adds test UUIDs to the app host's real key, which nothing removes.",
+     "evidence": [
+      "EmuquTests/ArchiveIntegrityTests.swift:92",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:670",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:736",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:755"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testArchiveAndRetrieve()",
+   "hash": "d147e8969073b696",
+   "does": "Archives a session and asserts the entry id, non-nil hash, and retrieve returns the same id and start date (±1 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testHashVerification()",
+   "hash": "2686f21eeeac6d0b",
+   "does": "Asserts the archived entry's fileHash is 64 chars and retrieve (which verifies the hash) returns a session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDuplicateHandling()",
+   "hash": "6265ab9c2d246630",
+   "does": "Archives the same session twice and asserts one index entry for its id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testOnlyAnEditAsksForReupload()",
+   "hash": "a0165fd66641d9ca",
+   "does": "Observes flowRecoveryArchiveSessionsNeedReupload and asserts first write and routine rewrite post nothing, archive(requestingReupload:true) posts [id], update(requestingReupload:false) posts nothing more, and a default update posts a second request.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "notification userInfo sessionIds is a Set<UUID> containing this session",
+     "effect": "records the set; otherwise ignores the notification"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The re-upload request is posted on NotificationCenter.default inside the app host, where EmuquApp's @State syncManager (CloudKitSyncManager.shared) observes it and marks the test UUID removed in the host's real CloudKit sync state, then saves sync_state.json; the same happens for the default update() calls in testOnlyAnEditStampsModificationTime and updateTags in testUpdateTags.",
+     "evidence": [
+      "EmuquTests/ArchiveIntegrityTests.swift:174",
+      "EmuquTests/ArchiveIntegrityTests.swift:178",
+      "Emuqu/Sources/Storage/Archive.swift:505",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:610",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:623",
+      "Emuqu/EmuquApp.swift:87"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testOnlyAnEditStampsModificationTime()",
+   "hash": "8b0de336fb37b70f",
+   "does": "Asserts a first write leaves modifiedAt nil, a default update stamps a whole-second modifiedAt in both file and index entry, and a routine update(requestingReupload:false) keeps the same stamp.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (default update() posts it)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "e0989929d592bde9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDeletedSessionIsKeptWholeInTheTrash()",
+   "hash": "30905cd8a0247077",
+   "does": "Archives a session with notes, deletes it, and asserts its id is in trashedIds, trashedSession returns it with notes and type intact, and discardTrashed removes it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "ud:archive.deletionTimes (UserDefaults.standard, via delete)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "e29a7846681f7347",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "d12811237cedc16d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds": "be096437722537b4",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDeletion()",
+   "hash": "9c4b794da6321c0e",
+   "does": "Archives then deletes a session and asserts exists() flips false and retrieve returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "ud:archive.deletionTimes (UserDefaults.standard, via delete)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testUpdateTags()",
+   "hash": "e1ccdc04383f7be1",
+   "does": "Archives an untagged session, calls updateTags with morning+stressed and a note, and asserts the retrieved session has 2 tags and the note.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (updateTags calls update(id) with requestingReupload default true)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "1bf6c9d59b14e9d7",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testTagFiltering()",
+   "hash": "0733745879476a4e",
+   "does": "Archives three sessions tagged morning / evening / morning+stressed and asserts entries(includingTags:[morning]) contains the first and third only.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(includingTags:excludingTags:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(includingTags:excludingTags:)": "6d5adef9f778f19e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testConcurrentAccess()",
+   "hash": "9c38281d6a931152",
+   "does": "Archives 10 sessions concurrently on a concurrent queue, waits up to 30 s on a DispatchGroup, and asserts no wedge, no collected errors, and every session exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "ext:DispatchGroup.wait"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each of 10 sessions",
+     "effect": "dispatches an archive call on the concurrent queue"
+    },
+    {
+     "at": "+13",
+     "cond": "archive throws",
+     "effect": "error text appended to the locked failures list, asserted later on the test thread"
+    },
+    {
+     "at": "+22",
+     "cond": "group.wait times out after 30 s",
+     "effect": "XCTFail with a sampling hint and return; otherwise checks failures and existence"
+    },
+    {
+     "at": "+33",
+     "cond": "for each session",
+     "effect": "asserts exists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testConcurrentReads()",
+   "hash": "ffbff3ab661088ed",
+   "does": "Archives one session then retrieves it 20 times via DispatchQueue.concurrentPerform, fulfilling an expectation per success, and waits 5 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "ext:DispatchQueue.concurrentPerform"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "retrieve throws",
+     "effect": "XCTFail from a worker thread and no fulfil, so the wait times out; otherwise asserts non-nil and fulfils"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Uses DispatchQueue.concurrentPerform followed by wait(for:timeout:5) — the exact pattern this file documents as inert for testConcurrentAccess: concurrentPerform blocks the caller until all iterations return, so a wedged retrieve hangs the whole suite instead of failing after 5 s; XCTFail is also called from worker threads, which the same comment says is not reliably attributed.",
+     "evidence": [
+      "EmuquTests/ArchiveIntegrityTests.swift:348",
+      "EmuquTests/ArchiveIntegrityTests.swift:358",
+      "EmuquTests/ArchiveIntegrityTests.swift:285",
+      "EmuquTests/ArchiveIntegrityTests.swift:297"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testBatchArchive()",
+   "hash": "4fe88956b91ab78e",
+   "does": "Batch-archives 20 sessions spaced 2 h apart from a week ago and asserts count 20 and each retrievable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "for each session",
+     "effect": "asserts retrieve non-nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testBatchArchiveWithDuplicates()",
+   "hash": "0f4e0e594e744f7b",
+   "does": "Batch-archives 10 sessions plus a repeat of the first and asserts 10 written and 10 index entries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testIntegrityVerification()",
+   "hash": "0ad75869f0d14af7",
+   "does": "Archives a session and asserts verifyIntegrity() reports true for its id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "0ef85a6a572c5c4c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testRepairPreservesEncryptedFileIntegrity()",
+   "hash": "b987511c59892d64",
+   "does": "Skips when encryption is unavailable; archives a session, asserts its file is encrypted, overwrites its hash in index.json with zeros, opens a fresh SessionArchive on the same directory, asserts retrieve throws, runs repairArchive (>0 recovered) and asserts retrieve then succeeds with the same id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
+    "ext:XCTSkipUnless",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "file:index.json (hash forged)"
+   ],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "index.json bytes decode as UTF-8",
+     "effect": "replaces the hash and rewrites index.json atomically; otherwise no corruption is written and the following retrieve-throws assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c85791267b532f9c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "e6c82b9ad6ed0e15",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testHasSessionNear()",
+   "hash": "1ba44c18094a5870",
+   "does": "Archives a session now and asserts hasSessionNear finds it 10 min later (30-min tolerance) and not 60 min later.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)": "c9fc650a41358dd0",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testEmptyArchive()",
+   "hash": "73c001225ff08b76",
+   "does": "Asserts a fresh private archive has no entries and verifyIntegrity returns an empty map.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "0ef85a6a572c5c4c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testRetrieveNonExistent()",
+   "hash": "db5ac13d1cd343fc",
+   "does": "Asserts retrieve of an unknown UUID returns nil without throwing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index (in-memory index of the temp archive; unknown id returns nil before any file or key read)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDeleteNonExistent()",
+   "hash": "18071e0f25fb42a2",
+   "does": "Asserts delete of an unknown UUID does not throw; ArchiveStore.delete returns early when entryById is nil, so nothing is written (Archive+Internal.swift:650-652).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+   }
+  }
+ ],
+ "deps": {}
+}

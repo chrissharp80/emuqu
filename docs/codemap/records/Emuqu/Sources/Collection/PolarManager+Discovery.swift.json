@@ -1,0 +1,174 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarManager+Discovery.swift",
+ "hash": "019d216a82ee4059",
+ "role": "Forwarders on PolarManager that keep existing call sites (views, onboarding, recorder) working after BLE scan/connect moved to StrapDiscoveryCoordinator and transfer cancellation to StrapRecordingCoordinator.",
+ "types": [
+  "PolarManager: extension — discovery/connect forwarders"
+ ],
+ "state": [],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PolarManager.discovery",
+   "hash": "95a8a87a6b1f8b70",
+   "does": "Builds a new StrapDiscoveryCoordinator(manager: self) on every access (stateless value).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.startScanning()",
+   "hash": "fc67afca833b51d9",
+   "does": "Forwards to StrapDiscoveryCoordinator.startScanning().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.startScanning()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.startScanning()": "db60916c6118ed8b"
+   }
+  },
+  {
+   "key": "func PolarManager.stopScanning()",
+   "hash": "c02ec85b4f07e1c0",
+   "does": "Forwards to StrapDiscoveryCoordinator.stopScanning().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.stopScanning()": "1aef2b6b4e439cd1"
+   }
+  },
+  {
+   "key": "func PolarManager.connect(deviceId:)",
+   "hash": "dc56b0e9813a036c",
+   "does": "Forwards to StrapDiscoveryCoordinator.connect(deviceId:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connect(deviceId:)": "202482ab41910e07"
+   }
+  },
+  {
+   "key": "func PolarManager.connectToLastDevice()",
+   "hash": "79dc239739cba855",
+   "does": "Forwards to StrapDiscoveryCoordinator.connectToLastDevice().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.connectToLastDevice()": "2e5cadca2d052366"
+   }
+  },
+  {
+   "key": "func PolarManager.disconnect()",
+   "hash": "faa98fffbc96b598",
+   "does": "Forwards to StrapDiscoveryCoordinator.disconnect().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "7e08aaa2301e6fe9"
+   }
+  },
+  {
+   "key": "func PolarManager.cancelConnection()",
+   "hash": "c92b40e3085e07e6",
+   "does": "Forwards to StrapDiscoveryCoordinator.cancelConnection().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.cancelConnection()": "21a13298cbe81f01"
+   }
+  },
+  {
+   "key": "func PolarManager.cancelFetch()",
+   "hash": "2935d7d681f48de5",
+   "does": "Cancel/Skip on a strap download: forwards to StrapRecordingCoordinator.cancelActiveTransfer() via the `recording` accessor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.cancelActiveTransfer()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.cancelActiveTransfer()": "17b4ec12a5839c21"
+   }
+  },
+  {
+   "key": "func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)",
+   "hash": "87a571807a5af4e0",
+   "does": "Async forwarder that awaits StrapDiscoveryCoordinator.updateProgress, which sets PolarManager.fetchProgress on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.updateProgress(_:progress:attempt:maxAttempts:message:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.fetchProgress"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::var PolarManager.discovery": "0161bd0814db91da",
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.message(_:)": "1bd1a46f60b744b4",
+    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.updateProgress(_:progress:attempt:maxAttempts:message:)": "b844ced99890949e",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

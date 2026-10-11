@@ -1,0 +1,99 @@
+{
+ "file": "scripts/check_doc_links.sh",
+ "hash": "8393f3377fef715d",
+ "role": "CI gate over all visible Markdown: relative links resolve (rule 1), backtick-quoted repo paths exist (rule 3), and no paragraph quotes a number next to an integer .ci budget filename (rule 2).",
+ "types": [],
+ "state": [
+  "git:ls-files",
+  "file:**/*.md",
+  "file:.ci/*.txt"
+ ],
+ "toplevel": "cd to repo root. Python: VISIBLE = `git ls-files --cached --others --exclude-standard` (None -> filesystem existence). markdown_files skips SKIP_DIRS substrings and non-visible files. Rule 1: `[..](target)` non-http/mailto/# targets, anchor stripped, must be visible relative to the doc. Rule 3: CODE_PATH backtick spans with swift/md/sh/yml/yaml/plist/xcprivacy/entitlements (+ optional :N), minus CODE_PATH_ALLOW, must exist relative to root or doc, or (bare filename only) match any tracked basename. Rule 2: for integer-valued .ci/*.txt, a line naming the file plus next line containing a 2-6 digit number (not followed by . or %) is reported unless a backtick span with cat/head/read_budget is present. Reports each class; any -> exit 1; else 'clean'. Lines 202/210/213/220/223 are Python print() calls (inventory lists them as units). Wired: gates.yml, ci.yml, Makefile doc-links.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Rule 2 only sees budget files whose content is all digits, so min_coverage_views.txt (43.5) and scoring_constants_hash.txt may be restated in prose unchecked.",
+   "evidence": [
+    "scripts/check_doc_links.sh:166"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Rule 2's NUMBER needs 2-6 digits, so a single-digit budget restated next to its filename (spec_justified_long_budget 7, test_skip_budget 9, every 0 budget) is not detected.",
+   "evidence": [
+    "scripts/check_doc_links.sh:172",
+    ".ci/spec_justified_long_budget.txt:1",
+    ".ci/test_skip_budget.txt:1"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn print",
+   "hash": "127bffffa90eb033",
+   "does": "Not a shell function: a Python `print()` statement (blank line) in the report section of the embedded check_doc_links Python program, misdetected by the inventory as a shell function named `print`. Emits an empty line after a failure listing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #2",
+   "hash": "02f9d33fbe461669",
+   "does": "Not a shell function: a Python `print()` statement (blank line) in the report section of the embedded check_doc_links Python program, misdetected by the inventory as a shell function named `print`. Emits an empty line after a failure listing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #3",
+   "hash": "ffa8063cbce58611",
+   "does": "Not a shell function: a Python `print()` statement (blank line) in the report section of the embedded check_doc_links Python program, misdetected by the inventory as a shell function named `print`. Emits an empty line after a failure listing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #4",
+   "hash": "fcd5697b07b2aea3",
+   "does": "Not a shell function: a Python `print()` statement (blank line) in the report section of the embedded check_doc_links Python program, misdetected by the inventory as a shell function named `print`. Emits an empty line after a failure listing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn print #5",
+   "hash": "6dd5cabe795dce96",
+   "does": "Not a shell function: a Python `print()` statement (blank line) in the report section of the embedded check_doc_links Python program, misdetected by the inventory as a shell function named `print`. Emits an empty line after a failure listing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_doc_links.sh::fn print #5": "7cceedd9727902e4"
+ }
+}

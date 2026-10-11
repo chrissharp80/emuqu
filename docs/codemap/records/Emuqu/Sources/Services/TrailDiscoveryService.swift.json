@@ -1,0 +1,1001 @@
+{
+ "file": "Emuqu/Sources/Services/TrailDiscoveryService.swift",
+ "hash": "9d434c5f3fad129e",
+ "role": "Overpass (OpenStreetMap) trail search: builds an Overpass QL radius query per activity, sends it through the shared OverpassClient, decodes relations/ways/nodes into DiscoveredTrail values with length, centroid, difficulty and descriptor, then filters by length/difficulty and keeps the nearest maxResults.",
+ "types": [
+  "TrailDiscoveryService: class (Sendable, not @MainActor) — trail search service, one instance built by OverpassServices in AppDependencies.swift:636",
+  "TrailDiscoveryService.Activity: enum — hiking / mountain_biking / road_cycling; maps to workout Sport",
+  "TrailDiscoveryService.Difficulty: enum (Comparable) — easy<moderate<hard<expert<unknown; built from sac_scale / mtb:scale tags",
+  "TrailDiscoveryService.DiscoveredTrail: struct — one search result (id rel-/way-, name, length, difficulty, centroid, trackpoints, descriptor)",
+  "TrailDiscoveryService.SearchError: enum (LocalizedError) — user-facing search failure messages",
+  "TrailDiscoveryService.SearchFilters: struct — activity, radius (default 10 km), min/max length, min/max difficulty, maxResults (default 25)",
+  "TrailDiscoveryService.TrailEnvelope/TrailElement/TrailMember: private Decodable structs — Overpass JSON shape"
+ ],
+ "state": [
+  "mem:TrailDiscoveryService.overpass (let OverpassClient, shared with RoadGraphService)",
+  "mem:TrailDiscoveryService.replyCacheSeconds (static 600 s, passed as cacheFor to OverpassClient.post)",
+  "mem:TrailDiscoveryService.maxRadiusMeters (static 50_000)"
+ ],
+ "toplevel": "Header comment (6-34) states the design: Overpass only, named trails only, difficulty from sac_scale/mtb:scale, length from node great-circle distance, and claims ascent/descent comes from a downstream TopoElevationService lookup (24-27). Activity/Difficulty conformances (Codable, CaseIterable, Identifiable, Comparable) are synthesized; SearchError Equatable synthesized; Decodable synthesis for the private envelope structs is used by parse.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Header claims 'Ascent/descent comes from a downstream TopoElevationService lookup', but nothing calls TopoElevationService for discovered trails; DiscoverTrailsView.pickTrail builds the Route from CLLocations with altitude 0 so every saved trail has 0 m ascent and 0 climbs.",
+   "evidence": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:24",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:27",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift:539",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift:542",
+    "Emuqu/Sources/Models/Route.swift:139",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:689"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No test exercises parse, relationTrail, stitchedNodeIds, wayTrails, fromSacScale, fromMtbScale, passes or buildQuery; EmuquTests only touch searchError(for:) and SearchError.errorDescription (OverpassClientTests.swift:123-146).",
+   "evidence": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:331",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:386",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:128",
+    "EmuquTests/OverpassClientTests.swift:123"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "API_REFERENCE documents 'final class TrailDiscoveryService: @unchecked Sendable' with 'static let shared'. The code is plain Sendable with no shared, built through init(overpass:) by OverpassServices.",
+   "evidence": [
+    "docs/API_REFERENCE.md:2981",
+    "docs/API_REFERENCE.md:2982",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:35",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift:44",
+    "Emuqu/Sources/Utilities/AppDependencies.swift:637"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "init TrailDiscoveryService(overpass:)",
+   "hash": "6170e41976162f10",
+   "does": "Stores the injected OverpassClient.",
+   "entry": "Constructed once by OverpassServices.trailDiscovery (AppDependencies.swift:637) around the shared OverpassServices.client; AppDependencies.Overrides.trailDiscoveryService (AppDependencies.swift:293) can substitute it.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrailDiscoveryService.Activity.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Returns rawValue as the Identifiable id.",
+   "entry": "Identifiable witness used by SwiftUI ForEach in DiscoverTrailsView+Filters.swift:85.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrailDiscoveryService.Activity.displayName",
+   "hash": "f25d7b98c32183b3",
+   "does": "Returns the localized activity name (Hiking / Mountain biking / Road cycling) from the app bundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hiking",
+     "effect": "returns 'Hiking'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .mountainBiking",
+     "effect": "returns 'Mountain biking'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .roadCycling",
+     "effect": "returns 'Road cycling'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrailDiscoveryService.Activity.workoutSport",
+   "hash": "f22bc8a31d2772a6",
+   "does": "Maps the activity to the workout Sport: hiking → .hike, both cycling kinds → .bike.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .hiking",
+     "effect": ".hike"
+    },
+    {
+     "at": "+3",
+     "cond": "case .mountainBiking, .roadCycling",
+     "effect": ".bike"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrailDiscoveryService.Difficulty.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Returns rawValue as the Identifiable id.",
+   "entry": "Identifiable witness (ForEach with id: \\.self in Filters uses Hashable instead).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.Difficulty.<(lhs:rhs:)",
+   "hash": "79f9ce13a45d4e37",
+   "does": "Comparable witness: orders difficulties by order(_:) so unknown sorts after expert.",
+   "entry": "Comparable operator used by passes(_:filters:), cycleDifficulty and difficultyIsActive.",
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.Difficulty.order(_:)",
+   "hash": "fb0cfdeada4ef115",
+   "does": "Maps difficulty to a rank 0..4 (easy..unknown).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .easy",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "case .moderate",
+     "effect": "1"
+    },
+    {
+     "at": "+4",
+     "cond": "case .hard",
+     "effect": "2"
+    },
+    {
+     "at": "+5",
+     "cond": "case .expert",
+     "effect": "3"
+    },
+    {
+     "at": "+6",
+     "cond": "case .unknown",
+     "effect": "4 (sorts above expert)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrailDiscoveryService.Difficulty.displayName",
+   "hash": "c17666c00c146d4f",
+   "does": "Returns the localized label: Easy / Moderate / Hard / Expert / Unrated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .easy",
+     "effect": "'Easy'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .moderate",
+     "effect": "'Moderate'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .hard",
+     "effect": "'Hard'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .expert",
+     "effect": "'Expert'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .unknown",
+     "effect": "'Unrated'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.Difficulty.fromSacScale(_:)",
+   "hash": "8457be8ad4069d60",
+   "does": "Maps an OSM sac_scale value (lower-cased, whitespace-trimmed) to a Difficulty by exact match on the word values or T1-T6 codes; nil for anything else or nil input.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value is 'hiking' or 't1'",
+     "effect": ".easy"
+    },
+    {
+     "at": "+3",
+     "cond": "'mountain_hiking','demanding_mountain_hiking','t2','t3'",
+     "effect": ".moderate"
+    },
+    {
+     "at": "+4",
+     "cond": "'alpine_hiking','demanding_alpine_hiking','t4','t5'",
+     "effect": ".hard"
+    },
+    {
+     "at": "+5",
+     "cond": "'difficult_alpine_hiking','t6'",
+     "effect": ".expert"
+    },
+    {
+     "at": "+6",
+     "cond": "default (nil input, unknown value)",
+     "effect": "nil, so makeTrail falls through to mtb:scale"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.Difficulty.fromMtbScale(_:)",
+   "hash": "0d13f586567d5a1e",
+   "does": "Maps mtb:scale to Difficulty by parsing only its first character as an Int (so '2+' → 2): 0-1 easy, 2 moderate, 3 hard, anything larger expert; nil when tag missing or first char not a digit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tag present and first character parses as Int",
+     "effect": "continue to switch; otherwise nil (falls through to .unknown in makeTrail)"
+    },
+    {
+     "at": "+3",
+     "cond": "n is 0 or 1",
+     "effect": ".easy"
+    },
+    {
+     "at": "+4",
+     "cond": "n == 2",
+     "effect": ".moderate"
+    },
+    {
+     "at": "+5",
+     "cond": "n == 3",
+     "effect": ".hard"
+    },
+    {
+     "at": "+6",
+     "cond": "default (4-9)",
+     "effect": ".expert"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)",
+   "hash": "df272bf0eb096539",
+   "does": "Great-circle distance in metres from the trail centroid to the given location.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Distance is measured to the arithmetic centroid, not the nearest trackpoint. The around: selector matches a relation when any member is within the radius and '>;' pulls in every member way, so a long route passing next to the user gets a centroid far away; the row shows a large 'X away', and search() sorts and trims to the 25 nearest by this centroid distance, dropping trails that pass close by.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:171",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:172",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:225",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:226",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:273",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:289",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:474",
+      "Emuqu/Sources/Views/DiscoverTrailsView.swift:756"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var TrailDiscoveryService.SearchError.errorDescription",
+   "hash": "09ed1c9c3fb8fe84",
+   "does": "User-facing localized message per SearchError case; network/decode details are not shown.",
+   "entry": "LocalizedError witness; read by DiscoverTrailsView.searchAndPublish via (error as? LocalizedError)?.errorDescription.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .noLocation",
+     "effect": "'Need a GPS fix to search nearby trails'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .network",
+     "effect": "connection message"
+    },
+    {
+     "at": "+5",
+     "cond": "case .decode",
+     "effect": "unreadable reply message"
+    },
+    {
+     "at": "+6",
+     "cond": "case .rateLimited",
+     "effect": "'service is busy' message"
+    },
+    {
+     "at": "+7",
+     "cond": "case .unavailable",
+     "effect": "'unavailable right now' message"
+    },
+    {
+     "at": "+8",
+     "cond": "case .noResults",
+     "effect": "'No trails matched. Widen the search radius or relax the filters.'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "SearchError.noLocation is never thrown anywhere; DiscoverTrailsView.runSearch shows its own 'Need a GPS fix to search.' string instead.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:178",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:192",
+      "Emuqu/Sources/Views/DiscoverTrailsView.swift:498"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.search(near:filters:)",
+   "hash": "a18aeaf8a5486442",
+   "does": "Fetches the Overpass reply for location+filters, parses it into trails, applies length/difficulty filters, sorts by distance from location and keeps the first maxResults; throws SearchError.noResults when nothing remains.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.parse(data:sport:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.applyFilters(_:filters:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)"
+   ],
+   "reads": [
+    "net:Overpass API (via OverpassClient)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "trimmed result empty",
+     "effect": "throws SearchError.noResults; otherwise returns the array"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "sorted comparator recomputes distanceFrom (allocating two CLLocations) for each comparison; for hundreds of parsed trails this is O(n log n) CLLocation allocations on every search.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:225"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "87128253e4dae84a",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.applyFilters(_:filters:)": "fb6166e42047aaf6",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.fetchOverpass(coord:filters:)": "72c0ad8e685fd8f8",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.parse(data:sport:)": "9d985847f2e47f1f"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.fetchOverpass(coord:filters:)",
+   "hash": "d89e699d3d44b89e",
+   "does": "Builds the query and POSTs it via OverpassClient.post (30 s timeout, 600 s reply cache); typed OverpassClient.Failure is mapped to the sheet's error via searchError(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.buildQuery(coord:filters:)",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)"
+   ],
+   "reads": [
+    "net:Overpass API",
+    "mem:OverpassClient reply cache"
+   ],
+   "writes": [
+    "mem:OverpassClient reply cache"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "post throws (typed Failure)",
+     "effect": "rethrows searchError(for:) result (SearchError or CancellationError); success returns Data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.post(query:timeout:cacheFor:)": "002bbc2e1b1b76cd",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.buildQuery(coord:filters:)": "748e6bb0efc3ce7e",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.searchError(for:)": "e84c542933b56ec3"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.searchError(for:)",
+   "hash": "0f8f7fc42505b406",
+   "does": "Maps OverpassClient.Failure to the user-facing error: busy→rateLimited, refused→unavailable (logs HTTP status), unreachable→network(detail), cancelled→CancellationError.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .busy",
+     "effect": "SearchError.rateLimited"
+    },
+    {
+     "at": "+3",
+     "cond": "case .refused(status)",
+     "effect": "logs warning with status; SearchError.unavailable"
+    },
+    {
+     "at": "+6",
+     "cond": "case .unreachable(detail)",
+     "effect": "SearchError.network(detail)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .cancelled",
+     "effect": "CancellationError() (DiscoverTrailsView then shows its localizedDescription)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.buildQuery(coord:filters:)",
+   "hash": "1f4d2840ccb1e5ea",
+   "does": "Formats lat/lon to 3 decimals (~110 m), clamps radius to 50 km and wraps the activity's tag selectors in an Overpass QL union with 'out body; >; out skel qt;' and a 25 s server timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.tagSelectors(for:lat:lon:radius:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.tagSelectors(for:lat:lon:radius:)": "c7a346af11ba985e"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.tagSelectors(for:lat:lon:radius:)",
+   "hash": "f56e1d77414a5015",
+   "does": "Returns the Overpass selectors for the activity, each restricted to named elements within radius of lat/lon.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "case .hiking",
+     "effect": "relation route=hiking, relation route=foot, way highway=path (foot!=no), way highway=footway"
+    },
+    {
+     "at": "+11",
+     "cond": "case .mountainBiking",
+     "effect": "relation route=mtb, way highway=path mtb=yes, way highway=track bicycle=yes"
+    },
+    {
+     "at": "+17",
+     "cond": "case .roadCycling",
+     "effect": "relation route=bicycle, way highway=cycleway"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.parse(data:sport:)",
+   "hash": "04c958452e9fbf2d",
+   "does": "Decodes the Overpass JSON envelope, indexes node id→coordinate and way id→node ids, then returns relation trails followed by standalone way trails.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrails(in:nodes:ways:sport:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.wayTrails(in:nodes:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "JSON decode fails",
+     "effect": "logs warning and throws SearchError.decode(description); otherwise continues"
+    },
+    {
+     "at": "+10",
+     "cond": "for each element whose type is 'node'",
+     "effect": "loop over nodes"
+    },
+    {
+     "at": "+11",
+     "cond": "node has both lat and lon",
+     "effect": "stored in node index; otherwise skipped"
+    },
+    {
+     "at": "+16",
+     "cond": "for each element whose type is 'way'",
+     "effect": "loop over ways"
+    },
+    {
+     "at": "+17",
+     "cond": "way.nodes nil",
+     "effect": "stores [] (?? fallback) so the way resolves to no coordinates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrails(in:nodes:ways:sport:)": "fcf6ea9de9161d24",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.wayTrails(in:nodes:sport:)": "e0de16c45af587fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.relationTrails(in:nodes:ways:sport:)",
+   "hash": "a6ae54239aa32eb3",
+   "does": "Turns every relation element into a DiscoveredTrail via relationTrail, dropping nils.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrail(_:nodes:ways:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.relationTrail(_:nodes:ways:sport:)": "ce4298625148a0e4"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.relationTrail(_:nodes:ways:sport:)",
+   "hash": "fc6f8d5225468897",
+   "does": "Builds a trail for a named relation from its member ways, stitched end to end; nil when unnamed or fewer than 4 resolved coordinates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedNodeIds(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "relation has tags with non-empty name",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+7",
+     "cond": "members nil / member way not in index",
+     "effect": "?? [] → member contributes an empty way, which stitchedNodeIds skips"
+    },
+    {
+     "at": "+9",
+     "cond": "stitched coords count >= 4",
+     "effect": "makeTrail with id rel-<id>; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "b17c533d10279e5f",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.stitchedNodeIds(_:)": "2524ce2da18b46cf"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.stitchedNodeIds(_:)",
+   "hash": "fb61a1aa10865fd0",
+   "does": "Joins member ways (each >= 2 nodes) to the current last piece when they share an endpoint (reversing as needed); a way that does not join the last piece starts a new piece; returns the longest piece.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.joined(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "way has fewer than 2 nodes",
+     "effect": "skipped"
+    },
+    {
+     "at": "+3",
+     "cond": "a last piece exists and joined(last, way) succeeds",
+     "effect": "replaces last piece with joined result; otherwise appends way as new piece"
+    },
+    {
+     "at": "+9",
+     "cond": "no pieces",
+     "effect": "?? [] → empty, relationTrail returns nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Only the LAST piece is tried for joining, never earlier pieces, so a relation whose members are listed out of order (the comment itself says OSM order is not guaranteed) is split into many pieces and only the longest is kept; the trail's length, map preview and saved route then cover only part of the route.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:381",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:389",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:395"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.joined(_:_:)": "abf8207606a94612"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.joined(_:_:)",
+   "hash": "351e746a0f4e6de3",
+   "does": "Concatenates way onto piece at a shared endpoint, reversing way or prepending as needed; nil when no endpoint matches.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either array empty",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "piece end == way start",
+     "effect": "piece + way minus first node"
+    },
+    {
+     "at": "+4",
+     "cond": "piece end == way end",
+     "effect": "piece + reversed way minus first"
+    },
+    {
+     "at": "+5",
+     "cond": "piece start == way end",
+     "effect": "way + piece minus first"
+    },
+    {
+     "at": "+6",
+     "cond": "piece start == way start",
+     "effect": "reversed way + piece minus first; if none match, nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.wayTrails(in:nodes:sport:)",
+   "hash": "7ae4fa6f8d9c08cd",
+   "does": "Builds trails from named ways that are not members of any relation in the reply; coordinates are resolved from the node index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "relation members nil",
+     "effect": "?? [] → relation contributes no used way ids"
+    },
+    {
+     "at": "+8",
+     "cond": "way has non-empty name tag",
+     "effect": "continue; otherwise skipped"
+    },
+    {
+     "at": "+9",
+     "cond": "way.nodes nil",
+     "effect": "?? [] → no coordinates → dropped by the >= 4 guard"
+    },
+    {
+     "at": "+10",
+     "cond": "coords >= 4",
+     "effect": "makeTrail with id way-<id>; otherwise skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "usedWayIDs takes members of every relation in the reply, including relations relationTrail later dropped (too few coords, <100 m), so a named way belonging only to a dropped relation is also hidden.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:413",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:377",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:433"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Named ways are never merged by name. OSM splits one named path into many ways, so each segment that has 4 or more nodes and is over 100 m becomes its own result with the same name. The list shows duplicate rows that are each only part of the trail, and picking one saves just that segment as the route.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:417",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:418",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:420",
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:421",
+      "Emuqu/Sources/Views/DiscoverTrailsView.swift:542"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)": "b17c533d10279e5f"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.makeTrail(id:name:tags:coords:sport:)",
+   "hash": "608dc7215695d894",
+   "does": "Computes length; returns nil under 100 m, otherwise a DiscoveredTrail with difficulty from sac_scale, then mtb:scale, then .unknown, centroid, trackpoints and descriptor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeLength(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromSacScale(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromMtbScale(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeCentroid(_:)",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "length > 100 m",
+     "effect": "builds trail; otherwise nil (treated as tracking artifact)"
+    },
+    {
+     "at": "+14",
+     "cond": "sac_scale maps to nil",
+     "effect": "?? falls back to mtb:scale"
+    },
+    {
+     "at": "+15",
+     "cond": "mtb:scale also nil",
+     "effect": "?? falls back to .unknown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromMtbScale(_:)": "5177d865824258e7",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.fromSacScale(_:)": "65743f70f821010e",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeCentroid(_:)": "b842087e65d1df30",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.computeLength(_:)": "12fd29b8ebc0ea69",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)": "583fd506d6240f4b"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.descriptor(from:)",
+   "hash": "2ac828cf9ef4044a",
+   "does": "Picks a subtitle from tags: operator, else network, else route_type, else localized 'Listed distance <v>', else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "operator non-empty",
+     "effect": "returns operator"
+    },
+    {
+     "at": "+2",
+     "cond": "network non-empty",
+     "effect": "returns network (raw OSM code such as 'lwn'/'rcn')"
+    },
+    {
+     "at": "+3",
+     "cond": "route_type non-empty",
+     "effect": "returns it"
+    },
+    {
+     "at": "+4",
+     "cond": "distance non-empty",
+     "effect": "returns 'Listed distance <v>'; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.computeLength(_:)",
+   "hash": "40800201422b50ec",
+   "does": "Sums great-circle distances between consecutive coordinates; 0 when fewer than 2.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "coords.count >= 2",
+     "effect": "sum; otherwise 0"
+    },
+    {
+     "at": "+4",
+     "cond": "for each coordinate after the first",
+     "effect": "adds segment distance"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.computeCentroid(_:)",
+   "hash": "05aad7ae45d5cac3",
+   "does": "Arithmetic mean of latitudes and longitudes; (0,0) when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "coords non-empty",
+     "effect": "mean; otherwise (0,0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Plain longitude averaging gives a centroid on the far side of the globe for a trail crossing the 180° meridian, so its 'distance from you' and sort order are wrong there.",
+     "evidence": [
+      "Emuqu/Sources/Services/TrailDiscoveryService.swift:474"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TrailDiscoveryService.applyFilters(_:filters:)",
+   "hash": "6754f528f0bed44b",
+   "does": "Filters trails with passes(_:filters:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.passes(_:filters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.passes(_:filters:)": "66447c8c4ba5b0f5"
+   }
+  },
+  {
+   "key": "func TrailDiscoveryService.passes(_:filters:)",
+   "hash": "8dc3eabf6dd80f47",
+   "does": "True when length is within min/max and (difficulty unknown or within min/max difficulty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "minLength set and trail shorter",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "maxLength set and trail longer",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "difficulty == .unknown",
+     "effect": "true (unrated trails always pass)"
+    },
+    {
+     "at": "+4",
+     "cond": "minDifficulty set and trail easier",
+     "effect": "false"
+    },
+    {
+     "at": "+5",
+     "cond": "maxDifficulty set and trail harder",
+     "effect": "false; otherwise true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "3f6d0f1794ed6b9d"
+   }
+  }
+ ],
+ "deps": {}
+}

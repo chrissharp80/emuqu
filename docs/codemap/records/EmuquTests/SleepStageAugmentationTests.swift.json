@@ -1,0 +1,359 @@
+{
+ "file": "EmuquTests/SleepStageAugmentationTests.swift",
+ "hash": "a97d6264e03401b5",
+ "role": "XCTest suite for the Apple Watch augmentation helpers in HRVSleepStageClassifier+Watch.swift: decision table, augmentation score, per-epoch override recording, repainting Watch intervals, stage-minute folding, dominant stage and augmentation result totals.",
+ "types": [
+  "SleepStageAugmentationTests: class — XCTestCase for HRVSleepStageClassifier Watch augmentation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Header says these tests pin 'the confusion-matrix arithmetic', but no test in the file (and no production code in the repo) has a confusion matrix; the comment describes removed coverage.",
+   "evidence": [
+    "EmuquTests/SleepStageAugmentationTests.swift:7"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+   "hash": "bbc62122816af8cd",
+   "does": "Builds a Classifier.WindowScores with the given deep/REM/awake scores, frequency-domain flag and classified stage (defaults 0.3/0.3/0.3, true, core).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepStageAugmentationTests.window(_:minutes:)",
+   "hash": "ed941c555668ffdd",
+   "does": "Builds a 5-minute Classifier.FeatureWindow at reference-date offset `start` with fixed HR/HRV features.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepStageAugmentationTests.interval(_:_:_:)",
+   "hash": "8eaeef23e06085cd",
+   "does": "Builds a SleepStageInterval between two reference-date offsets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testCoreBecomesDeepOnStrongDeepEvidence()",
+   "hash": "09be75329c5808f2",
+   "does": "Asserts core with deep score above augmentCoreToDeepThreshold becomes deep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCoreToDeepThreshold": "b4a99b13a6136077",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testCoreBecomesREMOnlyWithFrequencyDomain()",
+   "hash": "5a21dd3e6ec7fc7a",
+   "does": "Asserts core with strong REM becomes REM only when hasFreqDomain is true; without it stays core.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCoreToREMThreshold": "b4c96fb1a21b69be",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testCoreStaysCoreOnWeakEvidence()",
+   "hash": "0c816eb53c905e28",
+   "does": "Asserts default 0.3 scores leave core as core and unspecified as unspecified.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testAwakeBecomesREMOnlyWhenAwakeScoreIsLow()",
+   "hash": "ed5f1e662f2bdb3e",
+   "does": "Asserts awake with strong REM becomes REM only when awake score is below awakeScoreThreshold; otherwise stays awake.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentAwakeToREMThreshold": "88ba6bba7320df45",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.awakeScoreThreshold": "ce64b81ccff83b4d",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testDeepAndREMSwapOnlyWithStrongOpposingEvidence()",
+   "hash": "b0b1d41ff38f5e32",
+   "does": "Asserts deep→REM and REM→deep swaps happen only with the opposing score above augmentCrossStageThreshold and own score below the reject threshold; ambiguous scores keep the Watch stage.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.decideAugmentedStage(watch:score:)": "4a02331fc5d9c8ed",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCrossStageRejectThreshold": "e456deeaf806e5a6",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCrossStageThreshold": "937dcc15de0ad49f",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testAugmentationScoreReportsTheJustifyingScore()",
+   "hash": "4273152d3d1839f6",
+   "does": "Asserts augmentationScore returns deep score for deep, REM score for REM and awake score for core.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationScore(for:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationScore(for:in:)": "b512a5b8eeb6c3a5",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testApplyAugmentationDecisionsRecordsOnlyChangedEpochs()",
+   "hash": "a375969023e1d827",
+   "does": "Asserts applyAugmentationDecisions over three windows returns only the changed epoch (core→deep at window 1) with its window bounds.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)": "45d9f53143a57ecf",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCoreToDeepThreshold": "b4a99b13a6136077",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)": "0725e1c4e63e78ab"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testEpochsTheWatchDoesNotCoverAreNeverOverridden()",
+   "hash": "6f8ca753898e08f9",
+   "does": "Asserts an epoch with no Watch stage (nil) is never overridden even with strong deep evidence.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyAugmentationDecisions(windows:watchStages:scores:)": "45d9f53143a57ecf",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var HRVSleepStageClassifier.augmentCoreToDeepThreshold": "b4a99b13a6136077",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.scores(deep:rem:awake:freq:stage:)": "e5474d131deb4e4f",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)": "0725e1c4e63e78ab"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.epochOverride(_:from:to:)",
+   "hash": "d0e4731e91ac61a1",
+   "does": "Builds a Classifier.Augmentation over 300 s from `start` changing watch stage to `stage` with score 0.8.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testOverridesRepaintOnlyTheirEpochAndKeepTheWatchNightIntact()",
+   "hash": "c5a3a36aec1efbbd",
+   "does": "Asserts applyOverrides on Watch core 0–3600 with a 1200–1500 deep override yields [core, deep, core], keeps outer bounds, marks the override hrvDerived and the rest watch, and totals 3600 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.epochOverride(_:from:to:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)": "fe7221112260bf0c",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.epochOverride(_:from:to:)": "6f7762e46dc9ea70",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testAMinorityStageInsideAnOverriddenEpochKeepsItsLabel()",
+   "hash": "bcb82dac7453109a",
+   "does": "Asserts an override on epoch 0–300 relabels only the core part (0–240) to deep and keeps the REM blip.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.epochOverride(_:from:to:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)": "fe7221112260bf0c",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.epochOverride(_:from:to:)": "6f7762e46dc9ea70",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testNoOverridesReturnTheWatchIntervalsUnchanged()",
+   "hash": "626e3cbde63e5942",
+   "does": "Asserts applyOverrides with no overrides returns the Watch intervals' stages and bounds unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.applyOverrides(_:to:)": "fe7221112260bf0c",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testAccumulateStageMinutesFoldsUnspecifiedIntoCore()",
+   "hash": "d36dcec19cc4351d",
+   "does": "Asserts HRVSleepStageClassifier.accumulateStageMinutes folds 5 min unspecified into core (core 15) with deep 10, REM 10, awake 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.accumulateStageMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "HRVSleepStageClassifier.accumulateStageMinutes and SleepMergingPipeline.accumulateStageMinutes both sum per-stage minutes from the same interval type but disagree on unspecified (folded into core here, kept separate there); the test pins the divergent behaviour rather than a single definition.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:257",
+      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:82"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.accumulateStageMinutes(_:)": "c0f3f537f7c24778",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testDominantStageIsTheLargestOverlap()",
+   "hash": "0e8994e59c451ca5",
+   "does": "Asserts dominantStage over window 0–300 picks REM (200 s) over awake (100 s), and returns nil when no interval overlaps.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.dominantStage(in:watchIntervals:)": "7ef3e67455e0e356",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.window(_:minutes:)": "0725e1c4e63e78ab"
+   }
+  },
+  {
+   "key": "func SleepStageAugmentationTests.testAugmentationResultTotalsMatchIntervals()",
+   "hash": "d7681f4fb0ca9bf5",
+   "does": "Asserts augmentationResult with deep 0–1800 and REM 1800–2400 and no augmentations reports deep 30, REM 10, core 0, 0 augmentations, 2 intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationResult(intervals:augmentations:epochs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augmentationResult(intervals:augmentations:epochs:)": "59bbc6775a66d956",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SleepStageAugmentationTests.swift::func SleepStageAugmentationTests.interval(_:_:_:)": "f262073822226abe"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,910 @@
+{
+ "file": "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift",
+ "hash": "09f3d67960f32f7d",
+ "role": "WorkoutPDFPhysiologyPages extension drawing the Autonomic/HRV page (α1 explainer+chart, α1 stats, α1-estimated LT1, HRR), the Cardiopulmonary page (HR chart, %HRmax zone table, physiology rows, drift takeaway), the Effort & Terrain route page and the Methodology appendix.",
+ "types": [],
+ "state": [],
+ "toplevel": "Extension only; all content is in units. Methodology text is static localized strings.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Methodology lists 'Lucia TRIMP (2003)' under 'Methods not used', yet the value shown as Banister TRIMP is read from the field meta.luciaTRIMP, which WorkoutAnalyzer fills with Banister or (fallback) Edwards TRIMP; the appendix never mentions the Edwards fallback.",
+   "evidence": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:458",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift:222",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:139"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAutonomicHRVPage(ctx:)",
+   "hash": "6cc7fb74f579d392",
+   "does": "Draws the AUTONOMIC / HRV ANALYSIS page: title, α1 explainer and chart, α1 statistics, α1-estimated LT1, HRR block and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1Explainer(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1StatsTable(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1LT1Estimate(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRBlock(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The autonomic page stacks fixed blocks (explainer, 220 pt chart, 6 stat rows + arrow, LT1 block, up to 4 HRR rows, classification, Cole caption, arrow) with no page-space check against the footer at pageHeight-margin+6 = 762 pt, unlike the splits page which paginates; longer translated strings push the HRR block into the footer.",
+     "evidence": [
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:15",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:44",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:121",
+      "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift:44",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:54"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "9d1d7ed634d8815d",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1Explainer(at:contentW:)": "f50f733721df1f13",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1LT1Estimate(at:contentW:)": "06d268fc514cff99",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1StatsTable(at:contentW:)": "59de875eda14fafd",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRBlock(at:contentW:)": "561d2082256da7d7",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)": "43cc342f1e5c56b0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAlpha1Explainer(at:contentW:)",
+   "hash": "23f968860d17da40",
+   "does": "Draws the DFA α1 explainer paragraph (citations) and a 220 pt α1 chart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawAlpha1Chart(in:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawAlpha1Chart(in:)": "29572441abaf091e",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAlpha1StatsTable(at:contentW:)",
+   "hash": "bba86846a1183f2e",
+   "does": "Draws the α1 STATISTICS heading, two-column stat rows and the plain-English α1 status arrow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alpha1Stats()",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.alpha1StatRows(_:bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1PlainEnglishStatus(_:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "997e1d65a07090ea",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alpha1Stats()": "0bb625a562e8e63d",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.alpha1StatRows(_:bundle:)": "eea1bc914809f936",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1PlainEnglishStatus(_:at:)": "e85853052db1cdec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.alpha1StatRows(_:bundle:)",
+   "hash": "4bc9dc91123e5464",
+   "does": "Returns rows: mean/max/min α1 (%.2f or '—') and minutes below AT1, between, above AT2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "avgAlpha1 nil (?? '—')",
+     "effect": "'—'"
+    },
+    {
+     "at": "+3",
+     "cond": "maxAlpha1 nil (?? '—')",
+     "effect": "'—'"
+    },
+    {
+     "at": "+4",
+     "cond": "minAlpha1 nil (?? '—')",
+     "effect": "'—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAlpha1PlainEnglishStatus(_:at:)",
+   "hash": "b0ef7d8df2189eb1",
+   "does": "Draws a status arrow from mean α1: ≥0.75 aerobic (good), ≥0.50 threshold (good), else above anaerobic threshold (caution); nothing when no mean.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "mean α1 exists",
+     "effect": "false: nothing drawn"
+    },
+    {
+     "at": "+6",
+     "cond": "avg ≥ 0.75",
+     "effect": "aerobic arrow"
+    },
+    {
+     "at": "+8",
+     "cond": "avg ≥ 0.50",
+     "effect": "threshold arrow; else caution arrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)": "a7ee9eba1dd9631b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAlpha1LT1Estimate(at:contentW:)",
+   "hash": "5b0096a2fc95a9b2",
+   "does": "When a sustained downward AT1 crossing with an HR exists, draws the α1-ESTIMATED LT1 heading, the HR in large sage type and the detail text; otherwise draws nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.firstDownwardAT1Crossing()",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1LT1Detail(crossing:at:contentW:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "crossing exists and has HR",
+     "effect": "false: section omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.firstDownwardAT1Crossing()": "6c5102b5c4997b16",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawAlpha1LT1Detail(crossing:at:contentW:)": "3bc6820e1e1f3cc9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawAlpha1LT1Detail(crossing:at:contentW:)",
+   "hash": "5d5a04d2f2cbe25d",
+   "does": "Draws the LT1 detail sentence with crossing time mm:ss and the configured LTHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRRBlock(at:contentW:)",
+   "hash": "aeea85ce0b394fd4",
+   "does": "Draws the HEART-RATE RECOVERY heading, then either the unavailable note (empty array) or HRR rows and classification.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRUnavailable(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRClassification(_:at:contentW:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hrrSamples present",
+     "effect": "false: returns after drawing the heading only"
+    },
+    {
+     "at": "+4",
+     "cond": "hrr array non-empty",
+     "effect": "false: draws 'No HR signal captured' note"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The section heading is drawn before the nil check, so a workout with no hrrSamples (e.g. imported or pre-HRR sessions) prints a bare 'HEART-RATE RECOVERY (HRR)' heading with nothing under it; same when readings exist but none is within 60±10 s (rows and classification both empty).",
+     "evidence": [
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:118",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:119",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:155"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "997e1d65a07090ea",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRClassification(_:at:contentW:)": "597b252320ae91c2",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRUnavailable(at:contentW:)": "a064bc88a45c16dd",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)": "8a128ed76229612b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRRUnavailable(at:contentW:)",
+   "hash": "eebace60941acb56",
+   "does": "Draws the 'No HR signal captured during the 60–120 s post-stop window' explanation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)",
+   "hash": "92ee1e1243d9f356",
+   "does": "Returns rows for 1-min drop (with peak) and absolute HR + provenance, and the same for 2 min, when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.provenanceLabel(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "1-min reading exists",
+     "effect": "adds two rows"
+    },
+    {
+     "at": "+6",
+     "cond": "2-min reading exists",
+     "effect": "adds two rows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.provenanceLabel(_:)": "eea0cae495ae1263",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRRClassification(_:at:contentW:)",
+   "hash": "58efe71fc2d561ad",
+   "does": "Draws the 1-min HRR classification (≥18 / 12–17 / 8–11 / <8 bpm), the Cole 1999 provenance note and the verdict arrow; nothing without a 1-min reading.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRProvenance(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRVerdictArrow(_:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "1-min reading exists",
+     "effect": "false: returns"
+    },
+    {
+     "at": "+3",
+     "cond": "drop ≥18 / ≥12 / ≥8 / else (nested ?:)",
+     "effect": "four classification sentences; the <8 one (also used for 0 or negative drops) says to mention it to a doctor if persistent"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "A 0 or negative 1-min drop (capture failure, which forTomorrowPoints/whatToWatchPoints deliberately exclude with drop > 0) is classified as 'Under 8 bpm ... mention it to your doctor' with a caution arrow.",
+     "evidence": [
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:159",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:199",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:880"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRProvenance(at:contentW:)": "3707672db29b75bc",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRVerdictArrow(_:at:)": "d37f69c402983b31",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRRProvenance(at:contentW:)",
+   "hash": "cb35f2552031b944",
+   "does": "Draws the caption explaining the 12 bpm cut-off source (Cole et al., NEJM 1999).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRRVerdictArrow(_:at:)",
+   "hash": "aa8e0fcdd82df38a",
+   "does": "Draws the HRR verdict arrow: ≥18 good 'fast', ≥12 good, ≥8 neutral, else caution.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "drop thresholds for kind (nested ?:)",
+     "effect": "≥18 good, ≥12 good (redundant branch), ≥8 neutral, else caution"
+    },
+    {
+     "at": "+3",
+     "cond": "drop thresholds for text (nested ?:)",
+     "effect": "four sentences"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)": "a7ee9eba1dd9631b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawCardiopulmonaryPage(ctx:)",
+   "hash": "de66b5b8b765d279",
+   "does": "Draws the CARDIOPULMONARY RESPONSE page: title, HR chart, zone table, physiology rows, footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRTimeSeriesBlock(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawZoneDistributionBlock(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPhysiologyBlock(at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "9d1d7ed634d8815d",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRTimeSeriesBlock(at:contentW:)": "f705d99480cca76f",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)": "43cc342f1e5c56b0",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPhysiologyBlock(at:contentW:)": "883edd18a3fa14fe",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawZoneDistributionBlock(at:contentW:)": "3c76d5bd4c53405d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawHRTimeSeriesBlock(at:contentW:)",
+   "hash": "d0e8dc771c642363",
+   "does": "When any sample has HR, draws the 'HEART RATE VS TIME' heading and a 170 pt HR chart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRChart(in:samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "metadata/samples nil (?? [])",
+     "effect": "no samples → section omitted"
+    },
+    {
+     "at": "+4",
+     "cond": "any sample has HR",
+     "effect": "false: section omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawHRChart(in:samples:)": "8dd33b1aacfbbce2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawZoneDistributionBlock(at:contentW:)",
+   "hash": "0c9f75215f5ffeae",
+   "does": "Draws the ZONE DISTRIBUTION (% HRMAX) heading and one row per non-zero zone with bpm range and meaning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds()",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.zoneMeanings(bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.zoneRanges()",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawZoneRow(index:seconds:total:range:meaning:at:contentW:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "total > 0",
+     "effect": "false: heading only, no rows"
+    },
+    {
+     "at": "+8",
+     "cond": "for each zone with secs > 0",
+     "effect": "draws a row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds()": "b807c3ebbc8bd567",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawZoneRow(index:seconds:total:range:meaning:at:contentW:)": "6bfc77cfd9816621",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.zoneMeanings(bundle:)": "235e644f0bb5196c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.zoneRanges()": "620ff53a9bfacdec",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.zoneMeanings(bundle:)",
+   "hash": "758256757c13dd78",
+   "does": "Returns five localized zone-meaning strings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.zoneRanges()",
+   "hash": "0e77f3a0788e6767",
+   "does": "Returns 'lo–hi bpm' for each zone from configured HRmax (50/60/70/80/90 → 60/70/80/90/105 %).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawZoneRow(index:seconds:total:range:meaning:at:contentW:)",
+   "hash": "a53058918354bb8a",
+   "does": "Draws 'Zn (range)' and a wrapped 'duration · pct % · meaning' line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFDurationText.minutesSeconds(_:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFDurationText.minutesSeconds(_:)": "e14bca4a03fb5255",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawPhysiologyBlock(at:contentW:)",
+   "hash": "8e4bdfee3767dd66",
+   "does": "Draws the PHYSIOLOGY heading, two-column physiology rows and the drift takeaway arrow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.physiologyRows(bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawDriftTakeaway(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "997e1d65a07090ea",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawDriftTakeaway(at:)": "da58001820cdd975",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.physiologyRows(bundle:)": "10c802b810544648",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.physiologyRows(bundle:)",
+   "hash": "20a08f9dbb494ee0",
+   "does": "Returns rows for decoupling (<5 strong / <7 mild / else significant), efficiency factor and session RMSSD when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.efficiencyFactorText(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "decoupling present",
+     "effect": "adds row"
+    },
+    {
+     "at": "+3",
+     "cond": "d < 5 / d < 7 / else (nested ?:)",
+     "effect": "strong / mild drift / significant drift"
+    },
+    {
+     "at": "+6",
+     "cond": "efficiencyFactor present",
+     "effect": "adds row"
+    },
+    {
+     "at": "+9",
+     "cond": "session.rmssd present",
+     "effect": "adds row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.efficiencyFactorText(_:)": "5f4a3fb6323b8fab",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawDriftTakeaway(at:)",
+   "hash": "ce2d6e247a766a68",
+   "does": "Draws a drift status arrow: <5 good, <7 neutral, else caution; nothing without decoupling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "decoupling present",
+     "effect": "false: nothing"
+    },
+    {
+     "at": "+3",
+     "cond": "d < 5",
+     "effect": "good arrow"
+    },
+    {
+     "at": "+5",
+     "cond": "d < 7",
+     "effect": "neutral arrow; else caution"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawStatusArrow(_:kind:at:)": "a7ee9eba1dd9631b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawEffortAndTerrainPage(ctx:mapImage:)",
+   "hash": "edaa8a4f3f5f9091",
+   "does": "Draws the EFFORT & TERRAIN page: title, route map with α1-coloured polyline, legend, footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawRouteMap(_:at:contentW:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawRouteLegend(at:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "9d1d7ed634d8815d",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)": "43cc342f1e5c56b0",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawRouteLegend(at:)": "7a77d3b02082f578",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawRouteMap(_:at:contentW:)": "4aa52d1be3374dbf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawRouteMap(_:at:contentW:)",
+   "hash": "e67ae4937d47a4d9",
+   "does": "Draws the route heading and the map image at its own aspect ratio across content width, its border and the coloured polyline, un-mirrored on RTL pages.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawColouredPolyline(_:in:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "image width > 0",
+     "effect": "height from aspect ratio; else 320 pt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.drawColouredPolyline(_:in:)": "be750d98383519fd",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawRouteLegend(at:)",
+   "hash": "70db6c21e7615ce8",
+   "does": "Draws the three-colour α1 band legend (sage/yellow/orange).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each legend item",
+     "effect": "draws swatch + text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawMethodologyPage(ctx:)",
+   "hash": "646409d74a631e4f",
+   "does": "Draws the METHODOLOGY page: each methodology section as heading + 9 pt wrapped body, then footer. No overflow check.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologySections(bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each methodology section",
+     "effect": "draws heading and body"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Eight methodology sections are drawn without any page-space check; longer translations can run past the footer since nothing paginates this page.",
+     "evidence": [
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:394",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift:406"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawFooter()": "9d1d7ed634d8815d",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawSectionHeading(_:at:)": "44ca5ac641e0e88c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWrappedText(_:at:width:font:color:lineHeight:)": "3abecee40a5e3d91",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)": "43cc342f1e5c56b0",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologySections(bundle:)": "536b1e708704eb7a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.methodologySections(bundle:)",
+   "hash": "11b2d123147b452a",
+   "does": "Concatenates load sections and anchor sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyLoadSections(bundle:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyAnchorSections(bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyAnchorSections(bundle:)": "f157cf035623a34c",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyLoadSections(bundle:)": "8e5a25c8b6a3f36f"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.methodologyLoadSections(bundle:)",
+   "hash": "4809ac6ee4849827",
+   "does": "Returns static text for TRIMP (Banister), HRSS, DFA α1 and Pa:Hr decoupling methodology.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.methodologyAnchorSections(bundle:)",
+   "hash": "6526d6290aa667bd",
+   "does": "Returns static text for elevation and LTHR estimation, plus the filter sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyFilterSections(bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.methodologyFilterSections(bundle:)": "ddca8ad265b1dac5"
+   }
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.methodologyFilterSections(bundle:)",
+   "hash": "b34d08edd28e9aa5",
+   "does": "Returns static text for the cadence filter and methods not used.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPDFPhysiologyPages.drawPageTitle(_:at:)",
+   "hash": "0effd36cee81c19d",
+   "does": "Draws a 16 pt heavy page title and a strong divider; advances y by 32.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)",
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFPhysiologyPages.swift::var WorkoutPDFPhysiologyPages.report": "db5fbe168ce2391a",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)": "454595f0c9fc54e3",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  }
+ ],
+ "deps": {}
+}

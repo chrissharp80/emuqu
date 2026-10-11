@@ -1,0 +1,259 @@
+{
+ "file": "Emuqu/Sources/Services/WebSearchService.swift",
+ "hash": "f0e480d96a6b6908",
+ "role": "Nonisolated Tavily search client behind the assistant's web.search action: checks the enable setting and Tavily key, POSTs to api.tavily.com with intent-specific include domains and a global exclude list, maps HTTP status, and decodes results.",
+ "types": [
+  "WebSearchService: class (final, Sendable) — Tavily client singleton",
+  "WebSearchService.Intent: enum — research/manufacturer/general",
+  "WebSearchService.Result: struct — title/url/content/score/publishedDate",
+  "WebSearchService.SearchError: enum — notEnabled/missingKey/network/decode/rateLimited",
+  "WebSearchService.TavilyResponse: struct (private Decodable) — wire format"
+ ],
+ "state": [
+  "mem:WebSearchService.shared",
+  "mem:WebSearchService.researchAuthorityDomains (23 domains)",
+  "mem:WebSearchService.manufacturerAuthorityDomains (15 domains)",
+  "mem:WebSearchService.excludeDomains (5 domains)",
+  "net:api.tavily.com/search",
+  "kc:Tavily service key (APIKeyStore.serviceKey(.tavilyWebSearch))"
+ ],
+ "toplevel": "Static domain lists are compile-time arrays. Accessed via AppDependencies.providers.webSearchService (AppDependencies.swift:683-685) and called from AppFactResolver+Settings racedSearch with a 15 s timeout.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The caller's comment says 'URLSession errors are wrapped by WebSearchService', but search() lets URLSession.data errors propagate unwrapped; the caller's generic catch re-wraps them as .network, so behaviour is correct but the claim is false.",
+   "evidence": [
+    "Emuqu/Sources/Services/WebSearchService.swift:152",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:217"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init WebSearchService()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op init so only `shared` exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WebSearchService.SearchError.errorDescription",
+   "hash": "d3ff0938a1bb4ab5",
+   "does": "Fixed English (not localized) description for each SearchError case.",
+   "entry": "LocalizedError witness",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .notEnabled",
+     "effect": "'Web search is disabled in Settings'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .missingKey",
+     "effect": "'No Tavily API key set'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .network(s)",
+     "effect": "'Network error: s'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .decode(s)",
+     "effect": "'Decode error: s'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .rateLimited",
+     "effect": "'Tavily rate limit hit'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WebSearchService.search(query:intent:maxResults:)",
+   "hash": "aa4dca9d91d72197",
+   "does": "Throws notEnabled if settings.enableWebSearch is off, missingKey if no Tavily key; else builds the request, awaits URLSession data, validates status and returns parsed results.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.serviceKey(for:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)",
+    "ext:URLSession.data(for:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot.enableWebSearch",
+    "kc:tavilyWebSearch service key",
+    "net:api.tavily.com"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "settingsSnapshot.enableWebSearch",
+     "effect": "false: throws .notEnabled; true: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "Tavily key present and non-empty",
+     "effect": "false: throws .missingKey; true: continue (URLSession errors propagate unwrapped)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "ARCHITECTURE.md says the resolver bridges sync->async via Task.detached + DispatchSemaphore around WebSearchService; the actual caller is a suspending @MainActor 15 s timeout race (FactResolveTimeout.withTimeout) with no semaphore.",
+     "evidence": [
+      "docs/ARCHITECTURE.md:1372",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:204",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:209"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.serviceKey(for:)": "4c8fcc142e1431ac",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)": "f540ffb707f2f95d",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)": "aede26bfd63057cb",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "cb9f7b023c4ea0c8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)",
+   "hash": "825ab198a575c3f6",
+   "does": "Builds the POST URLRequest to https://api.tavily.com/search: basic depth, max_results clamped 1...10, exclude list, no answer/raw content, include_domains for research/manufacturer intents, 12 s timeout, JSON + Bearer key headers; body serialization failure swallowed by try?.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)",
+    "ext:JSONSerialization.data"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "includeDomains non-empty",
+     "effect": "true: adds include_domains; false (general): open web"
+    },
+    {
+     "at": "+13",
+     "cond": "URL(string:) succeeds",
+     "effect": "false: throws .network('malformed endpoint') (unreachable for the constant literal); true: continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "17ab71f76b164165"
+   }
+  },
+  {
+   "key": "func WebSearchService.authorityDomains(for:)",
+   "hash": "17236a07657bb1d9",
+   "does": "Maps Intent to its include-domain list: research → researchAuthorityDomains, manufacturer → manufacturerAuthorityDomains, general → [].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .research",
+     "effect": "researchAuthorityDomains"
+    },
+    {
+     "at": "+3",
+     "cond": "case .manufacturer",
+     "effect": "manufacturerAuthorityDomains"
+    },
+    {
+     "at": "+4",
+     "cond": "case .general",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WebSearchService.checkStatus(_:)",
+   "hash": "6611a07dd18aeddd",
+   "does": "Validates the response: non-HTTP → .network; 429 → .rateLimited; non-2xx → warn-log and .network('HTTP n'); 2xx → returns.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "response is HTTPURLResponse",
+     "effect": "false: throws .network('non-HTTP response'); true: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "statusCode == 429",
+     "effect": "true: throws .rateLimited"
+    },
+    {
+     "at": "+7",
+     "cond": "status in 200..<300",
+     "effect": "false: logs warning, throws .network('HTTP code'); true: returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WebSearchService.parse(data:)",
+   "hash": "59828beb531bf66f",
+   "does": "Decodes TavilyResponse JSON; maps items to Result, dropping any item missing title, url or content, defaulting score to 0.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch: JSON decode fails",
+     "effect": "rethrows as .decode(String(describing: error))"
+    },
+    {
+     "at": "+8",
+     "cond": "title, url and content all present",
+     "effect": "false: item dropped silently (nil in compactMap); true: Result built"
+    },
+    {
+     "at": "+15",
+     "cond": "item.score ?? 0",
+     "effect": "score 0 used when Tavily omits score"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

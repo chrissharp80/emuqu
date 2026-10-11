@@ -1,0 +1,462 @@
+{
+ "file": "EmuquTests/RouteTRIMPEstimatorTests.swift",
+ "hash": "a4db94cb453c7051",
+ "role": "Tests RouteTRIMPEstimator maths that credits training load on a saved route when the HR strap dropped: TRIMP/metre ratio, target distance, the three estimation cases, confidence cap, outlier removal and which prior sessions count.",
+ "types": [
+  "RouteTRIMPEstimatorTests: class (@MainActor) — XCTestCase for RouteTRIMPEstimator static helpers"
+ ],
+ "state": [
+  "mem:RouteTRIMPEstimatorTests.workoutStart (fixed Date 1_700_000_000)"
+ ],
+ "toplevel": "Private stored let workoutStart used as the reference start for prior-session tests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RouteTRIMPEstimatorTests.testRatioIsLoadOverDistance()",
+   "hash": "8abac1b23dc2dd42",
+   "does": "Asserts trimpPerMetre(100, 10000) == 0.01.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimpPerMetre returns nil",
+     "effect": "?? 0 fallback fails the ==0.01 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testZeroDistanceProducesNoRatio()",
+   "hash": "433ef961c9f8f988",
+   "does": "Asserts zero distance gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testZeroTRIMPProducesNoRatio()",
+   "hash": "e91ba0cf578dc44f",
+   "does": "Asserts zero TRIMP gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testMissingInputsProduceNoRatio()",
+   "hash": "83daecec21c46201",
+   "does": "Asserts nil TRIMP or nil distance gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testFullLoopUsesTheSavedDistance()",
+   "hash": "d54301a138d611d2",
+   "does": "Asserts recorded 9500 m on a 10000 m route (within 10%) returns the saved 10000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testRecordingCutShortByACrashStillScalesToTheWholeRoute()",
+   "hash": "68a06a0ac1015670",
+   "does": "Asserts a truncated 4000 m recording returns the saved 10000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testPartialRunOfTheRouteIsCreditedOnlyForTheDistanceCovered()",
+   "hash": "73c84ddd3ff916e0",
+   "does": "Asserts a non-truncated 3000 m recording returns 3000 (partial credit).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testUserRanFurtherThanTheSavedRoute()",
+   "hash": "091ed6de0d8c6697",
+   "does": "Asserts 14000 m recorded on a 10000 m route returns 14000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testSlightlyLongerStillCountsAsTheWholeLoop()",
+   "hash": "ad186e212946e535",
+   "does": "Asserts 10500 m (within +10%) returns 10000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testMuchLongerRunIsNotClampedToTheRoute()",
+   "hash": "ff301c5310e05ce6",
+   "does": "Asserts 40000 m returns 40000 (not clamped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testNoRecordedDistanceFallsBackToTheRoute()",
+   "hash": "17aa6181a1dfb118",
+   "does": "Asserts nil recorded distance returns the saved 10000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testFullDropoutUsesPriorRunsDirectly()",
+   "hash": "bb0582fe0bdb6193",
+   "does": "Asserts prior ratio 0.01 with no recorded ratio at 10 km gives TRIMP 100 and priorDominant true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "estimate is nil",
+     "effect": "?? 0 fallback fails the ==100 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testPartialDataBlendsBiasedTowardPriors()",
+   "hash": "36d80294d3da6401",
+   "does": "Asserts prior 0.01 and recorded 0.005 blend 60/40 to (0.006+0.002)*10000 = 80 with priorDominant false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "estimate is nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testNoPriorsScalesTodayAtLowConfidence()",
+   "hash": "c86bc64b7cb008d9",
+   "does": "Asserts no priors and recorded 0.008 at 10 km gives TRIMP 80 at confidence 0.4 (routeEstimateNoPriorConfidence).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "estimate is nil",
+     "effect": "?? 0 fallback fails ==80"
+    },
+    {
+     "at": "+6",
+     "cond": "estimate is nil",
+     "effect": "?? 0 fallback fails ==0.4"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testNoBasisProducesNoEstimate()",
+   "hash": "dc23425f93632bcf",
+   "does": "Asserts no prior and no recorded ratio returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testConfidenceRisesWithPriorRunsButIsCapped()",
+   "hash": "51b13823e2683758",
+   "does": "Asserts confidence with 1 prior is lower than with 20 priors and the 20-prior confidence is <= 0.85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "either estimate nil",
+     "effect": "?? 0 fallbacks: nil 'one' with non-nil 'many' still passes; both nil fails (0<0 false)"
+    },
+    {
+     "at": "+9",
+     "cond": "many is nil",
+     "effect": "?? 1 fallback makes the <=0.85 assertion fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testADropoutPriorIsDroppedAsAnOutlier()",
+   "hash": "187766c3ae40611c",
+   "does": "Asserts withoutOutliers([0.010,0.011,0.0002]) drops the 0.0002 dropout (below half the median).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)": "be16961ba08d2fbb"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testSimilarPriorsAreAllKept()",
+   "hash": "6e3e16dbc199bb35",
+   "does": "Asserts withoutOutliers keeps three similar ratios and a single-element array unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)": "be16961ba08d2fbb"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+   "hash": "2497e87910d18628",
+   "does": "Builds a complete workout HRVSession ending at `end` (1 h long) with WorkoutMetadata of the given sport, luciaTRIMP and optional partialDataReason .appCrashed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "partial is true",
+     "effect": "sets partialDataReason .appCrashed; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testAnEarlierCleanRunOfTheSameSportIsAPrior()",
+   "hash": "652eec6b3c9d1456",
+   "does": "Asserts a clean same-sport run ending a day before is a prior.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)": "6c51f0aa8473925f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testTheWorkoutBeingEstimatedIsNotItsOwnPrior()",
+   "hash": "097b5418d9a1577b",
+   "does": "Asserts a session ending after workoutStart is not a prior.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)": "6c51f0aa8473925f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testAnotherSportIsNotAPrior()",
+   "hash": "b24afc66a0c8f958",
+   "does": "Asserts a bike session is not a prior for a run.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)": "6c51f0aa8473925f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testARecoveredPartialIsNotAPrior()",
+   "hash": "bfbabdf40efbf3e6",
+   "does": "Asserts a session with partialDataReason .appCrashed is not a prior.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)": "6c51f0aa8473925f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimatorTests.testADropoutWhoseLoadWasReplacedIsNotAPrior()",
+   "hash": "2ca117aa63f63399",
+   "does": "Asserts a prior with luciaTRIMP 2 and route estimate 80 at confidence 0.7 (routeEstimateReplacesHRLoad true) is not a prior.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "EmuquTests/RouteTRIMPEstimatorTests.swift::func RouteTRIMPEstimatorTests.prior(endingAt:sport:luciaTRIMP:partial:)": "6c51f0aa8473925f"
+   }
+  }
+ ],
+ "deps": {}
+}

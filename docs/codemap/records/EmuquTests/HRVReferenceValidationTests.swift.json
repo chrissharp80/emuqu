@@ -1,0 +1,307 @@
+{
+ "file": "EmuquTests/HRVReferenceValidationTests.swift",
+ "hash": "71079ea6a6f94f1e",
+ "role": "XCTest suite validating TimeDomainAnalyzer against 6,000 ECG-annotated RR intervals from 20 nsr2db records with independently computed Python reference values: corpus sanity, meanRR/SDNN and unfiltered RMSSD to 1e-6, ectopic-filter relations, pNN50 where unfiltered, mean-HR scale, finiteness and shift invariance.",
+ "types": [
+  "HRVReferenceValidationTests: class — XCTestCase over HRVReferenceFixtures",
+  "HRVReferenceValidationTests.Expected: struct — decoded reference metrics",
+  "HRVReferenceValidationTests.Record: struct — decoded fixture record",
+  "HRVReferenceValidationTests.Fixtures: struct — top-level {records}"
+ ],
+ "state": [
+  "mem:HRVReferenceValidationTests.fixtures (static lazy decode of HRVReferenceFixtures.json)",
+  "mem:HRVReferenceValidationTests.tolerance (1e-6)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "let HRVReferenceValidationTests.fixtures",
+   "hash": "dffccd911137fac7",
+   "does": "Static lazy initializer: strips all newlines from HRVReferenceFixtures.json and decodes it with JSONDecoder into Fixtures, using try! (a decode failure traps the test process).",
+   "entry": "Swift static lazy initialisation on first access of HRVReferenceValidationTests.fixtures by a test",
+   "calls": [],
+   "reads": [
+    "mem:HRVReferenceFixtures.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "try! decode means a fixture regeneration that produces bad JSON crashes the whole test runner instead of failing these tests.",
+     "evidence": [
+      "EmuquTests/HRVReferenceValidationTests.swift:66"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVReferenceValidationTests.analyse(_:)",
+   "hash": "9346be87fbf0d113",
+   "does": "Test helper: turns a record's rrMs into RRPoints with cumulative t_ms, marks every beat clean, and returns TimeDomainAnalyzer.computeTimeDomain over the whole series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()",
+   "hash": "d1a8352f36076cb9",
+   "does": "Asserts 20 records totalling 6000 intervals, each with a 64-char SHA and all RR in 300…2000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each record",
+     "effect": "asserts SHA length and RR range"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()",
+   "hash": "e8fbbd255afcbd04",
+   "does": "For every record asserts computeTimeDomain meanRR and SDNN equal the reference within 1e-6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each record",
+     "effect": "unwraps metrics and compares"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
+   "hash": "2e7e7a2a08ae30db",
+   "does": "For every record asserts rmssd(fromCleanRRs:) equals the unfiltered reference RMSSD within 1e-6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each record",
+     "effect": "compares unfiltered RMSSD"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()",
+   "hash": "8a1dabdae57aac91",
+   "does": "Asserts pipeline (ectopic-filtered) RMSSD ≤ unfiltered RMSSD for every record and that at least one record is strictly reduced.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each record",
+     "effect": "asserts ≤ raw + tolerance"
+    },
+    {
+     "at": "+7",
+     "cond": "pipeline RMSSD < raw − tolerance",
+     "effect": "counts the record as narrowed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The ≤ assertion is not a property of the filter: the pipeline RMSSD is the RMS of a SUBSET of the raw successive differences (pairs touching an ectopic-gated beat are skipped, TimeDomainAnalysis.swift:303-318), and the RMS of a subset exceeds the full RMS whenever the skipped differences are smaller than average. The comment \"removing outliers can only shrink a root-mean-square of differences\" (line 141) is false; the assertion holds on this corpus empirically and could fail for a correct gate change.",
+     "evidence": [
+      "EmuquTests/HRVReferenceValidationTests.swift:141",
+      "EmuquTests/HRVReferenceValidationTests.swift:153",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:309"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()",
+   "hash": "f0d1e07911e4c415",
+   "does": "For records where filterEctopicBeats removes nothing, asserts pipeline pNN50 equals the unfiltered reference within 1e-5, and that at least one record was compared.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each record",
+     "effect": "checks filter count"
+    },
+    {
+     "at": "+4",
+     "cond": "filter keeps every beat",
+     "effect": "false: record skipped (continue); true: compares pNN50"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "d622eb47a84bc6dd",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testEctopicFilterOnlyEverRemovesBeats()",
+   "hash": "c08dadc57ac84356",
+   "does": "For every record asserts filterEctopicBeats output is no longer than input and contains only values present in the input.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each record",
+     "effect": "asserts subset property"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "d622eb47a84bc6dd",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()",
+   "hash": "b4ad41e3e9996ca4",
+   "does": "For every record asserts meanHR is within max(2 bpm, 5%) of 60000/meanRR and within 30…200 bpm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each record",
+     "effect": "asserts scale agreement"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testEveryMetricIsFiniteAndNonNegative()",
+   "hash": "b7aa9b819ed166fd",
+   "does": "For every record asserts meanRR, sdnn, rmssd, pnn50, sdsd and meanHR are finite and ≥ 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each record",
+     "effect": "analyses record"
+    },
+    {
+     "at": "+3",
+     "cond": "for each named metric",
+     "effect": "asserts finite and non-negative"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testVariabilityIsInvariantUnderAConstantShift()",
+   "hash": "93514f0f7e8bb6d6",
+   "does": "For the first 5 records asserts adding 100 ms to every RR raises meanRR by 100 and leaves SDNN unchanged (1e-9).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of first 5 records",
+     "effect": "analyses base and shifted series"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "15214cf01641b051",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "77833ed289ca7ef9"
+   }
+  }
+ ],
+ "deps": {}
+}

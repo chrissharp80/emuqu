@@ -1,0 +1,188 @@
+{
+ "file": "Emuqu/Sources/Views/AudioGraphHelpers.swift",
+ "hash": "f45e3397f3de6eaa",
+ "role": "Factories for AXChartDescriptor (VoiceOver Audio Graph) descriptors for one-series date/value and numeric x/y line charts.",
+ "types": [
+  "AudioGraphDescriptor: enum — line/numericLine factories",
+  "LineChartDescriptor: struct (private) AXChartDescriptorRepresentable — date x axis",
+  "NumericLineDescriptor: struct (private) AXChartDescriptorRepresentable — numeric x axis"
+ ],
+ "state": [],
+ "toplevel": "File-private free function axisRange.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)",
+   "hash": "d7a1b019fd3b1813",
+   "does": "Returns a LineChartDescriptor for (Date, Double) points with given title/axis labels.",
+   "entry": "Used inside .accessibilityChartDescriptor(...) on charts in VitalsDetailV2View, LoadTrajectoryView, RecoveryScoreDetailView+Charts, TrendsV2View+Charts.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AudioGraphDescriptor.numericLine(title:xLabel:yLabel:points:)",
+   "hash": "a8c8595ad44997e2",
+   "does": "Returns a NumericLineDescriptor for (x, y) Double points.",
+   "entry": "Used in .accessibilityChartDescriptor on HRVDetailV2View+Charts.swift:66.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LineChartDescriptor.axisDateStyle",
+   "hash": "0bdab7bf3ce5eddc",
+   "does": "Date.FormatStyle (numeric date, short time) in the app's selected locale, rebuilt per access.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func LineChartDescriptor.makeChartDescriptor()",
+   "hash": "8896e5b25fab4027",
+   "does": "Builds an AXChartDescriptor with one continuous series of (timeIntervalSinceReferenceDate, value) points, date x axis and value y axis.",
+   "entry": "AXChartDescriptorRepresentable requirement, called by SwiftUI accessibility when VoiceOver inspects the chart.",
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.dateAxis()",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.valueAxis()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.dateAxis()": "2acf4af0116c882b",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func LineChartDescriptor.valueAxis()": "e9b906a900c12531"
+   }
+  },
+  {
+   "key": "func LineChartDescriptor.dateAxis()",
+   "hash": "7cc0ff2cd891716d",
+   "does": "Date x axis spanning min…max point dates as reference-interval seconds, with a value-description closure formatting each as a localized date/time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::var LineChartDescriptor.axisDateStyle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points empty (min nil)",
+     "effect": "minX = Date() (now)"
+    },
+    {
+     "at": "+3",
+     "cond": "points empty (max nil)",
+     "effect": "maxX = Date(); both now, so a zero-width range"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unlike the value axis (axisRange forces ≥1 wide, comment says a degenerate range makes the scrubber unusable), the date axis is not widened, so a single-point or empty chart gets a zero-width x range; also minX/maxX use two separate Date() calls so an empty series could yield maxX slightly > minX only by luck of timing.",
+     "evidence": [
+      "Emuqu/Sources/Views/AudioGraphHelpers.swift:81",
+      "Emuqu/Sources/Views/AudioGraphHelpers.swift:82",
+      "Emuqu/Sources/Views/AudioGraphHelpers.swift:125"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::var LineChartDescriptor.axisDateStyle": "8ec7cc7967743ed8"
+   }
+  },
+  {
+   "key": "func LineChartDescriptor.valueAxis()",
+   "hash": "8574c783d41e3e63",
+   "does": "Value y axis over axisRange(values) with '%.1f' descriptions in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)": "bbe4e1504f3dba42"
+   }
+  },
+  {
+   "key": "func NumericLineDescriptor.makeChartDescriptor()",
+   "hash": "29fa60d2dd234035",
+   "does": "Builds an AXChartDescriptor with one continuous (x, y) series, x described '%.1f' and y '%.2f'.",
+   "entry": "AXChartDescriptorRepresentable requirement, called by SwiftUI accessibility.",
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func NumericLineDescriptor.numericAxis(title:values:format:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func NumericLineDescriptor.numericAxis(title:values:format:)": "9727db9998cbf7c2"
+   }
+  },
+  {
+   "key": "func NumericLineDescriptor.numericAxis(title:values:format:)",
+   "hash": "c116d2aab245ce9b",
+   "does": "Numeric axis descriptor over axisRange(values) with a printf-format value description in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func axisRange(_:)": "bbe4e1504f3dba42"
+   }
+  },
+  {
+   "key": "func axisRange(_:)",
+   "hash": "f4fe61859e2d85d0",
+   "does": "Range over finite values only, lo…max(hi, lo+1); 0…1 when no finite value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no finite values (min nil)",
+     "effect": "lo = 0"
+    },
+    {
+     "at": "+3",
+     "cond": "no finite values (max nil)",
+     "effect": "hi = 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

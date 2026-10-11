@@ -1,0 +1,664 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift",
+ "hash": "fbf12b57ee477b64",
+ "role": "Shared OpenAI Chat Completions client for OpenAI, Grok and DeepSeek: endpoints, URLSession, request body shapes, message building with cache-marker split, SSE parse with tool_call accumulation, usage mapping and HTTP error mapping.",
+ "types": [
+  "OpenAICompatibleStreamer: enum — namespace",
+  "Endpoint: enum — parsed endpoint URLs",
+  "Reasoning: enum — modelDefault/effortNone/thinkingDisabled",
+  "StreamCall: struct — one call's inputs",
+  "MessageShape: enum — Encodable chat message variants",
+  "OutgoingToolCall/OutgoingTool/RequestBody/PendingToolCall/ParsedOpenAIError: structs — wire/accumulator shapes"
+ ],
+ "state": [
+  "net:api.openai.com/v1/chat/completions OpenAICompatibleStreamer.swift:28",
+  "net:api.x.ai/v1/chat/completions OpenAICompatibleStreamer.swift:29",
+  "net:api.deepseek.com/chat/completions OpenAICompatibleStreamer.swift:30",
+  "mem:OpenAICompatibleStreamer.session (static URLSession) OpenAICompatibleStreamer.swift:62",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey accounts per providerID (via APIKeyStore)"
+ ],
+ "toplevel": "Endpoint URLs are optional URL(string:) constants (lines 27-31); Reasoning, StreamCall and private wire types declared at lines 81-228 with synthesized Encodable except MessageShape.",
+ "flags": [],
+ "units": [
+  {
+   "key": "let OpenAICompatibleStreamer.session",
+   "hash": "78dbf51832adab87",
+   "does": "Lazily builds the shared streaming URLSession (waitsForConnectivity, 30s/180s timeouts, cellular/constrained/expensive allowed, 4 connections/host, no cache).",
+   "entry": "Static lazy initializer run on first access from OpenAICompatibleStreamer.connect.",
+   "calls": [
+    "ext:URLSession(configuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "cd44b03c050985fc",
+   "does": "Entry for OpenAI-compatible providers: returns a stream that fails immediately with invalidResponse(\"bad endpoint\") if the endpoint URL is nil, otherwise packages inputs into StreamCall and runs stream() inside ProviderStream.make.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.stream(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "endpoint is nil",
+     "effect": "returns a stream that finishes throwing AIProviderError.invalidResponse(\"bad endpoint\"); otherwise builds StreamCall and streams."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.stream(_:continuation:)": "588735136132289f",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.MessageShape.encode(to:)",
+   "hash": "feb74b6e01e913b6",
+   "does": "Custom Encodable: writes role/content per case; assistantToolCalls writes content \"\" plus tool_calls; toolResult writes role \"tool\", tool_call_id and content.",
+   "entry": "Encodable conformance invoked by JSONEncoder in buildRequest.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .system",
+     "effect": "role \"system\", content s."
+    },
+    {
+     "at": "+6",
+     "cond": "case .plainUser",
+     "effect": "role \"user\", content s."
+    },
+    {
+     "at": "+9",
+     "cond": "case .plainAssistant",
+     "effect": "role \"assistant\", content s."
+    },
+    {
+     "at": "+12",
+     "cond": "case .assistantToolCalls",
+     "effect": "role \"assistant\", content \"\", tool_calls array."
+    },
+    {
+     "at": "+16",
+     "cond": "case .toolResult",
+     "effect": "role \"tool\", tool_call_id, content."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)",
+   "hash": "9546df1ef1394bd7",
+   "does": "Builds outgoing messages: system message with the stable prompt half, conversation turns with the live_state envelope (variable half + contextRendered) appended to the last user turn, a trailing system message with the envelope if there is no user turn, then each non-empty tool round.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.liveStateEnvelope(variableSystem:contextRendered:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "system prompt contains the cache marker",
+     "effect": "variable = text after first marker; otherwise \"\"."
+    },
+    {
+     "at": "+10",
+     "cond": "parts.first exists",
+     "effect": "stable system text; ?? whole prompt (never taken)."
+    },
+    {
+     "at": "+12",
+     "cond": "for each conversation turn",
+     "effect": "appends one message."
+    },
+    {
+     "at": "+14",
+     "cond": "turn.role == .user",
+     "effect": ".plainUser; otherwise .plainAssistant (non-user roles all become assistant)."
+    },
+    {
+     "at": "+15",
+     "cond": "splice (last user turn and envelope non-empty)",
+     "effect": "text + envelope; otherwise text."
+    },
+    {
+     "at": "+18",
+     "cond": "no user turn and envelope non-empty",
+     "effect": "appends a trailing .system(envelope) after the conversation; otherwise nothing."
+    },
+    {
+     "at": "+21",
+     "cond": "for each non-empty tool round",
+     "effect": "appends toolRoundMessages; empty rounds skipped."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.liveStateEnvelope(variableSystem:contextRendered:)": "3128e73a82d6e290",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "1768b90b96fa741f"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.liveStateEnvelope(variableSystem:contextRendered:)",
+   "hash": "d024730f0d061231",
+   "does": "Wraps non-empty variable system text and contextRendered in the <live_state> envelope.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "joined body empty",
+     "effect": "returns \"\"; otherwise envelope."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.toolRoundMessages(_:)",
+   "hash": "734571d6e5b68e52",
+   "does": "One tool round as an assistant message with every tool call (id, name, raw inputJSON as arguments string) followed by one tool message per result (resultJSON verbatim).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+   "hash": "2f8488d073c7450e",
+   "does": "Builds the POST: optional tools array, reasoning_effort \"none\" for .effortNone, thinking {\"type\":\"disabled\"} for .thinkingDisabled, stream true with include_usage, Bearer auth, sortedKeys JSON.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "tools empty",
+     "effect": "tools nil (omitted); otherwise mapped OutgoingTool list."
+    },
+    {
+     "at": "+16",
+     "cond": "reasoning == .effortNone",
+     "effect": "reasoning_effort \"none\"; otherwise nil (omitted)."
+    },
+    {
+     "at": "+17",
+     "cond": "reasoning == .thinkingDisabled",
+     "effect": "thinking {type:\"disabled\"}; otherwise nil."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.stream(_:continuation:)",
+   "hash": "a8936550d7e3582d",
+   "does": "Reads the provider key from Keychain, builds the request, connects, maps non-2xx statuses to errors and consumes the SSE body.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.connect(_:providerID:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:continuation:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey:<providerID>"
+   ],
+   "writes": [
+    "net:api.openai.com|api.x.ai|api.deepseek.com"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no key for providerID",
+     "effect": "throws AIProviderError.missingKey(providerID)."
+    },
+    {
+     "at": "+10",
+     "cond": "HTTP status outside 200-299",
+     "effect": "throwForStatus throws; otherwise consumeSSE."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "33c627035da22f46",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.connect(_:providerID:)": "ea41c8b9d5cbb84b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:continuation:)": "1858e955527a8426",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "cbd7ab6c544b3f78",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)": "b5cc234a5e3e6f7b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
+   "hash": "be4114657d498235",
+   "does": "Pure builder: buildMessages + buildRequest for a StreamCall and key (exposed for ProviderStreamTests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildMessages(messages:systemPrompt:contextRendered:toolRounds:)": "105d5ff8db4b41be",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)": "c121243da786049b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.messages": "386409170722e795"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.connect(_:providerID:)",
+   "hash": "59c85dc42e1ff153",
+   "does": "Opens the streaming request on the shared session; a URLError is logged at warning level with its code and rethrown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:URLSession.bytes(for:)"
+   ],
+   "reads": [
+    "mem:OpenAICompatibleStreamer.session"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session.bytes threw a URLError",
+     "effect": "logs \"[AIStreamer] <provider> connect failed: code=...\" (.warning, shown in Troubleshooting) and rethrows; other errors propagate unlogged."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::let OpenAICompatibleStreamer.session": "76b379e416c7130f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.consumeSSE(_:continuation:)",
+   "hash": "165d13aea77ff899",
+   "does": "Reads SSE lines; on [DONE] flushes pending tool calls, yields .done and returns; for JSON chunks handles choices[0] and usage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChoice(_:openToolCalls:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.yieldUsage(_:to:)",
+    "ext:URLSession.AsyncBytes.lines"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each line",
+     "effect": "loop; network errors propagate."
+    },
+    {
+     "at": "+7",
+     "cond": "line starts with data:",
+     "effect": "processed; otherwise skipped."
+    },
+    {
+     "at": "+9",
+     "cond": "payload empty",
+     "effect": "skipped."
+    },
+    {
+     "at": "+10",
+     "cond": "payload == \"[DONE]\"",
+     "effect": "flush tool calls, yield .done, return."
+    },
+    {
+     "at": "+15",
+     "cond": "payload decodes to a JSON object",
+     "effect": "handled; otherwise silently skipped."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Accumulated tool_call fragments are flushed only on finish_reason \"tool_calls\" or [DONE]; if the server closes the connection after the last fragment without either, the for-await loop ends and the calls are discarded with no error, so the turn ends without running the requested tools.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:402",
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:407",
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:436",
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:418"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)": "7e12a217d048fa08",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChoice(_:openToolCalls:continuation:)": "cf6d630b552663fd",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.yieldUsage(_:to:)": "c51e0db98aa7a1d6"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.handleChoice(_:openToolCalls:continuation:)",
+   "hash": "a7e06bcda4eb4fcd",
+   "does": "Handles choices[0]: yields non-empty content as .textDelta, accumulates tool_call fragments, and flushes pending calls when finish_reason == \"tool_calls\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.accumulate(_:into:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "choices[0] present",
+     "effect": "continues; otherwise returns."
+    },
+    {
+     "at": "+6",
+     "cond": "delta dictionary present",
+     "effect": "process content and tool_calls; otherwise skip to finish_reason."
+    },
+    {
+     "at": "+7",
+     "cond": "delta.content non-empty String",
+     "effect": "yields .textDelta."
+    },
+    {
+     "at": "+10",
+     "cond": "delta.tool_calls array (?? [] when absent)",
+     "effect": "accumulate each fragment; absent → no iterations."
+    },
+    {
+     "at": "+14",
+     "cond": "finish_reason == \"tool_calls\"",
+     "effect": "flushToolCalls; any other reason (incl. \"stop\") leaves pending calls until [DONE]."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A mid-stream {\"error\":{...}} chunk has no choices, so handleChoice returns and the error is dropped; the user sees a truncated or empty answer rather than an AIProviderError.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:427",
+      "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift:415"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.accumulate(_:into:)": "2a635539e518e764",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)": "7e12a217d048fa08"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.accumulate(_:into:)",
+   "hash": "a011e34853bad692",
+   "does": "Merges one tool_call delta into the pending call at its index, setting id/name when non-empty and appending argument fragments.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fragment has Int index",
+     "effect": "continues; otherwise ignored."
+    },
+    {
+     "at": "+2",
+     "cond": "no pending call at index",
+     "effect": "creates PendingToolCall(index)."
+    },
+    {
+     "at": "+3",
+     "cond": "non-empty id",
+     "effect": "sets id."
+    },
+    {
+     "at": "+4",
+     "cond": "function dict present",
+     "effect": "continues; otherwise returns."
+    },
+    {
+     "at": "+5",
+     "cond": "non-empty name",
+     "effect": "sets name."
+    },
+    {
+     "at": "+6",
+     "cond": "non-empty arguments fragment",
+     "effect": "appends to arguments."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.yieldUsage(_:to:)",
+   "hash": "3cc2f49bdda14f34",
+   "does": "Maps OpenAI/DeepSeek usage to .usage: cached = prompt_tokens_details.cached_tokens (if non-zero) else prompt_cache_hit_tokens else 0; input = prompt_tokens − cached (floored 0); output = completion_tokens; skipped when all zero.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "usage nil",
+     "effect": "returns."
+    },
+    {
+     "at": "+5",
+     "cond": "completion_tokens Int present",
+     "effect": "used; ?? 0."
+    },
+    {
+     "at": "+7",
+     "cond": "cached_tokens present and non-zero",
+     "effect": "used; zero/absent → falls back (??) to prompt_cache_hit_tokens, then ?? 0."
+    },
+    {
+     "at": "+8",
+     "cond": "prompt_cache_hit_tokens present",
+     "effect": "used as DeepSeek cached count; ?? 0."
+    },
+    {
+     "at": "+9",
+     "cond": "prompt_tokens Int present",
+     "effect": "used; ?? 0."
+    },
+    {
+     "at": "+10",
+     "cond": "all three zero",
+     "effect": "returns without emitting; otherwise yields .usage."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)",
+   "hash": "36cd6f5f0985a79d",
+   "does": "Yields one .toolUse per pending call with a non-empty name in index order (empty arguments become \"{}\") and clears the dictionary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "call name non-empty",
+     "effect": "emitted; nameless calls dropped silently."
+    },
+    {
+     "at": "+6",
+     "cond": "arguments empty",
+     "effect": "\"{}\"; otherwise the accumulated string (not validated as JSON)."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)",
+   "hash": "9364a414519f18ca",
+   "does": "Collects up to 4096 bytes of the error body, redacts keys, throws outOfCredit when credit is exhausted, otherwise maps 401/403→authFailed, 429→rateLimited, 404→modelUnavailable, 400→badRequestError, other→invalidResponse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.parseOpenAIError(_:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each body byte",
+     "effect": "append."
+    },
+    {
+     "at": "+8",
+     "cond": "4096 bytes collected",
+     "effect": "stop reading."
+    },
+    {
+     "at": "+10",
+     "cond": "body UTF-8",
+     "effect": "text; ?? \"\"."
+    },
+    {
+     "at": "+11",
+     "cond": "isCreditExhausted(status, body)",
+     "effect": "throws .outOfCredit(providerID)."
+    },
+    {
+     "at": "+16",
+     "cond": "status 401/403",
+     "effect": "throws .authFailed."
+    },
+    {
+     "at": "+17",
+     "cond": "status 429",
+     "effect": "throws .rateLimited."
+    },
+    {
+     "at": "+18",
+     "cond": "status 404",
+     "effect": "throws .modelUnavailable(parsed message ?? redacted body)."
+    },
+    {
+     "at": "+19",
+     "cond": "status 400",
+     "effect": "throws badRequestError."
+    },
+    {
+     "at": "+20",
+     "cond": "default",
+     "effect": "throws .invalidResponse(\"HTTP n: message\")."
+    },
+    {
+     "at": "+21",
+     "cond": "parsed message present",
+     "effect": "used; ?? redacted body."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)": "4d7db72bdab4fa1b",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.parseOpenAIError(_:)": "2b4cb2de21ea1a10"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)",
+   "hash": "b2b598752880c2b3",
+   "does": "Maps a 400 to modelUnavailable(\"Model unavailable: <msg>\") when error.param == \"model\", else invalidResponse(message); raw body when the envelope could not be parsed.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "parsed is nil",
+     "effect": "invalidResponse(\"HTTP 400: <body>\")."
+    },
+    {
+     "at": "+8",
+     "cond": "parsed.param == \"model\"",
+     "effect": "modelUnavailable(localized); otherwise invalidResponse(parsed.message)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleStreamer.parseOpenAIError(_:)",
+   "hash": "57246912ab5edca4",
+   "does": "Parses the OpenAI-style error envelope into message (redacted), type, param, code; nil when not JSON, no error object, or empty message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "body is JSON with error dict",
+     "effect": "continues; otherwise nil."
+    },
+    {
+     "at": "+4",
+     "cond": "error.message non-empty",
+     "effect": "returns ParsedOpenAIError; otherwise nil."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed"
+   }
+  }
+ ],
+ "deps": {}
+}

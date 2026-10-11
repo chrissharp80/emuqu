@@ -1,0 +1,500 @@
+{
+ "file": "scripts/codemap/inventory.py",
+ "hash": "3024b0a88eb60223",
+ "role": "Inventory for the code map: lists every in-scope tracked file and every unit in it (Swift via tree-sitter, scripts/Makefile/workflows/Markdown via regex), giving each unit a stable key and each unit and file a content hash. Imported by codemap.py and report.py.",
+ "types": [],
+ "state": [
+  "EXCLUDE: glob patterns kept out of scope (binaries, LICENSE, the two large .xcstrings catalogs, docs/codemap/*, and the .ci/codemap_open_*.txt budgets, which change with every fix and are checked against the records by codemap.py)",
+  "NS_CODE: regex selecting non-Swift code files (.sh .py .c .m .h, Makefile, .githooks/, .github/workflows/)",
+  "SWIFT_UNIT, SWIFT_TYPES, KIND_WORD: tree-sitter node kinds that are units / enclosing types, and the word each unit kind uses in its key"
+ ],
+ "toplevel": "Module docstring, `from __future__ import annotations`, imports (fnmatch, hashlib, re, subprocess, Path) and the four constants above. No code runs at import beyond defining them; tree_sitter is imported lazily inside inventory().",
+ "flags": [],
+ "units": [
+  {
+   "key": "def tracked_files",
+   "hash": "b50221a7e076e1d3",
+   "does": "Runs `git -C root ls-files` and returns every tracked path that matches none of the EXCLUDE globs. Untracked files are not seen (a new file must be `git add`ed, or added with -N, before the map covers it).",
+   "entry": null,
+   "calls": [
+    "ext:subprocess.check_output (git ls-files)"
+   ],
+   "reads": [
+    "file:git index"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def digest",
+   "hash": "f15747d8712631e9",
+   "does": "SHA-256 of the lines joined with newlines, first 16 hex characters.",
+   "entry": null,
+   "calls": [
+    "ext:hashlib.sha256"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _comment_prefix",
+   "hash": "3635cf3ac0a32111",
+   "does": "Returns '//' for .swift/.c/.m/.h, '#' for files NS_CODE selects and for .yml/.yaml, None otherwise (Markdown, JSON, plists: nothing is treated as a comment).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Swift/C/ObjC source",
+     "effect": "'//'"
+    },
+    {
+     "at": "+3",
+     "cond": "script, Makefile, hook, workflow or other YAML",
+     "effect": "'#'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _significant",
+   "hash": "0fd87a12ab9b213e",
+   "does": "For the given 1-based line numbers, returns the stripped text of each line that is not blank and, when the file has a comment prefix, does not start with it (a shebang `#!` is kept). This is the text a hash covers.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _comment_prefix"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "line is blank",
+     "effect": "skipped"
+    },
+    {
+     "at": "+7",
+     "cond": "whole-line comment (not a shebang)",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _comment_prefix": "780fda98482e3656"
+   }
+  },
+  {
+   "key": "def _swift_units",
+   "hash": "2cdbc066e289f070",
+   "does": "Parses one Swift file with tree-sitter and returns its units: functions, inits, deinits, subscripts, protocol requirements, computed and observed properties, and type-level stored properties initialised by a closure. Each gets kind, name, enclosing type path (class/struct/enum/extension/protocol names joined by '.'), 1-based start/end lines, a key base (kind word + type + name + argument labels) and a typed variant with parameter types for overload disambiguation. When the parse has errors, a regex fallback adds any `func`/`init`/`deinit` line the parser lost, with its extent found by brace counting and its labels parsed from the first parenthesis group. This reproduces the unit set of the original 8d32097 mapping pass exactly.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units.walk",
+    "ext:tree_sitter Parser.parse"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+77",
+     "cond": "the file did not parse cleanly",
+     "effect": "regex fallback scans every line for func/init/deinit declarations the walk did not record"
+    },
+    {
+     "at": "+80",
+     "cond": "declaration line not already a unit and not a comment",
+     "effect": "adds a fallback unit; end is the line where brace depth returns to 0"
+    },
+    {
+     "at": "+86",
+     "cond": "braces balanced after the first {",
+     "effect": "end of the fallback unit"
+    },
+    {
+     "at": "+92",
+     "cond": "fallback declaration has a parenthesis group",
+     "effect": "labels are the first word of each comma-separated parameter; otherwise ()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
+    "scripts/codemap/inventory.py::def _swift_units.name_of": "e4ca7269ee805e7c",
+    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0",
+    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "bdf7574b36ade540",
+    "scripts/codemap/inventory.py::def _swift_units.walk": "5fc2018d3816c65c"
+   }
+  },
+  {
+   "key": "def _swift_units.txt",
+   "hash": "59e536e2ec2d5d62",
+   "does": "Source text of a tree-sitter node (bytes sliced by its byte range, decoded with replacement).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _swift_units.name_of",
+   "hash": "c42dee16d3b49ced",
+   "does": "Unit name: the node's `name` field; else 'init'/'deinit'/'subscript' for those kinds; else the first simple_identifier or pattern child; else '?'.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "node has a name field",
+     "effect": "its text"
+    },
+    {
+     "at": "+4",
+     "cond": "initializer",
+     "effect": "'init'"
+    },
+    {
+     "at": "+6",
+     "cond": "deinitializer",
+     "effect": "'deinit'"
+    },
+    {
+     "at": "+8",
+     "cond": "subscript",
+     "effect": "'subscript'"
+    },
+    {
+     "at": "+11",
+     "cond": "first identifier/pattern child (properties)",
+     "effect": "its stripped text; none found gives '?'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+   }
+  },
+  {
+   "key": "def _swift_units.labels",
+   "hash": "59a722c09bc38e30",
+   "does": "Builds the argument-label part of a key from the node's direct `parameter` children: each parameter's external name, or its name, or '_', followed by ':' — e.g. '(_:label:)'. With typed=True each label is followed by the parameter's type text (whitespace collapsed) and labels are comma-separated, e.g. '(_: Int?, reason: MissingReason)'.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "child is a parameter",
+     "effect": "contributes one label"
+    },
+    {
+     "at": "+7",
+     "cond": "typed variant requested",
+     "effect": "appends the type node after the colon"
+    },
+    {
+     "at": "+10",
+     "cond": "parameter has a type after its colon",
+     "effect": "type text appended; otherwise the label alone"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+   }
+  },
+  {
+   "key": "def _swift_units.unit_kind",
+   "hash": "01f663f0b7e20135",
+   "does": "Classifies a node: one of the SWIFT_UNIT kinds as-is; a property_declaration with a computed_property child -> 'computed'; with a willset/didset block -> 'observed'; a stored property directly in a class/enum/protocol body whose lambda_literal or call_expression child itself contains a lambda_literal -> 'closure-init'; anything else None.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "function-like declaration",
+     "effect": "that kind"
+    },
+    {
+     "at": "+5",
+     "cond": "property with a computed body",
+     "effect": "'computed'"
+    },
+    {
+     "at": "+8",
+     "cond": "property with observers",
+     "effect": "'observed'"
+    },
+    {
+     "at": "+10",
+     "cond": "stored property at type level",
+     "effect": "checked for a closure initializer"
+    },
+    {
+     "at": "+12",
+     "cond": "initializer contains a closure",
+     "effect": "'closure-init'; otherwise None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0"
+   }
+  },
+  {
+   "key": "def _swift_units.walk",
+   "hash": "9a487f4379973f82",
+   "does": "Depth-first walk of the syntax tree. Entering a class/struct/enum/extension/protocol pushes its name onto the type path; a unit node is appended with its key base (init/deinit/subscript keys omit the name and use the type, others use type.name) and typed variant; children are always walked, so nested units are found.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units.unit_kind",
+    "scripts/codemap/inventory.py::def _swift_units.name_of",
+    "scripts/codemap/inventory.py::def _swift_units.labels",
+    "scripts/codemap/inventory.py::def _swift_units.txt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "type or extension declaration",
+     "effect": "its name (or '?') extends the type path for descendants"
+    },
+    {
+     "at": "+5",
+     "cond": "node is a unit",
+     "effect": "record it"
+    },
+    {
+     "at": "+10",
+     "cond": "init/deinit/subscript",
+     "effect": "key is \"<word> <Type><labels>\"; otherwise \"<word> <Type>.<name><labels>\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
+    "scripts/codemap/inventory.py::def _swift_units.name_of": "e4ca7269ee805e7c",
+    "scripts/codemap/inventory.py::def _swift_units.txt": "a59b8a68848052d0",
+    "scripts/codemap/inventory.py::def _swift_units.unit_kind": "bdf7574b36ade540"
+   }
+  },
+  {
+   "key": "def _brace_end",
+   "hash": "40f2645612818179",
+   "does": "From 0-based line i, counts { minus } per line and returns the 1-based line where depth first returns to 0 after a { has been seen; if braces never balance, i+1 (the start line). Braces inside strings and comments are counted too.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "depth back to 0 after an opening brace",
+     "effect": "that line is the end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _trim",
+   "hash": "7573bd3889461eb3",
+   "does": "Moves an end line back over trailing blank lines, never before start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _ns_units",
+   "hash": "977d61560073fe7b",
+   "does": "Units of a non-Swift code file, by file kind. Shell (.sh, .githooks/): `name()` function lines, extent by brace matching, key 'fn name'. Python: `def` lines, extent until the next non-blank, non-comment line indented no deeper (closing brackets excepted), key 'def Outer.inner' qualified by enclosing defs/classes. C/ObjC: top-level function definition lines and ObjC method lines, brace extent, keys 'c name' / 'objc name'. Makefile: target lines (not .PHONY), extent until the next unindented non-comment line, key 'target names'. Workflows: two-space-indented keys after `jobs:` (key 'job name', extent until the next line indented two or less) and `- name:` steps (key 'step job/name', extent until the next sibling item or dedent). The unit lines match the original mapping pass; extents are new.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _brace_end",
+    "scripts/codemap/inventory.py::def _trim"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "shell script or git hook",
+     "effect": "shell-function units"
+    },
+    {
+     "at": "+9",
+     "cond": "Python",
+     "effect": "def units with qualified names"
+    },
+    {
+     "at": "+15",
+     "cond": "line is at or left of an enclosing def/class",
+     "effect": "that scope is closed"
+    },
+    {
+     "at": "+32",
+     "cond": "C or Objective-C",
+     "effect": "function and method units"
+    },
+    {
+     "at": "+42",
+     "cond": "the Makefile",
+     "effect": "target units"
+    },
+    {
+     "at": "+51",
+     "cond": "a workflow",
+     "effect": "job and step units"
+    },
+    {
+     "at": "+72",
+     "cond": "dedent, or a sibling list item at the same indent",
+     "effect": "end of the step"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _brace_end": "0596434fc2aeebf6",
+    "scripts/codemap/inventory.py::def _trim": "b42ec70a3537d527"
+   }
+  },
+  {
+   "key": "def _doc_units",
+   "hash": "91e66eea1aeb8f34",
+   "does": "One unit per Markdown heading of level 1-4 outside ``` fences. Extent runs to the line before the next heading of the same or higher level (trailing blanks trimmed), so a section contains its subsections. Key is '§ ' plus the heading path joined with ' > ', each title cut to 80 characters.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _trim"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fence line",
+     "effect": "toggles fence state; headings inside fences are ignored"
+    },
+    {
+     "at": "+6",
+     "cond": "heading outside a fence",
+     "effect": "becomes a unit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _trim": "b42ec70a3537d527"
+   }
+  },
+  {
+   "key": "def _finish",
+   "hash": "8fc6287824238c2b",
+   "does": "Sorts a file's units by start line (outer first on ties), finalises keys, hashes each unit and the file, and strips internal fields. Overloads whose key base collides switch to the typed variant; any key still colliding gets ' #2', ' #3' in file order. A unit's hash covers its own significant lines minus every line of a unit nested inside it; the file hash covers significant lines outside every unit (the whole file when there are none).",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _significant",
+    "scripts/codemap/inventory.py::def digest"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "base key shared by more than one unit and a typed variant exists",
+     "effect": "typed variant used"
+    },
+    {
+     "at": "+13",
+     "cond": "first unit with this key",
+     "effect": "plain key; later ones get \" #n\""
+    },
+    {
+     "at": "+17",
+     "cond": "another unit lies inside this one",
+     "effect": "its lines are left out of this hash"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _significant": "82bdc28c0a00bc98",
+    "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3",
+    "scripts/codemap/inventory.py::def digest": "2a8b8c86e2fb4393"
+   }
+  },
+  {
+   "key": "def inventory",
+   "hash": "2d11a0a799b963e6",
+   "does": "Builds {path: {hash, lines, units}} for every tracked in-scope file (or only the given paths). Swift files go through tree-sitter, NS_CODE files through the script parsers, Markdown outside Tools/validation through the heading parser, and every other file gets no units (its file hash covers the whole file).",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def tracked_files",
+    "scripts/codemap/inventory.py::def _swift_units",
+    "scripts/codemap/inventory.py::def _ns_units",
+    "scripts/codemap/inventory.py::def _doc_units",
+    "scripts/codemap/inventory.py::def _finish",
+    "ext:tree_sitter.Parser / tree_sitter_swift.language"
+   ],
+   "reads": [
+    "file:every in-scope tracked file"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "a path filter was given and this file is not in it",
+     "effect": "skipped"
+    },
+    {
+     "at": "+11",
+     "cond": "Swift",
+     "effect": "tree-sitter units"
+    },
+    {
+     "at": "+13",
+     "cond": "script, Makefile, hook or workflow",
+     "effect": "script units"
+    },
+    {
+     "at": "+15",
+     "cond": "Markdown outside Tools/validation",
+     "effect": "heading units; else no units"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _doc_units": "f73ccb0fda245952",
+    "scripts/codemap/inventory.py::def _finish": "d433c7014d66e509",
+    "scripts/codemap/inventory.py::def _ns_units": "6236f25d8b3b53ea",
+    "scripts/codemap/inventory.py::def _swift_units": "cf379810b9ee9393",
+    "scripts/codemap/inventory.py::def tracked_files": "77e7e8250674aa1a"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/codemap/inventory.py::def _swift_units.labels": "59b755bc1f5517e3"
+ }
+}

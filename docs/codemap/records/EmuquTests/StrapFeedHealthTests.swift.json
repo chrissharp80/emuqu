@@ -1,0 +1,315 @@
+{
+ "file": "EmuquTests/StrapFeedHealthTests.swift",
+ "hash": "4bf361ef2e113dac",
+ "role": "XCTest suite for StrapFeedHealth.decide: feed status (waiting/live/settingUp/stalled), escalation from re-subscribe to link reset only during sessions with a cooldown, and the bounded re-subscribe back-off.",
+ "types": [
+  "StrapFeedHealthTests: class — XCTestCase for StrapFeedHealth"
+ ],
+ "state": [
+  "linkedAt: Date(timeIntervalSince1970: 1_788_000_000)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapFeedHealthTests.at(_:)",
+   "hash": "7a95e461657f6943",
+   "does": "Returns linkedAt + seconds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+   "hash": "5ca40f72b3b2518f",
+   "does": "Builds StrapFeedHealth.Inputs at linkedAt+now with optional settled/sample/resubscribe/reset offsets, linkedAt only when linked, and sessionActive.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.at(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "isLinked",
+     "effect": "true: linkedAt set; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.at(_:)": "ba4050062d42b78b"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.decide(_:)",
+   "hash": "e0f5c63892cbb0ca",
+   "does": "Forwards to StrapFeedHealth.decide.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testThresholdsMatchTheFieldEvidence()",
+   "hash": "ef548e012b9ec6e4",
+   "does": "Asserts thresholds: live silence 15 s, setup grace after settle 45 s, unsettled 90 s, re-subscribe grace 30 s, link-reset cooldown 180 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapFeedHealthTests.testNoLinkIsWaitingAndDoesNothing()",
+   "hash": "c52af7c3b8ef02d4",
+   "does": "Asserts no link yields waitingForStrap with no action.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testRecentBeatsAreLive()",
+   "hash": "c5f03dce0d7bbf53",
+   "does": "Asserts beats 10 s and 15 s old are live with no action.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testANewLinkWithoutASummaryIsSettingUpForTheFullAllowance()",
+   "hash": "39ee1ca9356cbc0f",
+   "does": "Asserts an unsettled link with no beats is settingUp at 60 and 89 s and stalled at 90 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testAfterTheSummaryTheAllowanceRunsFromTheSummary()",
+   "hash": "7186f923cda0e648",
+   "does": "Asserts after a summary at 20 s the allowance runs 45 s from it: settingUp at 50, stalled at 65.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testAFeedThatWentQuietIsStalledAfterTheSilenceAllowance()",
+   "hash": "90ae04ce20055a0d",
+   "does": "Asserts 16 s since the last beat is stalled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testTheFirstResponseToAStallIsAResubscribe()",
+   "hash": "9631e221a1336432",
+   "does": "Asserts the first response to a stall is resubscribe.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testTheResubscribeIsNotRepeatedWithinTheSameStall()",
+   "hash": "cd0837dab45579dc",
+   "does": "Asserts a re-subscribe 5 s ago in the same stall (no session) gives stalled with no action.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testAResubscribeFromAnEarlierStallDoesNotCount()",
+   "hash": "5caba23d538310b6",
+   "does": "Asserts a re-subscribe from an earlier stall episode does not suppress a new resubscribe.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testASessionResetsTheLinkOnlyAfterTheResubscribeHadItsChance()",
+   "hash": "b557a5b811395a4e",
+   "does": "Asserts with a session the link reset fires only 30 s after the re-subscribe (none at 149, resetLink at 150).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testWithoutASessionTheLinkIsNeverReset()",
+   "hash": "dad7e41b38a4f086",
+   "does": "Asserts without a session the link is never reset, even at 1000 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testLinkResetsRespectTheCooldown()",
+   "hash": "1e1d01ee7ade7e73",
+   "does": "Asserts a previous reset 179 s ago blocks another reset while 180 s ago allows it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "dd1538a6924dd03d",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.decide(_:)": "9338bea1f465b119",
+    "EmuquTests/StrapFeedHealthTests.swift::func StrapFeedHealthTests.inputs(now:isLinked:settledAt:lastSampleAt:lastResubscribeAt:lastLinkResetAt:sessionActive:)": "817a0f5acfff9a61"
+   }
+  },
+  {
+   "key": "func StrapFeedHealthTests.testTheResubscribeCadenceIsShortAndBounded()",
+   "hash": "23656ee1f44e1a14",
+   "does": "Asserts resubscribeDelay is 1,1,2,3,5,5 s for failures −1,0,1,2,3,1000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "61f3f2d049fb2a7f"
+   }
+  }
+ ],
+ "deps": {}
+}

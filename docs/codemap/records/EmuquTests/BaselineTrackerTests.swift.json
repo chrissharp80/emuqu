@@ -1,0 +1,603 @@
+{
+ "file": "EmuquTests/BaselineTrackerTests.swift",
+ "hash": "0fac173e0de0ef04",
+ "role": "XCTest suite for BaselineTracker: constants, exclusion of insufficient and structurally short sessions, geometric-mean anchor and SD floor, minimum-days gate, overnight-only night-keyed slots, scoring stats that exclude the scored and later nights, and RRCollector re-scoring against prior nights only.",
+ "types": [
+  "BaselineTrackerTests: class — XCTestCase over BaselineTracker and RRCollector scoring baseline"
+ ],
+ "state": [],
+ "toplevel": "producerSchedule = SleepSchedule(22:00, 8h) stored property.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Every BaselineTracker built here reads and writes the production HRVBaseline.json in the App Group container (init always uses AppConfig.sharedContainerURL()); reset() at start and in defer saves an empty baseline there, wiping the host app's real HRV baseline on the device/simulator running the suite, and all tests share that one file.",
+   "evidence": [
+    "EmuquTests/BaselineTrackerTests.swift:65",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift:146",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift:147",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift:505"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func BaselineTrackerTests.testBaselineWindowDays()",
+   "hash": "7557d9286e4ab1bc",
+   "does": "Asserts baselineWindowDays == 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineTrackerTests.testMaxHistoricalPoints()",
+   "hash": "bd7533a214d093c6",
+   "does": "Asserts maxHistoricalPoints == 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineTrackerTests.testMinimumSamplesForValidBaseline()",
+   "hash": "793fe5ff6992ed70",
+   "does": "Asserts Baseline.minimumSamples == 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)",
+   "hash": "9441df3259aa4771",
+   "does": "Builds an 8-hour complete overnight session daysAgo days before now with the given RMSSD/HR analysis, score 7 and optional hrvDataQuality.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar date(byAdding:) returns nil",
+     "effect": "uses now; else daysAgo before now"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testInsufficientSessionsExcludedFromBaseline()",
+   "hash": "a9d2bb0d8951d8dd",
+   "does": "Rebuilds from 8 good 50 ms nights plus one .insufficient 5 ms night and asserts daysInWindow 8 and anchor exp(lnRmssdMean) ≈ 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)": "190f6254801185f1"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)",
+   "hash": "04a20e74a8b626f2",
+   "does": "Builds a complete overnight session of the given duration with no organized-recovery evidence and the given RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar date(byAdding:) returns nil",
+     "effect": "uses now; else daysAgo before now"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testShortHighRMSSDPartialIsExcludedFromBaseline()",
+   "hash": "636bbe14d483cf4c",
+   "does": "Rebuilds from 8 good nights plus a 30-min 200 ms partial and asserts the partial is excluded (8 days, anchor ≈ 50).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)": "190f6254801185f1",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)": "045d7f33dbfcfdba"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testShortPartialExcludedEvenBeforeABaselineExists()",
+   "hash": "092ebdc87be77ebb",
+   "does": "Asserts a lone 30-min partial does not seed a baseline (stats nil).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "recoveryBaselineStats returns nil for fewer than RecoveryBaselineStats.minimumDays (3) points, so with a single session the assertion holds whether or not the structural gate admitted the partial; the test cannot detect a missing gate (daysCollected == 0 would).",
+     "evidence": [
+      "EmuquTests/BaselineTrackerTests.swift:149",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:82",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:212"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)": "045d7f33dbfcfdba"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testStructuralGateIgnoresWhichSideOfBaselineTheValueLandsOn()",
+   "hash": "2ce3752b6869f8ff",
+   "does": "Asserts isStructurallySoundForBaseline is false for a 30-min partial at both 5 and 200 ms RMSSD.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for rmssd in [5, 200]",
+     "effect": "asserts the gate rejects the partial"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "f402d620ae8d7168",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)": "045d7f33dbfcfdba"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testFullLengthSessionIsAdmitted()",
+   "hash": "a193fe314e5a83fe",
+   "does": "Asserts an 8-hour session without organized-recovery evidence passes the structural gate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "f402d620ae8d7168",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)": "045d7f33dbfcfdba"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.seededTracker(rmssdValues:)",
+   "hash": "bb78ce234161cbd3",
+   "does": "Creates a reset BaselineTracker rebuilt from one session per day with the given RMSSD values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)": "190f6254801185f1",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testBaselineAnchorIsGeometricMean()",
+   "hash": "b5b5208d0a9bc61e",
+   "does": "Seeds 10 RMSSD values and asserts the anchor equals their geometric mean (±0.01) and daysInWindow 10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)": "77f970cd08444aca"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testGeometricMeanIsBelowArithmeticMean()",
+   "hash": "aa21dd9718352b85",
+   "does": "Seeds skewed values and asserts the anchor is below the arithmetic mean.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)": "77f970cd08444aca"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testConstantData_GeometricEqualsArithmetic()",
+   "hash": "1779ed598631fc5a",
+   "does": "Seeds 8 nights of 50 ms and asserts anchor 50 and lnRmssdSD >= BaselineConstants.lnRmssdSDFloor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)": "77f970cd08444aca"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testBelowMinimumDays_ReturnsNil()",
+   "hash": "7198dcb5e2982c5f",
+   "does": "Seeds minimumDays-1 nights and asserts recoveryBaselineStats is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.seededTracker(rmssdValues:)": "77f970cd08444aca"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+   "hash": "cfcb686f21928e32",
+   "does": "Builds a complete session of the given start, hours, RMSSD and type reusing producerMockSession's analysis.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)": "190f6254801185f1"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.at(_:_:_:)",
+   "hash": "c443c85822e3dba7",
+   "does": "Builds a June-2026 date for day/hour/minute in Calendar.current.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar.date(from:) returns nil",
+     "effect": "returns now; else the built date"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineTrackerTests.testQuickReadingNeverEntersBaseline()",
+   "hash": "6d01f3ee19a44b69",
+   "does": "Feeds an 8-hour quick and an 8-hour nap reading via update and asserts daysCollected stays 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)": "b77e35bf9b7a953a",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)": "ee51df02d3e3a0fa"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testSlotsAreKeyedByNightNotCalendarDay()",
+   "hash": "d7ed3a713f8e675b",
+   "does": "Asserts a 23:00 night and its 02:30 continuation share one slot, and a 23:30 start on June 2 adds a second.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)": "b77e35bf9b7a953a",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)": "ee51df02d3e3a0fa"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testScoringStatsExcludeTheScoredNight()",
+   "hash": "0c092a123eaa2e4d",
+   "does": "Adds four 40 ms nights and a 160 ms fifth; asserts overall stats have 5 days while stats excluding the scored night have 4 and anchor 40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for day in 1...4",
+     "effect": "updates with a 40 ms night"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)": "b77e35bf9b7a953a",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)": "ee51df02d3e3a0fa"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testScoringStatsIgnoreLaterNights()",
+   "hash": "20e4d3712820b170",
+   "does": "Adds three 40 ms nights, the scored 40 ms night and three later 160 ms nights; asserts scoring stats for the scored night use only the 3 earlier nights (anchor 40).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for day in 1...3",
+     "effect": "updates with a 40 ms night"
+    },
+    {
+     "at": "+9",
+     "cond": "for day in 5...7",
+     "effect": "updates with a 160 ms night"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)": "b77e35bf9b7a953a",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)": "ee51df02d3e3a0fa"
+   }
+  },
+  {
+   "key": "func BaselineTrackerTests.testCollectorRescoresANightAgainstOnlyTheNightsBeforeIt()",
+   "hash": "b1f0be05353098db",
+   "does": "Builds an RRCollector over a temp-directory archive and this tracker, adds three 40 ms nights, and asserts scoringBaselineStats for night N is unchanged after adding night N and N+1, daysCollected 5, and ansConfig(for:) baselineRMSSD 40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)",
+    "mem:AppDependencies.current.app.settingsManager.settings.sleepSchedule",
+    "ud:PolarManager known devices / last-connected time (PolarManager.init)",
+    "mem:AppDependencies.current.storage.cloudKitSyncManager, AppDependencies.current.collection.backgroundAudioManager (RRCollector.init defaults)"
+   ],
+   "writes": [
+    "file:<App Group container>/HRVBaseline.json (production baseline file)",
+    "file:<tmp>/BaselineCallers-<uuid>"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for day in 1...3",
+     "effect": "updates with a 40 ms night using the host settings' sleep schedule"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.at(_:_:_:)": "b77e35bf9b7a953a",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.timedSession(start:hours:rmssd:type:)": "ee51df02d3e3a0fa",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  }
+ ],
+ "deps": {}
+}

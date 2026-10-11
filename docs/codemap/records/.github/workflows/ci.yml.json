@@ -1,0 +1,1366 @@
+{
+ "file": ".github/workflows/ci.yml",
+ "hash": "2b2bcb177d1e6738",
+ "role": "The full CI workflow (\"CI\"): manual-only (workflow_dispatch with scope gates|unit|full and optional baseline-ref) and reusable (workflow_call, scope default full) so testflight.yml gates releases on it. Four jobs: lint-and-budgets (macOS, every static gate), strict-concurrency (ubuntu), thread-sanitizer and tests (macOS, skipped for gates scope).",
+ "types": [],
+ "state": [
+  "concurrency group ci-<workflow>-<ref>, cancel-in-progress",
+  "permissions contents: read",
+  "env RESULT_BUNDLE=build/TestResults.xcresult"
+ ],
+ "toplevel": "Triggers: workflow_dispatch only (no push/PR/schedule) and workflow_call. Top-level permissions contents:read; concurrency cancels an in-flight run on the same workflow+ref (when called from testflight.yml, github.workflow is the caller's name). Scope gates runs lint-and-budgets + strict-concurrency only; unit adds TSan and the unit test target (coverage not gated); full adds the UI target and the coverage floors. scripts/simulate_ci.sh (make ci-local) parses this file to replay it locally, and scripts/check_gates_wired.sh requires every check_/enforce_ script name to appear in it. Since nothing triggers it automatically, every gate that exists only here runs only when someone dispatches it or deploys to TestFlight.",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "\"Every gate is wired into CI\" (check_gates_wired.sh) only checks that each scripts/check_*/enforce_* name appears as text in ci.yml, a workflow that never runs on push (workflow_dispatch/workflow_call only). A gate present in ci.yml but missing from the push-triggered gates.yml passes this check yet never runs automatically (see coremotion/hr-feed guards).",
+   "evidence": [
+    "scripts/check_gates_wired.sh:17",
+    "scripts/check_gates_wired.sh:48",
+    ".github/workflows/ci.yml:3",
+    ".github/workflows/ci.yml:34-50",
+    ".github/workflows/gates.yml:22-23"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "job lint-and-budgets",
+   "hash": "833cff3093196b90",
+   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, brew SwiftLint+ripgrep, then SwiftLint, every budget and every static script gate in sequence (steps 71–384). Runs for every scope including gates.",
+   "entry": "GitHub Actions job; runs on workflow_dispatch (manual) and workflow_call (testflight.yml quality-gate). No `if:`, so every scope.",
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Checkout",
+    ".github/workflows/ci.yml::step lint-and-budgets/Select Xcode",
+    ".github/workflows/ci.yml::step lint-and-budgets/Install tools",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current",
+    ".github/workflows/ci.yml::step lint-and-budgets/No developer endpoint, no analytics",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants",
+    ".github/workflows/ci.yml::step lint-and-budgets/FDA perimeter sync (build-time list vs runtime lexicon)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size",
+    ".github/workflows/ci.yml::step lint-and-budgets/Comment file:line citations resolve",
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
+    ".github/workflows/ci.yml::step lint-and-budgets/User-facing decimals name a locale",
+    ".github/workflows/ci.yml::step lint-and-budgets/No health data in CloudKit",
+    ".github/workflows/ci.yml::step lint-and-budgets/Privacy manifest vocabulary",
+    ".github/workflows/ci.yml::step lint-and-budgets/Info.plist key drift",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references",
+    ".github/workflows/ci.yml::step lint-and-budgets/Logger never logs through itself",
+    ".github/workflows/ci.yml::step lint-and-budgets/No license text in source files",
+    ".github/workflows/ci.yml::step lint-and-budgets/Dated comment budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/CoreMotion handler isolation",
+    ".github/workflows/ci.yml::step lint-and-budgets/HR feed subscribes on link",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    ".github/workflows/ci.yml::step lint-and-budgets/No eager permission prompts",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    ".github/workflows/ci.yml::step lint-and-budgets/Date-to-millisecond conversions are guarded",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree",
+    ".github/workflows/ci.yml::step lint-and-budgets/Snapshot references are committed",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Log redaction guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localized literals resolve to a catalogue key",
+    ".github/workflows/ci.yml::step lint-and-budgets/Orphaned catalogue keys",
+    ".github/workflows/ci.yml::step lint-and-budgets/Translations format with the arguments the code passes",
+    ".github/workflows/ci.yml::step lint-and-budgets/UI-test fresh-install reset",
+    ".github/workflows/ci.yml::step lint-and-budgets/Test skip budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files",
+    ".github/workflows/ci.yml::step lint-and-budgets/Fixed-point font budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "5ccee4bede8d012d",
+    ".github/workflows/ci.yml::step lint-and-budgets/Checkout": "390af14c0404c328",
+    ".github/workflows/ci.yml::step lint-and-budgets/Code map is current": "610db792cfbe9137",
+    ".github/workflows/ci.yml::step lint-and-budgets/Comment file:line citations resolve": "5f1cb91471bc596c",
+    ".github/workflows/ci.yml::step lint-and-budgets/CoreMotion handler isolation": "5a3c7568f3f83b74",
+    ".github/workflows/ci.yml::step lint-and-budgets/Date-to-millisecond conversions are guarded": "c3e985503fac2505",
+    ".github/workflows/ci.yml::step lint-and-budgets/Dated comment budget": "97e749c9f82510ec",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "4871407f81f4a144",
+    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "a6d3111d8d9e2535",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter": "fe9ffc7f02d569f6",
+    ".github/workflows/ci.yml::step lint-and-budgets/FDA perimeter sync (build-time list vs runtime lexicon)": "dcbb135624a616ec",
+    ".github/workflows/ci.yml::step lint-and-budgets/Fixed-point font budget": "18d6f712cefb641b",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/HR feed subscribes on link": "5b23f24c670d3f6a",
+    ".github/workflows/ci.yml::step lint-and-budgets/Info.plist key drift": "35db6a5529e2bee1",
+    ".github/workflows/ci.yml::step lint-and-budgets/Install tools": "ed9f4d1f680afa3e",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "fdaf8d36bc3162db",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "2ef6e3eeba6671f2",
+    ".github/workflows/ci.yml::step lint-and-budgets/Localized literals resolve to a catalogue key": "a3537a027fd72894",
+    ".github/workflows/ci.yml::step lint-and-budgets/Log redaction guard": "034b2f9aeaafb501",
+    ".github/workflows/ci.yml::step lint-and-budgets/Logger never logs through itself": "0f8211a9242725a5",
+    ".github/workflows/ci.yml::step lint-and-budgets/No developer endpoint, no analytics": "45b0695ecaf0d5da",
+    ".github/workflows/ci.yml::step lint-and-budgets/No eager permission prompts": "fbc12b3e5da6924d",
+    ".github/workflows/ci.yml::step lint-and-budgets/No health data in CloudKit": "b3320516fdf767c4",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    ".github/workflows/ci.yml::step lint-and-budgets/No license text in source files": "8bc865b2f4fbf01e",
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "a024421bbc294c8c",
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "818a60b78cdaaace",
+    ".github/workflows/ci.yml::step lint-and-budgets/Orphaned catalogue keys": "a204e3c42818f96f",
+    ".github/workflows/ci.yml::step lint-and-budgets/Privacy manifest vocabulary": "814946afad515e4c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "615c037990bc9a52",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "aa07b7efdb5828f5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/ci.yml::step lint-and-budgets/Select Xcode": "5b480d57652f12e5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    ".github/workflows/ci.yml::step lint-and-budgets/Snapshot references are committed": "83c85197d4aa36d2",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint": "9b9312f3d243ac5e",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "47bc283c67a4a75a",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    ".github/workflows/ci.yml::step lint-and-budgets/Test skip budget": "bc4ac45b82d98f44",
+    ".github/workflows/ci.yml::step lint-and-budgets/Translations format with the arguments the code passes": "e1e94c4bae9d115a",
+    ".github/workflows/ci.yml::step lint-and-budgets/UI-test fresh-install reset": "2b1fb4a147f777f8",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
+    ".github/workflows/ci.yml::step lint-and-budgets/User-facing decimals name a locale": "9dc1401d19e2f355",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Tools/copy_linter/lint.py::": "23a02988758cfb85",
+    "scripts/check_aggregate_type_size.sh::": "7396aea18f3ef6aa",
+    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_codemap.sh::": "7556633b3058e90d",
+    "scripts/check_comment_citations.sh::": "1b6badad361be5a9",
+    "scripts/check_coremotion_handler_isolation.sh::": "2c1d5dd8cf5073f2",
+    "scripts/check_date_ms_conversion.sh::": "1434eda5b99ef460",
+    "scripts/check_dated_comment_budget.sh::": "e5194e37497f904b",
+    "scripts/check_doc_file_counts.sh::": "8c626a38aff199a4",
+    "scripts/check_doc_links.sh::": "e3bc412afabf1b5c",
+    "scripts/check_empty_range_loops.sh::": "699901b1c19ac251",
+    "scripts/check_fixed_font_budget.sh::": "30d5e2746e069f6c",
+    "scripts/check_gate_preflight.sh::": "022bce1a14ca644a",
+    "scripts/check_gates_wired.sh::": "b223d96bf75376e4",
+    "scripts/check_hr_feed_subscribes_on_link.sh::": "966820c0623915e2",
+    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
+    "scripts/check_locale_formatting.sh::": "aca373d604e0631f",
+    "scripts/check_localization_bundle.sh::": "dc38eb0e596bc785",
+    "scripts/check_localization_coverage.sh::": "9e1991807b12665d",
+    "scripts/check_localization_format_args.sh::": "f35f257cb5811bb3",
+    "scripts/check_localization_orphans.sh::": "6c11906399db0e5b",
+    "scripts/check_localization_resolution.sh::": "b3acce7afc250a11",
+    "scripts/check_log_redaction.sh::": "adc6b124cccb3a8d",
+    "scripts/check_logger_self_reference.sh::": "b714e96b1ff9ad5d",
+    "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631",
+    "scripts/check_no_eager_permission_prompts.sh::": "496088f8cb679f6c",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e",
+    "scripts/check_no_leaked_mutations.sh::": "11ee1b28e94d42a3",
+    "scripts/check_no_license_headers.sh::": "85097fb14eb2543d",
+    "scripts/check_no_orphan_swift.sh::": "d55b2639d709991a",
+    "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091",
+    "scripts/check_no_unowned.sh::": "613c23141181c8ba",
+    "scripts/check_perimeter_sync.sh::": "8fe9ffd70534bf49",
+    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862",
+    "scripts/check_refactor_spec_conformance.sh::": "9cfdce0d76783dc4",
+    "scripts/check_sbom_drift.sh::": "7233f619148a0f19",
+    "scripts/check_science_register.sh::": "788a8f29f19e0252",
+    "scripts/check_scoring_governance.sh::": "1c354b851d30e71e",
+    "scripts/check_snapshot_references.sh::": "3af8d2a44ee0bf3d",
+    "scripts/check_test_skip_budget.sh::": "86d14e669b19a306",
+    "scripts/check_uitest_fresh_install.sh::": "a2fe736d46ea7d35",
+    "scripts/check_unchecked_sendable.sh::": "c41e2a91a6664081",
+    "scripts/enforce_swiftlint_budget.sh::": "4827a351792f7b9c",
+    "scripts/enforce_tech_debt_budgets.sh::": "ced88e4bf81e4dc8",
+    "scripts/generate_sbom.py::": "1468a1f316fb0f1e",
+    "scripts/verify_gates_fail.sh::": "6f091b6c9dfb0702"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Checkout",
+   "hash": "8c99ed15e62f8b46",
+   "does": "actions/checkout pinned to SHA (v6.0.2) with fetch-depth 0 so the monotonicity baseline (HEAD~1 / any ref) resolves.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step lint-and-budgets/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "`sudo xcode-select -s /Applications/Xcode_26.6.app` pins the toolchain.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step lint-and-budgets/Install tools",
+   "hash": "c0fe84779bd2463c",
+   "does": "`brew install swiftlint ripgrep` with set -euo pipefail; versions are whatever Homebrew serves that day (unpinned).",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:brew install"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unpinned SwiftLint version while .ci/swiftlint_warning_budget.txt is an exact warning count; a SwiftLint release with new/changed rules changes the count with no code change.",
+     "evidence": [
+      ".github/workflows/ci.yml:89",
+      ".ci/swiftlint_warning_budget.txt:1"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "step lint-and-budgets/SwiftLint",
+   "hash": "a4b29a8b536fdad5",
+   "does": "Runs `swiftlint lint --config .swiftlint.yml --reporter github-actions-logging`; any SwiftLint error fails the job, warnings become annotations.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:swiftlint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step lint-and-budgets/SwiftLint warning budget",
+   "hash": "1c9edaf8e67a0aa0",
+   "does": "Runs scripts/enforce_swiftlint_budget.sh (warning count ≤ .ci/swiftlint_warning_budget.txt).",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/enforce_swiftlint_budget.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/enforce_swiftlint_budget.sh::": "4827a351792f7b9c"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Tech-debt budgets",
+   "hash": "7890c8c5092ffe63",
+   "does": "Runs scripts/enforce_tech_debt_budgets.sh Emuqu (same as make debt-budget, explicit source root).",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/enforce_tech_debt_budgets.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/enforce_tech_debt_budgets.sh::": "ced88e4bf81e4dc8"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Resolve the budget baseline",
+   "hash": "891684ba8b612fa3",
+   "does": "Computes the budget baseline: inputs.baseline-ref if given, else HEAD~1 if it exists, else HEAD if .ci has uncommitted changes, else emits empty value/require and exits 0. Verifies the ref resolves to a commit (else exit 1), then writes value=<sha> and require=1 to $GITHUB_OUTPUT.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:git rev-parse",
+    "ext:git diff"
+   ],
+   "reads": [
+    "file:.ci/"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "baseline-ref input empty (always empty under workflow_call, which does not declare it)",
+     "effect": "choose a default (next branches); otherwise use the given ref"
+    },
+    {
+     "at": "+21",
+     "cond": "HEAD~1 resolves",
+     "effect": "baseline = parent commit sha"
+    },
+    {
+     "at": "+23",
+     "cond": "root commit and `git diff --quiet HEAD -- .ci` reports changes",
+     "effect": "baseline = HEAD (working tree compared); else outputs value= and require= empty, prints root-commit message and exits 0 so the next step skips without failing"
+    },
+    {
+     "at": "+32",
+     "cond": "chosen ref does not resolve to a commit",
+     "effect": "print refusal and exit 1 (job fails); else output value and require=1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The budget ratchet compares only against the parent commit (HEAD~1). gates.yml runs once per push, so in a push of several commits a budget raised in any commit but the last is never compared; ci.yml is manual-only, so raises in commits between manual runs are never compared either. The `budget-raise-ok` trailer scan (git log BASE..HEAD) has the same one-commit window.",
+     "evidence": [
+      ".github/workflows/gates.yml:81-82",
+      ".github/workflows/ci.yml:124-126",
+      "scripts/check_budget_monotonicity.sh:113"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "step lint-and-budgets/Debt budgets ratchet down only",
+   "hash": "a666f15ece8549f9",
+   "does": "Runs scripts/check_budget_monotonicity.sh with BUDGET_BASE_REF/BUDGET_REQUIRE_BASELINE from the baseline step: fails on a raised ceiling or lowered min_* floor not acknowledged by a budget-raise-ok trailer; with require=1 an unresolvable baseline fails instead of skipping.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_budget_monotonicity.sh",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int"
+   ],
+   "reads": [
+    "file:.ci/*.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": ".ci/min_coverage_views.txt holds 43.5, a non-integer; check_budget_monotonicity.sh read_int() rejects anything not ^[0-9]+$ and the loop `continue`s, so the views coverage floor is never compared and can be lowered with no budget-raise-ok trailer while the ratchet prints clean. Its header lists only three floors (min_coverage, min_coverage_logic, min_localization_coverage).",
+     "evidence": [
+      ".ci/min_coverage_views.txt:1",
+      "scripts/check_budget_monotonicity.sh:24-25",
+      "scripts/check_budget_monotonicity.sh:129-135",
+      "scripts/check_budget_monotonicity.sh:143",
+      "scripts/check_coverage.sh:43"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/FDA copy perimeter",
+   "hash": "e3d5d7c5ae1f2f0c",
+   "does": "Runs python3 Tools/copy_linter/lint.py.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script Tools/copy_linter/lint.py"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Tools/copy_linter/lint.py::": "23a02988758cfb85"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Code map is current",
+   "hash": "d273ed7098ec9b99",
+   "does": "Runs `make codemap-setup` and then scripts/check_codemap.sh with the venv interpreter. Placed before \"Gates actually fail\" so the planted-violation harness finds tree-sitter installed and exercises the code-map plants instead of skipping them.",
+   "entry": "ci.yml workflow (manual dispatch), lint-and-budgets job",
+   "calls": [
+    "Makefile::target codemap-setup"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "scripts/check_codemap.sh::": "7556633b3058e90d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Gates actually fail",
+   "hash": "afb5f8ac9c5edfd4",
+   "does": "Runs scripts/verify_gates_fail.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/verify_gates_fail.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/verify_gates_fail.sh::": "6f091b6c9dfb0702"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Gates fail closed",
+   "hash": "e3aee774c5cc508d",
+   "does": "Runs scripts/check_gate_preflight.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_gate_preflight.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_gate_preflight.sh::": "022bce1a14ca644a"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/SBOM is current",
+   "hash": "49862f1068acc31f",
+   "does": "Runs python3 scripts/generate_sbom.py --check.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/generate_sbom.py --check"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/generate_sbom.py::": "1468a1f316fb0f1e"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No developer endpoint, no analytics",
+   "hash": "e74c134111a3ed95",
+   "does": "Runs scripts/check_no_developer_endpoint.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_developer_endpoint.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Documentation links and constants",
+   "hash": "498527d609803130",
+   "does": "Runs scripts/check_doc_links.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_doc_links.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "scripts/check_doc_links.sh::": "e3bc412afabf1b5c"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/FDA perimeter sync (build-time list vs runtime lexicon)",
+   "hash": "28fcbbbc7a5a853c",
+   "does": "Runs scripts/check_perimeter_sync.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_perimeter_sync.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_perimeter_sync.sh::": "8fe9ffd70534bf49"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Science register (every heuristic classified)",
+   "hash": "1bea62b0c91bec87",
+   "does": "Runs scripts/check_science_register.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_science_register.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_science_register.sh::": "788a8f29f19e0252"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+   "hash": "32e62d4b6fda0514",
+   "does": "Runs scripts/check_scoring_governance.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_scoring_governance.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_scoring_governance.sh::": "1c354b851d30e71e"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Aggregate type size",
+   "hash": "df11549b7a0d84ee",
+   "does": "Runs scripts/check_aggregate_type_size.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_aggregate_type_size.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_aggregate_type_size.sh::": "7396aea18f3ef6aa"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Comment file:line citations resolve",
+   "hash": "47c490333bf90765",
+   "does": "Runs scripts/check_comment_citations.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_comment_citations.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_comment_citations.sh::": "1b6badad361be5a9"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
+   "hash": "0fb15144a9c005dc",
+   "does": "Runs scripts/check_refactor_spec_conformance.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_refactor_spec_conformance.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::": "9cfdce0d76783dc4"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/User-facing decimals name a locale",
+   "hash": "2776370e9345d0ad",
+   "does": "Runs scripts/check_locale_formatting.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_locale_formatting.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_locale_formatting.sh::": "aca373d604e0631f"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No health data in CloudKit",
+   "hash": "e8151ff118b26028",
+   "does": "Runs scripts/check_no_health_data_in_cloudkit.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_health_data_in_cloudkit.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Privacy manifest vocabulary",
+   "hash": "95b1cc05594be892",
+   "does": "Runs scripts/check_privacy_manifest_vocabulary.sh (uses plutil; macOS only).",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_privacy_manifest_vocabulary.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Info.plist key drift",
+   "hash": "018030e81c39dbca",
+   "does": "Runs scripts/check_infoplist_key_drift.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_infoplist_key_drift.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Unchecked Sendable guard",
+   "hash": "fa2374370e874c63",
+   "does": "Runs scripts/check_unchecked_sendable.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_unchecked_sendable.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_unchecked_sendable.sh::": "c41e2a91a6664081"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No unowned references",
+   "hash": "1a7fc4bc44ae0f9a",
+   "does": "Runs scripts/check_no_unowned.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_unowned.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_unowned.sh::": "613c23141181c8ba"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Logger never logs through itself",
+   "hash": "d5c523ab72faaacc",
+   "does": "Runs scripts/check_logger_self_reference.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_logger_self_reference.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_logger_self_reference.sh::": "b714e96b1ff9ad5d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No license text in source files",
+   "hash": "544a9e86470e8d7b",
+   "does": "Runs scripts/check_no_license_headers.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_license_headers.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_license_headers.sh::": "85097fb14eb2543d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Dated comment budget",
+   "hash": "8d3a955640f57082",
+   "does": "Runs scripts/check_dated_comment_budget.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_dated_comment_budget.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_dated_comment_budget.sh::": "e5194e37497f904b"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Singletons read only in the composition root",
+   "hash": "46904ff0127dc96d",
+   "does": "Runs scripts/check_no_shared_outside_root.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_shared_outside_root.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Empty-range loop guard",
+   "hash": "857919a3d31c3d58",
+   "does": "Runs scripts/check_empty_range_loops.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_empty_range_loops.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_empty_range_loops.sh::": "699901b1c19ac251"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/CoreMotion handler isolation",
+   "hash": "d451386dc3657a48",
+   "does": "Runs scripts/check_coremotion_handler_isolation.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_coremotion_handler_isolation.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_coremotion_handler_isolation.sh::": "2c1d5dd8cf5073f2"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/HR feed subscribes on link",
+   "hash": "c199bff4c9523766",
+   "does": "Runs scripts/check_hr_feed_subscribes_on_link.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_hr_feed_subscribes_on_link.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "scripts/check_hr_feed_subscribes_on_link.sh::": "966820c0623915e2"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No leaked test mutations",
+   "hash": "199de7d74e6355b8",
+   "does": "Runs scripts/check_no_leaked_mutations.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_leaked_mutations.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_leaked_mutations.sh::": "11ee1b28e94d42a3"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No eager permission prompts",
+   "hash": "a1ebab67dcea4e97",
+   "does": "Runs scripts/check_no_eager_permission_prompts.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_eager_permission_prompts.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_eager_permission_prompts.sh::": "496088f8cb679f6c"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Every gate is wired into CI",
+   "hash": "5a62575c9ea3b904",
+   "does": "Runs scripts/check_gates_wired.sh (audits this ci.yml file for every check_*/enforce_* script name).",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_gates_wired.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "\"Every gate is wired into CI\" (check_gates_wired.sh) only checks that each scripts/check_*/enforce_* name appears as text in ci.yml, a workflow that never runs on push (workflow_dispatch/workflow_call only). A gate present in ci.yml but missing from the push-triggered gates.yml passes this check yet never runs automatically (see coremotion/hr-feed guards).",
+     "evidence": [
+      "scripts/check_gates_wired.sh:17",
+      "scripts/check_gates_wired.sh:48",
+      ".github/workflows/ci.yml:3",
+      ".github/workflows/ci.yml:34-50",
+      ".github/workflows/gates.yml:22-23"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_gates_wired.sh::": "b223d96bf75376e4"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Date-to-millisecond conversions are guarded",
+   "hash": "76f650b5fb6f9e88",
+   "does": "Runs scripts/check_date_ms_conversion.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_date_ms_conversion.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_date_ms_conversion.sh::": "1434eda5b99ef460"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Documented file counts match the tree",
+   "hash": "e384de8a4e226210",
+   "does": "Runs scripts/check_doc_file_counts.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_doc_file_counts.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_doc_file_counts.sh::": "8c626a38aff199a4"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Snapshot references are committed",
+   "hash": "8dcf0a84cdeabc8e",
+   "does": "Runs scripts/check_snapshot_references.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_snapshot_references.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_snapshot_references.sh::": "3af8d2a44ee0bf3d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)",
+   "hash": "18a9ec5b3760dd00",
+   "does": "Runs scripts/check_sbom_drift.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_sbom_drift.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_sbom_drift.sh::": "7233f619148a0f19"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Log redaction guard",
+   "hash": "9b89bb1e90e8f923",
+   "does": "Runs scripts/check_log_redaction.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_log_redaction.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_log_redaction.sh::": "adc6b124cccb3a8d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Localization coverage",
+   "hash": "2578131fae136486",
+   "does": "Runs scripts/check_localization_coverage.sh four times (default catalogue, Emuqu/InfoPlist.xcstrings, EmuquWatch Watch App/InfoPlist.xcstrings, Emuqu/Help.xcstrings); the step shell (bash -e default) stops at the first failure. Duplicates the Makefile localization-guard recipe.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_localization_coverage.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_coverage.sh::": "9e1991807b12665d"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Localization bundle reachability",
+   "hash": "3b770cb9a657df57",
+   "does": "Runs scripts/check_localization_bundle.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_localization_bundle.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_bundle.sh::": "dc38eb0e596bc785"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Localized literals resolve to a catalogue key",
+   "hash": "b9bf8129511c6dbb",
+   "does": "Runs scripts/check_localization_resolution.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_localization_resolution.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_resolution.sh::": "b3acce7afc250a11"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Orphaned catalogue keys",
+   "hash": "d80e763da64f255c",
+   "does": "Runs scripts/check_localization_orphans.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_localization_orphans.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_orphans.sh::": "6c11906399db0e5b"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Translations format with the arguments the code passes",
+   "hash": "9dc3342e96584e4d",
+   "does": "Runs scripts/check_localization_format_args.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_localization_format_args.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_format_args.sh::": "f35f257cb5811bb3"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/UI-test fresh-install reset",
+   "hash": "d919e63835bace14",
+   "does": "Runs scripts/check_uitest_fresh_install.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_uitest_fresh_install.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_uitest_fresh_install.sh::": "a2fe736d46ea7d35"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Test skip budget",
+   "hash": "ada7c4eaf7d06270",
+   "does": "Runs scripts/check_test_skip_budget.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_test_skip_budget.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_test_skip_budget.sh::": "86d14e669b19a306"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/No orphaned Swift files",
+   "hash": "12b8757e69d90c92",
+   "does": "Runs scripts/check_no_orphan_swift.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_orphan_swift.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_orphan_swift.sh::": "d55b2639d709991a"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Fixed-point font budget",
+   "hash": "99602130f1967bef",
+   "does": "Runs scripts/check_fixed_font_budget.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_fixed_font_budget.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_fixed_font_budget.sh::": "30d5e2746e069f6c"
+   }
+  },
+  {
+   "key": "job strict-concurrency",
+   "hash": "270ecc42a75aaf35",
+   "does": "ubuntu-latest job \"Strict concurrency enabled\" (timeout 5): checkout, then scripts/check_strict_concurrency_enabled.sh. Runs for every scope.",
+   "entry": "GitHub Actions job in ci.yml; no `if:`, runs on every dispatch/call.",
+   "calls": [
+    ".github/workflows/ci.yml::step strict-concurrency/Checkout",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step strict-concurrency/Checkout": "d9d93a5654332235",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "7dd78ff65eb72412",
+    "scripts/check_strict_concurrency_enabled.sh::": "be05d3aac3d60d4e"
+   }
+  },
+  {
+   "key": "step strict-concurrency/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of ci.yml strict-concurrency job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step strict-concurrency/Strict concurrency is switched on",
+   "hash": "24f1bacf3fcc619c",
+   "does": "Runs scripts/check_strict_concurrency_enabled.sh (greps project.pbxproj for Swift 6 + complete strict concurrency in every configuration).",
+   "entry": "Step of ci.yml strict-concurrency job",
+   "calls": [
+    "ext:script scripts/check_strict_concurrency_enabled.sh"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_strict_concurrency_enabled.sh::": "be05d3aac3d60d4e"
+   }
+  },
+  {
+   "key": "job thread-sanitizer",
+   "hash": "171acc0657120720",
+   "does": "macOS-26 job \"Thread Sanitizer\" (timeout 45): checkout, Xcode 26.6, scripts/check_thread_sanitizer.sh. Skipped when scope is gates.",
+   "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
+   "calls": [
+    ".github/workflows/ci.yml::step thread-sanitizer/Checkout",
+    ".github/workflows/ci.yml::step thread-sanitizer/Select Xcode",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "inputs.scope != 'gates'",
+     "effect": "job runs for unit/full (and for workflow_call default full); skipped for gates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step thread-sanitizer/Checkout": "b9a3f71214d05f52",
+    ".github/workflows/ci.yml::step thread-sanitizer/Select Xcode": "83e20677b84cc4f1",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "4b3a2a343a755ae0",
+    "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
+   }
+  },
+  {
+   "key": "step thread-sanitizer/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of ci.yml thread-sanitizer job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step thread-sanitizer/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of ci.yml thread-sanitizer job",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step thread-sanitizer/Unit suite under Thread Sanitizer",
+   "hash": "522be5e8d7e05a79",
+   "does": "Runs scripts/check_thread_sanitizer.sh (TSan build + unit suite run).",
+   "entry": "Step of ci.yml thread-sanitizer job",
+   "calls": [
+    "ext:script scripts/check_thread_sanitizer.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
+   }
+  },
+  {
+   "key": "job tests",
+   "hash": "67952978c1de2fe0",
+   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, make release-build, run_tests_with_coverage.sh, upload xcresult. Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes (check_coverage.sh:134-139).",
+   "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
+   "calls": [
+    ".github/workflows/ci.yml::step tests/Checkout",
+    ".github/workflows/ci.yml::step tests/Select Xcode",
+    ".github/workflows/ci.yml::step tests/Resolve simulator destination",
+    ".github/workflows/ci.yml::step tests/Release configuration compiles",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage",
+    ".github/workflows/ci.yml::step tests/Upload test results"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "inputs.scope != 'gates'",
+     "effect": "job runs for unit/full; skipped for gates"
+    },
+    {
+     "at": "+15",
+     "cond": "inputs.scope == 'full'",
+     "effect": "TEST_SCOPE=full (UI + unit, floors gated); otherwise unit (EmuquTests only, coverage reported but not gated)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "ci.yml's tests-job comment says that on `unit` scope run_tests_with_coverage.sh 'reports coverage without gating it', and run_tests_with_coverage.sh's own header says unit scope 'gates on the LOGIC floor alone'. Neither is true: unit scope exports SKIP_OVERALL_COVERAGE and SKIP_LOGIC_COVERAGE, but check_coverage.sh enforces the Views floor (.ci/min_coverage_views.txt, 43.5) on every run, so a unit-scope dispatch can fail on views coverage.",
+     "evidence": [
+      ".github/workflows/ci.yml:433-436",
+      "scripts/run_tests_with_coverage.sh:11",
+      "scripts/run_tests_with_coverage.sh:41-42",
+      "scripts/check_coverage.sh:134-139"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step tests/Checkout": "ee280d2a38a8414b",
+    ".github/workflows/ci.yml::step tests/Release configuration compiles": "2c70c8bd2c942079",
+    ".github/workflows/ci.yml::step tests/Resolve simulator destination": "e9891be143f2bade",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
+    ".github/workflows/ci.yml::step tests/Select Xcode": "d6f9b20ddfe90645",
+    ".github/workflows/ci.yml::step tests/Upload test results": "1247f4d02aa2d912",
+    "Makefile::target release-build": "d6689b31b7356074",
+    "scripts/run_tests_with_coverage.sh::": "55a77a5ba714a5ab",
+    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+   }
+  },
+  {
+   "key": "step tests/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step tests/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step tests/Resolve simulator destination",
+   "hash": "867e5c0df5ef7b6c",
+   "does": "Runs scripts/select_simulator_destination.sh Emuqu Emuqu.xcodeproj and stores the destination string as steps.destination.outputs.value.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:script scripts/select_simulator_destination.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+   }
+  },
+  {
+   "key": "step tests/Release configuration compiles",
+   "hash": "ca3effcce9e06256",
+   "does": "Runs `make release-build` (Release configuration, generic iOS, unsigned) so optimizer-only diagnostics fail before the TestFlight archive.",
+   "entry": "Step of ci.yml tests job (not run for gates scope)",
+   "calls": [
+    "Makefile::target release-build"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target release-build": "d6689b31b7356074"
+   }
+  },
+  {
+   "key": "step tests/Run tests with coverage",
+   "hash": "f8e2f73456781567",
+   "does": "Runs scripts/run_tests_with_coverage.sh with DESTINATION from the resolve step and the job env (TEST_SCOPE, RESULT_BUNDLE=build/TestResults.xcresult); that script runs xcodebuild test (with its own retry) then check_coverage.sh against .ci/min_coverage*.txt.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:script scripts/run_tests_with_coverage.sh",
+    "ext:script scripts/check_coverage.sh"
+   ],
+   "reads": [
+    "file:.ci/min_coverage.txt",
+    "file:.ci/min_coverage_logic.txt",
+    "file:.ci/min_coverage_views.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/run_tests_with_coverage.sh::": "55a77a5ba714a5ab"
+   }
+  },
+  {
+   "key": "step tests/Upload test results",
+   "hash": "8a62edac019d27c1",
+   "does": "Uploads build/TestResults.xcresult as artifact test-results-xcresult (actions/upload-artifact v7.0.0 pinned); missing file ignored.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:actions/upload-artifact"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs even after earlier step failure or cancellation; if-no-files-found: ignore means no bundle → no error"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

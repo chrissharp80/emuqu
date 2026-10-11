@@ -1,0 +1,1181 @@
+{
+ "file": "Emuqu/Sources/Collection/FootPodManager.swift",
+ "hash": "d7e64a3dfbf180df",
+ "role": "Declares the BLEPeripheralConnecting protocol (shared connect-by-id handshake for FootPodManager and Concept2Manager) and FootPodManager, a CoreBluetooth client for standard RSC foot pods, Cycling Power meters (incl. Stryd) and FTMS indoor bikes, publishing speed, cadence, stride, odometer and power for WorkoutRecorder.",
+ "types": [
+  "BLEPeripheralConnecting: protocol (@MainActor) — central/centralIfCreated/pendingReconnectId/attach/startScanning/stopScanning + shared connect(deviceId:)",
+  "FootPodManager: class (@Observable @MainActor, NSObject, BLEPeripheralConnecting, CBCentralManagerDelegate, CBPeripheralDelegate) — SIG sensor manager",
+  "FootPodManager.ConnectionState: enum",
+  "FootPodManager.KnownFootPod: struct Codable — remembered device with supportsPower",
+  "FootPodManager.DiscoveredFootPod: struct — scan result with RSSI"
+ ],
+ "state": [
+  "static FootPodManager.shared (via CollectionServices.footPodManager, AppDependencies.swift:556)",
+  "mem:FootPodManager.connectionState",
+  "mem:FootPodManager.instantaneousSpeedMS",
+  "mem:FootPodManager.cadenceStepsPerMin",
+  "mem:FootPodManager.strideLengthMeters",
+  "mem:FootPodManager.podReportedDistanceMeters",
+  "mem:FootPodManager.instantaneousPowerWatts",
+  "mem:FootPodManager.knownDevices",
+  "mem:FootPodManager.discoveredDevices",
+  "mem:FootPodManager.lastStatusLine",
+  "mem:FootPodManager.pendingReconnectId",
+  "centralIfCreated, scanWaitingForBluetooth, activePeripheral, expectsLink, workoutHoldsLink, rsc/power/indoorBike characteristic refs, scanTimeoutTimer (ObservationIgnored)",
+  "ud:fitness.footpod.knownDevices",
+  "static UUIDs 1814/2A53/1818/2A63/1826/2AD2"
+ ],
+ "toplevel": "Stored defaults only; the central is not built at init. File header comment claims the manager persists a log line per reconnect; no such persistence exists in the file (only lastStatusLine in memory).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says the manager will 'Persist a short log line per reconnect so debugging is possible', but no unit writes any log or persisted line; status is only the in-memory lastStatusLine.",
+   "evidence": [
+    "Emuqu/Sources/Collection/FootPodManager.swift:30",
+    "Emuqu/Sources/Collection/FootPodManager.swift:441"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "FTMS instantaneous cadence (bike crank rpm) is stored in cadenceStepsPerMin, which the recorder uses as step cadence (WorkoutRecorder+Ticker.swift:512) and ThresholdCards integrates into a step count (ThresholdCards+Cards.swift:689).",
+   "evidence": [
+    "Emuqu/Sources/Collection/FootPodManager.swift:630",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:512",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift:689"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "requirement BLEPeripheralConnecting.attach(peripheral:)",
+   "hash": "8585c2364ccad55b",
+   "does": "Protocol requirement: make the peripheral active and connect it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "4d7ef27a2dfb15cd",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779"
+   }
+  },
+  {
+   "key": "requirement BLEPeripheralConnecting.startScanning()",
+   "hash": "34a1bcd54366d4a5",
+   "does": "Protocol requirement: start a scan.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()": "826a95110434a973",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d"
+   }
+  },
+  {
+   "key": "requirement BLEPeripheralConnecting.stopScanning()",
+   "hash": "08e6cf63c268f9ee",
+   "does": "Protocol requirement: stop scanning.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "cd2a8668172269eb",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+   }
+  },
+  {
+   "key": "func BLEPeripheralConnecting.connect(deviceId:)",
+   "hash": "8703e726cad7ad49",
+   "does": "Shared connect: stops scanning; if Bluetooth is not powered on parks the id; else retrieves the peripheral by UUID and attaches, or parks the id and scans for it.",
+   "entry": null,
+   "calls": [
+    "dyn:BLEPeripheralConnecting.stopScanning → Emuqu/Sources/Collection/FootPodManager.swift:247|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
+    "dyn:BLEPeripheralConnecting.central → Emuqu/Sources/Collection/FootPodManager.swift:151|Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central",
+    "dyn:BLEPeripheralConnecting.attach → Emuqu/Sources/Collection/FootPodManager.swift:284|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)",
+    "dyn:BLEPeripheralConnecting.startScanning → Emuqu/Sources/Collection/FootPodManager.swift:216|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
+    "ext:CBCentralManager.retrievePeripherals"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId",
+    "mem:Concept2Manager.pendingReconnectId"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "central not .poweredOn (fresh central starts .unknown)",
+     "effect": "parks deviceId in pendingReconnectId and returns; .poweredOn handler connects it"
+    },
+    {
+     "at": "+10",
+     "cond": "id is a valid UUID and CoreBluetooth retrieves the peripheral",
+     "effect": "attaches and returns; otherwise parks the id and starts a scan that picks it up"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "pendingReconnectId is never cleared when the fallback scan times out (stopScanning at the 20 s timer leaves it set), nor when a workout ends after a Bluetooth-off park (holdLinkForWorkout(false) only cancels a .connecting link). The stale id is then auto-attached by a later unrelated scan (FootPod attachIfPendingReconnect, Concept2 didDiscover) or reconnected on the next .poweredOn, outside any workout, for both FootPodManager and Concept2Manager.",
+     "evidence": [
+      "Emuqu/Sources/Collection/FootPodManager.swift:82",
+      "Emuqu/Sources/Collection/FootPodManager.swift:247",
+      "Emuqu/Sources/Collection/FootPodManager.swift:265",
+      "Emuqu/Sources/Collection/FootPodManager.swift:374",
+      "Emuqu/Sources/Collection/FootPodManager.swift:406",
+      "Emuqu/Sources/Collection/Concept2Manager.swift:170",
+      "Emuqu/Sources/Collection/Concept2Manager.swift:245",
+      "Emuqu/Sources/Collection/Concept2Manager.swift:280"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.attach(peripheral:)": "eabe918e33eb3ba6",
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.startScanning()": "d09979727c46a84e",
+    "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.stopScanning()": "99a5da5976851e9d",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7"
+   }
+  },
+  {
+   "key": "var FootPodManager.central",
+   "hash": "4a16ed794dcfad43",
+   "does": "Returns the existing central or builds a CBCentralManager on the main queue with self as delegate.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.init"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "central already built",
+     "effect": "returns it; else builds and stores"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init FootPodManager()",
+   "hash": "ca18c5eb3c6a2c89",
+   "does": "Calls NSObject init and loads remembered pods; does not build the central.",
+   "entry": "FootPodManager.shared lazy init; tests construct directly.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.loadKnownDevices()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.loadKnownDevices()": "dc286789e57579f0"
+   }
+  },
+  {
+   "key": "func FootPodManager.startScanning()",
+   "hash": "50b87e34f30ddb1e",
+   "does": "If Bluetooth is not powered on, marks the scan as waiting; otherwise clears discovered list, sets .scanning, scans for RSC/CPS/FTMS services and arms a 20 s timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()",
+    "ext:CBCentralManager.scanForPeripherals"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.connectionState",
+    "mem:FootPodManager.discoveredDevices",
+    "mem:FootPodManager.lastStatusLine"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "central not .poweredOn",
+     "effect": "sets scanWaitingForBluetooth and waiting text, returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.armScanTimeout()": "6f0909b991cd6c61",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.armScanTimeout()",
+   "hash": "a40ab38c64f29ff6",
+   "does": "Replaces the scan timeout with a 20 s one-shot Timer that calls stopScanning on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()",
+    "ext:Timer.scheduledTimer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+   }
+  },
+  {
+   "key": "func FootPodManager.stopScanning()",
+   "hash": "5553f1cab34219d4",
+   "does": "Invalidates timer, clears waiting flag, stops an active scan (if the central exists) and resets .scanning to .disconnected.",
+   "entry": "Also fired by the scan timeout timer.",
+   "calls": [
+    "ext:CBCentralManager.stopScan"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "central exists and is scanning",
+     "effect": "stopScan"
+    },
+    {
+     "at": "+5",
+     "cond": "state .scanning",
+     "effect": "sets .disconnected; other states untouched"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.reconnectLast()",
+   "hash": "8ff070c5b0af907b",
+   "does": "Connects to the most recent remembered pod via connect(deviceId:). Called at workout start (WorkoutRecorder+Start.swift:802) and from SensorManagementSheet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no remembered pod",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+   }
+  },
+  {
+   "key": "func FootPodManager.holdLinkForWorkout(_:)",
+   "hash": "83e0acfc3db7aca8",
+   "does": "Sets workoutHoldsLink; on release cancels a reconnect still in .connecting with an expected link.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "releasing, link expected, state .connecting",
+     "effect": "disconnect(); otherwise only stores the flag"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.disconnect()": "b9ba282009a86785"
+   }
+  },
+  {
+   "key": "func FootPodManager.disconnect()",
+   "hash": "639934a046dcb357",
+   "does": "Clears expectsLink, cancels the active peripheral connection if the central exists, and resets state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()",
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "active peripheral exists",
+     "effect": "cancelPeripheralConnection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29"
+   }
+  },
+  {
+   "key": "func FootPodManager.removeKnownDevice(id:)",
+   "hash": "c1d16fe217492dc2",
+   "does": "Removes the pod from knownDevices and persists. Called from WearablesSettingsPage.swift:432.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.knownDevices"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "cfcd88076dcaec57"
+   }
+  },
+  {
+   "key": "func FootPodManager.attach(peripheral:)",
+   "hash": "a48c456f890767ad",
+   "does": "Makes the peripheral active with self as delegate, sets .connecting and status, calls central.connect.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central",
+    "ext:CBCentralManager.connect"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.connectionState",
+    "mem:FootPodManager.lastStatusLine"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "peripheral name nil",
+     "effect": "uses 'foot pod'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.cleanupAfterDisconnect()",
+   "hash": "2aebb0850c9d2f5e",
+   "does": "Clears active peripheral, characteristic refs, speed, cadence, stride and power; clears the pod odometer only when no workout holds the link; sets .disconnected.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.instantaneousSpeedMS",
+    "mem:FootPodManager.cadenceStepsPerMin",
+    "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.podReportedDistanceMeters",
+    "mem:FootPodManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no workout holds the link",
+     "effect": "podReportedDistanceMeters = nil; mid-workout it is kept so the workout baseline still applies"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.rememberDevice(peripheral:supportsPower:)",
+   "hash": "84007d13e545613d",
+   "does": "Moves the pod (with supportsPower) to the front of knownDevices (max 4) and persists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "peripheral name nil",
+     "effect": "uses 'Foot pod'"
+    },
+    {
+     "at": "+7",
+     "cond": "more than 4 entries",
+     "effect": "truncates to 4"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()": "cfcd88076dcaec57",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.saveKnownDevices()",
+   "hash": "a911581d59d04987",
+   "does": "JSON-encodes knownDevices (failure logged by attempt) and writes to UserDefaults.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:fitness.footpod.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encode failed",
+     "effect": "returns without writing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func FootPodManager.loadKnownDevices()",
+   "hash": "25f471a6860b2ee7",
+   "does": "Reads/decodes knownDevices; missing or undecodable data leaves the list empty silently.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:fitness.footpod.knownDevices"
+   ],
+   "writes": [
+    "mem:FootPodManager.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data or decode fails",
+     "effect": "returns leaving []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.centralManagerDidUpdateState(_:)",
+   "hash": "c60c02592e3f65e6",
+   "does": "Hops to main and applies the new Bluetooth state.",
+   "entry": "CBCentralManagerDelegate.centralManagerDidUpdateState.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyBluetoothState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyBluetoothState(_:)": "31995d90f1e43eae",
+    "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "f48bc64dba3148f7"
+   }
+  },
+  {
+   "key": "func FootPodManager.applyBluetoothState(_:)",
+   "hash": "3ec67996eb803073",
+   "does": "Updates status text per Bluetooth state; .poweredOn drains a parked reconnect and starts a waiting scan; .poweredOff parks the pod mid-workout and cleans up.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.lastStatusLine"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".poweredOn",
+     "effect": "'Bluetooth ready', drain pending reconnect, start waiting scan"
+    },
+    {
+     "at": "+6",
+     "cond": "scan waiting for Bluetooth",
+     "effect": "startScanning; else none"
+    },
+    {
+     "at": "+7",
+     "cond": ".poweredOff",
+     "effect": "'Bluetooth is off', park mid-workout id, cleanup"
+    },
+    {
+     "at": "+11",
+     "cond": ".unauthorized",
+     "effect": "'Bluetooth permission denied' only"
+    },
+    {
+     "at": "+13",
+     "cond": ".resetting/.unknown/.unsupported",
+     "effect": "'Bluetooth unavailable' only"
+    },
+    {
+     "at": "+15",
+     "cond": "unknown future state",
+     "effect": "no action"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()": "1bfcaa78862c4ce7",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()": "8a3aea505bda9893",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "34afac4f802e0f6d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.parkReconnectIfMidWorkout()",
+   "hash": "fcd08550d7a81f5e",
+   "does": "Parks the active pod id for reconnect when Bluetooth goes off during a workout with an expected link.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no expected link, no workout hold, or no active peripheral",
+     "effect": "returns without parking"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.drainPendingReconnect()",
+   "hash": "5561a3c26c735f01",
+   "does": "Clears the parked reconnect id and connects it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nothing parked",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)": "3235b50b8ba74c15"
+   }
+  },
+  {
+   "key": "func FootPodManager.centralManager(_:didDiscover:advertisementData:rssi:)",
+   "hash": "8593241c04855585",
+   "does": "Scan result: derives name (peripheral name, advertised local name, or 'Foot pod'), power support from advertised CPS UUID and RSSI; upserts into discoveredDevices and attaches if it is the parked reconnect id. Does not auto-connect known pods.",
+   "entry": "CBCentralManagerDelegate didDiscover.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attachIfPendingReconnect(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.discoveredDevices"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "peripheral name nil",
+     "effect": "uses advertised local name, else 'Foot pod'"
+    },
+    {
+     "at": "+9",
+     "cond": "no advertised service list",
+     "effect": "empty list → supportsPower false"
+    },
+    {
+     "at": "+14",
+     "cond": "device already discovered",
+     "effect": "replaces entry (fresh RSSI); else appends"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attachIfPendingReconnect(_:)": "fbc84f3c5236e077",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.attachIfPendingReconnect(_:)",
+   "hash": "08059c23654addea",
+   "does": "Attaches the scanned peripheral if it matches pendingReconnectId (clearing it and stopping the scan).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.pendingReconnectId"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id is not the parked one",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "c063452b4734ba39"
+   }
+  },
+  {
+   "key": "func FootPodManager.centralManager(_:didConnect:)",
+   "hash": "16738556bb67302a",
+   "does": "Connected: .connected, expectsLink=true, status, re-sets delegate and discovers RSC/CPS/FTMS services.",
+   "entry": "CBCentralManagerDelegate didConnect.",
+   "calls": [
+    "ext:CBPeripheral.discoverServices"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.connectionState",
+    "mem:FootPodManager.lastStatusLine"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "name nil",
+     "effect": "uses 'foot pod'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.centralManager(_:didFailToConnect:error:)",
+   "hash": "a381bf5ca715f90b",
+   "does": "Connect failed: shows the error text and cleans up; no retry even mid-workout.",
+   "entry": "CBCentralManagerDelegate didFailToConnect.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.lastStatusLine",
+    "mem:FootPodManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "error nil",
+     "effect": "shows 'unknown error'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "A failed connect during a workout (e.g. the re-attach issued by didDisconnect at line 443) is not retried although expectsLink and workoutHoldsLink are still true, so pace/cadence/power from the pod end for the rest of the workout — the outcome the expectsLink comment (161-166) says was fixed.",
+     "evidence": [
+      "Emuqu/Sources/Collection/FootPodManager.swift:431",
+      "Emuqu/Sources/Collection/FootPodManager.swift:443",
+      "Emuqu/Sources/Collection/FootPodManager.swift:165"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.centralManager(_:didDisconnectPeripheral:error:)",
+   "hash": "a7b1c452f56b3e55",
+   "does": "Disconnected: status, cleanup, and re-attach when a workout holds an expected link.",
+   "entry": "CBCentralManagerDelegate didDisconnectPeripheral.",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.lastStatusLine",
+    "mem:FootPodManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "link expected and workout holds it",
+     "effect": "attach(peripheral) to reconnect; else stays disconnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "6c6f254116e3d779",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "b28562810f128f29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FootPodManager.peripheral(_:didDiscoverServices:)",
+   "hash": "f37e2845d2c2b925",
+   "does": "Services discovered: hops to main and requests measurement characteristics.",
+   "entry": "CBPeripheralDelegate didDiscoverServices (error ignored).",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.discoverMeasurementCharacteristics(on:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.discoverMeasurementCharacteristics(on:)": "73ab1640ee5ffdde"
+   }
+  },
+  {
+   "key": "func FootPodManager.discoverMeasurementCharacteristics(on:)",
+   "hash": "01625fc470de6951",
+   "does": "For each recognised service requests only its measurement characteristic.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.measurementCharacteristic(for:)",
+    "ext:CBPeripheral.discoverCharacteristics"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "services list (nil = empty)",
+     "effect": "iterates"
+    },
+    {
+     "at": "+3",
+     "cond": "service not RSC/CPS/FTMS",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.measurementCharacteristic(for:)": "367a33f5ceccd9ec",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func FootPodManager.measurementCharacteristic(for:)",
+   "hash": "b3ca00b7ecdc4b40",
+   "does": "Maps service UUID to its measurement characteristic UUID.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "RSC 1814",
+     "effect": "2A53"
+    },
+    {
+     "at": "+3",
+     "cond": "CPS 1818",
+     "effect": "2A63"
+    },
+    {
+     "at": "+4",
+     "cond": "FTMS 1826",
+     "effect": "2AD2"
+    },
+    {
+     "at": "+5",
+     "cond": "other",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.peripheral(_:didDiscoverCharacteristicsFor:error:)",
+   "hash": "a9ce0900b579ab0e",
+   "does": "Characteristics discovered: binds them and remembers the device (with power support) once any measurement characteristic is bound.",
+   "entry": "CBPeripheralDelegate didDiscoverCharacteristicsFor (error ignored).",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.rememberDevice(peripheral:supportsPower:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "service characteristics nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+11",
+     "cond": "no measurement characteristic bound yet",
+     "effect": "returns without remembering"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.bindMeasurementCharacteristics(_:on:)": "901dd94468ef7294",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.rememberDevice(peripheral:supportsPower:)": "9250150efe459ae7"
+   }
+  },
+  {
+   "key": "func FootPodManager.bindMeasurementCharacteristics(_:on:)",
+   "hash": "f2bf53f41dfead2c",
+   "does": "Stores and enables notifications on RSC, CPS and FTMS characteristics; returns whether a power-carrying one was seen.",
+   "entry": null,
+   "calls": [
+    "ext:CBPeripheral.setNotifyValue"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:RSC Measurement 0x2A53",
+    "ble:Cycling Power Measurement 0x2A63",
+    "ble:FTMS Indoor Bike Data 0x2AD2"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each characteristic",
+     "effect": "iterates"
+    },
+    {
+     "at": "+5",
+     "cond": "RSC measurement",
+     "effect": "stores rscMeasurementChar"
+    },
+    {
+     "at": "+7",
+     "cond": "cycling power measurement",
+     "effect": "stores powerMeasurementChar, supportsPower"
+    },
+    {
+     "at": "+10",
+     "cond": "indoor bike data",
+     "effect": "stores indoorBikeDataChar, supportsPower"
+    },
+    {
+     "at": "+13",
+     "cond": "other UUID",
+     "effect": "skipped, no notify"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.peripheral(_:didUpdateValueFor:error:)",
+   "hash": "5c990eed9e6d0bf3",
+   "does": "Notification: routes RSC/CPS/FTMS payloads to their parsers on the main actor.",
+   "entry": "CBPeripheralDelegate didUpdateValueFor (error ignored).",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseRSC(data:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)"
+   ],
+   "reads": [
+    "ble:RSC Measurement 0x2A53",
+    "ble:Cycling Power Measurement 0x2A63",
+    "ble:FTMS Indoor Bike Data 0x2AD2"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "value nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+8",
+     "cond": "RSC",
+     "effect": "parseRSC"
+    },
+    {
+     "at": "+10",
+     "cond": "CPS",
+     "effect": "parsePower"
+    },
+    {
+     "at": "+12",
+     "cond": "FTMS",
+     "effect": "parseIndoorBikeData; others ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)": "7922c3941cb9653a",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "b778c188549ff45e",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseRSC(data:)": "7eca230020278dcf"
+   }
+  },
+  {
+   "key": "func FootPodManager.parseRSC(data:)",
+   "hash": "6b8b6306bf6d742a",
+   "does": "Decodes RSC: speed u16/256 m/s (nil if 0), cadence byte 3 (nil if 0), optional stride u16/100 m, optional total distance u32/10 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u32(_:at:)"
+   ],
+   "reads": [
+    "ble:RSC Measurement 0x2A53"
+   ],
+   "writes": [
+    "mem:FootPodManager.instantaneousSpeedMS",
+    "mem:FootPodManager.cadenceStepsPerMin",
+    "mem:FootPodManager.strideLengthMeters",
+    "mem:FootPodManager.podReportedDistanceMeters"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "<4 bytes or speed unreadable",
+     "effect": "ignored"
+    },
+    {
+     "at": "+7",
+     "cond": "speed 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "cadence 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+10",
+     "cond": "stride flag set",
+     "effect": "reads stride if present (stale value kept when truncated) and advances 2"
+    },
+    {
+     "at": "+11",
+     "cond": "stride bytes present",
+     "effect": "updates stride"
+    },
+    {
+     "at": "+14",
+     "cond": "distance flag set and 4 bytes present",
+     "effect": "updates odometer; otherwise previous value kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u32(_:at:)": "69b670231f47b1aa"
+   }
+  },
+  {
+   "key": "func FootPodManager.u32(_:at:)",
+   "hash": "ba2039379ba296d1",
+   "does": "Little-endian u32 at offset, nil when out of range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than offset+4 bytes",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.parsePower(data:)",
+   "hash": "b00fecb7af7e3408",
+   "does": "Decodes CPS instantaneous power int16 at bytes 2–3, clamping negatives to 0 and publishing nil for 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ble:Cycling Power Measurement 0x2A63"
+   ],
+   "writes": [
+    "mem:FootPodManager.instantaneousPowerWatts"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "<4 bytes",
+     "effect": "ignored"
+    },
+    {
+     "at": "+11",
+     "cond": "watts > 0",
+     "effect": "publishes; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.parseIndoorBikeData(data:)",
+   "hash": "9becc90ed8157ba5",
+   "does": "Decodes FTMS Indoor Bike Data: flags, instantaneous speed (unless More Data), skips avg speed, instantaneous cadence (0.5 rpm units), skips avg cadence/total distance/resistance, then instantaneous power.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousSpeed(_:at:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)"
+   ],
+   "reads": [
+    "ble:FTMS Indoor Bike Data 0x2AD2"
+   ],
+   "writes": [
+    "mem:FootPodManager.cadenceStepsPerMin"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "<2 bytes",
+     "effect": "ignored"
+    },
+    {
+     "at": "+6",
+     "cond": "More Data bit 0 clear (speed present)",
+     "effect": "applies speed (abort whole packet if truncated) and advances 2; else speed slot absent"
+    },
+    {
+     "at": "+7",
+     "cond": "speed truncated",
+     "effect": "returns without cadence/power"
+    },
+    {
+     "at": "+10",
+     "cond": "avg speed flag",
+     "effect": "skip 2 bytes"
+    },
+    {
+     "at": "+11",
+     "cond": "inst cadence flag",
+     "effect": "reads cadence rpm/2 if present and advances 2"
+    },
+    {
+     "at": "+12",
+     "cond": "cadence bytes present",
+     "effect": "updates cadenceStepsPerMin; else stale value kept"
+    },
+    {
+     "at": "+16",
+     "cond": "avg cadence / total distance / resistance flags",
+     "effect": "skip 2/3/2 bytes each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)": "ded91c96e84fd227",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousSpeed(_:at:)": "c7afc1c392d47544",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+   }
+  },
+  {
+   "key": "func FootPodManager.applyInstantaneousSpeed(_:at:)",
+   "hash": "def640f685e8a13e",
+   "does": "Reads u16 speed in 0.01 km/h, publishes m/s (nil when 0); false if truncated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.instantaneousSpeedMS"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "u16 unreadable",
+     "effect": "returns false"
+    },
+    {
+     "at": "+4",
+     "cond": "km/h > 0",
+     "effect": "sets m/s; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+   }
+  },
+  {
+   "key": "func FootPodManager.applyInstantaneousPower(_:at:flags:)",
+   "hash": "ac6e2ecba926271a",
+   "does": "If the power flag (bit 6) is set and bytes present, publishes clamped int16 watts (nil when 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.instantaneousPowerWatts"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "power flag clear or bytes missing",
+     "effect": "returns; previous power value stays"
+    },
+    {
+     "at": "+4",
+     "cond": "watts > 0",
+     "effect": "publishes; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "2da4fecaf65b62c7"
+   }
+  },
+  {
+   "key": "func FootPodManager.u16(_:at:)",
+   "hash": "e922caf597f74d2b",
+   "does": "Little-endian u16 at offset, nil when out of range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than offset+2 bytes",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

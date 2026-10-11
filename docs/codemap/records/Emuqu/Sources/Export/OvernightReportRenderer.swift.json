@@ -1,0 +1,60 @@
+{
+ "file": "Emuqu/Sources/Export/OvernightReportRenderer.swift",
+ "hash": "4ed8a9081cc62689",
+ "role": "Declares OvernightReportRenderer, a stateless value wrapping a PDFReportGenerator that draws the overnight HR chart, overnight stats card and tags/notes block of the recovery PDF; exposes three forwarded primitives from the generator.",
+ "types": [
+  "OvernightReportRenderer: struct — overnight-page renderer built on demand by PDFReportGenerator.overnight; holds the generator strongly"
+ ],
+ "state": [
+  "mem:OvernightReportRenderer.generator (let, the owning PDFReportGenerator)"
+ ],
+ "toplevel": "Stored property `generator`; memberwise init used by PDFReportGenerator.overnight (PDFReportGenerator+OvernightForwarding.swift:13).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OvernightReportRenderer.config",
+   "hash": "af019438def0108a",
+   "does": "Computed property returning generator.config (page size, margins, fonts, colours) for the renderer's drawing code.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightReportRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+   "hash": "1b920ecabc513075",
+   "does": "Forwards a section heading draw to PDFReportGenerator.drawSectionHeading and returns the y below it (yPosition+20).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee"
+   }
+  },
+  {
+   "key": "func OvernightReportRenderer.drawCompactStatBox(title:value:color:rect:)",
+   "hash": "a87d43c17709f6a2",
+   "does": "Forwards a compact stat box draw to PDFReportGenerator.drawCompactStatBox, which itself forwards to ReportSectionRenderer.drawCompactStatBox.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawCompactStatBox(title:value:color:rect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawCompactStatBox(title:value:color:rect:)": "b2ae09f2a96271e3"
+   }
+  }
+ ],
+ "deps": {}
+}

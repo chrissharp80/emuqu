@@ -1,0 +1,154 @@
+{
+ "file": "scripts/generate_sbom.py",
+ "hash": "68cd9cb1740fd172",
+ "role": "Generates (or with --check verifies) sbom.spdx.json, an SPDX 2.3 document derived from Package.resolved; run by make sbom-check, ci.yml 'SBOM is current', gates.yml, and planted by verify_gates_fail 'sbom_drift'.",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved (read)",
+  "file:sbom.spdx.json (write / compare)"
+ ],
+ "toplevel": "Constants: DIRECT={polar-ble-sdk, whisperkit}; LICENSES map for all 11 current identities (unknown identities get NOASSERTION); COPYRIGHTS for polar; POLAR_LICENSE LicenseRef. Docstring says check_sbom_drift.sh verifies the SBOM is not stale, but check_sbom_drift.sh never reads sbom.spdx.json; staleness is checked by this script's own --check. creationInfo.created is a fixed '2026-08-27T00:00:00Z' while the comment says 'No timestamp'. Verified at 8d32097: --check reports 'matches Package.resolved. 11 packages.'",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Docstring claims `check_sbom_drift.sh` can verify the SBOM has not gone stale; that script only compares Package.resolved with the in-app acknowledgements and never opens sbom.spdx.json.",
+   "evidence": [
+    "scripts/generate_sbom.py:15",
+    "scripts/generate_sbom.py:16",
+    "scripts/check_sbom_drift.sh:39"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def spdx_id",
+   "hash": "6f8635e730ac63b5",
+   "does": "Returns 'SPDXRef-Package-' + identity with every char that is not alphanumeric, '.' or '-' replaced by '-'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def purl",
+   "hash": "d2666957ebdcfa7c",
+   "does": "Builds a purl: pkg:github/<owner/repo lowercased>@<version or revision> for github https locations (trailing .git removed), else pkg:generic/<identity>@<version>.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "location starts with https://github.com/",
+     "effect": "pkg:github form; else pkg:generic form"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build",
+   "hash": "1f49cddba8e9fd02",
+   "does": "Loads Package.resolved, sorts pins by identity, emits the root Emuqu package (PolyForm-Strict-1.0.0) plus one package per pin (version or first 12 chars of revision, licence, purl, SHA1 checksum when revision is 40 chars, direct/transitive comment) and relationships, with documentNamespace derived from sha256 of the lockfile.",
+   "entry": null,
+   "calls": [
+    "scripts/generate_sbom.py::def spdx_id",
+    "scripts/generate_sbom.py::def purl"
+   ],
+   "reads": [
+    "file:Package.resolved"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+30",
+     "cond": "identity in DIRECT",
+     "effect": "relationship Emuqu DEPENDS_ON pkg and 'Direct dependency' comment; else Emuqu DEPENDENCY_OF pkg and 'Transitive' comment"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "For transitive pins the relationship is written as `SPDXRef-Package-Emuqu DEPENDENCY_OF <pkg>`, which in SPDX means Emuqu is a dependency of that package — the direction is inverted, so SCA tools reading the graph get Emuqu as a dependency of swift-protobuf, zip, etc.",
+     "evidence": [
+      "scripts/generate_sbom.py:147",
+      "scripts/generate_sbom.py:149"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The SPDX package `checksums` entry is the 40-char git commit id labelled as SHA1 of the package; SPDX PackageChecksum is a hash of the package content, so a consumer verifying the checksum against the downloaded package always gets a mismatch.",
+     "evidence": [
+      "scripts/generate_sbom.py:123",
+      "scripts/generate_sbom.py:140"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Every transitive pin is related directly to the Emuqu root; the parent (polar-ble-sdk for swift-protobuf/zip, whisperkit for the rest, per the comment at 32-35) is never recorded, so the SBOM graph cannot show which direct dependency pulls each transitive one.",
+     "evidence": [
+      "scripts/generate_sbom.py:32",
+      "scripts/generate_sbom.py:147"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/generate_sbom.py::def purl": "3640bda86c8e3bbe",
+    "scripts/generate_sbom.py::def spdx_id": "2ba163face7edd65"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "441ab5db69591afd",
+   "does": "CLI: serialises build() as indented JSON; --check returns 1 if sbom.spdx.json is missing or differs, else prints match; otherwise writes the file.",
+   "entry": "`python3 scripts/generate_sbom.py [--check]` via __main__ (Makefile sbom/sbom-check, ci.yml, gates.yml, verify_gates_fail.sh)",
+   "calls": [
+    "scripts/generate_sbom.py::def build"
+   ],
+   "reads": [
+    "file:sbom.spdx.json"
+   ],
+   "writes": [
+    "file:sbom.spdx.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "--check in argv",
+     "effect": "compare mode"
+    },
+    {
+     "at": "+4",
+     "cond": "output missing",
+     "effect": "stderr, return 1"
+    },
+    {
+     "at": "+7",
+     "cond": "content differs",
+     "effect": "stderr stale, return 1; else print match, return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/generate_sbom.py::def build": "2bff7ea18a12bcc5"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/generate_sbom.py::def main": "9f1f3c45d4110b37",
+  "scripts/generate_sbom.py::def purl": "3640bda86c8e3bbe",
+  "scripts/generate_sbom.py::def spdx_id": "2ba163face7edd65"
+ }
+}

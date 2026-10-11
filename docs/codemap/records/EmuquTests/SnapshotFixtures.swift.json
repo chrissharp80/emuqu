@@ -1,0 +1,254 @@
+{
+ "file": "EmuquTests/SnapshotFixtures.swift",
+ "hash": "359c83ce9b0d5e88",
+ "role": "Frozen deterministic fixtures (anchor date, RR series, analysis result, overnight/workout sessions, GPS track, sleep data, vitals, hermetic collector) shared by snapshot suites, plus XCTestCase.useDefaultSettings().",
+ "types": [
+  "SnapshotFixtures: enum — namespace of frozen snapshot inputs",
+  "SnapshotFixtures: extension — detail-screen inputs (sleepData, recoveryVitals)",
+  "SnapshotFixtures: extension — hermetic collector over an empty temp archive",
+  "XCTestCase: extension — useDefaultSettings()"
+ ],
+ "state": [
+  "SnapshotFixtures.anchor: Date 1_622_534_400 (2021-06-01 08:00 UTC)",
+  "SnapshotFixtures.sessionId: UUID 00000000-0000-0000-0000-00000000C0DE (fallback UUID() never used; literal is valid)",
+  "file:<tmp>/SnapshotFixtures-EmptyArchive (SnapshotFixtures.emptyArchiveDirectory)"
+ ],
+ "toplevel": "static lets anchor, sessionId and emptyArchiveDirectory (temporaryDirectory/SnapshotFixtures-EmptyArchive) are initialised lazily on first access.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SnapshotFixtures.rrSeries(beats:)",
+   "hash": "2af642a4d0c2e8d8",
+   "does": "Builds an RRSeries of `beats` points: RR = 950 + 60·i/beats drift + 45·sin(i/12), with ectopic beats (×0.55) at indices 200 and 401; t_ms accumulates RR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each beat index",
+     "effect": "computes one RR point per index; runs `beats` times"
+    },
+    {
+     "at": "+7",
+     "cond": "i == 200 or i == 401",
+     "effect": "true: shortens RR to 55% (ectopic); false: keeps computed RR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.analysisResult()",
+   "hash": "98b541d4aa1b6ba1",
+   "does": "Returns a fixed HRVAnalysisResult (RMSSD 45, SDNN 54, HR 58, LF/HF 1.2, DFA α1 0.95, readiness 7, 3% artifacts) dated at anchor, consolidated and organized.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.overnightSession(dayOffset:)",
+   "hash": "b70dfc9483d67def",
+   "does": "Returns a complete overnight HRVSession starting anchor+dayOffset days, 8h long, with rrSeries(), analysisResult() and recoveryScore 72.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)": "0efc8f7067b76e4f"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.workoutSamples(count:)",
+   "hash": "094fe182e833fc34",
+   "does": "Returns `count` WorkoutSample values at 10s offsets with HR 120→160, pace 300→260 s/km, altitude 100→160 m, alpha1 1.15→0.55, power 220→280 W.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.workoutSession()",
+   "hash": "f7ed4c907c7e8420",
+   "does": "Returns a complete 40-minute run HRVSession at anchor with WorkoutMetadata (samples, 10.8 km, +60/−12 m).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.workoutSamples(count:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.workoutSamples(count:)": "88de136459b12c8a"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.track(points:)",
+   "hash": "3750870dfc1b48fe",
+   "does": "Returns `points` CLLocations heading east from London at 10 s spacing with altitude rising 1.5 m per point.",
+   "entry": null,
+   "calls": [
+    "ext:CoreLocation.CLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "SnapshotFixtures.track(points:) has no caller in the repo (grep for 'SnapshotFixtures.track' and 'track(points:' finds only the declaration; other track() calls are private helpers in ImportedWorkoutBuilderTests/WorkoutDecouplingTests).",
+     "evidence": [
+      "EmuquTests/SnapshotFixtures.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SnapshotFixtures.sleepData()",
+   "hash": "86bac2e88d073eec",
+   "does": "Returns a SleepData at anchor: sleep anchor+10min to +8h, 400 min asleep, 420 in bed, deep 80, REM 90, awake 20, efficiency 95, source .recordingBounds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SnapshotFixtures.recoveryVitals()",
+   "hash": "ee6f4512e935b902",
+   "does": "Returns RecoveryVitals with respiratory 14.2 (baseline 13.8), SpO2 96.5 (min 93), wrist temp 0.3 (baseline 0), RHR 52.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SnapshotFixtures.collector()",
+   "hash": "fab7604655f9d548",
+   "does": "Builds an RRCollector with a fresh PolarManager, HealthKitManager and a SessionArchive over the temp empty-archive directory.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
+   ],
+   "reads": [
+    "file:<tmp>/SnapshotFixtures-EmptyArchive"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 'empty' archive directory is a fixed temp path that is never cleared; if any test using collector() saves a session, later snapshot runs see it and render differently.",
+     "evidence": [
+      "EmuquTests/SnapshotFixtures.swift:166",
+      "EmuquTests/SnapshotFixtures.swift:174"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Only the archive is isolated: the designated RRCollector init still defaults settingsManager, cloudSyncManager and backgroundAudioManager to the app's AppDependencies.current singletons, so the 'hermetic' collector shares the host's settings, CloudKit sync manager and audio manager.",
+     "evidence": [
+      "EmuquTests/SnapshotFixtures.swift:172",
+      "Emuqu/Sources/Collection/RRCollector.swift:679",
+      "Emuqu/Sources/Collection/RRCollector.swift:706",
+      "Emuqu/Sources/Collection/RRCollector.swift:708"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0"
+   }
+  },
+  {
+   "key": "func XCTestCase.useDefaultSettings()",
+   "hash": "e73c7f825efcabc1",
+   "does": "Saves SettingsManager.shared.settings, replaces them with UserSettings() defaults, and restores the saved settings in a teardown block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.shared.settings",
+    "file:SettingsManager settings file (didSet save())",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Mutates the app-host singleton SettingsManager.shared (which persists settings) for the test duration; its didSet calls save() and posts flowRecoverySettingsChanged, so the defaults are written to the host's settings file and broadcast, and a crash before teardown leaves the host on defaults.",
+     "evidence": [
+      "EmuquTests/SnapshotFixtures.swift:187",
+      "EmuquTests/SnapshotFixtures.swift:188",
+      "Emuqu/Sources/Models/SettingsManager.swift:34"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  }
+ ],
+ "deps": {}
+}

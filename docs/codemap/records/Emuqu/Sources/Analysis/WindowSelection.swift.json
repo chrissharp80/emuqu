@@ -1,0 +1,125 @@
+{
+ "file": "Emuqu/Sources/Analysis/WindowSelection.swift",
+ "hash": "27fc66b043892b2b",
+ "role": "Declares the WindowSelector class (Sendable; immutable config plus a lock-protected lastOrganizedZones side channel) and its RecoveryWindow / WindowSelectionResult result types with classification labels and organization thresholds.",
+ "types": [
+  "WindowSelector: class (final, Sendable) — recovery window selector",
+  "WindowSelector.RecoveryWindow: struct (Codable) — selected window persisted on analysis results",
+  "WindowSelector.RecoveryWindow.WindowClassification: enum (String, Codable) — Organized Recovery / Flexible / High Variability / Insufficient",
+  "WindowSelector.WindowSelectionResult: struct — recovery window + peak capacity"
+ ],
+ "state": [
+  "static RecoveryWindow.unstableCVThreshold = 0.08",
+  "static RecoveryWindow.optimalAlpha1Range = 0.75...1.0",
+  "static RecoveryWindow.flexibleAlpha1Range = 0.60...0.75",
+  "static RecoveryWindow.maxOrganizedLfHf = 1.5 (dormant: lfHfRatio always nil in production)",
+  "WindowSelector.organizedZonesBox: OSAllocatedUnfairLock<[HRVAnalysisResult.TimeRange]> backing lastOrganizedZones",
+  "mem:WindowSelector.lastOrganizedZones"
+ ],
+ "toplevel": "RecoveryWindow and WindowClassification get synthesized Codable (persisted inside HRVAnalysisResult; raw values are the stored classification strings decoded by MorningResultsView+Reanalysis:402).",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "lastOrganizedZones is a side-channel result written by findBestWindow; views call findBestWindow and discard the window only to read it, and a selector shared across concurrent analyses could expose another analysis's zones (HRVAnalysisPipeline creates a selector per analysis for exactly this reason, but RRCollector/SessionRecoveryService/ReanalysisService hold shared instances).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/WindowSelection.swift:158",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:255",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:489",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:225",
+    "Emuqu/Sources/Collection/RRCollector.swift:175"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WindowSelector.RecoveryWindow.WindowClassification.shortLabel",
+   "hash": "43993651a4e3623f",
+   "does": "Localized compact label for a classification: Organized / Flexible / Variable / N/A.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "organizedRecovery",
+     "effect": "'Organized'"
+    },
+    {
+     "at": "+3",
+     "cond": "flexibleUnconsolidated",
+     "effect": "'Flexible'"
+    },
+    {
+     "at": "+4",
+     "cond": "highVariability",
+     "effect": "'Variable'"
+    },
+    {
+     "at": "+5",
+     "cond": "insufficient",
+     "effect": "'N/A'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WindowSelector.WindowSelectionResult.hasConsolidatedRecovery",
+   "hash": "6fcb401832e9ee98",
+   "does": "True when recoveryWindow is non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No reference to hasConsolidatedRecovery outside its declaration (grep).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WindowSelection.swift:144"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init WindowSelector(config:)",
+   "hash": "1fdee26bb5694629",
+   "does": "Stores the config (default Config.default).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WindowSelector.lastOrganizedZones",
+   "hash": "4aaaf538f08be9fe",
+   "does": "Lock-protected getter/setter for the organized zones found by the last findBestWindow call.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WindowSelector.lastOrganizedZones"
+   ],
+   "writes": [
+    "mem:WindowSelector.lastOrganizedZones"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

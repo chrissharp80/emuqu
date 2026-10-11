@@ -1,0 +1,537 @@
+{
+ "file": "Emuqu/Sources/Views/HeatAcclimationCard.swift",
+ "hash": "06b731b8b2bb1feb",
+ "role": "Heat-acclimatization card on the Fitness home: opt-in card when heat tracking is off; when on, shows loading, a ready readout (ring %, band, adapted temperature, coaching line) or explanations for no outdoor workouts / no recorded weather, with a menu to turn tracking off.",
+ "types": [
+  "HeatAcclimationCard: struct (View)"
+ ],
+ "state": [],
+ "toplevel": "Reads dependencies.analysis.heatAcclimationCache and dependencies.app.settingsManager; temperatureUnit passed by FitnessTabView.heatAcclimationCard (FitnessTabView.swift:364).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "The no-outdoor-workouts card tells the user 'No outdoor workouts found in Apple Health for the last 60 days', but HeatAcclimationCache.computeStatus merges the app's own archive with HealthKit over HeatConstants.replayLookbackDays = 180 days.",
+   "evidence": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift:92",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:207",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:208",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:395"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var HeatAcclimationCard.cache",
+   "hash": "c5b22d224d939841",
+   "does": "Returns dependencies.analysis.heatAcclimationCache.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeatAcclimationCache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HeatAcclimationCard.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Returns dependencies.app.settingsManager.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.body",
+   "hash": "64ddd60b0bb2536a",
+   "does": "When heat tracking is enabled shows status content with a .task calling cache.refresh(); otherwise the opt-in card.",
+   "entry": "SwiftUI View.body / .task",
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.content",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.optInCard"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.heatTrackingEnabled"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "settings.heatTrackingEnabled",
+     "effect": "true → content + refresh task; false → optInCard"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "08f8914cc6d8cef3",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cache": "e9c899ce342cfc31",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.content": "14627371f5797b5e",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.optInCard": "37e67d4bf189786e",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.settingsManager": "09c37075dd6f7438"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.optInCard",
+   "hash": "7e8290354158ef15",
+   "does": "Info card explaining heat tracking with a 'Turn on heat tracking' action and no menu.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.optInExplanation",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.setTracking(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)": "af7701d6a056fed9",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.setTracking(_:)": "79aa8b9e893d31ef",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.optInExplanation": "a35ef5e3d453ecdb"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.optInExplanation",
+   "hash": "8adeb043319490e3",
+   "does": "Explanation string: uses temperature/humidity saved with outdoor workouts; nothing looked up or sent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.setTracking(_:)",
+   "hash": "b613ea819780caef",
+   "does": "Writes settings.heatTrackingEnabled; when turning off also clears the cache's persisted readout and legacy coordinate keys from UserDefaults.",
+   "entry": "Button / menu action",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.heatTrackingEnabled",
+    "ud:FlowRecovery.heat.lastReadout (removed)",
+    "ud:FlowRecovery.heat.representativeLat (removed)",
+    "ud:FlowRecovery.heat.representativeLon (removed)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!enabled",
+     "effect": "true → HeatAcclimationCache.clearPersistedData()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "cb4b51d04e4115a8",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.settingsManager": "09c37075dd6f7438"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.trackingMenu",
+   "hash": "e52a46dfce2c44af",
+   "does": "Ellipsis menu with 'Turn off heat tracking'.",
+   "entry": "SwiftUI Menu button",
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.setTracking(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.setTracking(_:)": "79aa8b9e893d31ef",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.content",
+   "hash": "e7f693b5adbea871",
+   "does": "Switch on cache.status to loading / ready / no-outdoor / no-weather cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.loadingCard",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.card(_:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.noOutdoorWorkoutsCard",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.noRecordedWeatherCard(_:)"
+   ],
+   "reads": [
+    "mem:HeatAcclimationCache.status"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".computing",
+     "effect": "loadingCard"
+    },
+    {
+     "at": "+10",
+     "cond": ".ready(readout)",
+     "effect": "card(readout)"
+    },
+    {
+     "at": "+12",
+     "cond": ".noOutdoorWorkouts",
+     "effect": "noOutdoorWorkoutsCard"
+    },
+    {
+     "at": "+14",
+     "cond": ".noRecordedWeather(count)",
+     "effect": "noRecordedWeatherCard(count)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.card(_:)": "556a3738e4761605",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.noRecordedWeatherCard(_:)": "ab9886fc5d5c0432",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cache": "e9c899ce342cfc31",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.loadingCard": "65b18734120d2972",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.noOutdoorWorkoutsCard": "b9663b4e4cf42af0"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.noOutdoorWorkoutsCard",
+   "hash": "652afbc320d4cdd4",
+   "does": "Info card stating no outdoor workouts in Apple Health for the last 60 days.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Text says 'Apple Health … last 60 days'; the status is computed from archive + HealthKit over 180 days.",
+     "evidence": [
+      "Emuqu/Sources/Views/HeatAcclimationCard.swift:92",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:395"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)": "af7701d6a056fed9"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.noRecordedWeatherCard(_:)",
+   "hash": "d8e07d85eb3a5107",
+   "does": "Info card 'Found N outdoor workouts. None of them has weather saved…'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)": "af7701d6a056fed9"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.card(_:)",
+   "hash": "f8b36e70ecb3ab0d",
+   "does": "Ready card: header, ring of level %, band caption, coaching line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.header",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.ring(level:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.bandCaption(_:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.coachingLine(_:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.bandCaption(_:)": "6eee7de9ca87adc3",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.coachingLine(_:)": "3e58171d5e7dee28",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.ring(level:)": "9f6ee3c637d9f5d1",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cardBackground": "ad1d0ce11934b309",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.header": "54637cb14d935df8",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.bandCaption(_:)",
+   "hash": "c8318370eb879503",
+   "does": "Band label and, when present, the adapted-to temperature line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::var HeatAcclimation.Band.localizedLabel",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.adaptedLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "r.adaptedWBGT non-nil",
+     "effect": "true → adaptedLine text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "628e3425290cf48d",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::var HeatAcclimation.Band.localizedLabel": "1e0f389b7951afdb",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.adaptedLine(_:)": "580067835965a3d7",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.header",
+   "hash": "c61345bf0233f2d0",
+   "does": "Header: icon, 'Heat acclimatization' title, tracking menu.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.trackingMenu"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.trackingMenu": "bb5f190afb4aa02c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.loadingCard",
+   "hash": "228893e70bb9e5e0",
+   "does": "Loading card with header and 'Reading your recent outdoor training…' spinner (non-empty so the .task runs).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cardBackground": "ad1d0ce11934b309",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.header": "54637cb14d935df8",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.infoCard(icon:title:message:action:showsTrackingMenu:)",
+   "hash": "9251aed3c4fa5062",
+   "does": "Generic info card: header (optionally with menu), message, optional action button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCardHeader(icon:title:showsTrackingMenu:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCardAction(_:)",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCardAction(_:)": "c228002909874c09",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.infoCardHeader(icon:title:showsTrackingMenu:)": "bab3085e97642212",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.cardBackground": "ad1d0ce11934b309",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.infoCardAction(_:)",
+   "hash": "7fa1889b5a6af4ad",
+   "does": "Plain button with the action label when an action is supplied.",
+   "entry": "SwiftUI Button",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "action non-nil",
+     "effect": "true → Button(action.run); false → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText": "bf5f36a9592e827c"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.infoCardHeader(icon:title:showsTrackingMenu:)",
+   "hash": "9c8dcdcc90733339",
+   "does": "Icon + title, plus the tracking menu when showsTrackingMenu.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.trackingMenu"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "showsTrackingMenu",
+     "effect": "true → spacer + trackingMenu"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::var HeatAcclimationCard.trackingMenu": "bb5f190afb4aa02c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HeatAcclimationCard.cardBackground",
+   "hash": "a9747114c4f2be95",
+   "does": "Rounded card fill with a 22% wongAttention border.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.ring(level:)",
+   "hash": "12eef2c281909037",
+   "does": "Progress ring trimmed to level clamped 0–100 with the rounded percentage and an accessibility label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.adaptedLine(_:)",
+   "hash": "e2c309f347418ae7",
+   "does": "'Adapted to heat around N°C/°F' from approxAirTempC(fromWBGT:), converted to °F when that unit is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.approxAirTempC(fromWBGT:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "temperatureUnit == .fahrenheit",
+     "effect": "true → C×9/5+32; false → °C"
+    },
+    {
+     "at": "+3",
+     "cond": "temperatureUnit == .fahrenheit",
+     "effect": "unit suffix °F vs °C"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.approxAirTempC(fromWBGT:)": "026141a6276c331c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.coachingLine(_:)",
+   "hash": "fab37ee83555d1f0",
+   "does": "progressLine + heat-illness caveat sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.progressLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HeatAcclimationCard.swift::func HeatAcclimationCard.progressLine(_:)": "b2c06a2ad895092f"
+   }
+  },
+  {
+   "key": "func HeatAcclimationCard.progressLine(_:)",
+   "hash": "0ec392c582aed55b",
+   "does": "Coaching sentence chosen from heat exposure and daysToTarget.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!r.hasHeatExposure",
+     "effect": "early return 'haven't been hot enough…'"
+    },
+    {
+     "at": "+5",
+     "cond": "daysToTarget == 0",
+     "effect": "'good heat adaptation…'"
+    },
+    {
+     "at": "+7",
+     "cond": "daysToTarget == 1",
+     "effect": "'About one more hot outdoor session…'"
+    },
+    {
+     "at": "+9",
+     "cond": "daysToTarget == n (other)",
+     "effect": "'About n more hot outdoor training days…'"
+    },
+    {
+     "at": "+11",
+     "cond": "daysToTarget nil",
+     "effect": "'aren't hot or long enough to push acclimatization further…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.Readout.hasHeatExposure": "3d77399c37c0d4b2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

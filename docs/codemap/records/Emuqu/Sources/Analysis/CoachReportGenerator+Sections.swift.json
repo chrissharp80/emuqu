@@ -1,0 +1,82 @@
+{
+ "file": "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift",
+ "hash": "9f3b7a87c115f8f6",
+ "role": "Distance and duration formatters for the Coach Report email; formatDistance is also used by WorkoutRecoveryService.",
+ "types": [
+  "CoachReportGenerator: extension — formatters"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CoachReportGenerator.formatDistance(_:units:)",
+   "hash": "84f2a1f128a607e4",
+   "does": "Formats metres as '%.2f mi' (imperial) or '%.2f km' in the app locale; '—' when nil or ≤0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meters nil or <= 0",
+     "effect": "returns '—'"
+    },
+    {
+     "at": "+2",
+     "cond": "units == .imperial",
+     "effect": "miles; else km (.auto is treated as metric — callers pass a resolved preference)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "UnitsPreference.formatDistance(meters:) already formats metres as mi/km for a preference (resolving .auto and using locale-aware Measurement formatting); this re-implements it with a fixed '%.2f km'/'%.2f mi' and treats .auto as metric.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift:9",
+      "Emuqu/Sources/Models/UnitsPreference.swift:36"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.formatDuration(_:)",
+   "hash": "924758d339c8be87",
+   "does": "Formats seconds as 'h:mm:ss' when ≥1 h, else 'm:ss' (not localized digits).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "hours > 0",
+     "effect": "'h:mm:ss'; else 'm:ss'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical h:mm:ss / m:ss formatting to WorkoutStatsCards.formatDuration(sec:); GPXExporter.durationLabel and TCXExporter.humanSummary durLabel do the m:ss form without hours.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:23",
+      "Emuqu/Sources/Analysis/GPXExporter.swift:66",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:61"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

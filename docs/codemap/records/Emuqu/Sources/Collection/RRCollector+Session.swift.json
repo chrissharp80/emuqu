@@ -1,0 +1,93 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+Session.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector conveniences: resetSession between recordings and the notifyArchiveChanged forwarder (RecordingCore requirement).",
+ "types": [
+  "RRCollector: extension — session reset and archive-changed forwarder"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRCollector.resetSession()",
+   "hash": "c80301fe0b6e4233",
+   "does": "Clears the active-session state: currentSession, collectedPoints, verificationResult, recoveryWindow, needsAcceptance, baselineDeviation to nil/empty, recordingPhase to .idle, isPaused false, pausedSession nil, isDeviceFetchInProgress false, then clears the persisted paused-session state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionState.currentSession",
+    "mem:SessionState.collectedPoints",
+    "mem:SessionState.verificationResult",
+    "mem:SessionState.recoveryWindow",
+    "mem:SessionState.needsAcceptance",
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.baselineDeviation",
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:MorningCoordination.isDeviceFetchInProgress"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Does not reset lastError, isCollecting, reviewArchivedSessionId, isStreamingMode or sessionStartTime, so a stale error or review id from the previous session survives the reset.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+Session.swift:8",
+      "Emuqu/Sources/Collection/SessionState.swift:34",
+      "Emuqu/Sources/Collection/SessionState.swift:52"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "lastError is not cleared by resetSession, and RecordView only raises its error alert when the String form of lastError changes. After one too-short quick reading (insufficientData) is dismissed via OK -> resetSession, a second too-short reading sets the same insufficientData value, onChange does not fire, and no error alert is shown.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+Session.swift:8",
+      "Emuqu/Sources/Views/RecordView.swift:88",
+      "Emuqu/Sources/Views/RecordView.swift:184",
+      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:201"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.baselineDeviation": "245731384ffd2292",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "210a4862ba3075d2",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused": "21725ec1f10a942e",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recoveryWindow": "6b15c120c9ab1b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()": "b3dd5c46574fadb5"
+   }
+  },
+  {
+   "key": "func RRCollector.notifyArchiveChanged()",
+   "hash": "5e450e732983b77f",
+   "does": "Posts .flowRecoveryArchiveChanged via ArchiveSignal.notifyChanged so ArchiveSignal (coalesced) bumps its version. Satisfies RecordingCore.notifyArchiveChanged for WorkoutRecorder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54"
+   }
+  }
+ ],
+ "deps": {}
+}

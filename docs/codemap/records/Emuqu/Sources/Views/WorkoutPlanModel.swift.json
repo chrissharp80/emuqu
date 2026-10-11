@@ -1,0 +1,150 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutPlanModel.swift",
+ "hash": "eea6cd75a35576db",
+ "role": "@Observable @MainActor state for the Fitness tab pre-flight surface (sport, route, coaching options, HR source, sensor sheet, start-in-progress), owned by FitnessTabView and injected via environment.",
+ "types": [
+  "WorkoutPlanModel: class (@Observable @MainActor) — plan picker state + start gating helpers"
+ ],
+ "state": [
+  "mem:WorkoutPlanModel.selectedSport (default .walk)",
+  "mem:WorkoutPlanModel.selectedRoute",
+  "mem:WorkoutPlanModel.routeExpanded",
+  "mem:WorkoutPlanModel.coachingExpanded",
+  "mem:WorkoutPlanModel.selectedThresholds",
+  "mem:WorkoutPlanModel.selectedPlan",
+  "mem:WorkoutPlanModel.selectedTargetZone",
+  "mem:WorkoutPlanModel.explicitHRSource",
+  "mem:WorkoutPlanModel.sensorSheetPresented",
+  "mem:WorkoutPlanModel.startInProgress",
+  "mem:WorkoutPlanModel.startProgressLabel"
+ ],
+ "toplevel": "Stored-property defaults only; instance created as @State in FitnessTabView.swift:46.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "startProgressLabel is never assigned anywhere in the repo (only read at WorkoutPreflightView:258), so the 'Connecting H10…' progress text it documents never appears.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:70",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift:258"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "explicitHRSource is never assigned anywhere in the repo; there is no UI for an explicit HR source pick, so it is always nil.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:54",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:77"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "resolvedSource and canStart have no unit tests (grep of EmuquTests finds none).",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:76",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift:84"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
+   "hash": "bd9bfae53affe3f5",
+   "does": "Returns the HR source the next start will use: explicit pick, else strap if connected or a strap is known, else watch.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutPlanModel.explicitHRSource"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "explicitHRSource non-nil",
+     "effect": "return it (never true: nothing assigns explicitHRSource)"
+    },
+    {
+     "at": "+2",
+     "cond": "strapConnected",
+     "effect": "return .strap"
+    },
+    {
+     "at": "+3",
+     "cond": "hasKnownStrap",
+     "effect": "return .strap (caller kicks a reconnect); else fall through to line 80 return .watch"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "explicitHRSource is never set, so line 77 never returns.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPlanModel.swift:77",
+      "Emuqu/Sources/Views/WorkoutPlanModel.swift:54"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "USERS_MANUAL step 2 tells the user to pick an HR source (Strap / Apple Watch / None), but the preflight has no HR-source control: explicitHRSource is never assigned, so the source is always derived (strap if known/connected, else watch) and None cannot be chosen.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1041",
+      "Emuqu/Sources/Views/WorkoutPlanModel.swift:77",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:338"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPlanModel.canStart(recorderPhase:)",
+   "hash": "a31e77a2862b9bc3",
+   "does": "True iff no start is in progress and the recorder phase is idle, finished or failed.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutPlanModel.startInProgress",
+    "mem:WorkoutRecorder.phase"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "startInProgress",
+     "effect": "return false"
+    },
+    {
+     "at": "+2",
+     "cond": "recorderPhase nil",
+     "effect": "return false"
+    },
+    {
+     "at": "+4",
+     "cond": "idle or finished",
+     "effect": "return true"
+    },
+    {
+     "at": "+5",
+     "cond": "failed",
+     "effect": "return true"
+    },
+    {
+     "at": "+6",
+     "cond": "recording or finalizing",
+     "effect": "return false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

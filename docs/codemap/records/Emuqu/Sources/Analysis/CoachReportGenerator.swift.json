@@ -1,0 +1,42 @@
+{
+ "file": "Emuqu/Sources/Analysis/CoachReportGenerator.swift",
+ "hash": "95536099e58fcce3",
+ "role": "Declares the CoachReportGenerator namespace whose sentence builders (in +Conversational / +Sections) produce the template-based post-workout Coach Report email body; holds the PDF footnote.",
+ "types": [
+  "CoachReportGenerator: enum — template (non-AI) coach email body generator"
+ ],
+ "state": [],
+ "toplevel": "Doc comment says the generator is honest about missing data ('no HRR captured' rather than a fabricated value); no code in the extension emits such a line (recoveryParagraph returns nil instead).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Type doc promises explicit 'no HRR captured' wording for missing data; recoveryParagraph silently drops the paragraph and openingVerdict prints an intensity verdict even with no HR samples.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator.swift:13",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:398",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:117"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var CoachReportGenerator.pdfFootnote",
+   "hash": "9c5a68f425c3a92a",
+   "does": "Returns the localized closing footnote ('---' + italic note that the attached PDF is the source of truth) appended to the email body only when the PDF attachment exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

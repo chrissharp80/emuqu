@@ -1,0 +1,123 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift",
+ "hash": "e01231502ba24f45",
+ "role": "RecoveryScoreCalculator composite entry points (calculate overloads delegating to calculateWithBreakdown) and the display helpers displayScore/toTenScale.",
+ "types": [
+  "RecoveryScoreCalculator: extension — composite score + display helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)",
+   "hash": "c680af93cbc66919",
+   "does": "Composite recovery score from calculateWithBreakdown(trainingMetrics:) clamped 0..100, non-finite → 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "composite finite",
+     "effect": "clamp 0..100; else 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller in app or tests uses the trainingMetrics: overload; the only RecoveryScoreCalculator.calculate call (MorningResultsViewModel.swift:178) uses trainingContext:.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:12",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:178"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
+   "hash": "d356b396d2372d95",
+   "does": "Composite recovery score from calculateWithBreakdown(trainingContext:) clamped 0..100, non-finite → 0. Called by MorningResultsViewModel.liveRecoveryScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "composite finite",
+     "effect": "clamp 0..100; else 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A non-finite composite displays as 0 (worst score) rather than as missing; the comment says this backstop 'should never fire'.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:41",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.displayScore(_:)",
+   "hash": "a66e28e965d4429a",
+   "does": "Raw 0-100 score → rounded clamped Int, non-finite → 0. Used by score views, PDF/assistant facts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "score not finite",
+     "effect": "0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "displayScore says it 'must stay the ONE place the raw→display clamp lives', but ScoreVerdict.clampedDisplayScore/safeDisplayScore do the same clamp and round, make the same 'ONE place' claim, and are used at about 21 sites. DeterministicIntent still renders factor scores with a raw Int(factor.score.rounded()), which traps on a non-finite value.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:48",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:170",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:178",
+      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:265"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCalculator.toTenScale(_:)",
+   "hash": "896f901388353c7f",
+   "does": "Divides a 0-100 score by 10 for storage in session.recoveryScore (no clamp).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

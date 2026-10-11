@@ -1,0 +1,401 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift",
+ "hash": "6a1ca75751e6baf4",
+ "role": "TrendVerdict: the shared up/down/flat/insufficient rule for overnight series — 7-day level t-test against earlier readings plus a slope t-test, both gated on the SWC (0.5 SD), on ln scale for RMSSD — and the 7-day RMSSD change percentage.",
+ "types": [
+  "TrendVerdict: enum — trend rule",
+  "TrendVerdict.Scale: enum — logarithmic/linear",
+  "TrendVerdict.Movement: enum String — up/down/flat/insufficient",
+  "TrendVerdict.Reading: struct — date+value",
+  "TrendVerdict.Result: struct — movement, recentChangePercent, readingCount",
+  "TrendVerdict.Point: struct — day offset + transformed value",
+  "TrendVerdict.LevelComparison: struct — difference + significance",
+  "extension TrendVerdict — HRVSession helpers"
+ ],
+ "state": [
+  "mem:TrendVerdict.minimumReadings (4)",
+  "mem:TrendVerdict.minimumReadingsForSlope (7)",
+  "mem:TrendVerdict.recentWindowDays (7.0)",
+  "mem:TrendVerdict.swcSDMultiple (0.5)",
+  "mem:TrendVerdict.tCriticalTable (t 0.9875 quantiles df1-9)",
+  "mem:TrendVerdict.zCritical (2.2414)"
+ ],
+ "toplevel": "Static constants only; tCriticalTable values match Student t upper 1.25% points.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "recentChangePercent is filled even when movement is .flat, and AppFactResolver+Sleep.recentWeekChange reports it to the assistant without checking movement, contradicting weeklyRMSSDChange's doc that a surface printing the figure 'never announces noise as a trend'.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:79",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:234",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:776"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrendVerdict.evaluate(_:scale:)",
+   "hash": "eadbe170add04bdb",
+   "does": "Transforms readings, returns .insufficient (<4 points); else splits recent/earlier, runs the level test; worthwhile+significant level → up/down; else a significant, worthwhile slope that agrees in sign with the level difference → up/down; else .flat. recentChangePercent always reported when ≥4 points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.changePercent(_:earlierMean:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points.count >= 4",
+     "effect": "false → .insufficient, percent nil"
+    },
+    {
+     "at": "+8",
+     "cond": "level test worthwhile and significant",
+     "effect": "true → direction of level difference"
+    },
+    {
+     "at": "+13",
+     "cond": "slope change exists, same sign as level difference, difference ≠ 0",
+     "effect": "true → direction of slope; false → .flat"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.changePercent(_:earlierMean:scale:)": "d1627e3849ae4a60",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.direction(_:)": "10cb2bb5598f9e95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.levelComparison(recent:earlier:scale:)": "7a4eb27a7d16bdaa",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.slopeChange(_:scale:)": "cb39d43b33ad55fd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.split(_:)": "6172299b715ed884",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.transformed(_:scale:)": "58e98f2c224f2076",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a"
+   }
+  },
+  {
+   "key": "func TrendVerdict.evaluate(values:dates:scale:)",
+   "hash": "91e47baf6f3d2c49",
+   "does": "Zips dates and values into Readings (truncating to the shorter) and evaluates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0"
+   }
+  },
+  {
+   "key": "func TrendVerdict.transformed(_:scale:)",
+   "hash": "5791ac2297958a22",
+   "does": "Drops non-finite values (and ≤0 on log scale), sorts by date, converts to Points with day offset from first reading and log/linear value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "any usable reading",
+     "effect": "false → []"
+    },
+    {
+     "at": "+8",
+     "cond": "scale == .logarithmic",
+     "effect": "true → ln(value); false → value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.split(_:)",
+   "hash": "4c4919e2b325f17c",
+   "does": "Recent group = readings within 7 days of the last one, capped at count/2 and at least 2; earlier = the rest.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points.last nil",
+     "effect": "fallback lastDay 0 (only for empty input, which evaluate never passes)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.direction(_:)",
+   "hash": "2aedd97823fe3e26",
+   "does": "change > 0 → .up else .down.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "change > 0",
+     "effect": "true → .up; false (incl. 0) → .down"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.levelComparison(recent:earlier:scale:)",
+   "hash": "c7fbb08d3fa61eac",
+   "does": "Pooled two-sample t-test of recent vs earlier means; SWC = 0.5 × earlier SD (widened ln SD with floor on log scale); returns difference and whether |diff| > SWC and |t| ≥ t-critical(df).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.earlierSD(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.earlierSD(_:scale:)": "fde9414b0ac5e7a7",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "198c5e42ab1ab981",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "bea65e09acc4d7de",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "6483a01cedea743f",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+   }
+  },
+  {
+   "key": "func TrendVerdict.earlierSD(_:scale:)",
+   "hash": "36ead9210a6fa5f3",
+   "does": "Earlier-group SD: BaselineTracker.widenedLnSD on log scale, plain sample SD on linear.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "scale == .logarithmic",
+     "effect": "true → widenedLnSD; false → sampleSD"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "ae142517b1b31736"
+   }
+  },
+  {
+   "key": "func TrendVerdict.spreadForSWC(_:scale:)",
+   "hash": "4013f6a5acf16514",
+   "does": "Applies BaselineConstants.lnRmssdSDFloor on log scale; linear SD unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "scale == .logarithmic",
+     "effect": "true → max(sd, floor); false → sd"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The ln-RMSSD SD floor is applied to every logarithmic metric (SDNN, LF/HF in TrendAnalysis) though it is calibrated for ln(RMSSD).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift:153",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:236",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:241"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.settled(_:scaleOf:)",
+   "hash": "67e49f39cc7fa45c",
+   "does": "Zeroes differences within 1e-9 relative rounding noise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "|diff| ≤ 1e-9·(|ref|+1)",
+     "effect": "true → 0; false → diff"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.tStatistic(_:standardError:)",
+   "hash": "7996c50dfb835391",
+   "does": "t = difference / standardError; with zero SE returns 0 for zero difference, else +infinity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "standardError > 0 / difference == 0",
+     "effect": "SE>0 → ratio; SE≤0 and diff==0 → 0; SE≤0 and diff≠0 → infinity (always significant)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.slopeChange(_:scale:)",
+   "hash": "a19a4b7b70508870",
+   "does": "OLS fit of value on day; computes residual SD, fitted change over the span, slope t-test (df n−2) and SWC (0.5 × residual SD, ln floor); returns change when significant, worthwhile and nonzero, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "≥7 points, regression succeeds, span available",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+3",
+     "cond": "points.first nil in span",
+     "effect": "fallback 0; unreachable"
+    },
+    {
+     "at": "+10",
+     "cond": "sxx > 0",
+     "effect": "false → slopeError 0 → t infinite unless slope 0"
+    },
+    {
+     "at": "+13",
+     "cond": "clear && worthwhile && change ≠ 0",
+     "effect": "true → change; false → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.settled(_:scaleOf:)": "198c5e42ab1ab981",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.spreadForSWC(_:scale:)": "bea65e09acc4d7de",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tCritical(degrees:)": "04d853f27fd1efdd",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.tStatistic(_:standardError:)": "6483a01cedea743f",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.linearRegression(x:y:)": "0849ec6ef37bc3ef",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+   }
+  },
+  {
+   "key": "func TrendVerdict.changePercent(_:earlierMean:scale:)",
+   "hash": "9a796c0cf5875703",
+   "does": "Log scale: (exp(diff)−1)×100 (geometric-mean ratio); linear: diff/|earlierMean|×100, nil when earlier mean is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .logarithmic",
+     "effect": "→ (e^diff − 1)·100"
+    },
+    {
+     "at": "+3",
+     "cond": "case .linear / earlierMean != 0",
+     "effect": "linear: nonzero → percent; zero → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.tCritical(degrees:)",
+   "hash": "26defe2482238258",
+   "does": "Two-sided 2.5% t critical value: table for df 1–9, Cornish-Fisher expansion from z=2.2414 for df ≥ 10 (df floored at 1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nu ≤ 9",
+     "effect": "true → table value; false → expansion"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.rmssdReadings(_:)",
+   "hash": "c8b23af160ec089b",
+   "does": "Readings of each session's analysis RMSSD dated by startDate; sessions without RMSSD dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendVerdict.weeklyRMSSDChange(_:)",
+   "hash": "ebe857fb4fd0f02d",
+   "does": "Evaluates RMSSD readings on log scale; returns recentChangePercent only when movement is up or down, else nil. Used by TrendComparisonCard and AnalysisSummaryGenerator.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "movement up or down",
+     "effect": "false → nil; true → percent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd"
+   }
+  }
+ ],
+ "deps": {}
+}

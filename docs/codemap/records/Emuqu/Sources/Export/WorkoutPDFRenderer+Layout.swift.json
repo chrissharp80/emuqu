@@ -1,0 +1,169 @@
+{
+ "file": "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift",
+ "hash": "0ac26a40b667d0d4",
+ "role": "Shared layout primitives for the workout PDF renderer (section heading, divider, two-column rows, footer with wellness disclaimer) and the PDFDurationText formatter for elapsed minutes/seconds.",
+ "types": [
+  "WorkoutPDFRenderer: extension — layout primitives",
+  "PDFDurationText: enum — localized 'm min s s' elapsed-time formatter"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "drawDivider and drawFooter re-implement HolisticDailyReport's identical divider (same colours, widths) and near-identical footer/disclaimer; a change to one report's footer or disclaimer wording must be copied by hand.",
+   "evidence": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift:18",
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift:43",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:543",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:552"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutPDFRenderer.drawSectionHeading(_:at:)",
+   "hash": "93308611e73ff0de",
+   "does": "Draws a 9pt bold heading in the report primary colour at the left margin and advances the inout y by 14.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawDivider(at:width:strong:)",
+   "hash": "b782ab22b191c34d",
+   "does": "Strokes a horizontal line from the margin for `width` at y: strong → primary at 50% alpha, 1.2pt; else divider grey, 0.5pt.",
+   "entry": null,
+   "calls": [
+    "ext:UIGraphicsGetCurrentContext"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no current graphics context",
+     "effect": "returns without drawing"
+    },
+    {
+     "at": "+2",
+     "cond": "strong",
+     "effect": "primary colour 50% alpha; false → config.divider colour"
+    },
+    {
+     "at": "+3",
+     "cond": "strong",
+     "effect": "line width 1.2; false → 0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "3dbf0b2b37c7ac21",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)",
+   "hash": "7102ae1f9c4b641a",
+   "does": "For each (label, value) row draws the label at the margin (body font, secondary) and the value in mono font at a fixed 260pt-wide column from the right margin, advancing startY by 14 per row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each row",
+     "effect": "draws two texts per row; empty rows array draws nothing and leaves startY"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "contentW is ignored; values start at a fixed x = pageWidth - margin - 260 (316pt on Letter) with no wrapping or truncation, so a label wider than 280pt (long translations) is overdrawn by its value and a long value runs past the right margin.",
+     "evidence": [
+      "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift:34",
+      "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift:36",
+      "Emuqu/Sources/Export/WorkoutPDFReport.swift:59"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.drawFooter()",
+   "hash": "d420370f43a4c107",
+   "does": "Draws the page footer: divider near the bottom margin, 'Generated <date> · Session <8-char id> · Emuqu' and the wellness/not-a-medical-device disclaimer on the next line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawDivider(at:width:strong:)": "454595f0c9fc54e3",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "cf0c4a03d95a0462",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func PDFDurationText.minutesSeconds(_:)",
+   "hash": "39dcb4c1a62e582d",
+   "does": "Formats seconds (negatives clamped to 0) with an abbreviated DateComponentsFormatter in the app locale: minutes+seconds when ≥60 s, seconds only otherwise; falls back to 'm:ss' if the formatter returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "seconds >= 60",
+     "effect": "allowedUnits [.minute,.second]; else [.second]"
+    },
+    {
+     "at": "+8",
+     "cond": "formatter.string returns nil",
+     "effect": "fallback '\\(m):\\(ss)' manual string; else formatter output"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

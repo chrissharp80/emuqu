@@ -1,0 +1,286 @@
+{
+ "file": "docs/runbooks/incident-response.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Operator runbook for production incidents: per-category symptoms and actions (AI provider outage, CloudKit failure, crash spike, encryption key loss, HealthKit data errors, privacy leak suspicion, transitive-dependency CVE) plus a post-incident note template.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content. References code symbols (FeatureFlags, EncryptionManager.getOrCreateKey/keychainAccount/reEncryptIfNeeded, CloudPayloadCodec, SleepBoundaryResolver, AppFactResolver, ProviderConsentTracker), the make target sendable-guard, docs/runbooks/hotfix.md, .github/dependabot.yml open-pull-requests-limit and the iCloud container iCloud.com.chrissharp.flowrecovery; all of these exist in the repo (Constants.swift:12, Emuqu.entitlements:23, Makefile:58, .github/dependabot.yml:24).",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Runbook: Incident Response",
+   "hash": "98f60b33cb84b5e8",
+   "does": "no behavioural claim: title and preamble telling the operator to pick the matching section.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: Incident Response > A. AI provider outage / breaking change",
+   "hash": "14fcb14c017072ca",
+   "does": "Claims the per-provider kill switch lives in FeatureFlags (Settings -> Flo), is per-device with no remote config, so a provider can be disabled for everyone only by shipping a build; providers live in Sources/Assistant/Providers/ and implement a small AIProvider protocol. Code matches: FeatureFlags keys providerOpenAIEnabled..providerDeepSeekEnabled in app-group defaults (Constants+SleepAndDisplay.swift:422-475), protocol AIProvider at Emuqu/Sources/Assistant/Providers/AIProvider.swift:494.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "A build that changes a provider's FeatureFlags default does not turn the provider off for every user: FeatureFlags.value(for:) returns the stored UserDefaults value whenever one exists and uses defaultValue only when nothing is stored, and the Settings -> Flo toggle writes an explicit Bool on every flip. Anyone who ever toggled that provider (off then back on) keeps an explicit true, so the shipped default-off build leaves the provider enabled on their device. The runbook's 'a build is the only way to turn it off for everyone' is therefore insufficient; the build must also clear or override the stored key.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:18",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:482",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:492",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:68"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "6904ac00f3193e7f"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > B. CloudKit sync failure (zone-wide)",
+   "hash": "ef16d4e3f26a19f4",
+   "does": "CloudKit outage triage: check CloudKit Dashboard for container iCloud.com.chrissharp.flowrecovery, deploy schema to production if only this container fails, never mass-reset user state. Container id matches Constants.swift:12 and Emuqu.entitlements:23; schema-not-deployed failure mode is the one CloudKitSessionFreshness.noteSaveFailure logs (\"not in the production schema\").",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "1065750cb2e459db",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "85106de4f6ca2550"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > C. Crash spike",
+   "hash": "bc614a00111d7362",
+   "does": "Crash-spike triage: symbolicate from App Store Connect/dSYM, read code at the crashing line, run make sendable-guard, hotfix via hotfix.md. make sendable-guard exists (Makefile:58) and docs/runbooks/hotfix.md exists. Listed common causes are prose, not tied to code.",
+   "entry": null,
+   "calls": [
+    "Makefile::target sendable-guard",
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe",
+    "Makefile::target sendable-guard": "16583da771b94003"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > D. Encryption key loss",
+   "hash": "b0f1f39d7b606c09",
+   "does": "Encryption key loss triage: device not unlocked since reboot (archive key is AfterFirstUnlock), iCloud Keychain sync of the synchronizable CloudPayloadCodec key (one Keychain item per key; log line 'waiting for its backup key to sync'), restore without Keychain loses the archive key, then Delete All My Data (type DELETE MY DATA). For wide-scale failures inspect EncryptionManager.getOrCreateKey(version:), keychainAccount(for:) per version, and add a previous-version fallback modeled on reEncryptIfNeeded. Code: accessibility kSecAttrAccessibleAfterFirstUnlock (EncryptionManager.swift:252), per-key accounts 'cloud-payload-key-id-' (CloudPayloadCodec.swift:76), log line at CloudKitSyncManager+Pull.swift:305, confirm phrase at DeleteAllDataPage.swift:28.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Step 3-4 says a key-version bump without migration makes old files unreadable and that a hotfix must add a fallback to try the previous key version. decrypt already reads the version byte from each blob and loads that version's key (EncryptionManager.swift:99-106, extractVersion :148, loadKey :188), so old files stay readable as long as the old Keychain item exists; decryption does not go through getOrCreateKey at all. reEncryptIfNeeded has no caller (comment EncryptionManager.swift:25-27). An operator following the runbook would look for the wrong failure mechanism.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:128",
+      "docs/runbooks/incident-response.md:133",
+      "Emuqu/Sources/Storage/EncryptionManager.swift:99",
+      "Emuqu/Sources/Storage/EncryptionManager.swift:188",
+      "Emuqu/Sources/Storage/EncryptionManager.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:)": "abe38fdf61ffc885",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "81582ac8db121057",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "ca33f444b6f02684",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "ac34117d2665ab21",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "2d6f177d70af20c6",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "8aa342b61ee12090"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > E. Apple Health data corruption",
+   "hash": "a551ea4891773cda",
+   "does": "HealthKit data-corruption triage: suspect DST/time-zone math in SleepBoundaryResolver and addingTimeInterval patterns, reproduce with the user's date, hotfix with a regression test. SleepBoundaryResolver exists (Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:52).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > F. Privacy / leak suspicion",
+   "hash": "4c32072e42f273e4",
+   "does": "Privacy-leak triage: treat as P0; verify AppFactResolver sends only aggregates (no raw RR or sample timestamps); verify ProviderConsentTracker gates provider calls; pull the diagnostic log via More -> Settings -> Troubleshooting -> Export Diagnostic Log; if real, ship a build with that provider's FeatureFlags default off and update SECURITY.md. Code: the only rrSeries use in Facts is nadirWallClock deriving one timestamp (AppFactResolver+Sleep.swift:412-418); consent gate consentGateAllowsDispatch runs before dispatch; Export Diagnostic Log button at SettingsPages+DiagnosticActions.swift:53; SECURITY.md lives at .github/SECURITY.md.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Step 5 says 'File a SECURITY.md update'; there is no SECURITY.md at the repository root, only .github/SECURITY.md, so the instruction names a file location that does not exist as written.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:183",
+      ".github/SECURITY.md"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "A build that changes a provider's FeatureFlags default does not turn the provider off for every user: FeatureFlags.value(for:) returns the stored UserDefaults value whenever one exists and uses defaultValue only when nothing is stored, and the Settings -> Flo toggle writes an explicit Bool on every flip. Anyone who ever toggled that provider (off then back on) keeps an explicit true, so the shipped default-off build leaves the provider enabled on their device. Step 5's 'a build is the only way to turn it off for everyone' is therefore insufficient; the build must also clear or override the stored key.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:180",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:482",
+      "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift:492",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:68"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Step 4 says the exported diagnostic log confirms what was actually sent to the provider. Export Diagnostic Log shares only the debugLogger file (DiagnosticLogExport -> debugLogger.exportToFileAsync), whose lines are PHI-scrubbed (health values replaced with <redacted>) and which never logs request payloads. The record of what was sent is LLMRequestAudit: an in-memory FIFO of 10 entries, lost on relaunch, viewable only in LLMPromptAuditView and not part of any export. An operator following the runbook cannot confirm or rule out a leak from the artifact it names.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:176",
+      "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:413",
+      "Emuqu/Sources/Utilities/DebugLog.swift:295",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:28",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:246",
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:4"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "f33ba78443fc59ea",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "133cf41dd056ae19"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > G. CVE against a transitive dependency you cannot bump",
+   "hash": "661aceec56b18989",
+   "does": "Transitive-dependency CVE playbook: Zip arrives via polar-ble-sdk, yyjson and swift-* via WhisperKit; establish reachability, ship a build with the path off (no runtime flag for the sensor path; voice degrades to typed input), file upstream, bump by hand because Dependabot open-pull-requests-limit: 0 blocks version PRs only. Package.resolved lists polar-ble-sdk, whisperkit, yyjson, zip and swift-* packages; .github/dependabot.yml:24,36 sets open-pull-requests-limit: 0.",
+   "entry": null,
+   "calls": [
+    "scripts/generate_sbom.py::def build",
+    "Makefile::target sbom-guard",
+    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)",
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.prepareModelIfNeeded()",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.transcribeAndReset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Runbook says the swift-* packages arrive through WhisperKit; the repo's own SBOM generator records swift-protobuf as arriving through polar-ble-sdk (with Zip). A swift-protobuf advisory triaged by this runbook would be scoped to the voice path (degrade to typed input) when the reachable consumer is the BLE sensor path, so step 2 would switch off the wrong subsystem.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:196",
+      "scripts/generate_sbom.py:33",
+      "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Runbook says that with the WhisperKit path off, voice degrades to typed input. In code WhisperKit is an opt-in STT provider; Apple SFSpeechRecognizer is the default and the documented fallback when WhisperKit fails to load or transcribe, and non-English locales already route to Apple. Turning the WhisperKit path off leaves voice working via Apple Speech, so the user-facing message the runbook prescribes overstates the loss.",
+     "evidence": [
+      "docs/runbooks/incident-response.md:210",
+      "Emuqu/Sources/Assistant/Chat/STTProvider.swift:28",
+      "Emuqu/Sources/Assistant/Chat/STTProvider.swift:62",
+      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:48"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "3f0e7550bc0a4074",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.prepareModelIfNeeded()": "5d6e0d3caf99dda1",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.transcribeAndReset()": "ff19fc4ecee92710",
+    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)": "e36e5e29a1f57b04",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
+    "scripts/generate_sbom.py::def build": "2bff7ea18a12bcc5"
+   }
+  },
+  {
+   "key": "§ Runbook: Incident Response > Post-incident (every category)",
+   "hash": "0f2fa3e8283ec006",
+   "does": "no behavioural claim: post-incident note template (what broke, detection time, root cause, why CI missed it, prevention, TTD/TTM/TTF).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

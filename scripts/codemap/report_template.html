@@ -1,0 +1,395 @@
+<title>Emuqu Path Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: one reading column for prose, full-width working tables; sticky tab bar; data loaded per tab. */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#18202b; --muted:#5b6676; --line:#dfe3ea; --accent:#1f5f8b; --accent-soft:#e3eef6;
+  --high:#b42318; --high-bg:#fdecea; --med:#a15c07; --med-bg:#fdf3e1; --low:#4a5a6e; --low-bg:#eef1f5; --ok:#1d7a4a; --ok-bg:#e5f4ec;
+  --code-bg:#eef1f5;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --panel:#171e27; --ink:#e4e9f0; --muted:#97a3b3; --line:#2a3440; --accent:#7db4dc; --accent-soft:#1c2d3c;
+  --high:#ff8a7a; --high-bg:#3a1d1a; --med:#f0b25a; --med-bg:#33270f; --low:#a9b6c6; --low-bg:#202934; --ok:#6fd19c; --ok-bg:#14301f; --code-bg:#202934; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --panel:#171e27; --ink:#e4e9f0; --muted:#97a3b3; --line:#2a3440; --accent:#7db4dc; --accent-soft:#1c2d3c;
+  --high:#ff8a7a; --high-bg:#3a1d1a; --med:#f0b25a; --med-bg:#33270f; --low:#a9b6c6; --low-bg:#202934; --ok:#6fd19c; --ok-bg:#14301f; --code-bg:#202934; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2.1rem} h2{font-size:1.45rem} h3{font-size:1.1rem;font-family:var(--f-body)}
+p{margin:0;max-width:72ch} code,.mono{font-family:var(--f-mono);font-size:.84em}
+code{background:var(--code-bg);padding:1px 4px;border-radius:3px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+header.top{padding-block:28px 12px;display:grid;gap:8px}
+.eyebrow{font:500 .75rem/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:2px;overflow-x:auto;padding-block:6px}
+nav.tabs button{font:500 .9rem var(--f-body);background:none;border:0;color:var(--muted);padding:8px 12px;border-radius:6px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+nav.tabs button:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.tab{display:grid;gap:22px;padding-block:22px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:2px}
+.stat b{font:600 1.45rem var(--f-mono);font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+.block{display:grid;gap:10px;min-width:0}
+.scroll{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;background:var(--panel)}
+th,td{text-align:left;vertical-align:top;padding:7px 9px;border-bottom:1px solid var(--line)}
+th{font:600 .74rem var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--panel);position:sticky;top:0}
+td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.hi{color:var(--high);font-weight:600} td.md{color:var(--med)}
+.ev{margin-top:4px;font-size:.8rem;color:var(--muted)}
+.pill{display:inline-block;font:500 .72rem var(--f-mono);padding:2px 7px;border-radius:999px;white-space:nowrap;background:var(--low-bg);color:var(--low)}
+.pill.high{background:var(--high-bg);color:var(--high)} .pill.med{background:var(--med-bg);color:var(--med)}
+.pill.s-confirmed{background:var(--ok-bg);color:var(--ok)} .pill.s-new-in-verify{background:var(--accent-soft);color:var(--accent)}
+.pill.s-refuted{text-decoration:line-through} .pill.s-unverified{background:var(--med-bg);color:var(--med)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 .8rem var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chip b{font-family:var(--f-mono);font-weight:500;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters select,.filters input{font:inherit;font-size:.88rem;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0}
+.filters input[type=search]{flex:1 1 220px}
+.count{font:500 .85rem var(--f-mono);color:var(--muted)}
+details.chart{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+details.chart summary{cursor:pointer;font-weight:600}
+pre.mermaid{background:transparent;margin:10px 0 0;min-width:640px}
+.callout{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);padding:12px 14px;display:grid;gap:6px;border-radius:0 8px 8px 0}
+ul.tight{margin:0;padding-left:20px;display:grid;gap:4px;max-width:80ch}
+.explorer{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:800px){.explorer{grid-template-columns:minmax(0,1fr)}}
+.filelist{background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:70vh;overflow:auto}
+.filelist button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:7px 10px;font:.8rem var(--f-mono);color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.filelist button[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.unit{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:8px;min-width:0}
+.unit h4{margin:0;font:600 .95rem var(--f-mono);overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:90px minmax(0,1fr);gap:4px 10px;font-size:.86rem}
+.kv dt{color:var(--muted);font:500 .74rem var(--f-mono);text-transform:uppercase;letter-spacing:.04em;padding-top:2px}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font:.8rem var(--f-mono);cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.br{font-size:.84rem;display:grid;gap:3px}
+.br div{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px}
+.flagline{font-size:.86rem;padding:6px 8px;border-radius:6px;background:var(--low-bg)}
+.flagline.high{background:var(--high-bg)} .flagline.med{background:var(--med-bg)}
+.loading{color:var(--muted);font-style:italic}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Emuqu · built from docs/codemap/records</div>
+  <h1>Emuqu Path Map</h1>
+  <p class="muted">Every function, initializer, computed property, test, script target and doc section in the repository has a record of what it does, what calls it, what it calls, what state it reads and writes, and what every branch does. CI fails when any record is missing or older than the code it describes.</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Report sections">
+  <button role="tab" id="t-overview" aria-selected="true" data-tab="overview" type="button">Overview</button>
+  <button role="tab" id="t-flow" aria-selected="false" data-tab="flow" type="button">Flowcharts</button>
+  <button role="tab" id="t-findings" aria-selected="false" data-tab="findings" type="button">Findings</button>
+  <button role="tab" id="t-explorer" aria-selected="false" data-tab="explorer" type="button">Every unit</button>
+  <button role="tab" id="t-orphans" aria-selected="false" data-tab="orphans" type="button">Orphaned &amp; unreachable</button>
+  <button role="tab" id="t-coupling" aria-selected="false" data-tab="coupling" type="button">Coupling</button>
+  <button role="tab" id="t-strings" aria-selected="false" data-tab="strings" type="button">Strings</button>
+  <button role="tab" id="t-method" aria-selected="false" data-tab="method" type="button">Method &amp; limits</button>
+</nav>
+
+<!-- OVERVIEW -->
+<section class="tab" id="overview" role="tabpanel" aria-labelledby="t-overview">
+  <div class="stats">
+    <div class="stat"><b>{{units_recorded}}</b><span>units recorded of {{units_total}} inventoried</span></div>
+    <div class="stat"><b>{{files_recorded}}</b><span>file records</span></div>
+    <div class="stat"><b>{{branches}}</b><span>branch points described</span></div>
+    <div class="stat"><b>{{ok}}</b><span>records current with the code</span></div>
+    <div class="stat"><b>{{corrected}}</b><span>records older than the code</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b style="color:var(--high)">{{n_high}}</b><span>high-severity findings</span></div>
+    <div class="stat"><b style="color:var(--med)">{{n_med}}</b><span>medium</span></div>
+    <div class="stat"><b>{{n_low}}</b><span>low</span></div>
+        <div class="stat"><b>{{reach_none}}</b><span>production units no entry point reaches</span></div>
+    <div class="stat"><b>{{reach_tests}}</b><span>production units only tests reach</span></div>
+  </div>
+
+  <div class="block">
+    <h2>By area</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Area</th><th>Files</th><th>Lines</th><th>Units</th><th>High</th><th>Med</th><th>Low</th></tr></thead>
+      <tbody>{{AREA_ROWS}}</tbody>
+    </table></div>
+  </div>
+
+  <div class="block">
+    <h2>Findings by kind</h2>
+    <p class="muted">Select a kind to open it in Findings.</p>
+    <div class="chips" id="kindchips">{{KINDS}}</div>
+  </div>
+
+  <div class="block">
+    <h2>All high-severity findings</h2>
+    <p class="muted">High means a user sees wrong health numbers, loses data, has a privacy or billing breach, or the app crashes. "Confirmed" was raised by the first reader and upheld by the second in the original two-reader pass; "found in verify" was raised by the second reader; "added later" was recorded while maintaining the map.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Kind</th><th>Area</th><th>Finding and evidence</th><th>Status</th></tr></thead>
+      <tbody>{{HIGH_ROWS}}</tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section class="tab" id="flow" role="tabpanel" aria-labelledby="t-flow" hidden>
+  <div class="block">
+    <h2>Whole app</h2>
+    <p class="muted">Areas of production code. An arrow is resolved calls from one area into another; the number is how many. Links under 8 calls are left out of this chart and appear in the per-area charts and in Every unit.</p>
+    <div class="scroll"><pre class="mermaid">{{WHOLE_APP}}</pre></div>
+  </div>
+  <div class="block">
+    <h2>Inside each area</h2>
+    <p class="muted">The strongest file-to-file call links inside the area, with the hexagon summarising calls to and from other areas.</p>
+    {{AREA_CHARTS}}
+  </div>
+</section>
+
+<!-- FINDINGS -->
+<section class="tab" id="findings" role="tabpanel" aria-labelledby="t-findings" hidden>
+  <div class="filters">
+    <label class="muted" for="f-sev">Severity</label>
+    <select id="f-sev"><option value="">all</option><option>high</option><option>med</option><option>low</option></select>
+    <label class="muted" for="f-kind">Kind</label>
+    <select id="f-kind"><option value="">all</option></select>
+    <label class="muted" for="f-area">Area</label>
+    <select id="f-area"><option value="">all</option></select>
+    <label class="muted" for="f-status">Status</label>
+    <select id="f-status"><option value="live">all</option><option value="confirmed">confirmed</option><option value="new-in-verify">found in verify</option><option value="later">added later</option></select>
+    <input type="search" id="f-q" placeholder="Search text, file or evidence">
+  </div>
+  <div class="count" id="f-count">Loading findings…</div>
+  <div class="scroll"><table>
+    <thead><tr><th>Sev</th><th>Kind</th><th>Where</th><th>Finding and evidence</th><th>Status</th></tr></thead>
+    <tbody id="f-body"></tbody>
+  </table></div>
+  <button class="chip" id="f-more" type="button" hidden>Show 200 more</button>
+</section>
+
+<!-- EXPLORER -->
+<section class="tab" id="explorer" role="tabpanel" aria-labelledby="t-explorer" hidden>
+  <div class="filters">
+    <label class="muted" for="x-area">Area</label>
+    <select id="x-area"></select>
+    <input type="search" id="x-q" placeholder="Find a function or file anywhere (name or path)">
+  </div>
+  <div id="x-search" class="block"></div>
+  <div class="explorer">
+    <div class="filelist" id="x-files"><div class="loading" style="padding:10px">Pick an area.</div></div>
+    <div class="block" id="x-units"><p class="muted">Pick a file to see every unit in it, with its callers, callees, state, branches and findings.</p></div>
+  </div>
+</section>
+
+<!-- ORPHANS -->
+<section class="tab" id="orphans" role="tabpanel" aria-labelledby="t-orphans" hidden>
+  <div class="callout">
+    <h3>How reachability was computed</h3>
+    <p>Starting from the app, watch and App Intent entry points, the call graph was walked through every resolved call. The graph is the recorded calls merged with calls, property reads, protocol dispatch and closure assignments found mechanically in the code; where a name matches several units every match is followed. A unit with an outside trigger (a SwiftUI body or action, delegate callback, notification observer, timer, Codable synthesis) counts as reachable only once its type is referenced by code already reached. Because readers record calls, not every property read, a second pass also counts a unit as reached when its name appears anywhere in code already reached. A unit is listed below only if both passes miss it, so this list errs toward leaving dead code out rather than listing live code. Test code was walked separately. Protocol requirements are not listed as unreachable.</p>
+  </div>
+  <div class="block">
+    <h2>Types no reached code calls into</h2>
+    <p>{{DEAD_TYPES}}</p>
+  </div>
+  <div class="filters">
+    <label class="muted" for="o-reach">Show</label>
+    <select id="o-reach"><option value="none">reached by nothing</option><option value="tests-only">reached only by tests</option></select>
+    <label class="muted" for="o-area">Area</label><select id="o-area"><option value="">all</option></select>
+    <input type="search" id="o-q" placeholder="Filter by name or file">
+  </div>
+  <div class="count" id="o-count">Loading…</div>
+  <div class="scroll"><table><thead><tr><th>Unit</th><th>Area</th><th>What it does</th><th>Callers</th></tr></thead><tbody id="o-body"></tbody></table></div>
+  <div class="block">
+    <h2>Dead-code findings</h2>
+    <p class="muted">Readers' findings of kind <code>dead</code> and <code>unreachable-branch</code>, which include branches inside reachable functions that can never be taken.</p>
+    <div class="chips"><button class="chip" data-kind="dead" type="button">dead</button><button class="chip" data-kind="unreachable-branch" type="button">unreachable-branch</button><button class="chip" data-kind="duplicate" type="button">duplicate</button></div>
+  </div>
+</section>
+
+<!-- COUPLING -->
+<section class="tab" id="coupling" role="tabpanel" aria-labelledby="t-coupling" hidden>
+  <div class="callout">
+    <p>{{n_stores}} distinct pieces of shared state (UserDefaults keys, files, archive entities, HealthKit types, keychain items, iCloud records, notifications, singletons, network hosts, Bluetooth and Watch messages). {{n_multi}} are written from more than one area. Those are where a change in one area silently changes another.</p>
+  </div>
+  <div class="filters">
+    <label class="muted" for="c-kind">Store</label>
+    <select id="c-kind"><option value="">all</option><option>ud</option><option>file</option><option>archive</option><option>hk</option><option>ck</option><option>kc</option><option>kvs</option><option>mem</option><option>notif</option><option>net</option><option>ble</option><option>wc</option></select>
+    <label class="muted" for="c-multi">Writers</label>
+    <select id="c-multi"><option value="2">from 2+ areas</option><option value="1">any</option></select>
+    <input type="search" id="c-q" placeholder="Filter by key">
+  </div>
+  <div class="count" id="c-count">Loading…</div>
+  <div class="scroll"><table><thead><tr><th>State</th><th>Writers</th><th>Readers</th><th>Written from</th><th>Read from</th></tr></thead><tbody id="c-body"></tbody></table></div>
+</section>
+
+<!-- STRINGS -->
+<section class="tab" id="strings" role="tabpanel" aria-labelledby="t-strings" hidden>
+  <div id="s-body" class="block"><p class="loading">Loading…</p></div>
+</section>
+
+<!-- METHOD -->
+<section class="tab" id="method" role="tabpanel" aria-labelledby="t-method" hidden>
+  <div class="block">
+    <h2>Where this comes from</h2>
+    <ul class="tight">
+      <li>The records live in <code>docs/codemap/records</code>, one JSON file per source file. This page is generated from them by <code>scripts/codemap/codemap.py report</code>.</li>
+      <li>The first full set was written against main at 8d32097: a reader went through every line of every file and wrote one record per unit, and a second reader re-checked every record against the code. Line numbers quoted in findings refer to the code at the time the finding was recorded.</li>
+      <li>Each record stores a hash of the code it describes. <code>scripts/check_codemap.sh</code> fails CI when a unit has no record, a record has no description, or the code has changed since the record was written. A record is marked current only by re-reading the code and updating it.</li>
+      <li>The two string catalogs were audited key by key in the original pass and are not tracked by hash; the audit is shown under Strings.</li>
+    </ul>
+  </div>
+  <div class="block">
+    <h2>What this does not do</h2>
+    <ul class="tight">
+      <li>Nothing was compiled or run. Every claim comes from reading code. Findings about runtime behaviour (races, timing, OS behaviour) are reasoned from the code, with file and line cited.</li>
+      <li>The CI check proves a record was written after the last change to its code. It cannot prove the description is correct; that rests on whoever updated it and on review.</li>
+      <li>Calls through protocols and stored closures are resolved to the implementations a reader could identify. Reachability combines the recorded call graph with a search for each unit's name in reached code, so the unreachable list errs toward leaving dead code out.</li>
+      <li>Severity is the reader's judgement against a fixed rule (high: wrong health numbers, data loss, privacy or billing breach, crash).</li>
+    </ul>
+  </div>
+</section>
+</div>
+
+<script>
+(function(){
+  const AREA = {}; let FLAGS=null, INDEX=null, STORES=null, UNREACH=null, STRINGS=null; const AREADATA={};
+  const $=s=>document.querySelector(s);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const j=p=>fetch(p).then(r=>{if(!r.ok) throw new Error(p+' '+r.status); return r.json()});
+  const meta=j('data/meta.json').then(m=>{Object.assign(AREA,m.areas); return m});
+  const areaName=a=>AREA[a]||a;
+  const statusLabel=s=>s==='new-in-verify'?'found in verify':s==='later'?'added later':s;
+
+  // tabs
+  const tabs=[...document.querySelectorAll('nav.tabs button')];
+  function show(id){tabs.forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));
+    document.querySelectorAll('section.tab').forEach(s=>s.hidden=s.id!==id);
+    try{localStorage.setItem('pm-tab',id)}catch(e){}
+    window.scrollTo(0,0);
+    if(id==='findings') loadFindings(); if(id==='explorer') loadExplorer(); if(id==='orphans') loadOrphans();
+    if(id==='coupling') loadCoupling(); if(id==='strings') loadStrings();}
+  tabs.forEach(b=>b.addEventListener('click',()=>show(b.dataset.tab)));
+  let start='overview'; const h=location.hash.slice(1); if(h && document.getElementById(h)) start=h; else {try{start=localStorage.getItem('pm-tab')||start}catch(e){}}
+  if(!document.getElementById(start)||!document.getElementById(start).classList.contains('tab')) start='overview';
+  document.addEventListener('click',e=>{const c=e.target.closest('[data-kind]'); if(!c) return;
+    show('findings'); loadFindings().then(()=>{$('#f-kind').value=c.dataset.kind; $('#f-status').value='live'; renderFindings(true)})});
+
+  // findings
+  let fShown=200;
+  function loadFindings(){ if(FLAGS) return Promise.resolve(); return Promise.all([j('data/flags.json'),meta]).then(([f])=>{FLAGS=f;
+    const kinds=[...new Set(f.map(x=>x.kind))].sort(), areas=[...new Set(f.map(x=>x.area))].sort();
+    $('#f-kind').insertAdjacentHTML('beforeend',kinds.map(k=>`<option>${esc(k)}</option>`).join(''));
+    $('#f-area').insertAdjacentHTML('beforeend',areas.map(a=>`<option value="${esc(a)}">${esc(areaName(a))}</option>`).join(''));
+    ['#f-sev','#f-kind','#f-area','#f-status'].forEach(s=>$(s).addEventListener('change',()=>renderFindings(true)));
+    $('#f-q').addEventListener('input',()=>renderFindings(true)); $('#f-more').addEventListener('click',()=>{fShown+=200;renderFindings(false)});
+    renderFindings(true)}).catch(err=>{$('#f-count').textContent='Could not load findings: '+err.message})}
+  const RANK={high:0,med:1,low:2};
+  function renderFindings(reset){ if(!FLAGS) return; if(reset) fShown=200;
+    const sev=$('#f-sev').value, kind=$('#f-kind').value, area=$('#f-area').value, st=$('#f-status').value, q=$('#f-q').value.trim().toLowerCase();
+    const rows=FLAGS.filter(f=>(!sev||f.sev===sev)&&(!kind||f.kind===kind)&&(!area||f.area===area)&&
+      (st===''||(st==='live'?f.status!=='refuted':f.status===st))&&
+      (!q||(f.text+' '+f.file+' '+(f.evidence||[]).join(' ')+' '+f.id).toLowerCase().includes(q)))
+      .sort((a,b)=>(RANK[a.sev]-RANK[b.sev])||a.area.localeCompare(b.area)||a.id.localeCompare(b.id));
+    $('#f-count').textContent=`${rows.length.toLocaleString()} findings`;
+    $('#f-body').innerHTML=rows.slice(0,fShown).map(f=>`<tr><td><span class="pill ${esc(f.sev)}">${esc(f.sev)}</span></td><td><span class="pill">${esc(f.kind)}</span></td>
+      <td><button class="linkbtn" data-unit="${esc(f.id)}" type="button">${esc(f.id)}</button><div class="ev">${esc(areaName(f.area))}</div></td>
+      <td>${esc(f.text)}<div class="ev">${(f.evidence||[]).slice(0,6).map(e=>`<code>${esc(e)}</code>`).join(' ')}</div></td>
+      <td><span class="pill s-${esc(f.status)}">${esc(statusLabel(f.status))}</span></td></tr>`).join('');
+    $('#f-more').hidden=rows.length<=fShown;}
+
+  // explorer
+  let IDS=null, BYID=null;
+  function loadIndex(){ if(INDEX) return Promise.resolve(INDEX); return j('data/index.json').then(i=>{INDEX=i; BYID=new Map(i.map(r=>[r[0],r])); return i})}
+  function loadArea(a){ if(AREADATA[a]) return Promise.resolve(AREADATA[a]); return j(`data/units/${a}.json`).then(d=>AREADATA[a]=d)}
+  let explorerReady=false;
+  function loadExplorer(){ if(explorerReady) return Promise.resolve(); explorerReady=true;
+    return Promise.all([meta,loadIndex()]).then(()=>{
+      const areas=[...new Set(INDEX.map(r=>r[2]))].sort((a,b)=>areaName(a).localeCompare(areaName(b)));
+      $('#x-area').innerHTML=areas.map(a=>`<option value="${esc(a)}">${esc(areaName(a))}</option>`).join('');
+      $('#x-area').addEventListener('change',()=>openArea($('#x-area').value));
+      $('#x-q').addEventListener('input',search);
+      openArea(areas.includes('B_recording')?'B_recording':areas[0]);
+    })}
+  function openArea(a,thenFile,thenUnit){ $('#x-area').value=a; $('#x-files').innerHTML='<div class="loading" style="padding:10px">Loading…</div>';
+    return loadArea(a).then(d=>{ const files={}; Object.entries(d.units).forEach(([k,u])=>{(files[u.file]=files[u.file]||[]).push(k)});
+      Object.keys(d.files||{}).forEach(f=>files[f]=files[f]||[]);
+      const names=Object.keys(files).sort();
+      $('#x-files').innerHTML=names.map(f=>`<button type="button" data-file="${esc(f)}">${esc(f.replace(/^Emuqu\/Sources\//,''))} <span class="muted">${files[f].length}</span></button>`).join('');
+      $('#x-files').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>openFile(a,b.dataset.file)));
+      if(thenFile) openFile(a,thenFile,thenUnit); })}
+  function unitLink(id){ return `<button class="linkbtn" data-unit="${esc(id)}" type="button">${esc(id.replace(/^Emuqu\/Sources\//,''))}</button>`}
+  function list(xs,fn){ return (xs&&xs.length)? xs.map(fn).join('<br>') : '<span class="muted">none</span>'}
+  function callItem(c){ return BYID && BYID.has(c) ? unitLink(c) : `<code>${esc(c)}</code>`}
+  function openFile(a,f,focus){ const d=AREADATA[a]; $('#x-files').querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',String(b.dataset.file===f)));
+    const fr=(d.files||{})[f]||{}; const ids=Object.keys(d.units).filter(k=>d.units[k].file===f).sort((x,y)=>d.units[x].start-d.units[y].start);
+    const head=`<div class="unit"><h4>${esc(f)}</h4><dl class="kv"><dt>role</dt><dd>${esc(fr.role||'')}</dd>
+      <dt>types</dt><dd>${list(fr.types,t=>esc(t))}</dd><dt>state</dt><dd>${list(fr.state,t=>`<code>${esc(t)}</code>`)}</dd>
+      <dt>top level</dt><dd>${esc(fr.toplevel||'')||'<span class="muted">none</span>'}</dd>
+      <dt>findings</dt><dd>${flagsHtml(fr.flags)}</dd></dl></div>`;
+    $('#x-units').innerHTML=head+ids.map(k=>unitHtml(k,d.units[k])).join('');
+    if(focus){const el=document.getElementById('u-'+focus); if(el){el.scrollIntoView({block:'start'}); el.style.outline='2px solid var(--accent)'}}}
+  function flagsHtml(fl){ fl=(fl||[]).filter(x=>x.status!=='refuted'); if(!fl.length) return '<span class="muted">none</span>';
+    return fl.map(x=>`<div class="flagline ${esc(x.sev)}"><span class="pill ${esc(x.sev)}">${esc(x.sev)}</span> <span class="pill">${esc(x.kind)}</span> ${esc(x.text)}<div class="ev">${(x.evidence||[]).slice(0,6).map(e=>`<code>${esc(e)}</code>`).join(' ')} · ${esc(statusLabel(x.status))}</div></div>`).join('')}
+  function unitHtml(k,u){ const reach=u.reach?` · reach: ${esc(u.reach)}`:'';
+    return `<div class="unit" id="u-${esc(k)}"><h4>${esc(u.type?u.type+'.':'')}${esc(u.name)} <span class="muted">:${u.start}–${u.end}</span></h4>
+    <div class="ev">${esc(u.kind)} · second read: ${esc(u.verdict)}${reach}</div>
+    <dl class="kv"><dt>does</dt><dd>${esc(u.does)}</dd>
+    <dt>trigger</dt><dd>${u.entry?esc(u.entry):'<span class="muted">called from app code</span>'}</dd>
+    <dt>calls</dt><dd>${list(u.calls,c=>callItem(c))}</dd>
+    <dt>callers</dt><dd>${list(u.callers,c=>unitLink(c))}</dd>
+    <dt>possible</dt><dd>${(u.possible_callers&&u.possible_callers.length)?`<details><summary class="muted">${u.possible_callers.length} possible caller(s): the name matches more than one unit</summary>${u.possible_callers.map(unitLink).join('<br>')}</details>`:'<span class="muted">none</span>'}</dd>
+    <dt>reads</dt><dd>${list(u.reads,c=>`<code>${esc(c)}</code>`)}</dd>
+    <dt>writes</dt><dd>${list(u.writes,c=>`<code>${esc(c)}</code>`)}</dd>
+    <dt>branches</dt><dd>${(u.branches&&u.branches.length)?'<div class="br">'+u.branches.map(b=>`<div><span class="mono muted">:${esc(b.line)}</span><span><b>${esc(b.cond)}</b> — ${esc(b.effect)}</span></div>`).join('')+'</div>':'<span class="muted">none</span>'}</dd>
+    <dt>findings</dt><dd>${flagsHtml(u.flags)}</dd></dl></div>`}
+  function goUnit(id){ show('explorer'); loadExplorer().then(()=>loadIndex()).then(()=>{ const r=BYID.get(id);
+    if(!r){ $('#x-units').innerHTML=`<p>${esc(id)} is a file-level record; open its file from the list.</p>`; const fa=INDEX.find(x=>x[3]===id); if(fa) openArea(fa[2],id); return}
+    openArea(r[2],r[3],id)})}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-unit]'); if(b){e.preventDefault(); goUnit(b.dataset.unit)}});
+  function search(){ const q=$('#x-q').value.trim().toLowerCase(); if(q.length<3){$('#x-search').innerHTML='';return}
+    const hits=INDEX.filter(r=>(r[1]+' '+r[3]).toLowerCase().includes(q)).slice(0,60);
+    $('#x-search').innerHTML=`<div class="count">${hits.length===60?'first 60 matches':hits.length+' matches'}</div>`+
+      hits.map(r=>`<div>${unitLink(r[0])} <span class="muted">${esc(r[1])} · ${esc(areaName(r[2]))}</span></div>`).join('')}
+
+  // orphans
+  function loadOrphans(){ if(UNREACH) return Promise.resolve(); return Promise.all([j('data/unreachable.json'),meta]).then(([u])=>{UNREACH=u;
+    const areas=[...new Set(Object.values(u).map(x=>x.area))].sort();
+    $('#o-area').insertAdjacentHTML('beforeend',areas.map(a=>`<option value="${esc(a)}">${esc(areaName(a))}</option>`).join(''));
+    ['#o-reach','#o-area'].forEach(s=>$(s).addEventListener('change',renderOrphans)); $('#o-q').addEventListener('input',renderOrphans); renderOrphans()})
+    .catch(err=>{$('#o-count').textContent='Could not load: '+err.message})}
+  function renderOrphans(){ const r=$('#o-reach').value, a=$('#o-area').value, q=$('#o-q').value.trim().toLowerCase();
+    const rows=Object.entries(UNREACH).filter(([k,u])=>u.reach===r&&(!a||u.area===a)&&(!q||(k+' '+u.name).toLowerCase().includes(q))).sort((x,y)=>x[0].localeCompare(y[0]));
+    $('#o-count').textContent=`${rows.length.toLocaleString()} units`;
+    $('#o-body').innerHTML=rows.slice(0,800).map(([k,u])=>`<tr><td>${unitLink(k)}<div class="ev">${esc(u.name)}</div></td><td>${esc(areaName(u.area))}</td><td>${esc(u.does)}</td><td>${(u.callers||[]).length?u.callers.slice(0,4).map(unitLink).join('<br>'):'<span class="muted">none</span>'}</td></tr>`).join('')}
+
+  // coupling
+  function loadCoupling(){ if(STORES) return Promise.resolve(); return Promise.all([j('data/stores.json'),meta]).then(([s])=>{STORES=s;
+    ['#c-kind','#c-multi'].forEach(x=>$(x).addEventListener('change',renderCoupling)); $('#c-q').addEventListener('input',renderCoupling); renderCoupling()})
+    .catch(err=>{$('#c-count').textContent='Could not load: '+err.message})}
+  function renderCoupling(){ const k=$('#c-kind').value, m=+$('#c-multi').value, q=$('#c-q').value.trim().toLowerCase();
+    const rows=STORES.filter(s=>(!k||s.store.startsWith(k+':'))&&(m<2||s.writer_areas.length>=2)&&(!q||s.store.toLowerCase().includes(q)));
+    $('#c-count').textContent=`${rows.length.toLocaleString()} pieces of state`;
+    $('#c-body').innerHTML=rows.slice(0,600).map(s=>`<tr><td><code>${esc(s.store)}</code></td><td class="n">${s.writers}</td><td class="n">${s.readers}</td>
+      <td>${s.writer_areas.map(a=>esc(areaName(a))).join(', ')||'<span class="muted">tests only</span>'}<div class="ev">${s.w.slice(0,5).map(unitLink).join(' ')}</div></td>
+      <td>${s.reader_areas.map(a=>esc(areaName(a))).join(', ')||'<span class="muted">none</span>'}<div class="ev">${s.r.slice(0,5).map(unitLink).join(' ')}</div></td></tr>`).join('')}
+
+  // strings
+  function loadStrings(){ if(STRINGS) return Promise.resolve(); return j('data/strings.json').then(s=>{STRINGS=s;
+    $('#s-body').innerHTML=Object.entries(s).map(([ch,d])=>{const sm=d.summary||{};
+      return `<div class="block"><h2>${esc(sm.catalog||ch)}</h2><p>${esc(sm.total_keys)} keys. ${esc(sm.translations||'')}</p>
+      <p class="muted">Keys a plain text match did not find, after checking how the app builds them: ${Object.entries(d.counts).map(([k,v])=>`${esc(k)} ${v}`).join(' · ')}</p>
+      <div class="scroll"><table><thead><tr><th>Key</th><th>Status</th><th>Where / note</th></tr></thead><tbody>${d.flagged.map(r=>`<tr><td>${esc(r.key)}</td><td><span class="pill">${esc(r.status)}</span></td><td>${(r.where||[]).map(w=>`<code>${esc(w)}</code>`).join(' ')} ${esc(r.note||'')}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">none</td></tr>'}</tbody></table></div>
+      <p class="muted">Keys the code requests that are missing from the catalog: ${(sm.keys_requested_by_code_but_missing_from_catalog||[]).length?esc(JSON.stringify(sm.keys_requested_by_code_but_missing_from_catalog)):'none'}</p></div>`}).join('')})
+    .catch(err=>{$('#s-body').textContent='Could not load: '+err.message})}
+
+  show(start);
+})();
+</script>

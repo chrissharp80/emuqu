@@ -1,0 +1,69 @@
+{
+ "file": "scripts/check_coverage.sh",
+ "hash": "a20e6c5b368d9601",
+ "role": "Coverage gate: parses `xccov --files-for-target Emuqu.app` per-file report and enforces overall, logic (non-Views) and Views-only line-coverage floors.",
+ "types": [],
+ "state": [
+  "file:.ci/min_coverage.txt",
+  "file:.ci/min_coverage_logic.txt",
+  "file:.ci/min_coverage_views.txt",
+  "env:MIN_COVERAGE",
+  "env:MIN_LOGIC_COVERAGE",
+  "env:MIN_VIEWS_COVERAGE",
+  "env:MIN_COVERAGE_FILE",
+  "env:MIN_LOGIC_COVERAGE_FILE",
+  "env:MIN_VIEWS_COVERAGE_FILE",
+  "env:SKIP_OVERALL_COVERAGE",
+  "env:SKIP_LOGIC_COVERAGE",
+  "env:GITHUB_STEP_SUMMARY"
+ ],
+ "toplevel": "Sources lib/preflight.sh. Usage <xcresult> [min_overall]; wrong argc -> exit 64. Floors: arg2 or MIN_COVERAGE env or .ci/min_coverage.txt (44) else 16; MIN_LOGIC_COVERAGE env or .ci/min_coverage_logic.txt (45) else 30; MIN_VIEWS_COVERAGE env or .ci/min_coverage_views.txt (43.5) else 0. Missing bundle -> exit 66. Temp file via gate_mktemp; xccov errors ignored; empty report -> exit 65. Python sums covered/total for rows matching `/path.swift N pct% (c/t)`; no rows -> 65; logic excludes paths containing /Sources/Views/; SKIP_OVERALL_COVERAGE=1 / SKIP_LOGIC_COVERAGE=1 turn those floor failures into SKIP lines; views floor always enforced. Summary echoed and appended to GITHUB_STEP_SUMMARY; non-zero Python status -> exit 1. Invoked only by run_tests_with_coverage.sh (check_gates_wired exempts it).",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "A missing floor file silently falls back to hard-coded floors (16/30/0) far below the committed 44/45/43.5, and env vars SKIP_LOGIC_COVERAGE/MIN_* override the committed floors with no record.",
+   "evidence": [
+    "scripts/check_coverage.sh:48",
+    "scripts/check_coverage.sh:54",
+    "scripts/check_coverage.sh:60",
+    "scripts/check_coverage.sh:92"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says the real figure is ~16% and the overall floor is derived from it; the committed floor is 44.",
+   "evidence": [
+    "scripts/check_coverage.sh:9",
+    ".ci/min_coverage.txt:1"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "run_tests_with_coverage.sh says a unit-only run's coverage is 'REPORTED but not GATED', but check_coverage.sh still enforces the views floor (43.5) on that run; only overall and logic are skipped.",
+   "evidence": [
+    "scripts/run_tests_with_coverage.sh:29",
+    "scripts/run_tests_with_coverage.sh:41",
+    "scripts/check_coverage.sh:134",
+    "scripts/check_coverage.sh:137"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The 'logic' bucket excludes only paths containing /Sources/Views/, so SwiftUI views under Emuqu/Sources/Assistant/Views/ count as logic, which the header defines as code unit tests can reach.",
+   "evidence": [
+    "scripts/check_coverage.sh:23",
+    "scripts/check_coverage.sh:108"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

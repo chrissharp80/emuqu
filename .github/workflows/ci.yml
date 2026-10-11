@@ -153,6 +153,12 @@ jobs:
         # (medical-claim language). Same script as `make copy-perimeter`.
         run: python3 Tools/copy_linter/lint.py
 
+      # Every function, script target, workflow step and doc section has a record
+      # in docs/codemap written after its last change. Runs before "Gates actually
+      # fail" so the planted-violation harness finds tree-sitter installed.
+      - name: Code map is current
+        run: make codemap-setup && CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh
+
       - name: Gates actually fail
         # Plants a violation for each cheap gate and requires a red exit.
         # Three gates in this repository have reported clean while missing the

@@ -1,0 +1,410 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift",
+ "hash": "60c2d2c74808af11",
+ "role": "Pure MainActor mapping from abstract routing tier (Quick/Auto/Deep) to a concrete (provider, model) using the ProviderRegistry, feature-flag kill switches and provider consent, plus a hasCloudProvider check used by the AI settings page.",
+ "types": [
+  "TierProviderMapper: enum (@MainActor, namespace)",
+  "TierProviderMapper.Mapping: struct — provider, model, collapsed flag"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No test references TierProviderMapper; its consent gate (consentedProvider) is the only thing keeping Auto/Deep routing from sending health context to an unconsented Grok/DeepSeek, and none of the collapse/fallback paths are covered.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:176",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:54"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TierProviderMapper.mapping(for:registry:)",
+   "hash": "4b828f3d95b74d2b",
+   "does": "Dispatches the tier to quickMapping / autoMapping / deepMapping. Called from AssistantViewModel+Routing.mappingSnapshots for the proposed tier (and .auto when Deep).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "tier .quick",
+     "effect": "quickMapping"
+    },
+    {
+     "at": "+6",
+     "cond": "tier .auto",
+     "effect": "autoMapping"
+    },
+    {
+     "at": "+7",
+     "cond": "tier .deep",
+     "effect": "deepMapping"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)": "797c5532948ab602"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.quickMapping(_:)",
+   "hash": "7766fc29401e08cb",
+   "does": "Quick → Apple (default or first model) uncollapsed when Apple is available; otherwise chosenOrApple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "registry.apple.isAvailable",
+     "effect": "true: Apple mapping, collapsed false; false: chosenOrApple(registry)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "796b8597adaa93e9",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.autoMapping(_:)",
+   "hash": "6bafb73a3901928f",
+   "does": "Auto → first consented, enabled, available of Grok then DeepSeek on its default model (uncollapsed); else chosenOrApple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "midTierProvider found",
+     "effect": "true: that provider, collapsed false; false: chosenOrApple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.deepMapping(_:)",
+   "hash": "71a44df14948bff6",
+   "does": "Deep → the user's chosen non-Apple primary if enabled and available (uncollapsed); else the Auto mid-tier provider marked collapsed; else chosenOrApple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userChosenMapping non-nil",
+     "effect": "returns chosen primary, collapsed false"
+    },
+    {
+     "at": "+4",
+     "cond": "midTierProvider found",
+     "effect": "returns Grok/DeepSeek, collapsed true; else chosenOrApple"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment (lines 15-18, 87-91) says Deep with Apple primary takes 'the consented mid-tier cloud provider' and Apple 'only when no cloud provider is consented'; in fact only Grok and DeepSeek are eligible, so a user who consented to Anthropic/OpenAI/Gemini with Apple as primary gets every Deep turn on Apple.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:17",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:91",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:168"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "9f6e11383f866dc5"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.chosenOrApple(_:)",
+   "hash": "d6c9829d6abc23df",
+   "does": "Fallback chain marked collapsed: user's chosen non-Apple primary, else Apple, else fallback(registry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.fallback(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userChosenMapping non-nil",
+     "effect": "returns it, collapsed true"
+    },
+    {
+     "at": "+4",
+     "cond": "Apple available",
+     "effect": "returns Apple, collapsed true; else fallback(registry)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "796b8597adaa93e9",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.fallback(_:)": "85728777ae07a5e7",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "9f6e11383f866dc5",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.hasCloudProvider(in:)",
+   "hash": "0230ecfc09f52b16",
+   "does": "True when cheapestCloud finds any enabled, available non-Apple provider with a priced model. Drives the routing section's 'No cloud model is set up' notice.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.cheapestCloud(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "hasCloudProvider counts any enabled, available cloud provider, ignoring consent and ignoring that tier routing only uses Grok/DeepSeek when Apple is primary. A user with only a Claude/OpenAI/Gemini key (or an unconsented Grok key) sees no 'every mode answers on Apple Intelligence' notice, though Auto and Deep map to Apple for them.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:116",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:194",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:168",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:181",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:188"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "It finds the cheapest model across all providers (price comparison over Decimal) just to test for existence; cheapestCloud/cheapestModel have no other caller, leftover from an earlier price-based routing rule the doc says was removed.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:117",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:192",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:204",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:47"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.cheapestCloud(in:)": "7d651346f886f2cf"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.appleModel(_:)",
+   "hash": "b68bdcdfcb5924ec",
+   "does": "Apple's default model, else its first model, else the registry's active model.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "default model exists ??",
+     "effect": "nil -> first model"
+    },
+    {
+     "at": "+6",
+     "cond": "first model exists ??",
+     "effect": "nil -> registry.activeModel"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels": "80a707f4a1b3be44"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.fallback(_:)",
+   "hash": "c9df17e88d111ba1",
+   "does": "Returns the registry's active provider/model marked collapsed, so the chat layer's missing-key handling fires.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TierProviderMapper.userChosenMapping(_:)",
+   "hash": "e84c34b2b2616bfd",
+   "does": "Returns (activeProvider, activeModel) only when the active provider is not Apple, is available, and its Settings switch is on; else nil.",
+   "entry": null,
+   "calls": [
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:87|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)"
+   ],
+   "reads": [
+    "ud:FeatureFlags provider<Name>Enabled (app-group suite AppConfig.appGroupIdentifier, via ProviderRegistry.isEnabled → FeatureFlags.value(for:))"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider != apple && isAvailable && isEnabled",
+     "effect": "false: nil; true: tuple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.midTierProvider(in:)",
+   "hash": "6696b828328b6992",
+   "does": "Returns the first of Grok, DeepSeek that consentedProvider accepts, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for id in [grok, deepseek]",
+     "effect": "tries in order"
+    },
+    {
+     "at": "+2",
+     "cond": "consentedProvider non-nil",
+     "effect": "returns it immediately"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)": "cec78cb02486aed7"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.consentedProvider(_:in:)",
+   "hash": "60b0b8c1e7974db9",
+   "does": "Candidate check for a mid-tier provider: feature flag on, consent not required (consent given), provider present and available, and a default or first model exists; returns (provider, model) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:87|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable",
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:79|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker"
+   ],
+   "reads": [
+    "ud:FeatureFlags provider<Name>Enabled (app-group suite AppConfig.appGroupIdentifier, via ProviderRegistry.isEnabled → FeatureFlags.value(for:))",
+    "ud:assistant.consent.v<schema>.<provider> (standard suite, loaded into mem:ProviderConsentTracker.acknowledgedProviders)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "enabled && !requiresConsent && provider available && model exists",
+     "effect": "false at any clause: nil; true: returns tuple"
+    },
+    {
+     "at": "+7",
+     "cond": "default model ?? first model",
+     "effect": "no default -> first; no models -> nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "b6e12f3eff34e013"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.cheapestCloud(in:)",
+   "hash": "99a799ef46c3b746",
+   "does": "Among enabled, available non-Apple providers, picks the one whose cheapest priced model has the lowest input price; returns (provider, model) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:87|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.cheapestModel(of:)"
+   ],
+   "reads": [
+    "ud:FeatureFlags provider<Name>Enabled (app-group suite AppConfig.appGroupIdentifier, via ProviderRegistry.isEnabled → FeatureFlags.value(for:))"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cheapestModel(of:) non-nil",
+     "effect": "false: provider skipped; true: candidate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.cheapestModel(of:)": "4842dc74bfdad0f5",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
+   }
+  },
+  {
+   "key": "func TierProviderMapper.cheapestModel(of:)",
+   "hash": "987a87e8e5c333a0",
+   "does": "Lowest inputPricePerMTok model of a provider, ignoring models without a price; nil if none priced.",
+   "entry": null,
+   "calls": [
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:79|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "model has inputPricePerMTok",
+     "effect": "false: skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

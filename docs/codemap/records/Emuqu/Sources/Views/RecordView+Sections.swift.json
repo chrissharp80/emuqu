@@ -1,0 +1,1099 @@
+{
+ "file": "Emuqu/Sources/Views/RecordView+Sections.swift",
+ "hash": "fe0594e9cbc215c4",
+ "role": "RecordView extension: one computed property per Record-stack section with its visibility gate, the acceptance Save/Discard card, the morning and quick results full-screen covers, and the small callbacks they use (discard, finish, re-trim recovered workout).",
+ "types": [
+  "RecordView: extension — section builders, results covers and callbacks"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "high",
+   "text": "Tapping Done on a quick reading's report (finishQuickReading) runs updateCompositeRecoveryScore on the quick session, which fetches and stores sleepSnapshot/vitalsSnapshot and stamps a composite recoveryScore onto it (SessionAcceptanceService.swift:398-425, 473-475). The streaming code says a quick reading carries no recovery score (RRCollector+Streaming.swift:206-209) and the device path refuses snapshots on non-overnight captures because the newest snapshot-bearing session hijacks the Dashboard sleep chip (RRCollector+DeviceRecording.swift:494-506). DashboardSessionPolicy.latestWithSleep/latestWithVitals pick the first session with a snapshot, so a daytime quick check becomes the Dashboard's sleep/vitals source and gets a recovery score; with export enabled its metrics also go to Apple Health.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift:438",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift:416",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift:473",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift:206",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:494",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:198"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Comment says pre-session tags 'persist onto the session at archive time via the existing updateTags flow' but for overnight/nap (the default selection) the auto-accept path clears them without writing (RecordView.swift:324-337).",
+   "evidence": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift:68",
+    "Emuqu/Sources/Views/RecordView.swift:334"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecordView.acceptanceSection",
+   "hash": "343b2d45a5530d2f",
+   "does": "Card 'Save this reading?' with explanatory text and the Discard/Save buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceButtons": "732de17a199fa492",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordView.acceptanceButtons",
+   "hash": "1cf759cccf7b0e23",
+   "does": "HStack with red 'Discard' (rejectSession) and prominent 'Save' (acceptSession) buttons.",
+   "entry": "Buttons tapped by user.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "db7ec63ccad27482",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "197213eef8b7e4f4"
+   }
+  },
+  {
+   "key": "var RecordView.sessionTypeSection",
+   "hash": "9f7b3845c244b6d9",
+   "does": "Shows the RecordSessionSelector (quick/overnight/nap) bound to selectedSessionType when no session is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!isSessionActive",
+     "effect": "true: selector shown; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive": "d8a06c89cda52c16"
+   }
+  },
+  {
+   "key": "var RecordView.selectedSessionSection",
+   "hash": "2f9f1bac60f09ebf",
+   "does": "Shows RecordSelectedSessionHeader with a Change button (clearSelectedSession) when a type is chosen and no session is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearSelectedSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedSessionType != nil && !isSessionActive",
+     "effect": "true: header; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive": "d8a06c89cda52c16",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearSelectedSession()": "5cd08bbefcacafcb"
+   }
+  },
+  {
+   "key": "var RecordView.preSessionTagSection",
+   "hash": "d11c0c463e616508",
+   "does": "Shows ReadingTagSelector (toggle via toggleTag, More opens the tag picker sheet) when a type is chosen and no session is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.toggleTag(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.showingTagPicker"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedSessionType != nil && !isSessionActive",
+     "effect": "true: tag selector; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.toggleTag(_:)": "f88cd8dd60107d59",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isSessionActive": "d8a06c89cda52c16"
+   }
+  },
+  {
+   "key": "var RecordView.connectionSection",
+   "hash": "7e4fae00089a76be",
+   "does": "Shows ConnectionPanel when a type is selected, not overnight streaming, not awaiting acceptance, no device fetch, no morning status, the type needs a strap (overnight/nap/quick — always true for the selectable types) and not already streaming.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:SessionState.needsAcceptance",
+    "mem:MorningCoordination.isDeviceFetchInProgress",
+    "mem:MorningCoordination.morningStatus",
+    "mem:DeviceStatus.isStreaming"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "type selected && !overnightStreaming && !needsAcceptance && !isDeviceFetchInProgress && morningStatus == nil",
+     "effect": "false: nothing; true: evaluate line 96 (isDeviceFetchInProgress is always false in production)"
+    },
+    {
+     "at": "+6",
+     "cond": "needsConnection && !deviceStatus.isStreaming",
+     "effect": "true: ConnectionPanel; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "c99b310984e70107",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761"
+   }
+  },
+  {
+   "key": "var RecordView.recoverableDataSection",
+   "hash": "26c026e1501f4820",
+   "does": "Shows RecoverableDataCard (Recover → recoverStoredData, Discard → discardAndStartFresh) when connected, the strap holds unrecovered or orphaned data, no failed fetch, not awaiting acceptance, not streaming/collecting, no fetch in progress and no morning status.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData()",
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh()"
+   ],
+   "reads": [
+    "mem:DeviceStatus.isDeviceConnected",
+    "mem:DeviceStatus.fetchProgress",
+    "mem:SessionState.needsAcceptance",
+    "mem:SessionState.isCollecting",
+    "mem:DeviceStatus.isStreaming",
+    "mem:MorningCoordination.morningStatus",
+    "mem:PolarManager.hasStoredExercise/storedExerciseDate",
+    "archive:SessionArchive.hasSessionNear"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connected && offersStrapRecovery && !fetchFailed && !needsAcceptance && !isStreaming && !isCollecting && fetchProgress == nil && morningStatus == nil",
+     "effect": "true: card; false: hidden"
+    },
+    {
+     "at": "+4",
+     "cond": "connectedDeviceType?.displayName ?? 'Device'",
+     "effect": "no device type → generic 'Device' name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isDeviceConnected": "b8e9e09f9e7eea2a",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh()": "502ceb22039dbc90",
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData()": "50798b6166e2971c"
+   }
+  },
+  {
+   "key": "var RecordView.activeSessionSection",
+   "hash": "657b0e2b8fc8534d",
+   "does": "When connected or paused, no morning status, and a type selected: shows retry/strap-recovery/review/continue/overnight sections unless quick-streaming, then the quick-reading section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.retryFetchSection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.continueRecoverySection",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.overnightRecordingSectionIfSelected",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickReadingSectionIfSelected"
+   ],
+   "reads": [
+    "mem:DeviceStatus.isDeviceConnected",
+    "mem:StreamingLifecycle.isPaused",
+    "mem:MorningCoordination.morningStatus",
+    "mem:DeviceStatus.isStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "(connected || paused) && morningStatus == nil && selectedSessionType != nil",
+     "effect": "false: whole section hidden (incl. strap workout recovery card when no type is selected); true: continue"
+    },
+    {
+     "at": "+7",
+     "cond": "!isStreaming || overnightStreaming || paused",
+     "effect": "true: retry/strap/review/continue/overnight subsections; false (quick streaming): only quickReadingSectionIfSelected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isDeviceConnected": "b8e9e09f9e7eea2a",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.continueRecoverySection": "24e48bc1e785d2a7",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.overnightRecordingSectionIfSelected": "4348089f16a16823",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickReadingSectionIfSelected": "78f32b1b658fe710",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection": "c4847e54743f6d8a",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.retryFetchSection": "8b0d2fc213862848",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection": "39cb0044e0e56bb0"
+   }
+  },
+  {
+   "key": "var RecordView.retryFetchSection",
+   "hash": "9dfbaf63d0d2d7d7",
+   "does": "When fetchFailed, shows RetryFetchCard with retrying state, connection state, humanized last error, and Retry/Cancel/Dismiss callbacks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.retryFetch()",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.cancelFetchRetry()",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissFailedFetch()"
+   ],
+   "reads": [
+    "mem:SessionState.lastError",
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fetchFailed",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "7c6011f8bc4ab70b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.retryFetch()": "141d06001799e2da",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.cancelFetchRetry()": "24344aea4786b44e",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissFailedFetch()": "beb6cebd5c2a8d1d"
+   }
+  },
+  {
+   "key": "func RecordView.cancelFetchRetry()",
+   "hash": "9f1108d7df053f0a",
+   "does": "Cancels the active Polar fetch and clears isRetrying.",
+   "entry": "RetryFetchCard onCancelRetry.",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:H10 transfer cancel",
+    "mem:RecordView.isRetrying"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81"
+   }
+  },
+  {
+   "key": "func RecordView.dismissFailedFetch()",
+   "hash": "ee898c3deeba94e5",
+   "does": "Dismisses a failed fetch: fetchFailed=false, collector.resetSession(), selectedSessionType=nil.",
+   "entry": "RetryFetchCard onDismiss.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector session state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a"
+   }
+  },
+  {
+   "key": "var RecordView.strapRecoverySection",
+   "hash": "567e9f816b06db1d",
+   "does": "Shows the workout strap-recovery card when an interrupted workout id is known and no recovered-workout review is pending.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.workoutStrapRecoveryCard(sessionId:)"
+   ],
+   "reads": [
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "interruptedWorkoutId != nil && recoveredWorkoutReview == nil",
+     "effect": "true: card; false: hidden"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Comment says the workout strap-recovery card 'Shows whenever a workout was recording when the app died', and the card tells the user to connect the strap, but it is nested in activeSessionSection, which needs a connected (or paused) device, a selected session type and no morning status. With the strap disconnected or no type selected the card never appears, so the user is never told to connect.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Sections.swift:165",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:120",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:121",
+      "Emuqu/Sources/Views/RecordView.swift:251"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.workoutStrapRecoveryCard(sessionId:)": "afe099895c56f3b2"
+   }
+  },
+  {
+   "key": "var RecordView.recoveredWorkoutReviewSection",
+   "hash": "556c7ef7dc44486d",
+   "does": "Shows RecoveredWorkoutReviewCard for a pending review; Save → keepRecoveredWorkout(endSec), Discard → discardRecoveredWorkout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:onSave:onDiscard:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:)"
+   ],
+   "reads": [
+    "mem:MorningCoordination.recoveredWorkoutReview"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveredWorkoutReview != nil",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:onSave:onDiscard:)": "9b09940489f282c9",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:)": "547e6b30bfd6c36a",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:)": "b1ae4f040c9a48e8"
+   }
+  },
+  {
+   "key": "var RecordView.continueRecoverySection",
+   "hash": "d67bec9c33369c04",
+   "does": "For overnight/nap selections when not streaming or paused, shows the Continue Recovery card for sessionState.recentPausedSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.continueRecoveryCard(session:)"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isPaused",
+    "mem:SessionState.recentPausedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "(overnight||nap) && !overnightStreaming && !paused && recentPausedSession != nil",
+     "effect": "true: continueRecoveryCard; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recentPausedSession": "3fb5e723b5dae6c8",
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.continueRecoveryCard(session:)": "be3d92dcf02c635f"
+   }
+  },
+  {
+   "key": "var RecordView.overnightRecordingSectionIfSelected",
+   "hash": "d38b8f6d5c34aba7",
+   "does": "Shows the overnight recording panel for overnight or nap selections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.overnightRecordingSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedSessionType == .overnight || .nap",
+     "effect": "true: overnightRecordingSection; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.overnightRecordingSection": "465f999c80b8186c"
+   }
+  },
+  {
+   "key": "var RecordView.quickReadingSectionIfSelected",
+   "hash": "d586c389e8d171f6",
+   "does": "Shows the quick reading panel for the quick selection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.quickReadingSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedSessionType == .quick",
+     "effect": "true: quickReadingSection; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.quickReadingSection": "c035134fce2962d0"
+   }
+  },
+  {
+   "key": "var RecordView.morningProcessingSection",
+   "hash": "44d46dee67cb4d94",
+   "does": "While morningStatus is set, shows MorningProcessingCard; skip-device-fetch sets deviceFetchPolicy=.skipByUser and cancels the fetch, skip-sleep-wait sets morningProcessingService.skipSleepWait=true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()"
+   ],
+   "reads": [
+    "mem:MorningCoordination.morningStatus"
+   ],
+   "writes": [
+    "mem:RRCollector.deviceFetchPolicy",
+    "mem:MorningProcessingService.skipSleepWait",
+    "ble:H10 transfer cancel"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "morningStatus != nil",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205"
+   }
+  },
+  {
+   "key": "var RecordView.liveDataSection",
+   "hash": "0072a8c24352cfe8",
+   "does": "Shows LiveDataPanel during quick streaming only (not overnight, no morning status).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:MorningCoordination.morningStatus"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isStreaming && !overnightStreaming && morningStatus == nil",
+     "effect": "true: LiveDataPanel; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205"
+   }
+  },
+  {
+   "key": "var RecordView.verificationSectionIfPending",
+   "hash": "a6686ae3ecba70f6",
+   "does": "Shows RecordVerificationSection with the verification result and recovery window when a verification result exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionState.verificationResult",
+    "mem:SessionState.recoveryWindow"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "verificationResult != nil",
+     "effect": "true: section; false: nothing. Quick readings set verificationResult and needsAcceptance=false, so it shows next to QuickResultsCard too"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a"
+   }
+  },
+  {
+   "key": "var RecordView.morningResultsPreviewSection",
+   "hash": "7cc033770dcc7bde",
+   "does": "For a non-overnight/non-nap session awaiting acceptance with a result, shows morningResultsPreview.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.morningResultsPreview(session:result:)"
+   ],
+   "reads": [
+    "mem:SessionState.needsAcceptance",
+    "mem:SessionState.currentSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "needsAcceptance && currentSession with result && type not overnight/nap",
+     "effect": "true: preview; false: nothing. needsAcceptance is only set true by device-recording, morning-processing and finalize-from-pause paths (RRCollector+DeviceRecording.swift:520, +MorningProcessing.swift:122, +PauseResume.swift:267), which UI-start only overnight/nap; reachable only for a recovered session whose persisted type is something else"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.morningResultsPreview(session:result:)": "ca1c03573514f18b"
+   }
+  },
+  {
+   "key": "var RecordView.quickResultsSection",
+   "hash": "94efc3cf7c3d4fa5",
+   "does": "For a complete session not awaiting acceptance with a result (quick readings, which publish needsAcceptance=false), shows QuickResultsCard with View Report and Done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.presentQuickReport(session:result:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()"
+   ],
+   "reads": [
+    "mem:SessionState.currentSession",
+    "mem:SessionState.needsAcceptance"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentSession complete && !needsAcceptance && analysisResult != nil",
+     "effect": "true: QuickResultsCard; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.clearFinishedQuickReading()": "3baaa4d74372080d",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.presentQuickReport(session:result:)": "852d343c9e311367"
+   }
+  },
+  {
+   "key": "func RecordView.presentQuickReport(session:result:)",
+   "hash": "7ee254524cdd73f4",
+   "does": "Loads up to 28 prior overnight sessions before the reading into cachedRecentSessions, then sets quickPresentation to open the quick results cover.",
+   "entry": "QuickResultsCard onViewReport.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)"
+   ],
+   "reads": [
+    "archive:SessionArchive (recent overnight sessions)"
+   ],
+   "writes": [
+    "mem:RecordView.quickPresentation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
+    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:)": "9ee0c9cd094bb29c"
+   }
+  },
+  {
+   "key": "func RecordView.clearFinishedQuickReading()",
+   "hash": "cdcc7cf2686de224",
+   "does": "Done on the quick results card: resets the collector session and clears tags, notes and selected type. Does not re-score the session (unlike finishQuickReading).",
+   "entry": "QuickResultsCard onDone.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector session state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a"
+   }
+  },
+  {
+   "key": "var RecordView.acceptanceSectionIfNeeded",
+   "hash": "c4495f04dea02339",
+   "does": "Shows the Save/Discard acceptance card for non-overnight/non-nap sessions awaiting acceptance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSection"
+   ],
+   "reads": [
+    "mem:SessionState.needsAcceptance",
+    "mem:SessionState.currentSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "needsAcceptance && currentSession type exists and is not overnight/nap",
+     "effect": "true: acceptanceSection; false: nothing (same narrow reachability as morningResultsPreviewSection)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSection": "a3b0fd7910d67c6e"
+   }
+  },
+  {
+   "key": "func RecordView.morningCover(_:)",
+   "hash": "252670be36a496c5",
+   "does": "NavigationStack wrapping the morning results (with sleep-edit alert) and a Done toolbar.",
+   "entry": "fullScreenCover(item: $morningPresentation) content.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)": "79c4d807edb82ce6",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar": "ee28abe541f57173"
+   }
+  },
+  {
+   "key": "func RecordView.morningResultsWithAlert(_:)",
+   "hash": "a56c1e7270b8f4f5",
+   "does": "Adds the 'Sleep edit not saved' alert bound to sleepEditSaveFailed around morningResults.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sleepEditFailedTitle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)": "a937b534353e610c",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sleepEditFailedTitle": "036276d0c9e8672f"
+   }
+  },
+  {
+   "key": "var RecordView.sleepEditFailedTitle",
+   "hash": "ce273b1d758e8ee3",
+   "does": "Localized title 'Sleep edit not saved'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecordView.morningResults(_:)",
+   "hash": "44d1b515f63c4df6",
+   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard, reanalyze, reanalyze at position, apply manual result, update sleep, adjust sleep (with failure alert), unlink segment, and the archive's linked segments.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.applyManualMorningResult(_:to:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.linkedSegments"
+   ],
+   "writes": [
+    "archive:session (via reanalysis callbacks)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "1c0421a2b011d161",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "4fa12f1dba8fbc1e",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "df81e8aa6eb05449",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)": "f6a0755d9cb724bc",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.applyManualMorningResult(_:to:)": "5901a756ab163338",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()": "ba8e1c6dc4486be8"
+   }
+  },
+  {
+   "key": "func RecordView.dismissMorningReading()",
+   "hash": "ff576c1a1a2d1b3b",
+   "does": "Rejects the reading (discardMorningReading → rejectSession) and closes the morning cover.",
+   "entry": "MorningResultsView onDiscard.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.discardMorningReading()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.morningPresentation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.discardMorningReading()": "022f9634cac5a5e3"
+   }
+  },
+  {
+   "key": "func RecordView.applyManualMorningResult(_:to:)",
+   "hash": "878ee2ce71ad3278",
+   "does": "Applies a manual analysis window via collector.applyManualAnalysis and returns the updated session.",
+   "entry": "MorningResultsView onApplyManualResult.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session (manual window + score via ReanalysisService)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "5769cb4022f1481b"
+   }
+  },
+  {
+   "key": "func RecordView.adjustMorningSleep(_:for:)",
+   "hash": "cafb94c1376cd83c",
+   "does": "Persists a user sleep-boundary adjustment; on false return shows the 'Sleep edit not saved' alert.",
+   "entry": "MorningResultsView onAdjustSleep.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session sleep boundaries",
+    "mem:RecordView.sleepEditSaveFailed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!updateSessionSleepBoundaries(... isUserAdjustment: true)",
+     "effect": "true (save failed): sleepEditSaveFailed=true; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be"
+   }
+  },
+  {
+   "key": "var RecordView.morningDoneToolbar",
+   "hash": "35e754b3525d778b",
+   "does": "Confirmation toolbar 'Done' → finishMorningReading.",
+   "entry": "Toolbar.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishMorningReading()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishMorningReading()": "12bcaf1c925e8e48"
+   }
+  },
+  {
+   "key": "func RecordView.finishMorningReading()",
+   "hash": "5aba22e4c99cd080",
+   "does": "Accepts the reading (saveMorningReading) and closes the morning cover.",
+   "entry": "Done toolbar button.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.morningPresentation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveMorningReading()": "c2cb6aee56ee476a"
+   }
+  },
+  {
+   "key": "func RecordView.quickCover(_:)",
+   "hash": "5ba22f01d6961a68",
+   "does": "NavigationStack wrapping quick results with a Done toolbar.",
+   "entry": "fullScreenCover(item: $quickPresentation) content.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickDoneToolbar(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickDoneToolbar(_:)": "d7b436b738dc1dcc",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "952361bbc9ff3413"
+   }
+  },
+  {
+   "key": "func RecordView.quickResults(_:)",
+   "hash": "dd3018c42a43d385",
+   "does": "Builds MorningResultsView for a quick reading with discard and update-sleep callbacks only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)": "2fa37af576c347ce"
+   }
+  },
+  {
+   "key": "func RecordView.discardQuickReading(_:)",
+   "hash": "7bbeb3e3248d17a1",
+   "does": "Deletes the quick reading from the archive and uploads a CloudKit deletion; a delete error is logged; always resets UI state.",
+   "entry": "MorningResultsView onDiscard (quick).",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.delete (index + trash)",
+    "ck:deletion flag"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch on archive.delete",
+     "effect": "logged and swallowed; no CloudKit deletion sent; UI still resets so the user sees the reading as discarded though it remains archived"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "If archive.delete throws, the user sees the reading discarded (cover closes, session reset) but it stays in the archive and history.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Sections.swift:409",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:412"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "73693e3a005641dc"
+   }
+  },
+  {
+   "key": "func RecordView.resetAfterQuickReading()",
+   "hash": "fc7fd84a4b4142c7",
+   "does": "Closes the quick cover, resets the collector session and clears selectedSessionType.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector session state",
+    "mem:RecordView.quickPresentation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a"
+   }
+  },
+  {
+   "key": "func RecordView.quickDoneToolbar(_:)",
+   "hash": "caa738ca35007f1a",
+   "does": "Confirmation toolbar 'Done' → finishQuickReading(presentation).",
+   "entry": "Toolbar.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishQuickReading(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.finishQuickReading(_:)": "8e5b6c709b431938"
+   }
+  },
+  {
+   "key": "func RecordView.finishQuickReading(_:)",
+   "hash": "401d5af1f06b44bb",
+   "does": "Task: re-reads the archived quick session (fallback the captured one) and runs updateCompositeRecoveryScore with exportMetrics=true; immediately resets UI.",
+   "entry": "Quick results Done toolbar.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive (score + sleep/vitals snapshots)",
+    "hk:metrics export (if enabled)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "retrieveFullSessionAsync ?? captured",
+     "effect": "archive miss → scores the captured in-memory copy (which lacks later tag/sleep edits) and writes it over the stored file"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "high",
+     "text": "Gives a quick spot-check a composite recovery score and sleep/vitals snapshots, which the Dashboard's latestWithSleep/latestWithVitals then prefer when it is the newest session; contradicts RRCollector+Streaming.swift:206-209 and RRCollector+DeviceRecording.swift:494-506.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Sections.swift:438",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:473",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:198"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Two different 'Done' actions for the same quick reading: QuickResultsCard onDone (clearFinishedQuickReading) only resets, the report's Done (finishQuickReading) re-scores; the archived result depends on which Done the user taps.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Sections.swift:298",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:433"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "ca5433c14d9521d5",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.resetAfterQuickReading()": "73693e3a005641dc"
+   }
+  },
+  {
+   "key": "func RecordView.scrollToTop(_:)",
+   "hash": "7961c24b1a3a3a85",
+   "does": "Animated scroll to the 'recordTop' anchor.",
+   "entry": "onChange(of: scrollToTopToken) in recordScroll.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecordView.clearSelectedSession()",
+   "hash": "92947dbc14886120",
+   "does": "Animated reset of selectedSessionType to nil.",
+   "entry": "RecordSelectedSessionHeader onChange button.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecordView.keepRecoveredWorkout(_:endSec:)",
+   "hash": "d512e25ea2679ba2",
+   "does": "Clears interruptedWorkoutId and asynchronously re-trims the recovered workout to endSec via the collector.",
+   "entry": "RecoveredWorkoutReviewCard onSave.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:recovered workout session (re-trim)",
+    "mem:MorningCoordination.recoveredWorkoutReview (by collector)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)": "0804766373fcfd64"
+   }
+  },
+  {
+   "key": "func RecordView.discardRecoveredWorkout(_:)",
+   "hash": "fd78a37455becff0",
+   "does": "Clears interruptedWorkoutId and has the collector discard the recovered workout.",
+   "entry": "RecoveredWorkoutReviewCard onDiscard.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:recovered workout session (discard)",
+    "mem:MorningCoordination.recoveredWorkoutReview (by collector)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)": "dcceef59841853d3"
+   }
+  }
+ ],
+ "deps": {}
+}

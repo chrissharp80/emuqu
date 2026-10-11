@@ -1,0 +1,229 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift",
+ "hash": "d7c7b2b0f41de261",
+ "role": "Onboarding page 0: brand wordmark, localized tagline, an animated waveform-to-ring hero illustration and a \"Get started\" button that advances.",
+ "types": [
+  "OnboardingWelcomePage: struct — welcome page view",
+  "HeroMorphShape: struct (private) Shape — path interpolating between a 2-cycle sine wave and a circle by `morph`"
+ ],
+ "state": [
+  "@State morph (Double 0…1)",
+  "@Environment accessibilityReduceMotion"
+ ],
+ "toplevel": "HeroMorphShape conforms to Shape with Animatable via animatableData.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says the morph is a \"~5s loop\" in which the waveform \"draws across, then collapses ... then dissolves back\"; code is a 2.5 s easeInOut autoreversing interpolation of a fixed 96-segment path (no draw-across), so a full cycle is 5 s but there is no draw/dissolve phase.",
+   "evidence": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift:5-9",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift:72",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift:120-152"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var OnboardingWelcomePage.body",
+   "hash": "6944e51f3292b15b",
+   "does": "OnboardingFillingScroll containing welcomeStack; starts the morph animation on appear.",
+   "entry": "SwiftUI body; .onAppear.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.welcomeStack",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::func OnboardingWelcomePage.startMorphAnimation()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "955c78adee36528d",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::func OnboardingWelcomePage.startMorphAnimation()": "bc1189a18bf39d0a",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.welcomeStack": "d3d4f5583dcbf665"
+   }
+  },
+  {
+   "key": "var OnboardingWelcomePage.welcomeStack",
+   "hash": "b3cd618541bde1ee",
+   "does": "VStack: spacer, 200x200 hero illustration (a11y hidden), wordmark, tagline, spacer, advance button.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.heroIllustration",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.wordmark",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.tagline",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.advanceButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.advanceButton": "d7e319641a152885",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.heroIllustration": "815d690f59391fd6",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.tagline": "a19e37738589d761",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.wordmark": "396e8c5a308ab454"
+   }
+  },
+  {
+   "key": "var OnboardingWelcomePage.wordmark",
+   "hash": "4f332c3c40cb5cfb",
+   "does": "Verbatim \"Emuqu\" in a 40pt semibold scaled font.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OnboardingWelcomePage.tagline",
+   "hash": "ef1d0add9b2143d3",
+   "does": "Localized tagline \"HRV-based recovery for athletes who train.\" 16pt scaled.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingWelcomePage.advanceButton",
+   "hash": "d87f1c0d32ab09b6",
+   "does": "getStartedButton with plain style and accessibility identifier \"onboarding.advance\".",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.getStartedButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.getStartedButton": "584263bff26b3a5f"
+   }
+  },
+  {
+   "key": "func OnboardingWelcomePage.startMorphAnimation()",
+   "hash": "3f35d9296e0c8b57",
+   "does": "If Reduce Motion is on, sets morph=1 (static ring); otherwise animates morph to 1 with a 2.5 s easeInOut repeating forever with autoreverse.",
+   "entry": ".onAppear in body.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!reduceMotion (guard)",
+     "effect": "false (Reduce Motion on): morph = 1 without animation and return. true: withAnimation(.easeInOut(2.5).repeatForever(autoreverses:true)) { morph = 1 }."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingWelcomePage.getStartedButton",
+   "hash": "3518b3f1efbe070b",
+   "does": "Full-width 60pt \"Get started\" button calling advance.",
+   "entry": "SwiftUI Button action (user tap).",
+   "calls": [
+    "closure:advance — OnboardingView.advanceToNext",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OnboardingWelcomePage.heroIllustration",
+   "hash": "4af8fba31a3c78b6",
+   "does": "Strokes HeroMorphShape(morph:) with a primary→primaryLight gradient, 3pt round line.",
+   "entry": "SwiftUI view composition.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
+   }
+  },
+  {
+   "key": "var HeroMorphShape.animatableData",
+   "hash": "c11016caedfd81af",
+   "does": "Animatable bridge: get returns morph, set writes morph.",
+   "entry": "SwiftUI Animatable protocol witness (animation interpolation).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeroMorphShape.path(in:)",
+   "hash": "b5a68b6f47283e29",
+   "does": "Builds a 97-point polyline: for i in 0...96 computes morphedPoint(t: i/96) and moves to the first, adds lines to the rest.",
+   "entry": "Shape.path(in:) protocol witness called by SwiftUI.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::func HeroMorphShape.morphedPoint(t:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i in 0...segments",
+     "effect": "iterates 97 times (always runs)."
+    },
+    {
+     "at": "+5",
+     "cond": "i == 0",
+     "effect": "true: p.move(to:) start point. false: p.addLine(to:)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::func HeroMorphShape.morphedPoint(t:in:)": "645c6ab519d05027"
+   }
+  },
+  {
+   "key": "func HeroMorphShape.morphedPoint(t:in:)",
+   "hash": "116df13397f71e9f",
+   "does": "Linear blend at parameter t between a sine wave (x across the rect, amplitude 22% height, 2 cycles) and a circle (radius 42% of min side, starting at top) weighted by morph.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

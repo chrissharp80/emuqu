@@ -1,0 +1,413 @@
+{
+ "file": "EmuquTests/StrapExerciseDecoderTests.swift",
+ "hash": "9f8988737939a30e",
+ "role": "XCTest suite for StrapExerciseDecoder: fixed-width Gregorian exercise ids, recording start parsed back from ids in the writing time zone, choosing tonight's recording, and reconstructing the beat timeline from H10 intervals (no plausibility filtering, unlike the optical PPI path).",
+ "types": [
+  "StrapExerciseDecoderTests: class — XCTestCase for StrapExerciseDecoder",
+  "StrapExerciseDecoderTests.Entry: struct — minimal listing entry with an id"
+ ],
+ "state": [
+  "utc: TimeZone(secondsFromGMT: 0) ?? .gmt"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapExerciseDecoderTests.testTheExerciseIdIsAFixedWidthTimestamp()",
+   "hash": "c39dd989ed499050",
+   "does": "Asserts exerciseId for 2026-09-02 13:04:05 is 14 characters, all digits.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "TimeZone(secondsFromGMT: 0) is nil (??)",
+     "effect": "falls back to .gmt"
+    },
+    {
+     "at": "+3",
+     "cond": "utc.date(from:) is nil (??)",
+     "effect": "falls back to .distantPast"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheExerciseIdIsUnaffectedByANonGregorianLocale()",
+   "hash": "3ded3a46204ab01a",
+   "does": "Asserts a Buddhist-calendar formatter would write year 2569, while exerciseId with a UTC zone writes Gregorian 20260902130405.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "TimeZone(secondsFromGMT: 0) is nil (??)",
+     "effect": "falls back to .gmt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testExerciseIdsSortChronologically()",
+   "hash": "991ebdd2117d4a63",
+   "does": "Asserts an id for a later instant sorts after an earlier one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheRecordingStartRoundTripsThroughTheId()",
+   "hash": "673966f1a0654ca7",
+   "does": "Asserts recordingStart(fromExerciseId:) round-trips the start through a UTC id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheRecordingStartIsReadInTheTimeZoneItWasWrittenIn()",
+   "hash": "72258bfce99131b4",
+   "does": "Asserts an id written in Asia/Tokyo parses back to the start in Tokyo and differs when read as UTC.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "TimeZone(identifier: \"Asia/Tokyo\") is nil (??)",
+     "effect": "falls back to utc, which would make the XCTAssertNotEqual fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testIdsThisAppDidNotWriteHaveNoStart()",
+   "hash": "6fae02e4e6682ac3",
+   "does": "Asserts empty, non-numeric, 13- and 15-digit, ISO, full-width-digit and month-13 ids parse to no start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each malformed id",
+     "effect": "asserts recordingStart is nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.entry(_:)",
+   "hash": "b332871f4945b520",
+   "does": "Builds an Entry whose id is the UTC exerciseId for the given epoch seconds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.newest(_:notBefore:)",
+   "hash": "80e047c2827bd808",
+   "does": "Calls newestRecording over entries keyed by id with an optional notBefore date in UTC.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheNewestRecordingIsChosenRegardlessOfListingOrder()",
+   "hash": "60930e3e163faf7c",
+   "does": "Asserts the newer of two entries is chosen in either listing order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)": "ae12f55f1da8947b",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testARecordingFromBeforeTheSessionIsNeverChosen()",
+   "hash": "5551a4023672a342",
+   "does": "Asserts an entry starting before notBefore is never chosen, even if it is the only one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)": "ae12f55f1da8947b",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testARecordingStartingAtTheSessionStartIsChosen()",
+   "hash": "366ba90c881dc29c",
+   "does": "Asserts an entry starting exactly at notBefore is chosen.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)": "ae12f55f1da8947b",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testAForeignIdIsOnlyAFallbackWhenNoDateIsRequired()",
+   "hash": "fa18beecdde32ad7",
+   "does": "Asserts a foreign id is returned only when notBefore is nil and no dated entry exists; with a date requirement it yields nil; a dated entry beats it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.entry(_:)": "ae12f55f1da8947b",
+    "EmuquTests/StrapExerciseDecoderTests.swift::func StrapExerciseDecoderTests.newest(_:notBefore:)": "d26546370a46948a"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheDurationIsTheSumOfTheIntervals()",
+   "hash": "24de40e4e7b09041",
+   "does": "Asserts durationSeconds of [800,900,1300] ms intervals is 3.0 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testEachBeatIsStampedAtTheAccumulatedDurationBeforeIt()",
+   "hash": "1abc07bea08a6f29",
+   "does": "Asserts beats are stamped at the accumulated prior duration [0,800,1620] and keep their rr values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheSeriesStartsAtZero()",
+   "hash": "e099e989de42b755",
+   "does": "Asserts the first beat is at t=0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testAnEmptyRecordingYieldsNoBeats()",
+   "hash": "34744171c9d32d08",
+   "does": "Asserts no intervals yield no beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testEveryIntervalBecomesExactlyOneBeat()",
+   "hash": "930b7dcfbec569d2",
+   "does": "Asserts 500 intervals yield 500 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testAFullNightAccumulatesExactly()",
+   "hash": "e9f0080048764b5b",
+   "does": "Asserts 30,000 × 1000 ms intervals put the last beat at exactly 29,999,000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTimestampsAreMonotonic()",
+   "hash": "a99c21b85c58e1ac",
+   "does": "Asserts timestamps strictly increase across mixed intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each adjacent pair",
+     "effect": "asserts earlier.t_ms < later.t_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testImplausibleIntervalsSurviveForTheArtifactDetectorToJudge()",
+   "hash": "d713694f98e83fd1",
+   "does": "Asserts implausible 250 and 3000 ms intervals are kept unfiltered.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testTheOpticalPathFiltersWhereThisOneDoesNot()",
+   "hash": "c920afebb41742ad",
+   "does": "Asserts StrapPPIFilter.acceptedInterval rejects a 250 ms PPI sample while rrPoints(fromIntervalsMs:) keeps 250.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,596 @@
+{
+ "file": "Emuqu/Sources/Services/BreadcrumbStore.swift",
+ "hash": "143aab2baac04b77",
+ "role": "Get-Me-Back breadcrumb model (BreadcrumbFix, BreadcrumbTrail) and the file-backed store for the one active trail (active.json) plus a newest-first archive of up to 50 trails (archive.json) in the App Group 'Breadcrumbs' directory.",
+ "types": [
+  "BreadcrumbFix: struct — one Codable GPS fix (time, lat/lon, h-accuracy, optional altitude/course/speed)",
+  "BreadcrumbTrail: struct — Codable trail: startedAt, origin fix, ordered fixes, optional label and resolved origin label",
+  "BreadcrumbStore: final class @unchecked Sendable — serial-queue JSON persistence of active trail and archive"
+ ],
+ "state": [
+  "mem:BreadcrumbStore.shared (singleton, BreadcrumbStore.swift:143)",
+  "file:<AppGroup|Documents|tmp>/Breadcrumbs/active.json (active trail, BreadcrumbStore.swift:161)",
+  "file:<AppGroup|Documents|tmp>/Breadcrumbs/archive.json (archived trails, BreadcrumbStore.swift:162)",
+  "file:Breadcrumbs/trail.json (legacy v1 file, migrated, BreadcrumbStore.swift:185)",
+  "DispatchQueue com.chrissharp.flowrecovery.breadcrumbstore (serial, .utility, BreadcrumbStore.swift:147)",
+  "static archiveRetentionLimit = 50 (BreadcrumbStore.swift:155)"
+ ],
+ "toplevel": "BreadcrumbFix/BreadcrumbTrail use synthesized Codable/Equatable; files are JSON with iso8601 dates and sortedKeys. `static let shared` is created lazily on first access via the private init. Header comments (lines 127-140) describe active vs archive vs auto-imported workout trails (WorkoutRecorder+Context.swift:475 calls archive).",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references BreadcrumbStore, BreadcrumbTrail or BreadcrumbFix: persistence, migration, the corrupt-archive refusal and the 50-trail cap are unverified.",
+   "evidence": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift:194",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift:306"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init BreadcrumbFix(from:)",
+   "hash": "f6a59f633996904f",
+   "does": "Builds a BreadcrumbFix from a CLLocation: copies timestamp, lat/lon, horizontalAccuracy; altitude only when verticalAccuracy >= 0, course only when >= 0, speed only when >= 0, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "loc.verticalAccuracy >= 0",
+     "effect": "true: altitudeMeters = loc.altitude; false: nil"
+    },
+    {
+     "at": "+6",
+     "cond": "loc.course >= 0",
+     "effect": "true: courseDegrees = course; false: nil"
+    },
+    {
+     "at": "+7",
+     "cond": "loc.speed >= 0",
+     "effect": "true: speedMS = speed; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+   }
+  },
+  {
+   "key": "var BreadcrumbFix.coordinate",
+   "hash": "5bae2af3170c40ae",
+   "does": "Returns CLLocationCoordinate2D(latitude, longitude) of the fix.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var BreadcrumbFix.asCLLocation",
+   "hash": "71408c3680c1a185",
+   "does": "Rebuilds a CLLocation from the fix for distance math: altitude ?? 0, verticalAccuracy 5 when altitude present else -1, course ?? -1, speed ?? -1, original horizontal accuracy and timestamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "altitudeMeters ?? 0",
+     "effect": "nil altitude → 0 m"
+    },
+    {
+     "at": "+5",
+     "cond": "altitudeMeters == nil",
+     "effect": "true: verticalAccuracy -1 (invalid); false: fabricated verticalAccuracy 5 m"
+    },
+    {
+     "at": "+6",
+     "cond": "courseDegrees ?? -1",
+     "effect": "nil → -1 (invalid course)"
+    },
+    {
+     "at": "+7",
+     "cond": "speedMS ?? -1",
+     "effect": "nil → -1 (invalid speed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14"
+   }
+  },
+  {
+   "key": "func BreadcrumbTrail.crowFlyDistanceFromTipToOriginMeters()",
+   "hash": "e1dd9390be9ca1f8",
+   "does": "Straight-line distance in meters from the last fix to the origin fix; nil when origin or any fix is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "origin present and fixes.last present",
+     "effect": "false: return nil; true: last.asCLLocation.distance(from: origin)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+   }
+  },
+  {
+   "key": "func BreadcrumbTrail.walkedTrailLengthMeters()",
+   "hash": "7a339da3da2b05a1",
+   "does": "Sums CLLocation distances between consecutive fixes (path length); 0 with fewer than 2 fixes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fixes.count >= 2",
+     "effect": "false: return 0; true: loop"
+    },
+    {
+     "at": "+3",
+     "cond": "for i in 1..<fixes.count",
+     "effect": "accumulate distance from fixes[i-1] to fixes[i]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c"
+   }
+  },
+  {
+   "key": "init BreadcrumbStore()",
+   "hash": "09806f7e860b65e1",
+   "does": "Singleton init: resolves the Breadcrumbs storage directory, creates it (errors logged by attempt), sets active.json/archive.json URLs, and moves a legacy trail.json into active.json if needed.",
+   "entry": "static let shared lazy initialization (first access to BreadcrumbStore.shared via LocationServices.breadcrumbStore)",
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.storageDirectory(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)": "51bfffed73ba7167",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.storageDirectory(_:)": "42db7698d7185797",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.storageDirectory(_:)",
+   "hash": "ad7d401c9877a25e",
+   "does": "Returns <AppGroup container>/Breadcrumbs, else <Documents>/Breadcrumbs, else <tmp>/Breadcrumbs.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group container URL available",
+     "effect": "true: use group/Breadcrumbs"
+    },
+    {
+     "at": "+4",
+     "cond": "Documents directory URL available",
+     "effect": "true: Documents/Breadcrumbs; false: temporaryDirectory/Breadcrumbs (purgeable by the OS, so a trail would not survive)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)",
+   "hash": "3b8d690005902b4a",
+   "does": "One-shot migration: if Breadcrumbs/trail.json exists and active.json does not, moves trail.json to active.json (failure logged via attempt and ignored).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.moveItem"
+   ],
+   "reads": [
+    "file:Breadcrumbs/trail.json",
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [
+    "file:Breadcrumbs/active.json",
+    "file:Breadcrumbs/trail.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "legacy trail.json exists AND active.json does not exist",
+     "effect": "true: move legacy to active; false: nothing (legacy file left in place if active.json already exists)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "init BreadcrumbStore(fileURL:)",
+   "hash": "920ebf756dd3e360",
+   "does": "Test-seam init: uses fileURL as active file and archive.json in the same directory; creates the parent directory. No legacy migration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "init(fileURL:) has no caller anywhere in the repo, including EmuquTests (grep \"BreadcrumbStore(fileURL\" finds nothing); the \"tests written against v1\" it was kept for do not exist.",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:191-200"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.load()",
+   "hash": "5d478d0d20917744",
+   "does": "Synchronously (on the serial queue, so after pending saves) reads active.json and decodes a BreadcrumbTrail with iso8601 dates; nil when the file is missing, unreadable, or fails to decode (decode error swallowed).",
+   "entry": null,
+   "calls": [
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "active.json readable",
+     "effect": "false: return nil; true: try? decode → trail or nil on decode error (no log)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A corrupt active.json decodes to nil via try? with no log, which callers treat as \"no trail engaged\" (e.g. DirectionsService.breadcrumbOrigin throws noBreadcrumbOrigin, archiveActive returns without archiving).",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:211",
+      "Emuqu/Sources/Services/DirectionsService.swift:126"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func BreadcrumbStore.save(_:)",
+   "hash": "6544b41456adcbde",
+   "does": "Asynchronously on the serial queue encodes the trail (iso8601, sortedKeys), recreates the Breadcrumbs directory if missing, and atomically writes active.json with completeUntilFirstUserAuthentication protection; encode/write errors are logged by attempt and dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)",
+    "ext:JSONEncoder",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "encode succeeded",
+     "effect": "false: return without writing (logged); true: ensure dir and write"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "04501f84198fb56c",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.archiveActive()",
+   "hash": "397f1974b3696c6d",
+   "does": "Moves the active trail into the archive: load() it, archive() it, then clear() active.json (both async on the serial queue, in order).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [
+    "file:Breadcrumbs/archive.json",
+    "file:Breadcrumbs/active.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "load() returned a trail",
+     "effect": "false: return (nothing archived, active.json untouched even if present-but-corrupt); true: archive then clear"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "clear() runs unconditionally after archive(), but archive() returns without writing when archive.json is present-but-unreadable (decodeArchive nil), when encoding fails, or when the write fails; the active trail is then deleted anyway, so \"Clear\" in Get Me Back permanently loses it — the very loss the decodeArchive comment says the refusal prevents.",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:241-242",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:310",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:320",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:323",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:250",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:283-290"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "46f8393a76f04151",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.clear()",
+   "hash": "c1e37a9f54849b98",
+   "does": "Asynchronously deletes active.json on the serial queue; a missing file error is logged by attempt and ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.hasActiveTrail()",
+   "hash": "138915019ee508b2",
+   "does": "Synchronously (after queued writes) reports whether active.json exists, without decoding it.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "file:Breadcrumbs/active.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BreadcrumbStore.loadArchive()",
+   "hash": "d257d256986bb002",
+   "does": "Synchronously reads and decodes archive.json as [BreadcrumbTrail] (newest first); returns [] when the file cannot be read and [] with an error log when decode fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive.json readable",
+     "effect": "false: return [] silently (covers both missing file and present-but-unreadable, e.g. before first unlock); true: decode"
+    },
+    {
+     "at": "+7",
+     "cond": "catch decode error",
+     "effect": "logs error and returns [] — callers (AI facts) report no trails"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A present-but-unreadable archive (I/O error or before first unlock) returns [] with no log, unlike decodeArchive which distinguishes it; AI facts then tell the user they have no past trails.",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:269",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:83"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "loadArchive re-implements the read+decode of archive.json that decodeArchive already does, with different failure semantics (read failure -> [] silently here, -> nil there), so the two readers of the same file disagree on what an unreadable archive means.",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:267-281",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:294-304"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.decodeArchive(at:using:)",
+   "hash": "044d0379978ba4a9",
+   "does": "Reads the archive for a write: [] when the file does not exist, nil when it exists but cannot be read or decoded (logged), else the decoded trails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archive data readable",
+     "effect": "false: go to existence check"
+    },
+    {
+     "at": "+2",
+     "cond": "file exists at path",
+     "effect": "true (present but unreadable): nil; false: [] (empty archive)"
+    },
+    {
+     "at": "+6",
+     "cond": "catch decode error",
+     "effect": "logs error and returns nil so caller refuses to overwrite"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.archive(_:)",
+   "hash": "8a41943c4d99fcb9",
+   "does": "Asynchronously prepends a trail to archive.json, trims to 50 newest, and atomically writes it with completeUntilFirstUserAuthentication; refuses (returns) when the existing archive is present but unreadable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)",
+    "ext:JSONEncoder",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "writes": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "decodeArchive returned non-nil",
+     "effect": "false: return without writing, trail dropped (only a log from decodeArchive); true: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "count > 50",
+     "effect": "true: keep first 50 (oldest evicted); false: keep all"
+    },
+    {
+     "at": "+14",
+     "cond": "encode succeeded",
+     "effect": "false: return (logged); true: ensure dir and write"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Every finished outdoor workout auto-archives its track (WorkoutRecorder+Context.swift:475) into the same 50-slot list as manually engaged Get Me Back trails, so an active user loses their manual trails to workout tracks after 50 workouts.",
+     "evidence": [
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:314-315",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:475"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "5bb0a53147a0e7d1",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "04501f84198fb56c",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.ensureParentDirectory(of:)",
+   "hash": "31f7f0d4dcaf6d7c",
+   "does": "Recreates the parent directory of url if it no longer exists (after Delete All My Data).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "parent directory exists",
+     "effect": "true: return; false: createDirectory (error logged)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.eraseArchive()",
+   "hash": "6e8dbc02f54f7ba1",
+   "does": "Asynchronously deletes archive.json; does not touch active.json. Called by DataPurgeService.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

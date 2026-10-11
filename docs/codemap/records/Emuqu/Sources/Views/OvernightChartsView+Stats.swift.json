@@ -1,0 +1,1174 @@
+{
+ "file": "Emuqu/Sources/Views/OvernightChartsView+Stats.swift",
+ "hash": "6f41ebbe76e81dfc",
+ "role": "Pure, Sendable overnight statistics computation for OvernightChartsView (RR→HR, rolling RMSSD, peak HRV, sleep duration, organized-zone fallback with archive backfill) plus the view extension that fetches Apple Watch HR from HealthKit for sleep segments the Polar recording does not cover.",
+ "types": [
+  "OvernightStatsComputer: struct — Sendable value holding session/result/healthKitSleep that computes OvernightStats off the main actor",
+  "OvernightStatsComputer.StatsInputs: struct (private) — bundle of inputs for makeStats",
+  "OvernightStatsComputer.WindowFields: struct (private) — analysis window ms bounds and clock labels",
+  "OvernightStatsComputer.AnalysisWindow: struct (private) — analysis window ms and wall-clock dates",
+  "OvernightChartsView: extension — HealthKit HR gap-fill fetch helpers",
+  "SleepDurationFields: struct — minutes/formatted/deep/awakenings/efficiency/isFromHealthKit for the sleep card"
+ ],
+ "state": [
+  "mem:OrganizedZonesCache.shared (read/written via AppDependencies.current.app.organizedZonesCache, not declared here)"
+ ],
+ "toplevel": "Only type declarations; OvernightStatsComputer conforms to Sendable so it can be captured by Task.detached in OvernightChartsView.loadOvernightStats.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No unit test references OvernightStatsComputer, trimmedMeanHR, uncoveredWindows or any helper here; only OvernightSnapshotTests renders OvernightChartsView, whose stats load in an async .task.",
+   "evidence": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:12",
+    "EmuquTests/OvernightSnapshotTests.swift:7"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func OvernightStatsComputer.computeOvernightStats()",
+   "hash": "e7cd94e2a8b3c283",
+   "does": "Builds OvernightStats from session.rrSeries: resolves sleep bounds and segment ranges, computes full-recording and sleep-window HR values, nadir/peak HR, rolling RMSSD, then delegates assembly to makeStats. Returns OvernightStats.empty when there are no RR points or no HR values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(points:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepSegmentRanges(points:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepWindowHRValues(points:flags:hasStoredHR:segmentRanges:sleepStartMs:sleepEndMs:fallback:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.makeStats(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries is nil or has no points",
+     "effect": "true: return OvernightStats.empty; false: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "session.artifactFlags is nil",
+     "effect": "nil → empty flags array (every beat treated as clean)"
+    },
+    {
+     "at": "+12",
+     "cond": "hrValues has a min and max and points has first/last",
+     "effect": "false (no HR values at all, e.g. RR-only data where no 10 s window had 5 clean beats): return OvernightStats.empty even though rolling RMSSD could be computed; true: makeStats"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "When no HR value survives filtering the whole stats object becomes .empty, so the HRV chart and peak HRV are also blank although RMSSD needs no HR.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:29",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:32"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Sleep boundaries/segments are wall-clock offsets from session.startDate (HealthKit dates via MillisecondOffset) but are compared against RRPoint.t_ms, which is cumulative RR time that RRModels documents as drifting after BLE drops (no production resync of streamingCumulativeMs). On a streamed night with dropouts the sleep-window HR filter, the 30-70% peak band and chart x-positions are shifted relative to real time, so nadir/avg HR and peak HRV are taken over the wrong beats. Sessions built via DataSourceSelector re-base t_ms onto wallClockMs and are unaffected.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:309",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:310",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:373",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:374",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:482",
+      "Emuqu/Sources/Models/RRModels.swift:5",
+      "Emuqu/Sources/Models/RRModels.swift:9",
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:170",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:286"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "9ae57d610a188f71",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)": "325529df04b3b424",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.makeStats(_:)": "6ced57aa936ba2a3",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(points:)": "869213d78c4ca236",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepSegmentRanges(points:)": "e8e64f0a87905140",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepWindowHRValues(points:flags:hasStoredHR:segmentRanges:sleepStartMs:sleepEndMs:fallback:)": "9ea12e91abb8290c"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.makeStats(_:)",
+   "hash": "5d4d3e17ce9f653a",
+   "does": "Assembles OvernightStats: peak HRV/avg RMSSD from findPeakHRV, nadir/min/max/trimmed-mean HR, window fields, sleep-duration fields, chart start/end, and organized recovery zones; healthKitHR starts empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:recordingDurationMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowFields(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepFields(_:durationMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.trimmedMeanHR(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartStart(firstPoint:segmentRanges:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartEnd(lastPoint:segmentRanges:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.organizedZones(series:flags:sleepStartMs:sleepEndMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "peakHRV is nil (no rolling RMSSD sample)",
+     "effect": "peakRMSSD = 0"
+    },
+    {
+     "at": "+9",
+     "cond": "peakHRV is nil",
+     "effect": "peakHRVIndex/peakHRVTimeMs = 0 and the formatted peak time is the wall-clock time of t_ms 0 (session start), shown as a real time on the Peak HRV card subtitle"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "With no rolling RMSSD sample the peak time label is formatted from t_ms 0, so the Peak HRV card shows '0 ms' with the session start time as if it were the peak time.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:70",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:400"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartEnd(lastPoint:segmentRanges:)": "515d60e6579b0780",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.chartStart(firstPoint:segmentRanges:)": "c74ecdf7eeace674",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:recordingDurationMs:)": "fa587c0cf80acca5",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "d6a92b5a54919bdf",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.organizedZones(series:flags:sleepStartMs:sleepEndMs:)": "0e4cc00089c0b670",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.sleepFields(_:durationMs:)": "0142083f5a90bdb1",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.trimmedMeanHR(_:)": "195d596ffdd20e35",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowFields(_:)": "e4fea3c92ddc49fc"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.windowFields(_:)",
+   "hash": "67344db5edc6e036",
+   "does": "Resolves the analysis window via analysisWindowTimes and formats its start/end clock labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.analysisWindowTimes(points:series:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.analysisWindowTimes(points:series:)": "20228cca5f60e03b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatClockTime(_:)": "d6a92b5a54919bdf"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.sleepFields(_:durationMs:)",
+   "hash": "b6b3fd3b228dbba1",
+   "does": "Forwards to deriveSleepDuration with the first point's t_ms and recording duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.deriveSleepDuration(recordingStartTime:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.deriveSleepDuration(recordingStartTime:recordingDurationMs:)": "bd0a849a3614ba9a"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.sleepWindowHRValues(points:flags:hasStoredHR:segmentRanges:sleepStartMs:sleepEndMs:fallback:)",
+   "hash": "b3109733aa0a82c0",
+   "does": "Returns HR values inside the sleep period: per-segment union (sorted by index) on split nights, else the single sleepStart..sleepEnd range; falls back to the caller's full-recording set when that yields nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "more than one sleep segment range",
+     "effect": "true: compute HR per segment and concatenate, sorted by index; false: single range sleepStartMs..sleepEndMs"
+    },
+    {
+     "at": "+11",
+     "cond": "loop over each segment range",
+     "effect": "appends computeHRValues for that segment"
+    },
+    {
+     "at": "+23",
+     "cond": "filtered HR set is empty",
+     "effect": "true: log and use fallback (full recording HR); false: return filtered"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Sleep boundaries/segments are wall-clock offsets from session.startDate (HealthKit dates via MillisecondOffset) but are compared against RRPoint.t_ms, which is cumulative RR time that RRModels documents as drifting after BLE drops (no production resync of streamingCumulativeMs). On a streamed night with dropouts the sleep-window HR filter, the 30-70% peak band and chart x-positions are shifted relative to real time, so nadir/avg HR and peak HRV are taken over the wrong beats. Sessions built via DataSourceSelector re-base t_ms onto wallClockMs and are unaffected.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:309",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:310",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:373",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:374",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:482",
+      "Emuqu/Sources/Models/RRModels.swift:5",
+      "Emuqu/Sources/Models/RRModels.swift:9",
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:170",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:286"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)": "9ae57d610a188f71"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.trimmedMeanHR(_:)",
+   "hash": "7779896fb06f3271",
+   "does": "Trimmed mean of HR: drops lowest/highest 5% when there are at least 10 values, else plain mean.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than 10 values",
+     "effect": "plain mean (NaN for 0 values, but caller guarantees non-empty); else 5th–95th percentile mean"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightStatsComputer.analysisWindowTimes(points:series:)",
+   "hash": "314405a0aec40352",
+   "does": "Computes analysis window ms bounds, preferring result.windowStartMs/EndMs, else indexing points by result.windowStart/windowEnd, and converts both to wall-clock dates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result carries both windowStartMs and windowEndMs",
+     "effect": "true: use them; false: derive from indices"
+    },
+    {
+     "at": "+10",
+     "cond": "windowStart index within points",
+     "effect": "true: points[windowStart].t_ms; false: 0"
+    },
+    {
+     "at": "+11",
+     "cond": "windowEnd index within points",
+     "effect": "true: points[windowEnd].t_ms; false: last point t_ms, or 0 when no points (?? fallback)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.chartStart(firstPoint:segmentRanges:)",
+   "hash": "1df4b5ded44744c6",
+   "does": "Chart start ms: first RR point, or the earlier of that and the earliest segment start on split nights.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fewer than 2 segment ranges or no min",
+     "effect": "return firstPoint.t_ms; else min(firstPoint.t_ms, earliest segment start)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightStatsComputer.chartEnd(lastPoint:segmentRanges:)",
+   "hash": "27828cfeb201bf01",
+   "does": "Chart end ms: last RR point end, or the later of that and the latest segment end on split nights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fewer than 2 segment ranges or no max",
+     "effect": "return lastPoint.endMs; else max(lastPoint.endMs, latest segment end)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.organizedZones(series:flags:sleepStartMs:sleepEndMs:)",
+   "hash": "6bc0fcc0f41ac3bf",
+   "does": "Returns result.organizedRecoveryZones, or computes them on demand when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result.organizedRecoveryZones is nil",
+     "effect": "?? fallback: computeOrganizedZonesOnDemand scan (cached)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "dfd2c7c5252d5d4a"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)",
+   "hash": "5dcc4001babf8586",
+   "does": "Returns organized recovery zones for a session from the in-memory cache, or runs WindowSelector.findBestWindow for its side effect and caches selector.lastOrganizedZones.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:zones:)"
+   ],
+   "reads": [
+    "mem:OrganizedZonesCache.shared"
+   ],
+   "writes": [
+    "mem:OrganizedZonesCache.shared"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "cache has zones for sessionId",
+     "effect": "true: return cached; false: run WindowSelector scan and cache result (including an empty array)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same cache-then-WindowSelector zone computation as RecoveryScoreDetailView.computeOrganizedZonesOnDemand (whose comment calls it 'Same fallback the legacy OvernightChartsView uses').",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:243",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:478"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.organizedZonesCache": "f98e9c73c61cdf4f",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)": "b6b9e6ac24c9d80c",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:zones:)": "efdf11f02e807df2"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)",
+   "hash": "35cf239f0505854f",
+   "does": "Fires a background detached task that persists computed zones into the archived session's analysisResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.writeZonesIfStillEmpty(sessionId:zones:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md says the on-demand organized-zone fallback re-runs the scan 'without rewriting the archive', but OvernightChartsView.loadOvernightStats calls backfillZonesToArchive, which re-archives the session with the computed zones (and posts flowRecoveryArchiveChanged).",
+     "evidence": [
+      "docs/FLOWCHART.md:449",
+      "docs/FLOWCHART.md:452",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:216",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:217",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:279",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:296"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.writeZonesIfStillEmpty(sessionId:zones:)": "f0f69c1855825995"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.writeZonesIfStillEmpty(sessionId:zones:)",
+   "hash": "133e061208c3cee2",
+   "does": "Retrieves the archived session; if it has an analysisResult with nil organizedRecoveryZones, sets them (nil when empty) and re-archives the whole session. Errors are logged and swallowed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "session missing, analysisResult nil, or zones already set",
+     "effect": "return without writing; otherwise continue"
+    },
+    {
+     "at": "+9",
+     "cond": "zones array empty",
+     "effect": "writes nil (field stays empty, so every later launch rescans and re-attempts the backfill); else writes zones"
+    },
+    {
+     "at": "+12",
+     "cond": "retrieve or archive throws",
+     "effect": "catch: log a warning, nothing else; in-memory cache still serves this launch"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "med",
+     "text": "Read-modify-write via retrieve() then archive(_:) outside the archive lock, from a background task. SessionArchive.update documents that writing back a held copy undoes score/sleep updates made in between; a concurrent reanalysis or sleep refresh landing between the two calls is overwritten. archive(_:) also runs same-night merge (skipSameNightMerge: false) for a pure field backfill.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:291",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:296",
+      "Emuqu/Sources/Storage/Archive.swift:476",
+      "Emuqu/Sources/Storage/Archive.swift:413"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "When the scan finds no zones, the guard still passes (field nil), the session is re-archived unchanged with nil zones and flowRecoveryArchiveChanged is broadcast; since nothing persists, every launch that opens the chart rescans and repeats this no-op archive write.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:293",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:295",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:296",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:210"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.resolveSleepBoundaries(points:)",
+   "hash": "49bae2fd76d81839",
+   "does": "Returns (start,end) sleep bounds in ms relative to session.startDate: HealthKit sleepStart/End (start clamped ≥0, end ≤ last point t_ms) when available, else stored session.sleepStartMs/sleepEndMs with validation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries has no last point",
+     "effect": "recordingEnd = Int64.max"
+    },
+    {
+     "at": "+2",
+     "cond": "healthKitSleep with both sleepStart and sleepEnd",
+     "effect": "true: HK offsets (MillisecondOffset fallback 0 on unrepresentable interval); false: stored session values"
+    },
+    {
+     "at": "+9",
+     "cond": "session.sleepStartMs nil",
+     "effect": "start = 0"
+    },
+    {
+     "at": "+10",
+     "cond": "session.sleepEndMs nil",
+     "effect": "rawEnd = recordingEnd"
+    },
+    {
+     "at": "+11",
+     "cond": "rawEnd > start and rawEnd >= 0",
+     "effect": "true: use rawEnd; false: recordingEnd"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Sleep boundaries/segments are wall-clock offsets from session.startDate (HealthKit dates via MillisecondOffset) but are compared against RRPoint.t_ms, which is cumulative RR time that RRModels documents as drifting after BLE drops (no production resync of streamingCumulativeMs). On a streamed night with dropouts the sleep-window HR filter, the 30-70% peak band and chart x-positions are shifted relative to real time, so nadir/avg HR and peak HRV are taken over the wrong beats. Sessions built via DataSourceSelector re-base t_ms onto wallClockMs and are unaffected.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:309",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:310",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:373",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:374",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:482",
+      "Emuqu/Sources/Models/RRModels.swift:5",
+      "Emuqu/Sources/Models/RRModels.swift:9",
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:170",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:286"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.resolveSleepSegmentRanges(points:)",
+   "hash": "b69eb35d5ec65452",
+   "does": "Returns per-segment sleep ranges (ms from session start) from HealthKit effectiveSegments when >1, else stored session.sleepSegments when >1, else a single range from resolveSleepBoundaries. Not clamped to the recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HK sleep present with more than one effective segment",
+     "effect": "true: map HK segments to ms offsets; false: try stored segments"
+    },
+    {
+     "at": "+11",
+     "cond": "session.sleepSegments has more than one segment",
+     "effect": "true: map stored segments; false: single envelope range"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.resolveSleepBoundaries(points:)": "869213d78c4ca236"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.computeHRValues(points:flags:hasStoredHR:rangeStart:rangeEnd:)",
+   "hash": "f89f9e31233f23f7",
+   "does": "Dispatches to stored per-beat HR or RR-window derived HR for an optional range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.storedHRValues(points:flags:rangeStart:rangeEnd:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowedHRValues(points:flags:rangeStart:rangeEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "recording has any stored HR",
+     "effect": "true: storedHRValues; false: windowedHRValues"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.storedHRValues(points:flags:rangeStart:rangeEnd:)": "8986986fa246162a",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.windowedHRValues(points:flags:rangeStart:rangeEnd:)": "c0161e4784d9d0c5"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.storedHRValues(points:flags:rangeStart:rangeEnd:)",
+   "hash": "d3515812ecb0b31b",
+   "does": "Collects stored per-beat HR within [rangeStart, rangeEnd] for non-artifact beats with 30–200 bpm.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "loop over points",
+     "effect": "each point evaluated"
+    },
+    {
+     "at": "+8",
+     "cond": "rangeStart set and point before it",
+     "effect": "skip"
+    },
+    {
+     "at": "+9",
+     "cond": "rangeEnd set and point after it",
+     "effect": "skip (continues scanning rather than breaking)"
+    },
+    {
+     "at": "+10",
+     "cond": "index within flags",
+     "effect": "isArtifact from flags; beyond flags → treated as clean"
+    },
+    {
+     "at": "+11",
+     "cond": "artifact, no hr, or hr outside 30–200",
+     "effect": "skip; else append (index, hr, t_ms)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightStatsComputer.windowedHRValues(points:flags:rangeStart:rangeEnd:)",
+   "hash": "d6665c9ea0825d22",
+   "does": "Derives HR from ~10 s RR windows stepping at most 5 beats at a time within the optional range; windows need ≥5 clean beats and 30–200 bpm.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.rrWindow(points:flags:from:rangeEnd:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.physiologicalHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "idx < points.count",
+     "effect": "loop"
+    },
+    {
+     "at": "+9",
+     "cond": "rangeStart set and point before it",
+     "effect": "advance one beat and continue"
+    },
+    {
+     "at": "+13",
+     "cond": "rangeEnd set and point past it",
+     "effect": "break"
+    },
+    {
+     "at": "+15",
+     "cond": "window yields physiological HR",
+     "effect": "append (idx, hr, t_ms); else nothing"
+    },
+    {
+     "at": "+16",
+     "cond": "window advanced more than 5 beats",
+     "effect": "step 5 beats; else step to window.nextIndex"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.physiologicalHR(_:)": "dd731b4ed235f850",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.rrWindow(points:flags:from:rangeEnd:)": "b7d117f2d55be944"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.physiologicalHR(_:)",
+   "hash": "aa6a8586af62f20d",
+   "does": "Converts a beat window to bpm; nil for <5 beats, zero duration, or outside 30–200 bpm.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "beatCount < 5 or duration <= 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "hr outside 30–200",
+     "effect": "nil; else hr"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.rrWindow(points:flags:from:rangeEnd:)",
+   "hash": "aafada5a2d2ea85e",
+   "does": "Accumulates clean beats (non-artifact, RR 300–2000 ms) forward from idx until 10 s of RR time or the range end; returns count, summed duration, next index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "rangeEnd nil",
+     "effect": "effectiveEnd = Int64.max"
+    },
+    {
+     "at": "+11",
+     "cond": "j in bounds, point within range, duration under 10 s",
+     "effect": "continue accumulating; else stop"
+    },
+    {
+     "at": "+12",
+     "cond": "j within flags",
+     "effect": "isArtifact from flags; else clean"
+    },
+    {
+     "at": "+14",
+     "cond": "beat clean and RR 300–2000",
+     "effect": "count beat and add RR; else skip beat"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightStatsComputer.computeRollingRMSSD(points:flags:)",
+   "hash": "a499cd108233c5d2",
+   "does": "Rolling RMSSD: for every 30th beat (last step snapped to final point) computes RMSSD over a 300-beat window centred on it via TimeDomainAnalyzer.peakScanRMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "i <= last index",
+     "effect": "loop; empty series gives -1 so no iterations"
+    },
+    {
+     "at": "+11",
+     "cond": "peakScanRMSSD returns a value",
+     "effect": "append (i, rmssd, t_ms); else skip"
+    },
+    {
+     "at": "+15",
+     "cond": "not at last point and next step overshoots",
+     "effect": "snap i to last index; else i += 30"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md says rolling RMSSD uses 5-min windows; code uses a 300-beat window (duration varies with HR).",
+     "evidence": [
+      "docs/FLOWCHART.md:420",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:444"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.peakScanRMSSD(points:flags:range:)": "56bad7f8ab0529f1"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.findPeakHRV(rollingRMSSD:recordingDurationMs:)",
+   "hash": "50b4ad53262c4c49",
+   "does": "Finds the max rolling RMSSD inside the 30–70% search band (falls back to all samples when none in band) and the mean of all rolling RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.searchBand(recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no sample inside band",
+     "effect": "use all samples for the max; else constrained set"
+    },
+    {
+     "at": "+7",
+     "cond": "rolling RMSSD empty",
+     "effect": "avg = 0; else arithmetic mean"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The PDF report reimplements the rolling 300-beat/30-step peak RMSSD scan (OvernightReportRenderer.calculatePeakRMSSD/scanForPeakRMSSD) with the 30-70% band taken over the recording only, while the screen takes it over the HealthKit sleep span when present; the PDF's peak RMSSD and its time can differ from the Overnight screen's Peak HRV card for the same night.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:467",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:481",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:493",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:501",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:541"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.searchBand(recordingDurationMs:)": "7cf498cb4d8d5fcc"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.searchBand(recordingDurationMs:)",
+   "hash": "821fa1fc3f4d1fd0",
+   "does": "30–70% slice of the HK sleep span (clamped to [0, recordingDurationMs]), or of 0..recordingDurationMs when HealthKit gave no boundaries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "HK sleep with start and end",
+     "effect": "boundaries from HK offsets; else 0..recordingDurationMs (stored session sleepStartMs/EndMs are ignored)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the band matches WindowSelector's search region and uses the overall sleep envelope, but without HealthKit it ignores the stored session.sleepStartMs/sleepEndMs that the organized-zone scan and the 30%/70% markers use, so the peak marker and the dotted band lines can disagree (acknowledged at OvernightHRVChartCanvas.swift:481-485). It also clamps to recordingDurationMs measured from the first point, while offsets are from session.startDate.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:460",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:481",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:214",
+      "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift:486"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Sleep boundaries/segments are wall-clock offsets from session.startDate (HealthKit dates via MillisecondOffset) but are compared against RRPoint.t_ms, which is cumulative RR time that RRModels documents as drifting after BLE drops (no production resync of streamingCumulativeMs). On a streamed night with dropouts the sleep-window HR filter, the 30-70% peak band and chart x-positions are shifted relative to real time, so nadir/avg HR and peak HRV are taken over the wrong beats. Sessions built via DataSourceSelector re-base t_ms onto wallClockMs and are unaffected.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:309",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:310",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:373",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:374",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:482",
+      "Emuqu/Sources/Models/RRModels.swift:5",
+      "Emuqu/Sources/Models/RRModels.swift:9",
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:170",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:286"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.deriveSleepDuration(recordingStartTime:recordingDurationMs:)",
+   "hash": "1d8c09b6f8941755",
+   "does": "Sleep duration fields from HealthKit (night minutes, deep minutes, awake periods, measured efficiency) when available, else the recording-length estimate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.healthKitSleepMinutes(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.awakePeriods(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.estimatedSleepFromRecording(durationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "HK sleep present and healthKitSleepMinutes non-nil",
+     "effect": "HealthKit fields with isFromHealthKit true; else estimatedSleepFromRecording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.awakePeriods(_:)": "a0f50e4afa381e4f",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.estimatedSleepFromRecording(durationMs:)": "7487f722f0028ae4",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "de24f3a392fe1ba3",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.healthKitSleepMinutes(_:)": "a402d78a07c769f7"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.awakePeriods(_:)",
+   "hash": "3fdf45c1bf1f9d21",
+   "does": "Counts HK awake stage intervals whose start is strictly inside sleepStart..sleepEnd; nil without stages or bounds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no stage intervals or missing bounds",
+     "effect": "nil (no awakenings card); else the count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.healthKitSleepMinutes(_:)",
+   "hash": "01c2d7b2fa8f871a",
+   "does": "Night sleep minutes from HealthKit (excluding naps), else the boundary span in minutes, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nightSleepMinutes > 0",
+     "effect": "return it"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepStart or sleepEnd missing",
+     "effect": "nil; else (end-start)/60 which includes awake time inside the span"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.estimatedSleepFromRecording(durationMs:)",
+   "hash": "cbedd4295bd79ed5",
+   "does": "Builds SleepDurationFields from RecordingSleepEstimate for the recording minutes (90%/85% share), with deep/awakenings nil and isFromHealthKit false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::init RecordingSleepEstimate(recordingMinutes:)": "e41210dede2a638e",
+    "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift::var RecordingSleepEstimate.efficiencyPercent": "8eb93a57b54b022c",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.formatDuration(_:)": "de24f3a392fe1ba3"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.formatDuration(_:)",
+   "hash": "5e1a532ae11c5e17",
+   "does": "Formats minutes via LocalizedDuration.hoursMinutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "func OvernightStatsComputer.formatClockTime(_:)",
+   "hash": "2400c8c9041fce91",
+   "does": "Formats a date with the shared clock-time formatter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)",
+   "hash": "1670cb4009ca25ef",
+   "does": "For each HK sleep segment (as ms from session start) that is plausible, computes the sub-windows outside the Polar recording and fetches HealthKit HR samples for each; returns all samples sorted by time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)"
+   ],
+   "reads": [
+    "hk:HKQuantityTypeIdentifierHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "loop over segments",
+     "effect": "each segment processed"
+    },
+    {
+     "at": "+9",
+     "cond": "segment implausible (<=0 or >16 h)",
+     "effect": "skip segment"
+    },
+    {
+     "at": "+15",
+     "cond": "loop over uncovered sub-windows",
+     "effect": "append HK samples for each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.hkSamples(in:segIdx:)": "d4f3a294ea322e38",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)": "106c4bf5d3ef7117",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)": "8dbef40bc9ca7c46"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.isPlausibleSegment(startMs:endMs:index:)",
+   "hash": "5a90badc7244d40e",
+   "does": "True when a segment duration is positive and at most 16 h; logs and returns false otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "duration <= 0 or > 16 h",
+     "effect": "log and false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func OvernightChartsView.uncoveredWindows(segStartMs:segEndMs:recordingStartMs:recordingEndMs:)",
+   "hash": "701516965f48c165",
+   "does": "Returns the parts of a segment outside the recording: the whole segment if disjoint, else up to two sub-ranges before/after.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "segment entirely before or after the recording",
+     "effect": "return whole segment"
+    },
+    {
+     "at": "+10",
+     "cond": "segment starts before recording",
+     "effect": "add pre-recording sub-window"
+    },
+    {
+     "at": "+11",
+     "cond": "segment ends after recording",
+     "effect": "add post-recording sub-window"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightChartsView.hkSamples(in:segIdx:)",
+   "hash": "e2d0a354e11ad659",
+   "does": "Fetches HealthKit HR samples for a sub-window (ms from session start) of at least 60 s and maps them to (ms offset, hr). Fetch errors become an empty list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)"
+   ],
+   "reads": [
+    "hk:HKQuantityTypeIdentifierHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "window shorter than 60 s",
+     "effect": "log and return []"
+    },
+    {
+     "at": "+10",
+     "cond": "fetch throws",
+     "effect": "try? → [] (?? fallback), error not logged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "HealthKit fetch errors (authorization, query failure) are swallowed with try? and look identical to 'no Apple Watch data'.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:634"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

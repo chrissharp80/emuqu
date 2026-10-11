@@ -1,0 +1,2168 @@
+{
+ "file": "docs/FLOWCHART.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Developer reference describing the overnight HRV recording pipeline (data model, pause/resume, morning processing, scoring, charts, migrations, UI data flow, mutation contract, sleep editor, notifications, HealthKit export), the Fitness workout pipeline, route awareness, training-load math and the AI dispatch path.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content. Code blocks are pseudo-code flow descriptions.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc references a §16.4 for the score-changed banner but section 16 has no numbered subsections, so the cross-reference dangles.",
+   "evidence": [
+    "docs/FLOWCHART.md:807",
+    "docs/FLOWCHART.md:899"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference",
+   "hash": "d3245dc7f64af0f8",
+   "does": "no behavioural claim: document title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model",
+   "hash": "05f6719f39ce4f1c",
+   "does": "no behavioural claim: section header for the data model subsections.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > RRPoint",
+   "hash": "335c855f075ac9f9",
+   "does": "Claims RRPoint holds t_ms (cumulative sum of prior RR, not wall time), rr_ms, optional wallClockMs (streaming only, gap-aware), optional hr (streaming only), and computed endMs = t_ms + rr_ms; beats dropped on BLE disconnect leave no gap in t_ms while wallClockMs advances. Matches RRModels.swift:4-54 and PolarManager appendStreamedBeat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > RRSeries",
+   "hash": "de7ee976708643d4",
+   "does": "Claims RRSeries = points + sessionId + startDate, and that startDate + t_ms/1000 gives cumulative time while startDate + wallClockMs/1000 gives gap-aware time. Matches RRModels.swift:71-74.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(at:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(at:)": "33ac839e32de2b54",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)": "bd9136deb1060666",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "b828c96564df6c4f",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > HRVSession",
+   "hash": "c20993b3fdfad3bd",
+   "does": "Lists HRVSession fields: id/startDate/endDate/state (.collecting/.analyzing/.complete/.paused/.failed), sessionType (.overnight/.nap/.quick/.breathe/.workout), rrSeries, analysisResult, sleepStartMs/sleepEndMs, sleepSegments, linkedSessionIds, pausedDate, dataSourceSummary, sleepSnapshot and vitalsSnapshot frozen at acceptance, recoveryScore on 0-10 scale. Enum cases and fields match SessionMetadata.swift:68-73, :145-198, :384-390.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeIdentity(into:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSleep(into:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeScoring(into:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isResumable",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeIdentity(into:)": "ae546a3c203bc452",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeScoring(into:)": "7f6a11e529961c42",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSleep(into:)": "f63e070dcf4a28c2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isResumable": "38191f82110d91ea",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > SessionArchiveEntry (in-memory index)",
+   "hash": "0e9e6becfb8b8cc9",
+   "does": "Claims SessionArchiveEntry index fields (sessionId, date, endDate, fileHash, filePath, recoveryScore, meanRMSSD, meanHR/stressIndex backfilled by migrateMetrics, meanSDNN, tags, notes, sessionType, linkedSessionIds) and that retrieveLightweight skips rrSeries for dashboard/history/paused search. Fields match SessionMetadata.swift:710-732 (doc omits later sleepEnd/sleepSegmentCount/stage-minute fields); migrateMetrics backfills meanHR/stressIndex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()": "f32eaa790f8e4a89",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 2. Recording Phase",
+   "hash": "67650633278634ed",
+   "does": "no behavioural claim: section header for recording phase.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 2. Recording Phase > Start: `startOvernightStreaming()`",
+   "hash": "aae35927a76a2cba",
+   "does": "Claims tapping Record creates an overnight HRVSession dated now, starts BLE streaming via PolarManager, resets the cumulative counter and runs a 1 s timer for the elapsed clock and incremental backup. Code: startOvernightStreaming takes sessionType (.overnight or .nap), starts streaming, launches the H10 internal-recording loop when backup is on and device is not Verity Sense, starts HealthKit sleep/vitals observers, persists recording state and starts a 1 Hz timer (tolerance 0.25 s) doing backup + battery staleness checks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()": "c9beeb003f5808b2",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "6ffa1f9941e8f3e3",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "55027bd0a099d6d0",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()": "f176b46876f2d530"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 2. Recording Phase > Streaming data arrives: PolarManager (`PolarManager+Streaming.swift`, the stream",
+   "hash": "6be907540c7a72aa",
+   "does": "Claims each streamed RR sample becomes RRPoint(t_ms: running cumulative, rr_ms, wallClockMs: ms since stream start, hr) appended to _streamedRRPoints and the cumulative counter advances by rr. Code matches (appendStreamedBeat); additionally zero intervals are skipped, a safety cap stops appends, Verity Sense PPI goes through StrapPPIFilter, and all beats in one BLE batch share the batch-arrival wallClockMs. Ingestion is via StrapHRSample from the strap HR service, not a per-sample Polar SDK callback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 3. Pause/Resume Flow",
+   "hash": "5458dbeef8f22559",
+   "does": "no behavioural claim: section header for pause/resume.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 3. Pause/Resume Flow > Pause: `pauseOvernightStreaming()`",
+   "hash": "dc33fa7c5076ce48",
+   "does": "Claims Pause runs gatherOvernightData → mergeParentSessionData → processOvernightData, marks the session .paused with pausedDate, archives it and persists the paused id to UserDefaults. Code matches for the full-analysis path; when gather returns nil (insufficient data) a short-recording path saves the raw beats merged with the parent without analysis, which the doc omits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says Pause always runs gatherOvernightData -> mergeParentSessionData -> processOvernightData. When gatherOvernightData returns nil (too few beats) pauseOvernightStreaming takes pauseWithShortRecording instead: it merges the parent's beats and archives a .paused session with analysisResult nil, with no processOvernightData call.",
+     "evidence": [
+      "docs/FLOWCHART.md:104",
+      "docs/FLOWCHART.md:106",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:40",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:48",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:82"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "04f5a4e44402eaba",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "271ae4b815102f92",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)": "a6bc27d06eb7ff61",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "9430360428757a0f"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 3. Pause/Resume Flow > Resume: `resumeOvernightStreaming(linkedSessionId:)`",
+   "hash": "e67c69cee4dc057f",
+   "does": "Claims Resume creates a new HRVSession linked to the parent, appends the child id to the parent in the archive, restarts streaming with the counter reset to 0, clears collectedPoints and sets pausedBeatCount to the parent's count for display. Code matches; it also inherits the parent's sessionType, relaunches the H10 backup loop when applicable, and links the child only after streaming starts successfully.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.linkChildToParent(childId:parentId:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resetStateForResumedSession(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc puts 'Updates parent session in archive' before 'Starts fresh streaming'. resumeOvernightStreaming calls polarManager.startStreaming() first and links the child to the parent only afterwards, so that a failed resume leaves no link. The doc also omits that the child inherits the parent's sessionType (nap stays nap).",
+     "evidence": [
+      "docs/FLOWCHART.md:118",
+      "docs/FLOWCHART.md:119",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:174",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:182",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:184"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.linkChildToParent(childId:parentId:)": "1656c5483cf89857",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resetStateForResumedSession(_:)": "b0b05ceebb163ff8",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 3. Pause/Resume Flow > Finalize: `finalizeFromPause()`",
+   "hash": "b37265eae71130c1",
+   "does": "Claims Done-without-resume sets state .complete, re-archives and sets needsAcceptance = true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says finalizeFromPause always sets needsAcceptance = true; code sets it to analysisResult != nil, so a short-paused session (no analysis) goes straight to .idle without an acceptance step.",
+     "evidence": [
+      "docs/FLOWCHART.md:132",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:267"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 4. Stop/Morning Processing",
+   "hash": "87cb8d48cbfcbb2d",
+   "does": "no behavioural claim: section header for stop/morning processing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 4. Stop/Morning Processing > Stop: `stopOvernightStreaming()`",
+   "hash": "a49f64f5bb3bb1c5",
+   "does": "Claims Stop tears down streaming, backs up beats, then with >=120 streamed beats (any beats for a resumed child) downloads the strap recording concurrently with HealthKit sleep (no strap fetch for Verity Sense), picks a source and runs mergeParentSessionData → processOvernightData; otherwise falls back to a strap-primary fetch that fails the session when barred or < 120 beats. Code matches (minimumUsableBeats = 120, hasValidStreaming, fallbackToDeviceFetch).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.downloadMergeAndScoreNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasValidStreaming(_:baseSession:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)": "aebf9d317aa3d37b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.downloadMergeAndScoreNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "f2a780f81be095e9",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasValidStreaming(_:baseSession:)": "c813f3b31786b7b2",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "58ce1d84a7650bdc",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "a0df53a72814b870"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 4. Stop/Morning Processing > gatherOvernightData() (pause path, `RRCollector+PauseResume.swift`)",
+   "hash": "38f8862b5df50d38",
+   "does": "Claims gatherOvernightData (in RRCollector+PauseResume.swift) stops the streaming timer and background audio, captures stopStreaming() points, backs up raw data, optionally fetches the H10 recording, picks streaming/internal/composite and returns OvernightDataResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc places gatherOvernightData in RRCollector+PauseResume.swift and says it stops background audio; the function is in RRCollector+OvernightGather.swift and stopOvernightStreamForGather explicitly does not stop audio.",
+     "evidence": [
+      "docs/FLOWCHART.md:152",
+      "docs/FLOWCHART.md:154",
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:20",
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:71"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 4. Stop/Morning Processing > mergeParentSessionData()",
+   "hash": "b6009c664ef7337d",
+   "does": "Claims that when the session has a parent id and the parent has RR data in the archive, child t_ms and wallClockMs are shifted by (child.startDate − parent.startDate) ms, merged = parent.points + shifted child, and the merged base session takes the parent's startDate. Code matches; additionally a non-positive or unrepresentable offset refuses the merge and returns the child alone.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergedBaseSession(data:parentSession:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)": "ee446e688ad9f1e1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergedBaseSession(data:parentSession:)": "c60fd91e47e8b60d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 5. processOvernightData() — The Main Pipeline",
+   "hash": "1d3c17f4ce26594f",
+   "does": "Claims the 13-step morning pipeline: backup, build series, same-night merge of every archived overnight from the same biological night (skipping already-linked), artifact detection, verification, HealthKit sleep (cache-first via SleepDataCache, 14 entries, ±1 day, else bounded poll 15×2 s, bail on locked phone, auto-rescore later), sleep-stage classification paths, training load fetch, window selection with Tier-1 baseline ranking and wall-clock→t_ms boundary translation, organized-recovery zones (α1 0.75-1.0 and HR CV < 8 %), HRV analysis, final session, recovery score (v3.1.oct2026), supersede same-night, archive. Code: RRCollector wrapper fetches training load first, then MorningProcessingService.run does backup → buildMergedSeries → artifacts/verify → sleep poll → window → analysis → vitals snapshot → insufficient-data gate → score → supersede; the wrapper archives via archiveForReview. Cache and poll numbers match (SleepDataCache.maxEntries 14, ±1 day+1 h, maxAttempts 15 × 2 s, 1 for background).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc STEP 3 says every archived overnight from the same biological night is merged; code gates the merge on settings.sessionMergeMode (.off disables it) and only merges segments within the configured merge gap (segmentsWithinGap), so same-night sessions farther apart than the gap stay separate.",
+     "evidence": [
+      "docs/FLOWCHART.md:208",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:157",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:208"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc lists 'STEP 13: Archive archive.archive(finalSession)' inside processOvernightData and orders training-load fetch as step 7; the service never archives (wrapper archiveForReview does, only for .complete sessions) and training load is fetched before the service runs; the doc also omits the vitals snapshot and insufficient-data gate applied before scoring.",
+     "evidence": [
+      "docs/FLOWCHART.md:265",
+      "docs/FLOWCHART.md:319",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:33",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:138",
+      "Emuqu/Sources/Services/MorningProcessingService.swift:354"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "STEP 8 says the selector searches for the best 5-min window. WindowSelector windows are beat-count based: beatsPerWindow = 400, shrunk adaptively (beatsAvailable/2 or /3, floor 60) with step windowSize/10. They have no fixed duration.",
+     "evidence": [
+      "docs/FLOWCHART.md:273",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:12",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:966"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "STEP 12 says supersedeSameNightSession 'marks older same-night sessions as linked'. The older archived sessions are not modified. Their ids are appended to the NEW session's linkedSessionIds, and only when the entry is within the merge gap and newSessionMayClaimNight passes (a new session under 1,000 beats never claims a night that already has a scored overnight). The function returns at once when sessionMergeMode == .off.",
+     "evidence": [
+      "docs/FLOWCHART.md:316",
+      "docs/FLOWCHART.md:317",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:63",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:69",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.resolveSleepBoundaries(points:sleepStartMs:wakeTimeMs:)": "2120c0d326f5b3f7",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "0838ad87e9693fbc",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()": "4ca8fe050a9e82ea",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "0b386cb958d5c72c",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "da64a32a624136e7",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "92edb517f198fa00",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "2778c574402344ff",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "32396d9f0de3b618",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)": "cb91edaa220b3c57",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "a8100fed5d739c51",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "1709d4655092064c",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026)",
+   "hash": "10263f8c033212ef",
+   "does": "no behavioural claim: section header naming scoring version v3.1.oct2026 (matches ScoringVersion.current).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026) > RecoveryScoreCalculator (RecoveryScoreCalculator.swift)",
+   "hash": "6e16bd2967380934",
+   "does": "Claims the score is HRV+Sleep+Vitals with training load excluded; Tier 1 SWC band (z=-3→5, -1.5→25, -0.75→64, -0.5…+0.5→72, +1.5→90) plus DFA/RHR/CV/ANS adjustments and staleness penalty; Tier 2 sleep sub-weights 35/25/25/15, HRV 70/Sleep 30, dampened to 85/15 when z<-1 and sleep<50; Tier 3 60/25/15 with vitals mean of RHR (-10/SD), RR (-15/br/min beyond ±1, population 12-18 fallback, below 12 → 90), temp (≤0.3→100, ≤0.5→75, ≤1.0→50, >1.0→25, positive only); Respiratory/WristTemperature baseline caches with 30-day TTL; Comeback 80/20/0; SpO2 <95 % → −10. All numbers match ScoringWeights, scoringParametersV2 and ScoreDetailBuilder.buildTier2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()",
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says HealthKitManager.fetchRespiratoryRateBaseline writes the cache on every successful HK query; the function lives on VitalsHealthQueries and writes only when the reference date is today (refreshesBaselineCache), so a rescore of a past night never refreshes the cache but does read it when HK fails, using today's baseline for that past night.",
+     "evidence": [
+      "docs/FLOWCHART.md:374",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:70",
+      "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Doc points to 'Constants.swift RecoveryScoreConstants.respiratoryRate* family' for the RR population-norm constants. No respiratoryRate* member exists in RecoveryScoreConstants (Constants+RecoveryScore.swift). The constants are ScoringWeights.Vitals.respiratoryRate* in Constants.swift.",
+     "evidence": [
+      "docs/FLOWCHART.md:365",
+      "docs/FLOWCHART.md:366",
+      "Emuqu/Sources/Utilities/Constants.swift:465",
+      "Emuqu/Sources/Utilities/Constants.swift:475",
+      "Emuqu/Sources/Utilities/Constants.swift:498",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:7"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()": "1201e35fa21b8562",
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()": "e0200c602a465aef"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026) > Training Load (Load & Trajectory surface — does NOT feed the recovery score)",
+   "hash": "bc9247173ba1e7eb",
+   "does": "Claims training load (Banister TRIMP, ATL 7 d / CTL 42 d / TSB, ACWR labels, Foster monotony banner when monotony > 2.0 AND strain > 200) is shown on Load & Trajectory / Training Detail and frozen into analysisResult.trainingContext, not the score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc gives the Foster banner strain threshold as > 200; RecoveryScoreConstants.Training.strainThreshold is 1600 (Foster 2500 scaled by 0.64), so the banner fires far less often than the doc states.",
+     "evidence": [
+      "docs/FLOWCHART.md:398",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:237",
+      "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift:27"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc lists four ACWR range labels (Below your usual / In range / Above your usual / Sharp increase). ACWRBand has five bands, including 'Maintenance' for 0.8-1.0, so a ratio in that range shows a label the doc does not list.",
+     "evidence": [
+      "docs/FLOWCHART.md:396",
+      "docs/FLOWCHART.md:397",
+      "Emuqu/Sources/Collection/TrainingMetrics.swift:50",
+      "Emuqu/Sources/Collection/TrainingMetrics.swift:62",
+      "Emuqu/Sources/Collection/TrainingMetrics.swift:87"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 7. Chart Display",
+   "hash": "8fa7909c21d59b11",
+   "does": "no behavioural claim: section header for chart display.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 7. Chart Display > OvernightChartsView",
+   "hash": "02cf054e4ad4f0e5",
+   "does": "Claims computeOvernightStats resolves sleep boundaries, computes sleep-bounded and full HR values, rolling RMSSD on 5-min windows stepping 30 beats, peak HRV in the 30-70 % band, and sleep duration; Canvas X axis is t_ms relative to firstMs/lastMs endMs; line breaks when consecutive points are > 300 000 ms apart; x labels from series.startDate/actualEndDate; window overlay by ms; organized zones from analysisResult or computeOrganizedZonesOnDemand without rewriting the archive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:recordingDurationMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the on-demand organized-zone scan runs 'without rewriting the archive'; loadOvernightStats backfills the computed zones into the archived session (backfillZonesToArchive → writeZonesIfStillEmpty), so opening a chart mutates the archive.",
+     "evidence": [
+      "docs/FLOWCHART.md:451",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:216",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:275"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says rolling RMSSD uses 5-minute windows and x labels use series.startDate/actualEndDate; code uses a 300-beat window and labels from session.startDate + chartStartMs over chartStart/EndMs (widened to sleep segment ranges on split nights), i.e. cumulative t_ms, not wall-clock.",
+     "evidence": [
+      "docs/FLOWCHART.md:421",
+      "docs/FLOWCHART.md:441",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:444",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:78"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)": "b1a5d2154e197a00",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "990364246517631a",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "dfd2c7c5252d5d4a",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "e785c60cf55223b2",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeRollingRMSSD(points:flags:)": "325529df04b3b424",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.findPeakHRV(rollingRMSSD:recordingDurationMs:)": "fa587c0cf80acca5",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)": "a4ebc21aa4b668fc",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()": "8700f518eef8160c"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 7. Chart Display > Key chart rendering detail:",
+   "hash": "c1abff2f8f22a20f",
+   "does": "Worked example: with correctly offset child t_ms the chart shows segment 1, a > 5 min gap with no line, then segment 2; without the offset both segments overlap in x. Consistent with the 300 000 ms segment split and childPointsOffsetToParent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.childPointsOffsetToParent(data:parentSession:)": "ee446e688ad9f1e1",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)": "b1a5d2154e197a00"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 8. Where Segments Get Combined (Summary)",
+   "hash": "a0b9cc38f3fd06c3",
+   "does": "no behavioural claim: section header stating there are two merge paths.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 8. Where Segments Get Combined (Summary) > Path A: Pause/Resume (mergeParentSessionData)",
+   "hash": "1e0103b50497d3ad",
+   "does": "Claims Path A (pause/resume) merges parent + offset child via mergeParentSessionData in stop/pause before processOvernightData. Matches pauseWithFullAnalysis and analyzeAndFinalizeOvernight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)": "aebf9d317aa3d37b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "271ae4b815102f92"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 8. Where Segments Get Combined (Summary) > Path B: Same-Night Separate Sessions (processOvernightData)",
+   "hash": "df71a4090ea2c4b2",
+   "does": "Claims Path B merges independent same-night overnight sessions inside processOvernightData, sorted and offset from the earliest start, skipping sessions in linkedSessionIds. Code also skips ids linked from any same-night entry and limits to the merge gap / mode.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "da64a32a624136e7",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "b70004b39f7abeb1"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 8. Where Segments Get Combined (Summary) > The interaction:",
+   "hash": "ef1c8333048e8538",
+   "does": "Claims for a pause/resumed session Path A runs first, Path B then skips the parent (linked) and may still find other independent same-night sessions. Matches sameNightSegments' alreadyLinked filter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "b70004b39f7abeb1"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 9. Full Session Lifecycle",
+   "hash": "12781a59e431c7bb",
+   "does": "Lifecycle walkthrough of continuous, pause/resume, independent same-night and crash-recovery cases. Option D claims findRecoverableArchivedSession searches overnight entries < 24 h old with meanRMSSD nil or recoveryScore ≤ 1.0 and returns the newest candidate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.findRecoverableArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.looksLikeUnresolvedOvernight(_:cutoff:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says crash recovery 'returns the newest candidate'; findRecoverableArchivedSession returns nil when more than one candidate matches (logs ambiguity), so the strap file is then filed by its own start rather than rewriting the placeholder in place.",
+     "evidence": [
+      "docs/FLOWCHART.md:569",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:287"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Options A and B list gatherOvernightData() as the first step of STOP. stopOvernightStreaming never calls it: it runs stopStreamingInfrastructure + backupStreamingData, then downloadMergeAndScoreNight or fallbackToDeviceFetch. gatherOvernightData is only the pause/recovery path, as its own file header says.",
+     "evidence": [
+      "docs/FLOWCHART.md:521",
+      "docs/FLOWCHART.md:537",
+      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:295",
+      "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:298",
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:4"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.findRecoverableArchivedSession()": "b430f98e6da011b8",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.looksLikeUnresolvedOvernight(_:cutoff:)": "cbfaa7a414582557",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "43781bdbc25c18f4",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "87a587c8120166f1"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 10. HR-Estimated Sleep (fallback)",
+   "hash": "04691649ef5e7d43",
+   "does": "Claims HR-estimated sleep runs only when HealthKit returns 0 minutes: RR-based estimateSleepFromHR first, then HealthKit HR over the window extended to the schedule end with 20-min smoothing, ≥ 8 bpm range, threshold max − 0.5·range, onset on 2 consecutive points (clamped), wake at end of last below-threshold block, ≥ 12 samples and ≥ 120 min; live sessions keep loading when nothing found; AutoSleepExtension is never constructed in production. Matches MorningResultsViewModel and HRSleepEstimator.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "d98e3e3b3303abfc",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e828c2c98f9aa86c",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)": "edc7063b85dc483c",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)": "0e0ae3ddbea7fdb1"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 11. App Startup & Deferred Migrations",
+   "hash": "b93daeba92229b6c",
+   "does": "Claims startup: RRCollector.init loads the index, rebuilds baseline if daysCollected == 0, sets up bindings/observers, restores paused state and recent paused session off-main, runs repairMergeDataLoss gated by a flag; housekeeping phase runs archive.runDeferredMigrations (reencrypt, recoveryScores, endDates, metrics, sleepIndexFields, removeDuplicates, relinkSameNightSessions) and SessionDataMigrations.runAllIfNeeded (InsufficientData, TrainingRecalibration, TrimpRepair, WorkoutSleepCleanup, NapRepair, TimeInBedRepair) with the listed UserDefaults flags. Migration order, flag keys and skip rules match code; parity test files exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.boot()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(powerMultiplier:lowPower:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc places the daysCollected == 0 baseline rebuild inside RRCollector.init; it runs from boot() (called by EmuquApp.runDeferredBoot after first paint) on a detached utility task.",
+     "evidence": [
+      "docs/FLOWCHART.md:617",
+      "Emuqu/Sources/Collection/RRCollector.swift:561"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the housekeeping phase 'runs two background jobs' and that removeDuplicates() 'deletes' same-night duplicates. scheduleMigrationJobs queues three housekeeping jobs: archive migrations, which also run upgradeExistingFileProtection and expireTrash; session migrations; and the raw-backup reconcile. removeDuplicates moves the files to quarantine and tombstones the ids. It does not delete them, and it is skipped when sessionMergeMode == .off.",
+     "evidence": [
+      "docs/FLOWCHART.md:627",
+      "docs/FLOWCHART.md:640",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:429",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:436",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:441",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:286",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:291"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()": "eda8eef6c9197858",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()": "889eb2e1fa165529",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()": "1091eb2b5fe70c17",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.boot()": "21832794177f5235",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b79d8ead159ebe60",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "5c92fb1077fdfbac",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "85826f79e04ba07e",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "5963424b8a7c3701",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "d96ebbe770509f6c",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(powerMultiplier:lowPower:)": "e4529ba48c6c1e43",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()": "151dd8974689268a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()": "f32eaa790f8e4a89",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "5281f269523d2d1b",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "ff24114f2e704a1b",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "7dd5112bc4d61533",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "6cc361fb8ad878b5",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a6f10f434000c214"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 11a. UI Session Data Flow",
+   "hash": "a2cdc3c25b5dcbbf",
+   "does": "Claims MainTabView owns the dashboard slice (seeded count, 50 ms reload guard), TrendsV2View/HistoryView load independently, every view observes RRCollector.archiveVersion and CloudKitSyncManager.pullVersion, dashboard loads recentSessionsAsync(limit: 35), Trends loads limit nil then filters overnight/analysisResult/isReliableForHRVAggregates in TimeRange 7/14/30/90/all, History uses archive.entries; mutation paths call notifyArchiveChanged. Dashboard numbers match (dashboardSessionLoadLimit 35, 0.05 s guard).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says every view observes CloudKitSyncManager.pullVersion; only MainTabView (dashboard) and RRCollector bindings observe it; HistoryView and TrendsV2View react only to archiveSignal.version, which still bumps because SessionArchive posts on every archive write.",
+     "evidence": [
+      "docs/FLOWCHART.md:712",
+      "Emuqu/Sources/Views/MainTabView.swift:318",
+      "Emuqu/Sources/Views/HistoryView.swift:302"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the dashboard's Recent strip covers 30 days. DashboardSessionPolicy.recentDays builds the last 7 days (stride 6...0), and RecentStrip is documented as the 'last 7 readings'.",
+     "evidence": [
+      "docs/FLOWCHART.md:719",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:112",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:297",
+      "Emuqu/Sources/Views/RecentStrip.swift:3"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "7a6ae6cf86410529",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "d6fed383e225a328"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 12. Key Files Reference",
+   "hash": "ff1a1ccac041dbc4",
+   "does": "Key-files table mapping pipeline responsibilities to files. All listed files exist, but several mappings are stale: gatherOvernightData is in RRCollector+OvernightGather.swift (not +OvernightStreaming), RRPoint creation is in PolarManager+Streaming.swift, and the HRVSession struct is declared in SessionMetadata.swift (HRVSession.swift holds decoding support).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Key Files table attributes gatherOvernightData to RRCollector+OvernightStreaming.swift and the HRVSession model to HRVSession.swift; the function is in RRCollector+OvernightGather.swift and the struct is declared in SessionMetadata.swift.",
+     "evidence": [
+      "docs/FLOWCHART.md:752",
+      "docs/FLOWCHART.md:753",
+      "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift:20",
+      "Emuqu/Sources/Models/SessionMetadata.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Key Files table attributes 'Streaming RR data -> RRPoint creation' to PolarManager.swift and 'Chart data prep' to OvernightChartsView.swift. RRPoint creation is appendStreamedBeat in PolarManager+Streaming.swift. Stats/data prep is OvernightStatsComputer in OvernightChartsView+Stats.swift.",
+     "evidence": [
+      "docs/FLOWCHART.md:750",
+      "docs/FLOWCHART.md:762",
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:159",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:12"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract",
+   "hash": "745d55da37a2ac85",
+   "does": "Claims an archived session is frozen except for explicit user actions and additive fill-in merges of late HealthKit data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Doc lists a 'Dashboard vitals refresh' path that fills vitalsSnapshot nil fields when the HK vitals observer fires. In code the observer only copies healthKit.vitalsDataVersion into morningCoordination.vitalsDataVersion, nothing reads that value, and the RecoveryDashboardView named in the comment no longer exists. No dashboard code calls fetchRecoveryVitals. Consequence: Apple Watch vitals that arrive after acceptance (resp rate, SpO2, wrist temp) are written to the archive only if the user opens RecoveryScoreDetailView. Trends, the Coach context and PDFs otherwise keep the empty snapshot.",
+     "evidence": [
+      "docs/FLOWCHART.md:803",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:193",
+      "Emuqu/Sources/Collection/MorningCoordination.swift:48",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:363"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says that on dashboard load, HealthKitManager.fetchSleepData refetches HK when the frozen sleepSnapshot has totalSleepMinutes == 0 or a sleepEnd in the future. No such check exists: both scoring paths return any non-nil frozen snapshot unchanged (RRCollector+Analysis recoverySnapshots, MorningProcessingService scoringHealthData), and fetchSleepData has no snapshot logic. Consequence: an empty or corrupt frozen snapshot (the case SleepResolver.swift:129 describes) is never healed by this path. Only autoRefreshTodaysSleepIfImproved replaces it, and only for today's session.",
+     "evidence": [
+      "docs/FLOWCHART.md:805",
+      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:66",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:436"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says autoRefreshTodaysSleepIfImproved skips entirely when sleepUserAdjusted is true, rewrites only sleepSnapshot, and rescores only on a delta of 20 min or more or on a first snapshot. In code a user-adjusted session with a nil snapshot is still filled (autoSleepRefreshAllowed). The refresh also rewrites sleepStartMs, sleepEndMs and sleepSegments (applyFreshSleep). A rescore also fires on an onset move of 15 min or more, or on a source upgrade to Watch. Consequence: the scoring window and score can change on HK sync in more cases than the contract table lists.",
+     "evidence": [
+      "docs/FLOWCHART.md:806",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:38",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:97",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:148"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)": "760d72df5aebb010",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()": "9d32300ca9f1e542",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "7630f87b9d238a63",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "99ae8aa63b6f1586",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "13e6afa91cde6364",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d2c6b220af47391a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "0e5a458cef49d0e4",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "626b20745ed36b2e",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "c1b042f4dde87fd7",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "a1c2d43f8a08de77",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "13757a1f1ddf87a0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)": "d1332ed489937be3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "d0af6e93451b82b8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "1d85096dcc44db13"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.1 User-initiated mutations (full-overwrite allowed)",
+   "hash": "65c67d58a17a60f3",
+   "does": "Lists user-initiated full-overwrite mutation paths: reanalyzeSession, retroApplySleepSettings, applyManualAnalysis, updateSessionSleepBoundaries (timeline Done), repairTrainingSnapshots (Troubleshooting → Advanced Diagnostics), runInsufficientDataMigrationIfNeeded (one-shot), SessionRecoveryService fallback, CloudKit merge, session resume. All named functions exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "7630f87b9d238a63",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "99ae8aa63b6f1586",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "13e6afa91cde6364",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d2c6b220af47391a",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()": "2b0dcea3f5f5c35e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.2 Automatic additive-merge paths (fill-in-only)",
+   "hash": "a7b6a52e19ecc84e",
+   "does": "Claims automatic additive paths only fill nil fields and re-archive only when something was added: dashboard and RecoveryScoreDetailView vitals refresh (strap RHR wins), fetchSleepData refetch when frozen sleep is 0 or in the future, autoRefreshTodaysSleepIfImproved (skips entirely when sleepUserAdjusted, rewrites sleepSnapshot on improvement, posts .flowRecoveryRescoreNeeded on ≥ 20 min delta or first snapshot), and installRescoreListener reanalyzing and recording PendingScoreChange.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says autoRefreshTodaysSleepIfImproved skips entirely when sleepUserAdjusted == true; autoSleepRefreshAllowed lets it run when the session is user-adjusted but has no sleepSnapshot, and the rescore trigger also fires on a material onset shift or a source upgrade to Watch, not only ≥ 20 min / first snapshot.",
+     "evidence": [
+      "docs/FLOWCHART.md:806",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:38",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:97"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Table row says HealthKitManager.fetchSleepData refetches on dashboard load when the frozen sleepSnapshot has totalSleepMinutes == 0 or a sleepEnd in the future. No such check exists anywhere in Emuqu/Sources (grep for totalSleepMinutes == 0 / sleepEnd in the future finds none). MorningResultsViewModel uses the snapshot whenever it is non-nil and fetches live only when it is nil.",
+     "evidence": [
+      "docs/FLOWCHART.md:805",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:389",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:408"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "56b4191237b0d263",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)": "d1332ed489937be3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "1d85096dcc44db13"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 13. Post-Acceptance Mutation Contract > 13.3 Integrity contract",
+   "hash": "cd776bc26f8431e6",
+   "does": "Claims past sessions reopen with identical recoveryScore/scoreBreakdown/frozenReadiness/trainingSnapshot and today's session upgrades once via the score-changed banner; verified by SessionImmutabilityTests (file exists).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testDerivedBaselineFallbackReproducesTheAcceptedCompositeForAnInsufficientNight()",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testCompositeScoreAndFrozenReadinessAreDeterministic()",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says today's session may upgrade once, is surfaced through the score-changed banner, and never silently drifts after that. In code, performAutoRefreshTodaysSleepIfImproved posts .flowRecoveryRescoreNeeded on every HK sleep bump that passes the verdict (delta of 20 min or more, onset move, first snapshot), with no once-only guard. recordPendingScoreChangeIfMeaningful writes the banner only when the displayed delta is 3 or more (0.3 on the 0-10 scale). Consequence: today's frozen score can be rescored several times, and smaller changes are applied silently with no banner.",
+     "evidence": [
+      "docs/FLOWCHART.md:814",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:435",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:176"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the integrity contract (identical recoveryScore, scoreBreakdown, frozenReadiness and trainingSnapshot across any number of loads) is verified by SessionImmutabilityTests. That suite only checks the useBaselineHRV derivation, that calculateWithBreakdown and computeFrozenReadiness are pure, and one archive score update. It never reloads a session repeatedly or checks trainingSnapshot or the one-upgrade rule. Consequence: the contract is mostly untested despite the doc's claim.",
+     "evidence": [
+      "docs/FLOWCHART.md:817",
+      "EmuquTests/SessionImmutabilityTests.swift:120",
+      "EmuquTests/SessionImmutabilityTests.swift:136"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.recoverySnapshots(for:result:sessionEnd:)": "760d72df5aebb010",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "a68d342c8517fd16",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.installRescoreListener()": "d07a86b3686df6fb",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()": "9b0267c2e1ed4c62",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()": "6e89ff983db1a1ff",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testCompositeScoreAndFrozenReadinessAreDeterministic()": "6c57794afa035b0a",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testDerivedBaselineFallbackReproducesTheAcceptedCompositeForAnInsufficientNight()": "739b7f944be413fa"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 14. Sleep Timeline Editor",
+   "hash": "fc2c957b5237a3fb",
+   "does": "Claims SleepDetailV2View presents SleepTimelineEditorView: canvas bars, 5-min snapped drags with 44 pt targets, split/carve/merge/delete, long-press add, 5-entry undo; Done builds SleepData via SleepScienceAnalyzer.buildSleepDataFromTimelineState (re-splits by awake, unspecified intervals count to total only) then updateSessionSleepBoundaries(isUserAdjustment: true) sets sleepUserAdjusted, rescores, archives and fires onArchiveChanged; provenance enum .watch/.iphone/.hrvDerived/.userAdded/.userCarved. Code matches (undo limit 5, 5*60 s step, 44 pt); the provenance enum also has .userAdjusted, which the doc omits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc's lists of SleepStageInterval provenance (.watch/.iphone/.hrvDerived/.userAdded/.userCarved) and SleepEditRecord kinds (addSegment, split, merge, carveAwake, adjustBoundary) are incomplete. SleepStageProvenance also has .userAdjusted, and SleepEditRecord.Kind also has removeSegment (and unknown).",
+     "evidence": [
+      "docs/FLOWCHART.md:852",
+      "docs/FLOWCHART.md:857",
+      "Emuqu/Sources/Models/SleepDomain.swift:76",
+      "Emuqu/Sources/Models/SleepDomain.swift:82",
+      "Emuqu/Sources/Models/SleepData.swift:428",
+      "Emuqu/Sources/Models/SleepData.swift:430"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "5bb4233b785f36a4",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "43dd522102956b1d",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()": "5ae12113b87a943d",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 15. Morning Feeling & Divergence Narrative",
+   "hash": "343f18a56b69b306",
+   "does": "Claims the dashboard morning-feeling prompt (5 emoji, 1 s cancellable commit, tags when ≤ 2: Body Infection/Allergies/Hangover/Stomach/Sore/Tired/Headache, Mind Stressed/Down) writes via viewModel.updateMorningFeeling onto the HRVSession, and AnalysisSummaryGenerator.feelBadAdvice detects divergence and appends per-tag advice to the summary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.applyMorningFeeling(value:tags:session:)",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.storeMorningFeeling(_:tags:id:archive:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.otherTagAdvice(hrvGood:tags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Doc names viewModel.updateMorningFeeling(rating, tags) as the write path; no such function exists. The write is DashboardV2View.applyMorningFeeling → storeMorningFeeling (archive.update).",
+     "evidence": [
+      "docs/FLOWCHART.md:877",
+      "Emuqu/Sources/Views/DashboardV2View+Cards.swift:463"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the 1 s auto-commit applies to any tap and feelBadAdvice detects divergence and appends advice; code auto-commits only ratings 3-5 (1-2 need Done), feelBadAdvice runs for any feeling ≤ 2 without a divergence test (divergence only for feeling ≥ 4 with score < 65), and the advice is inserted at the front of the steps, not appended.",
+     "evidence": [
+      "docs/FLOWCHART.md:870",
+      "docs/FLOWCHART.md:886",
+      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:243",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:373"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the feelBadAdvice output is 'appended' to the summary, with Allergies -> 'aerobic OK, monitor RHR' and Stressed + poor HRV -> 'rest'. appendFeelingSteps inserts the advice at index 0 (prepends). The allergies copy says 'Training is fine; expect reduced performance' with no RHR monitoring. The stressed/poor-HRV copy says 'Reduce intensity, keep volume if possible', not rest.",
+     "evidence": [
+      "docs/FLOWCHART.md:890",
+      "docs/FLOWCHART.md:892",
+      "docs/FLOWCHART.md:894",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:375",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:545",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:567"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)": "cd2ade312d108738",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)": "70f4a1b50b4f42f2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.otherTagAdvice(hrvGood:tags:)": "21f611bfa78dc359",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.applyMorningFeeling(value:tags:session:)": "8bb858eefdd1cb53",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.storeMorningFeeling(_:tags:id:archive:)": "f7b8f3af79215952",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.commitExplicit()": "55ccf92a03597c77",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingPrompt.tapFeeling(_:)": "a520c73e368feefc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility",
+   "hash": "cc8495741cbf2c3b",
+   "does": "Claims the dashboard shows InterruptedSessionBanner (red), LostBackupsBanner (gold), ScoreChangedBanner (primary/orange tint, written by recordPendingScoreChangeIfMeaningful at ≥ 3 points, cleared on X or after one read, live via .pendingScoreChangeWritten) and an ArchiveStatusLine pill on the recovery card; Settings → iCloud & Data storage summary and Force iCloud Sync; Repair Training History behind Advanced Diagnostics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Doc describes InterruptedSessionBanner and LostBackupsBanner on the dashboard; no type or view with either name exists in Emuqu/Sources, so the documented recovery surfaces are absent.",
+     "evidence": [
+      "docs/FLOWCHART.md:903",
+      "docs/FLOWCHART.md:906"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Doc says the ArchiveStatusLine pill sits on the dashboard recovery card; ArchiveStatusComponents.swift states neither view is placed on a screen and no ArchiveStatusLine( construction exists outside its own file.",
+     "evidence": [
+      "docs/FLOWCHART.md:920",
+      "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the pending score-change entry is cleared after the dashboard reads it once; PendingScoreChange.read() does not clear and onDashboardAppear only reads, so the banner persists until the user taps X.",
+     "evidence": [
+      "docs/FLOWCHART.md:917",
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:33",
+      "Emuqu/Sources/Views/DashboardV2View.swift:275"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "045b95933d46148d",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "8fbaff62da395806",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "49052db956ceb4a5",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "dd932b9a8c546bc4",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body": "3e04f732b3d0e8d4",
+    "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)": "b60f19da9865ce26",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()": "2b0dcea3f5f5c35e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility > Morning notification scheduling",
+   "hash": "d40d81d8213c8447",
+   "does": "Claims a repeating UNCalendarNotificationTrigger at dailyReportFixedTime plus, in Smart delivery, an immediate push from the sleep observer when the freshest sleep end is within 90 min and none sent today (UserDefaults date flag). Code matches and additionally requires the wake to fall within 7 h before the schedule's morning cutoff (isMorningWake) and notification authorization.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc lists three gates for the wake-triggered push (Smart delivery, sleep end within 90 min, not already delivered today). deliverWakeTriggeredPushIfAppropriate also requires notification authorization and isMorningWake: the sleep end must fall in the window from 7 h before to the schedule's morning cutoff. A nap or a couch doze ending outside that window sends nothing.",
+     "evidence": [
+      "docs/FLOWCHART.md:953",
+      "docs/FLOWCHART.md:956",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:166",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:176"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "266d3dc4f1b13c3a",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "1c7399ed939f6455",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)": "8a2e457922845e1f",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility > Known Deferred",
+   "hash": "30a82caeb195b2c1",
+   "does": "Lists deferred features: a 14-day re-engagement push (lastOvernightSessionDate not implemented — grep finds no such field) and A/B push format beyond 'Auto = teaser for first 30 sessions, full readout from 31+'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc describes Auto format as teaser for the first 30 sessions and full from 31+; resolvedFormat shows full once there are ≥ 30 distinct reliable overnight nights (the 30th night, not 31st) and counts nights, not sessions.",
+     "evidence": [
+      "docs/FLOWCHART.md:981",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:251",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:254"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "1056fa14292f3976"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 17. HealthKit Export (Write-Back)",
+   "hash": "3c452722b3a819eb",
+   "does": "Claims exportSessionMetrics writes windowed SDNN, per-minute HR samples, one nocturnal-median RHR per day, and sleep only when HR-estimated, each gated by its export setting and isolated by its own do/catch. Code matches; it also skips HealthKit-sourced sessions and re-checks for another sleep source before writing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRVMetrics(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportRHRMetric(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportRestingHeartRate(value:at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)": "39293c17d9b699fa",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "42fad6af6a9bb55a",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportRestingHeartRate(value:at:sessionId:)": "fbf6ff56da2986e2",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportHRVMetrics(session:result:)": "5bb3383b9502a50e",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportRHRMetric(session:result:)": "65ab8d80422ff13d",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSessionMetrics(from:)": "97dec8e587ba4696",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "4dae1c525ba31b62",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "375d75f53a50f643"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 18. Fitness Tab — Workout Recording Pipeline",
+   "hash": "e8fcf707e4e02ae0",
+   "does": "Claims the live-workout pipeline: start() reconnects known secondary sensors, starts strap streaming, GPS/altimeter (lazy WorkoutLocationManager), pedometer, foot pod/PM5/FTMS, Watch session, α1 analyzer, voice coach, Zwift broadcast and a 1 Hz ticker; each tick ingests RR into LiveDFAAnalyzer (2-min window, 20 s cadence), backs up incrementally, records samples, auto-detects a saved route after 500 m (150 m start reject, ≤ 30 m mean nearest-neighbour), updates threshold breach counters, refreshes weather (30 min TTL, 5 km) and road geocoding (15 m / 60 s, 8-failure backoff, 30 s retry), publishes a LiveWorkoutSnapshot, pushes Watch/Zwift state, runs voice-coach/turn/mile-marker engines (turn bands 150/60/25 m) and the interval controller; stop() snapshots RR without stopping the stream, tears down live services, finalizes via WorkoutAnalyzer (Banister male 0.64/1.92, female 0.86/1.67, hrTSS, power metrics, splits), archives a breadcrumb trail (50-trail cap), disconnects the foot pod, flips to .finished and runs detached HRR capture (+60/+120 s strap) before stopping and disconnecting the strap. Constants checked match code.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.startTicker()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runSportScopedTickWork(sport:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.publishLiveWorkoutSnapshot()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.attemptRouteDetectionIfEligible(sport:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.refreshEnvironmentContextIfNeeded(sport:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tickVoiceCoach(sport:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.updateThresholdBreaches(sport:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc lists LiveWorkoutBroker.publish as an unconditional per-tick step; incrementalBackupTick publishes the live snapshot only when settings.enableAIAssistant is true. Doc also omits that stop() pulls and merges the H10 internal exercise recording (mergeWorkoutRRWithDeviceFetch) before finalize, and the DFA status enum has a tooManyArtifacts case the doc does not list.",
+     "evidence": [
+      "docs/FLOWCHART.md:1078",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:177",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:101",
+      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:168"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says fired coach events have '≥ 10-min cooldowns'; zone.drifted.high/low use 150 s, route.climbAhead and cadence.consistencyDrop 8 min, equipment.strapDown 60 s and user.threshold.breach 30 s, and several rules (split marker, readiness, race mode, periodic update) have cooldown 0 gated by state. The doc's rule list also omits those rules.",
+     "evidence": [
+      "docs/FLOWCHART.md:1112",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:343",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:410",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:479",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:508"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the foot pod reconnects at start whenever it has known devices and is disconnected, and lists 'footPodManager.start() / Concept2Manager.startScan() / FTMS subscribe' and 'ZwiftPeripheralBroadcaster.shared.start()' as start steps. manageFootPod reconnects only for foot sports or a power-capable device on bike/indoorBike, and DISCONNECTS a connected pod for other sports. No footPodManager.start() or Concept2Manager.startScan() call exists (the methods are startScanning). The Zwift call is startBroadcasting(), deferred.",
+     "evidence": [
+      "docs/FLOWCHART.md:1026",
+      "docs/FLOWCHART.md:1037",
+      "docs/FLOWCHART.md:1041",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:581",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:794",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:818",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:458",
+      "Emuqu/Sources/Collection/Concept2Manager.swift:133"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc lists WeatherService and RoadGeocodingService refresh as unconditional per-tick steps. refreshEnvironmentContextIfNeeded refreshes weather only when enableAIAssistant is on or heat tracking is on for a GPS sport, and reverse-geocoding only when enableAIAssistant is on. The tick also publishes the live snapshot BEFORE thresholds, weather and geocode are updated (runSportScopedTickWork runs after publishLiveWorkoutSnapshot), not after as drawn.",
+     "evidence": [
+      "docs/FLOWCHART.md:1071",
+      "docs/FLOWCHART.md:1073",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:827",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:833",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:178"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc defines Normalised Power as a '4-s rolling' mean. computeNormalizedPower uses a 30-sample (30 s at 1 Hz) rolling window and returns nil below 30 samples, which is the standard Coggan definition.",
+     "evidence": [
+      "docs/FLOWCHART.md:1162",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:24",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:27"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says mile-marker cues include cadence 'only if outside 165-190 spm band'. WorkoutMileMarkerEngine has no 165-190 band. It includes cadence only on run/trailRun/treadmill when cadence has shifted >= 5 spm from the runner's own early-run average (cadenceShiftSpm), and it refuses any marker in the first 60 s.",
+     "evidence": [
+      "docs/FLOWCHART.md:1133",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:140",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:212",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:220"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc gives Distance = max(footPod, GPS, pedometer, PM5) and lists threshold metrics hr/hrZone/power/ftp/pace/a1/cadence. For .row the PM5 odometer REPLACES the other sources (no max). WorkoutThreshold.Metric also includes distance, elapsed time, elevation gain, grade and naturalLanguage. Doc also places ZwiftPeripheralBroadcaster stop after archive, but stop() stops it in tearDownLiveWorkoutServices before finalize.",
+     "evidence": [
+      "docs/FLOWCHART.md:1054",
+      "docs/FLOWCHART.md:1067",
+      "docs/FLOWCHART.md:1176",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:499",
+      "Emuqu/Sources/Models/WorkoutThreshold.swift:28",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:133"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)": "6ec6d27816e39766",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)": "2fb6a21e9846a9a5",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:)": "876160b8dace8b52",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.updateThresholdBreaches(sport:)": "8074d13effa02411",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "39d6072429d8506b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "14dd715369a65cc9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "16dc95aa5d22ef41",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:wasStrap:polarRef:archive:sessionId:)": "e071df1e5caaede7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "fdbc1aa32c17b8c4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "b5611c3673c7a99c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "b716c7af6bb5b527",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()": "243049be70c602da",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.attemptRouteDetectionIfEligible(sport:)": "9242cc91782e6144",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "fef56bc072a39722",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.publishLiveWorkoutSnapshot()": "61f173e337cb05e7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.refreshEnvironmentContextIfNeeded(sport:)": "6909b1cb873bf798",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runSportScopedTickWork(sport:)": "8f9f9e2cc98ef8c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.startTicker()": "99f28c9f0f8ed542",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tickVoiceCoach(sport:)": "641b4fdb0365e6b1",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "3ccf53157fe3d7cd",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "d6e812f8164b0019",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "ad6dd15bfecf63ad"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 18. Fitness Tab — Workout Recording Pipeline > Post-summary cards data flow",
+   "hash": "8536d47e36b56b1e",
+   "does": "Claims FitnessPostSummaryView cards read workoutMetadata: headline stats, route map, HRR card, charts, α1 timeline (0.75/0.50), route by α1 band, an α1 LT1 estimate that suggests an LTHR update when it differs ≥ 5 bpm and no override is set, threshold crossings, zone distribution, derived metrics, physiology, splits, GPX/CSV/TCX export.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says the α1 LT1 card suggests an LTHR update when heuristic-vs-measured delta ≥ 5 bpm; ThresholdCards+Cards.swift states there is deliberately no LTHR update suggestion (LT1 is not LTHR and adopting it shrank the hrTSS denominator).",
+     "evidence": [
+      "docs/FLOWCHART.md:1238",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:8"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "a1a164fc69226783"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 18a. Route Awareness Pipeline (where road names and turn cues come from)",
+   "hash": "a669812a2af73d4c",
+   "does": "Claims RoadAwarenessEngine.snap refuses to snap unless course accuracy and speed ≥ 0.7 m/s pass, fetches a RoadGraphService tile (250 m cells, 800 m radius, 6 h TTL, coalesced, 1.1 s gap, 8 s timeout), snaps with confidence 0.7·distance + 0.3·bearing agreement, walks ahead 600 m / 3 intersections, never invents a name; RoadGeocodingService uses MKLocalSearch then CLGeocoder (5 s, 30 s recovery after 8 failures), cross-street search over radii 200/500/1500/3000 m, 15 m / 60 s gates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.scanForCrossStreet(for:currentRoad:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says low speed / poor course accuracy makes the engine refuse to snap; bearingTrust only drops the bearing (useBearing false) and snap still runs, with confidence = 0.7·distance score + 0.3·(1.0 trusted / 0.5 untrusted), not bearing agreement.",
+     "evidence": [
+      "docs/FLOWCHART.md:1258",
+      "docs/FLOWCHART.md:1270",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:169",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:249"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says cross-street search escalates over radii 200/500/1500/3000 m; scanForCrossStreet uses [100, 200] and its comment says wider radii reported streets 3 km away.",
+     "evidence": [
+      "docs/FLOWCHART.md:1283",
+      "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift:326"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says RoadAwarenessEngine is called from the AI's 'facts.roadAwareness' action and from the per-tick workout context update, and names RoadGeocodingService.reverse(location). The only callers are the 'location.roads_ahead' fact (AppFactResolver+LiveNavigation) and SavedRouteStepBuilder. The tick only calls RoadGeocodingService.refreshIfNeeded, and no reverse(...) method exists. The Overpass query's highway list also includes secondary, tertiary, unclassified and service, which the doc's 'walkable ways only' list omits.",
+     "evidence": [
+      "docs/FLOWCHART.md:1253",
+      "docs/FLOWCHART.md:1254",
+      "docs/FLOWCHART.md:1263",
+      "docs/FLOWCHART.md:1277",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:68",
+      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:336",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:834",
+      "Emuqu/Sources/Services/RoadGraphService.swift:328"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.awareness(for:tile:neighborhoodFallback:)": "ba2cc49bb1635a46",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.bearingTrust(for:)": "73f5a4779c5d0d0c",
+    "Emuqu/Sources/Services/RoadAwarenessEngine.swift::func RoadAwarenessEngine.snap(location:tile:useBearing:userCourseDegrees:)": "d5f91b1990b4de87",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.scanForCrossStreet(for:currentRoad:)": "e59fa12c6edcab6d",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "83f74b14faa3ed8a",
+    "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.tile(for:)": "2e08747508278555"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 18b. Fitness — Retroactive Repair Actions",
+   "hash": "830ad3cd88c91549",
+   "does": "Claims two summary-sheet repairs: real-elevation lookup via TopoElevationService (≤ 100 samples, NED 10 m in US else SRTM 30 m, 15 m sustained-climb threshold, preview then write + notifyArchiveChanged) and α1 re-analysis (2-min windows at 20 s, Kubios-style ±20 % vs 5-beat median with interpolation, nearest-in-time replacement, early samples cleared). Constants match TopoElevationService, WorkoutAlpha1Reanalyzer and LiveDFAAnalyzer.cleanRRForDFA (which also rejects RR < 300 or > 2000 ms).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says applyReadings gives each sample the nearest-in-time reading and clears only pre-first-reading samples. applyReadings takes the latest reading at or before the sample and clears alpha1 to nil for ANY sample more than cadenceSec (20 s) past its last reading, including mid-session gaps.",
+     "evidence": [
+      "docs/FLOWCHART.md:1326",
+      "docs/FLOWCHART.md:1328",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:138",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:139"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:cadenceSec:)": "14f0a2a26fb82411",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 18c. Elevation capture — pro-grade barometric pipeline",
+   "hash": "2eecd015ac6ec252",
+   "does": "Claims barometric samples are buffered unthresholded during recording and at finalize BarometricAltitudeProcessor applies a 15-sample symmetric moving average and 2 m hysteresis to compute gain/loss, falling back to GPS gain when no barometer; retroactive repair via TopoElevationService. Constants match BarometricAltitudeProcessor (window 15, 2.0 m).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 19. Training Load Math (Research Citations)",
+   "hash": "977985175bea7e60",
+   "does": "Claims Banister TRIMP per beat with sex coefficients (ranges 0-4.37 / 0-4.57 per min), Edwards fallback when HRrest unknown, hrTSS = session TRIMP / 1 h at LTHR TRIMP × 100 returning nil if HRmax, HRrest or LTHR missing, LTHR = override else 0.88 × max HR, and the UI surfaces the α1 LT1 estimate as a suggested override.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says hrTSS returns nil if LTHR is missing ('never guesses') and that the UI offers the α1 LT1 estimate as a suggested LTHR override; WorkoutAnalyzer documents LTHR as optional with a 0.88 × HRmax fallback, and ThresholdCards says the LT1 estimate is deliberately not offered as LTHR.",
+     "evidence": [
+      "docs/FLOWCHART.md:1401",
+      "docs/FLOWCHART.md:1405",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:54",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:8"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "26de69d7dedbaeeb",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)": "91070ad90b7ff62a",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)": "704785dd3e3b719c"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow",
+   "hash": "ec12eee04045b48b",
+   "does": "no behavioural claim: section intro pointing to docs/VOICE_AND_TOOL_USE.md for rationale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Entry point",
+   "hash": "a6e1803c0e360300",
+   "does": "Claims every send trims text, sets nextSendIsVoice, appends the user turn, then tries DeterministicIntent.tryMatch (14-pattern catalog) and on a hit appends the reply, records deterministic_hit telemetry and skips the LLM.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc runs the deterministic shortcut on every send, after appending the user turn, and records 'deterministic_hit' telemetry; send() runs it only when fromVoice is true, after the medical guard, key, consent and queue gates, appends the user+assistant pair itself, and only writes a debug log (FLO_ARCHITECTURE §15 says there is no production counter). The two docs contradict each other.",
+     "evidence": [
+      "docs/FLOWCHART.md:1431",
+      "docs/FLOWCHART.md:1434",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:388",
+      "docs/FLO_ARCHITECTURE.md:398"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Provider resolution",
+   "hash": "b2f79b21604bab2c",
+   "does": "Claims routing: non-Apple selection or Manual → user's pick; voice with Apple selected → first available consented cloud (default model) else Apple; Quick/Deep pin the tier, Auto uses SmartProviderRouter (bumping session tier/turn count); Deep with a cloud mapping is capped at 50/day then downgraded to .auto; TierProviderMapper quick → Apple, auto → consented Grok then DeepSeek else Apple, deep → same mid-tier cloud; action-intent override moves tool-needing turns off Apple to the first consented cloud. Matches TurnRouter, SmartProviderRouter.dailyTier3Cap = 50 and TierProviderMapper.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "be5aa3e059590e1a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)": "3da30af5513ca277",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "71c74a89735eb4bf",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Capability classification (Auto mode)",
+   "hash": "229d495159e85f79",
+   "does": "Claims CapabilityClassifier: keyword heuristic per axis, gated AND with NLContextualEmbedding cosine ≥ 0.55 per axis when available, else keyword-only; 0/1/≥2 flags → quick/auto/deep; stickiness: upgrades always, first 3 turns follow proposal, quick with no flags escapes, else keep current tier. Matches code; additionally non-English input opens every keyword gate and with no embedder returns no flags, and an NLEmbedding word-vector fallback exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the embedding gate runs only when NLContextualEmbedding is available, else keyword-only. embed() falls back to the NLEmbedding word-vector embedder, so the gated embedding path still runs without the contextual model. For input recognised as non-English the keyword gate is lifted (embedding alone decides), and with no embedder such input returns .none.",
+     "evidence": [
+      "docs/FLOWCHART.md:1503",
+      "docs/FLOWCHART.md:1509",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:145",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:131",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:145"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "084fda77aeca56c8",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Apple Foundation send (Quick tier)",
+   "hash": "8025d1fc41d003cf",
+   "does": "Claims the Apple path sets AppleToolDispatcher's registry, strips the cache marker, compacts history to 0.70 × 4096 minus system tokens keeping the latest user turn, wraps tools via AppleToolCatalog, reuses a cached LanguageModelSession unless instructions/tool hash change, ≥ 20 turns, a fresh conversation or token overflow, streams with maximumResponseTokens 512 yielding text deltas. Constants match AppleContextCompactor (0.70, 4096, responseReserve 512) and SessionCache.maxTurnsPerSession = 20.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says Apple's instructions are the composed system prompt minus the cache marker plus contextRendered; makePlan builds them with AssistantSystemPrompt.appleInstructions (Apple's own short prompt keeping only the units line, overlays, user facts and the variable half), does not append contextRendered, caps them with a length rule, and trims the tool set to a token budget (fittingTools) whose size is added to the compaction prefix. The doc's '0.70 × 4096 − systemTokens' omits the tool tokens.",
+     "evidence": [
+      "docs/FLOWCHART.md:1541",
+      "docs/FLOWCHART.md:1542",
+      "docs/FLOWCHART.md:1550",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:370",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:372",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:346"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Session-cache and stream steps differ from code. canReuse also requires previousReplyWasApple, so a turn after another provider's answer always starts fresh. The instructions signature ignores volatile lines rather than comparing the text. A reused session's prompt is '(Current time: ...)\\n' + latest user text, not the bare text. Deltas go through AppleReplyRelay, which emits a complete sentence or line at a time and drops an unfinished last sentence when the token cap is hit. The doc's per-snapshot delta yield is not what runs.",
+     "evidence": [
+      "docs/FLOWCHART.md:1569",
+      "docs/FLOWCHART.md:1577",
+      "docs/FLOWCHART.md:1586",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:163",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:168",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:508",
+      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:526"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "5367c29f83a3b52a",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "f62a55f4264ee6bf",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "f4ccc4ea401ad8c9",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "bef5b5977b4976ae",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7fe971dbead49f86"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Tool-call resolution path (Apple)",
+   "hash": "a99da7859053f873",
+   "does": "Claims Apple tool calls go AppleToolAdapter.call → AppleToolDispatcher.dispatch, which returns an explicit no-registry error JSON when unset, else CompactToolRouter.resolveTool and toToolResultJSON. Matches; dispatch also refuses web_search on the Apple path and enforces the per-turn call budget and output allowance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says dispatch resolves through CompactToolRouter and returns value.toToolResultJSON(). dispatch first refuses 'web_search' and any call past AssistantToolRunner.maxToolCallsPerTurn with a refusal envelope. It then charges and truncates every result to the attempt's ToolOutputAllowance (outputAllowance.admit), so Apple can receive a cut-down JSON envelope.",
+     "evidence": [
+      "docs/FLOWCHART.md:1607",
+      "docs/FLOWCHART.md:1610",
+      "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:56",
+      "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:91",
+      "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:104",
+      "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift:114"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "5c979037fab6e074",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Cloud provider send (Auto / Deep tier)",
+   "hash": "1644853de27edce3",
+   "does": "Claims cloud sends build provider-specific bodies (Anthropic cache_control 1 h on tools/system/last turn with a <live_state> block appended to the last user message; OpenAI-compatible function calling; Gemini function_declarations), loop up to 8 tool calls per turn (AssistantViewModel.maxToolCallsPerTurn), and record .usage into LLMCacheTelemetry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says Anthropic appends a <live_state> block to the last user message; assembleContextAndTools sets contextRendered to \"\" for every non-Apple provider and spliceLiveState returns immediately on an empty string, so no live_state block is ever sent to Anthropic.",
+     "evidence": [
+      "docs/FLOWCHART.md:1623",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:511",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:318"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc puts Anthropic's history cache breakpoint on the last conversation turn and the 1h TTL on all breakpoints, and describes the loop as 'while totalToolCalls < 8' resolving through registry.resolveTool; buildMessageHistory marks the second-to-last message with plain ephemeral (5 min), only the tool breakpoint has ttl 1h, calls resolve through CompactToolRouter.resolveTool, and a round that would cross 8 gets synthetic results for all of its calls.",
+     "evidence": [
+      "docs/FLOWCHART.md:1622",
+      "docs/FLOWCHART.md:1629",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:271",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:228",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:410",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:455"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Doc names the cap 'AssistantViewModel.maxToolCallsPerTurn' and the Gemini body key 'function_declarations'. The constant is declared on AssistantToolRunner (extension in AssistantViewModel+Tools.swift), and GeminiProvider encodes the camelCase key 'functionDeclarations'.",
+     "evidence": [
+      "docs/FLOWCHART.md:1626",
+      "docs/FLOWCHART.md:1628",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:12",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:30",
+      "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift:155"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "985f1c3e8c95f8e0",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "de70871e15feb073",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)": "93c6255b72c27020",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "97ac1bb1b318c611",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)": "4104a3ed8563b698",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "acefcc79910f23a4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Telemetry sinks",
+   "hash": "a80052dbec627f4f",
+   "does": "Claims usage events feed LLMCacheTelemetry (cumulative and last-10 rolling hit ratios) shown in Settings → Troubleshooting AI cache health card, SmartProviderRouter keeps in-memory tier/proposal/stickiness counters, and nothing is persisted or sent off-device. Matches LLMCacheTelemetry (recentHitRatio turns: 10) and recordTelemetry; LLMRequestAudit is also in-memory only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTelemetry(proposed:chosen:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the cumulative hit ratio is kept per provider and globally. Only the global ratio is cumulative. perProviderSummary groups the rolling 'recent' buffer, capped at 50 turns, so per-provider ratios cover at most the last 50 turns.",
+     "evidence": [
+      "docs/FLOWCHART.md:1656",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:76",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:134"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)": "5be1d23804d6795a",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "985f1c3e8c95f8e0",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTelemetry(proposed:chosen:)": "e4c372c2340b4585"
+   }
+  },
+  {
+   "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Voice preamble (model identity earcon)",
+   "hash": "bf367dc7487061b4",
+   "does": "Claims the first voice reply of a session is prefixed 'Flo here. <Model>.' (or 'Flo here.' with no provider), workout coach uses 'Coach here.'. Matches announced(); scripted/trigger speech skips the preamble.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.currentModelDisplayName()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "ce20410284e62cc7",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.currentModelDisplayName()": "a683c472aed227ab"
+   }
+  }
+ ],
+ "deps": {}
+}

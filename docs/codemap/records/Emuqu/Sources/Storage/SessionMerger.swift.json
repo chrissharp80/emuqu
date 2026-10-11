@@ -1,0 +1,564 @@
+{
+ "file": "Emuqu/Sources/Storage/SessionMerger.swift",
+ "hash": "a255703b07a406df",
+ "role": "SessionMerger: pure decision core (MergeOutcome) + imperative apply for folding an imported session into an existing archived one (composite RR merge, adopt series, fill analysis/score/tags/notes/metrics). Reached through SessionArchive forwarding (Archive+MergeForwarding.swift).",
+ "types": [
+  "SessionMerger: enum — namespace for merge decision/apply; extended by +Rebase and +Timeline",
+  "SessionMerger.MergeOutcome: struct — pure merge decision",
+  "SessionMerger.MergeOutcome.RRChange: enum — composite | adoptImportedSeries"
+ ],
+ "state": [],
+ "toplevel": "No global state. MergeOutcome default values: rrChange nil, clockStart nil, flags false, tagsToAppend [].",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SessionMerger.MergeOutcome.hasChanges",
+   "hash": "59d83c4be68bba29",
+   "does": "True when any RR change or any metadata/analysis/score fill was decided.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.mergeSessionData(from:into:)",
+   "hash": "ead3084164d19506",
+   "does": "Computes the MergeOutcome from snapshots, applies it to existing in place, and returns hasChanges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d",
+    "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "b7d8523490fd29bc"
+   }
+  },
+  {
+   "key": "func SessionMerger.mergeOutcome(imported:existing:)",
+   "hash": "ec88020998f86db9",
+   "does": "Pure: picks the common clock (earlier start), decides the RR change on both sessions moved onto that clock, records clockStart and whether the two spans are disjoint (spansBothSleeps) when an RR change is made, then decides tag/notes/metrics fills.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.decideMetadataFills(imported:existing:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rrChange != nil",
+     "effect": "true: set clockStart and spansBothSleeps = !overlaps(spans); false: clockStart stays nil so apply keeps existing's own clock"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "0d78e3029c4bc90e",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.commonClockStart(of:and:)": "71a47181c6f0e83d",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "ed84ed5b604c4027",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)": "51f070aafd4d878b",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.decideMetadataFills(imported:existing:into:)": "4fa97c9c3e52b63a",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.rrOutcome(imported:existing:)": "4570d63a9b01003c"
+   }
+  },
+  {
+   "key": "func SessionMerger.decideMetadataFills(imported:existing:into:)",
+   "hash": "9f3d5b673b6aeec7",
+   "does": "Decides metadata fills: tags whose ids existing lacks, adopt notes when imported has non-empty notes and existing's are nil/empty, adopt importedMetrics when existing has none and imported has some.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "imported.notes non-nil and non-empty",
+     "effect": "part 1 of notes rule"
+    },
+    {
+     "at": "+5",
+     "cond": "existing.notes nil or empty (?? \"\")",
+     "effect": "with part 1 true: adoptNotes = true; else notes unchanged"
+    },
+    {
+     "at": "+8",
+     "cond": "existing.importedMetrics nil AND imported's non-nil",
+     "effect": "adoptImportedMetrics = true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.singleSeriesOutcome(imported:existing:)",
+   "hash": "78bb98774aa50479",
+   "does": "When at least one side has no beats: if existing has no rrSeries and imported has one, adopt the imported series (and its analysis if any); otherwise only fill a missing analysisResult and/or recoveryScore.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "existing.rrSeries == nil AND imported.rrSeries != nil",
+     "effect": "true: rrChange = adoptImportedSeries(adoptImportedAnalysis: imported has analysis); false: adoptAnalysisResult / adoptRecoveryScore each set independently when existing lacks it and imported has it"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "adoptAnalysisResult and adoptRecoveryScore are decided independently: a session with its own analysis but no score adopts the imported score triple (applyFills→adoptFrozenScore) computed from a different analysis.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:125",
+      "Emuqu/Sources/Storage/SessionMerger.swift:126",
+      "Emuqu/Sources/Storage/SessionMerger.swift:299"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "An existing session whose rrSeries is non-nil but has zero points, merged with an imported session that has beats, falls to this path (133 guard fails) and fails the existing.rrSeries == nil test (122), so the imported beats are not adopted. No current producer of an empty RRSeries was found.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:133",
+      "Emuqu/Sources/Storage/SessionMerger.swift:122"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+   }
+  },
+  {
+   "key": "func SessionMerger.rrOutcome(imported:existing:)",
+   "hash": "a75a7fe6c15a564a",
+   "does": "When both sessions have non-empty RR point arrays, returns an outcome with a composite RR change; otherwise delegates to singleSeriesOutcome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both imported and existing have non-empty rrSeries.points",
+     "effect": "false: singleSeriesOutcome; true: composite"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)": "1e9537472a683e90",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.singleSeriesOutcome(imported:existing:)": "e4161b7fe4929b14"
+   }
+  },
+  {
+   "key": "func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)",
+   "hash": "89e5c9894be79184",
+   "does": "Builds the composite RR change: classifies each side as streaming by dataSourceSummary.selectedSource == \"streaming\", merges points, builds a 'composite' summary, decides whether to adopt imported analysis, and sets adoptImportedSleepBounds when existing is streaming and imported is not.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeSummary(imported:existing:importedPoints:existingPoints:mergedPoints:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.shouldAdoptImportedAnalysis(imported:existing:importedPoints:existingPoints:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "existing.dataSourceSummary?.selectedSource == \"streaming\" (nil summary → \"\" → false)",
+     "effect": "existingIsStreaming"
+    },
+    {
+     "at": "+5",
+     "cond": "same for imported",
+     "effect": "importedIsStreaming"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Streaming detection is a string compare on selectedSource; a session that was already merged once has selectedSource \"composite\" (199), so a later merge treats it as non-streaming and falls to the count-based mergePoints path instead of the uncovered-beats path.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:150",
+      "Emuqu/Sources/Storage/SessionMerger.swift:199"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeSummary(imported:existing:importedPoints:existingPoints:mergedPoints:)": "8c3a095cbc6d6606",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)": "f8013ded4f91b271",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.shouldAdoptImportedAnalysis(imported:existing:importedPoints:existingPoints:)": "cc3dc2e9a47fdd18"
+   }
+  },
+  {
+   "key": "func SessionMerger.mergePoints(importedPoints:existingPoints:existingIsStreaming:importedIsStreaming:)",
+   "hash": "412afc42c91cb668",
+   "does": "Merges the two point arrays: when exactly one side is streaming, the other is 'internal' and only uncovered streaming beats are added; otherwise the larger series is internal for DataSourceSelector.mergePoints.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "existing streaming and imported not",
+     "effect": "mergeAddingOnlyUncoveredBeats(internal: imported, streaming: existing)"
+    },
+    {
+     "at": "+7",
+     "cond": "imported streaming and existing not",
+     "effect": "mergeAddingOnlyUncoveredBeats(internal: existing, streaming: imported)"
+    },
+    {
+     "at": "+10",
+     "cond": "imported count >= existing count",
+     "effect": "mergePoints(internal: imported, streaming: existing); else internal: existing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)": "49093decb9c879fc",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "08bc9799bbccea43"
+   }
+  },
+  {
+   "key": "func SessionMerger.compositeSummary(imported:existing:importedPoints:existingPoints:mergedPoints:)",
+   "hash": "610b96c59702d497",
+   "does": "Builds the 'composite' DataSourceSummary: base summary is imported's (else existing's); beat difference % is (merged-existing)/existing*100; streaming/device beats from the base summary or the two counts; reconnectCount/deviceModel from base.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "imported.dataSourceSummary non-nil",
+     "effect": "true: base = imported's summary; false: base = existing's (may be nil)"
+    },
+    {
+     "at": "+5",
+     "cond": "existingPoints.count > 0",
+     "effect": "true: (merged-existing)/existing*100; false: base?.beatDifferencePercent"
+    },
+    {
+     "at": "+10",
+     "cond": "baseSummary nil (streamingBeats is non-optional Int)",
+     "effect": "?? existingPoints.count only when neither side has a summary; otherwise base.streamingBeats"
+    },
+    {
+     "at": "+11",
+     "cond": "baseSummary nil or base.deviceBeats nil (deviceBeats is Int?)",
+     "effect": "?? importedPoints.count"
+    },
+    {
+     "at": "+14",
+     "cond": "baseSummary nil (reconnectCount is non-optional Int)",
+     "effect": "?? 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "streamingBeats/deviceBeats are taken from imported's own summary when present, which describes imported's earlier selection, not the two sides of this merge; existing's beats are attributed to 'streaming' and imported's to 'device' regardless of which was streaming.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:200",
+      "Emuqu/Sources/Storage/SessionMerger.swift:201"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc"
+   }
+  },
+  {
+   "key": "func SessionMerger.shouldAdoptImportedAnalysis(imported:existing:importedPoints:existingPoints:)",
+   "hash": "e73bf710f955a0c8",
+   "does": "Adopt imported analysis when it has one and existing has none, or imported's pre-merge series has more points than existing's.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.apply(_:from:to:)",
+   "hash": "5855b6cc95d91afb",
+   "does": "Applies an outcome: when clockStart set, moves existing onto it, extends endDate to the later of both, and applies the RR change from imported on the same clock; otherwise applies fills against the original imported. Then appends new tags and adopts notes/importedMetrics as decided.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "outcome.clockStart non-nil",
+     "effect": "true: rebase both, endDate = max of both ends, applyRRChange(importedOnClock); false: applyRRChange(imported)"
+    },
+    {
+     "at": "+10",
+     "cond": "adoptNotes",
+     "effect": "existing.notes = imported.notes"
+    },
+    {
+     "at": "+13",
+     "cond": "adoptImportedMetrics",
+     "effect": "existing.importedMetrics = imported.importedMetrics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.onClock(_:startingAt:)": "0d78e3029c4bc90e",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyRRChange(_:from:to:)": "2f0076417612e369"
+   }
+  },
+  {
+   "key": "func SessionMerger.applyRRChange(_:from:to:)",
+   "hash": "6c1b9b99534c28ba",
+   "does": "Dispatches on rrChange: composite → sleep bounds then composite series/analysis; adoptImportedSeries → take imported series; nil → applyFills.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyFills(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "case .composite",
+     "effect": "applySleepBounds + applyComposite"
+    },
+    {
+     "at": "+14",
+     "cond": "case .adoptImportedSeries",
+     "effect": "applyImportedSeries"
+    },
+    {
+     "at": "+16",
+     "cond": "case nil",
+     "effect": "applyFills"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)": "34cdf9f3ac2a2831",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyFills(_:from:to:)": "df2d19839cd65f07",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyImportedSeries(_:from:to:)": "0b4ba5d8a419cdca",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)": "5b85acaa3eeb3192"
+   }
+  },
+  {
+   "key": "func SessionMerger.applyFills(_:from:to:)",
+   "hash": "e28c7ca67664cf0b",
+   "does": "No-RR-change fills: adopts imported analysis shifted by the start-date offset when decided, and the frozen score triple when decided.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "adoptAnalysisResult",
+     "effect": "analysisResult = imported's shifted by offset (fallback 0 ms when offset unrepresentable)"
+    },
+    {
+     "at": "+7",
+     "cond": "adoptRecoveryScore",
+     "effect": "adoptFrozenScore"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Only window times are shifted; windowStart/windowEnd indices from imported's series are kept although existing's series (if any) is a different array, so the index window can point at the wrong beats.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:296",
+      "Emuqu/Sources/Storage/SessionMerger+Rebase.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.shifted(_:by:)": "188a06e60c0a2f5c",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "b703d6e106cdb4d4",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func SessionMerger.applyImportedSeries(_:from:to:)",
+   "hash": "5e3316b6404c2031",
+   "does": "Existing had no beats: takes imported's series re-filed under existing.id/startDate, its artifact flags, data source summary and sleep bounds, and its analysis+score triple when decided.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "existing.autoWindowResult is left as-is (not taken from imported), so an auto window computed for a different/no series survives next to the adopted series.",
+     "evidence": [
+      "Emuqu/Sources/Storage/SessionMerger.swift:306"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98"
+   }
+  },
+  {
+   "key": "func SessionMerger.applySleepBounds(adoptImported:spanBoth:from:to:)",
+   "hash": "1773af35149752fe",
+   "does": "Sets sleep bounds after a composite: disjoint spans → earliest start/latest end of both; else, when adopting imported (existing was streaming), imported's bounds override where present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "spanBoth",
+     "effect": "min/max of both sides' bounds"
+    },
+    {
+     "at": "+6",
+     "cond": "adoptImported",
+     "effect": "imported bounds ?? existing's"
+    },
+    {
+     "at": "+7",
+     "cond": "imported.sleepStartMs nil",
+     "effect": "?? keeps existing.sleepStartMs"
+    },
+    {
+     "at": "+8",
+     "cond": "imported.sleepEndMs nil",
+     "effect": "?? keeps existing.sleepEndMs"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)",
+   "hash": "23f082a8ad24da1b",
+   "does": "Installs the composite: new RRSeries of merged points under existing's id/start, composite summary, clears artifactFlags, re-points autoWindowResult and the kept/adopted analysisResult window indices into the merged series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "existing.rrSeries nil",
+     "effect": "?? [] for existingPoints"
+    },
+    {
+     "at": "+8",
+     "cond": "imported.rrSeries nil",
+     "effect": "?? [] for importedPoints"
+    },
+    {
+     "at": "+16",
+     "cond": "adoptImportedAnalysis",
+     "effect": "index source = imported points; else existing points"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Storage/SessionMerger+Rebase.swift::func SessionMerger.reindexed(_:from:onto:)": "d03a6aa9ee2a5b06",
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptAnalysis(_:from:to:)": "ced093429a75da98"
+   }
+  },
+  {
+   "key": "func SessionMerger.adoptAnalysis(_:from:to:)",
+   "hash": "3dd314b94a62a334",
+   "does": "When shouldAdopt, copies imported analysisResult and the frozen score triple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "shouldAdopt false",
+     "effect": "return without change"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.adoptFrozenScore(from:to:)": "b703d6e106cdb4d4"
+   }
+  },
+  {
+   "key": "func SessionMerger.adoptFrozenScore(from:to:)",
+   "hash": "76be5e8034f04917",
+   "does": "Copies recoveryScore, scoreBreakdown and frozenReadiness from imported to existing together.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  }
+ ],
+ "deps": {}
+}

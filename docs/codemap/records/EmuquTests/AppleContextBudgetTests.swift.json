@@ -1,0 +1,367 @@
+{
+ "file": "EmuquTests/AppleContextBudgetTests.swift",
+ "hash": "a56fc8cc90cb8a91",
+ "role": "XCTest suite pinning Apple Intelligence 4,096-token context budgeting in AppleContextCompactor (truncation, per-turn tool budget, allowance, session ledger rollover, retry plan) and the AIProviderError guardrail/fallback policy.",
+ "types": [
+  "AppleContextBudgetTests: class — XCTestCase for AppleContextCompactor and AIProviderError policy"
+ ],
+ "state": [],
+ "toplevel": "private typealias Compactor = AppleContextCompactor.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AppleContextBudgetTests.testTextThatFitsIsReturnedUnchanged()",
+   "hash": "87e6b907c5e5bc79",
+   "does": "Asserts truncate returns short JSON text unchanged under a 100-token limit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testCutTextStaysWithinTheLimitAndCarriesTheNote()",
+   "hash": "99a308c8b387a550",
+   "does": "For limits 60/250/600 asserts the cut text's estimated tokens <= limit, it ends with toolOutputCutNote, and the body is a prefix of the original.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each limit in [60,250,600]",
+     "effect": "truncates and asserts the three properties"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testCutHonoursNonASCIICost()",
+   "hash": "c97a3c6f52ad3f5b",
+   "does": "Asserts truncating Japanese text to 120 tokens stays within 120 estimated tokens (non-ASCII = 1 token/char).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testToolOutputBudgetIsWhatTheWindowHasLeft()",
+   "hash": "0205d3d7279ef897",
+   "does": "Asserts toolOutputBudget(1500,400) == contextWindow-1500-400-responseReserve-estimateMargin and that prefix+transcript+budget+reserve fits the window.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "ac8ab1b87398fbba"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testToolOutputBudgetNeverDropsBelowTheFloor()",
+   "hash": "bc4628ba5b909b55",
+   "does": "Asserts an overfull prefix (4000+900) yields minToolOutputTokens.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "ac8ab1b87398fbba"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testCompactedTranscriptLeavesRoomForToolResultsAndTheReply()",
+   "hash": "2fc3e0b587568795",
+   "does": "Builds 60 alternating user/assistant ChatTurns and for fixed prefixes 800/1400/2000 asserts compacted transcript + tool budget + reserve fits the 4096 window.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index is even",
+     "effect": "turn role .user, else .assistant"
+    },
+    {
+     "at": "+5",
+     "cond": "for each fixed prefix",
+     "effect": "compacts, sizes and asserts fit"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "5367c29f83a3b52a",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)": "ac8ab1b87398fbba",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "5e73c6b8d113c2ac",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testAllowanceCapsEachResultAndRunsOut()",
+   "hash": "d85e7518a08d66c2",
+   "does": "With allowance 700/cap 400, asserts first admit <=400 tokens, two admits <=700 total, remaining falls below minToolOutputTokens and a third admit returns spentNote.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testSmallResultPassesThroughWhole()",
+   "hash": "ec5ea5e43b2dba77",
+   "does": "Asserts a small result passes through admit unchanged and remaining drops by exactly its estimated tokens.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testAllowanceCountsWhatTheTurnSpent()",
+   "hash": "401c271958a34509",
+   "does": "Charges a tool call, admits a large result then a spent note, and asserts allowance.spent equals call+overhead+result+note+overhead.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "b103ed0a1fd6fcd7",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "c723e52520b1bdce"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testFreshLedgerLeavesTheFollowUpWhatTheWindowHasLeft()",
+   "hash": "409c488392072cf4",
+   "does": "Asserts a fresh SessionLedger(1500) follow-up budget == window-1500-40-2*entryOverhead-reserve-margin.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testReusedSessionRollsOverBeforeItWouldOverflow()",
+   "hash": "c40e0781a5156c04",
+   "does": "Starting at 1800 prefix tokens, loops follow-up turns (max 10) charging full-cap tool results and asserts each fits the window and exactly 1 reused turn is allowed before rollover.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "reusedTurns < 10 and followUpToolBudget is non-nil",
+     "effect": "asserts budget>=cap and fit, charges the turn; loop ends when the ledger returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "e16cbeb9f376ab0f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "cc950938e63dbc68"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testRolloverDecisionFollowsWhatTheSessionHolds()",
+   "hash": "fbbf910939aaa1ff",
+   "does": "Asserts a lightly used ledger still returns a follow-up budget and a heavily charged one returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "e16cbeb9f376ab0f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "9b37d6216d8646b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "cc950938e63dbc68"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testLedgerChargesEveryPartOfATurn()",
+   "hash": "68a7458ccec7e56a",
+   "does": "Asserts charge adds prompt+tool+reply+2*entryOverhead to usedTokens.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)": "e16cbeb9f376ab0f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "98fc30fb36b31a15"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testOverflowIsRetriedOnceTrimmed()",
+   "hash": "dcfc63cbec8da315",
+   "does": "Asserts Attempt.full.afterOverflow == .trimmed and trimmed.afterOverflow == nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow": "1a868559a982796b"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testTrimmedAttemptAsksForLessOfTheWindow()",
+   "hash": "915d4bf42dd7b0f2",
+   "does": "Asserts trimmed attempt has smaller tool budget, tool cap and instruction cap than full, drops history, and its caps plus reserve and margin fit the window.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.instructionTokenCap": "539eb686ddc474be",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.keepsHistory": "714aa9adbfee0c49",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "cc950938e63dbc68",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget": "b3338836b20cfc6a"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testSafetyRefusalIsNotHandedToAnotherProvider()",
+   "hash": "2a3f996b95c80833",
+   "does": "Asserts guardrailViolation is an Apple guardrail and not fallbackable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail": "2687932f12d20664",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "70f5deff0c698e49"
+   }
+  },
+  {
+   "key": "func AppleContextBudgetTests.testNonSafetyFailuresMayMoveOn()",
+   "hash": "842b9a63563b0b06",
+   "does": "Asserts unknown/modelUnavailable/rateLimited/network/authFailed errors are fallbackable and not Apple guardrails.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each of 5 failures",
+     "effect": "asserts fallbackable and not guardrail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail": "2687932f12d20664",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "70f5deff0c698e49"
+   }
+  }
+ ],
+ "deps": {}
+}

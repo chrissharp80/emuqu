@@ -1,0 +1,119 @@
+{
+ "file": "Emuqu/Sources/Views/EngineRoomDisclosure.swift",
+ "hash": "81c4abdf6adc0e7e",
+ "role": "Expandable \"Advanced metrics\"/\"Recording details\" section; remembers last expansion time per memoryKey in UserDefaults and starts expanded for 30 days after.",
+ "types": [
+  "EngineRoomDisclosure<Content>: struct (View)"
+ ],
+ "state": [
+  "ud:<memoryKey> — callers use \"engineRoom.hrvDetail.<sessionUUID>\" and \"engineRoom.recoveryDetail.<sessionUUID>\"",
+  "@State expanded"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "memoryKey is per session UUID at both call sites, so a new UserDefaults key is written for every session ever expanded and none is removed (not on session delete or after the 30 days lapse); the \"remember expansion\" also never carries to the next day's session.",
+   "evidence": [
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:454",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:138",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift:15"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init EngineRoomDisclosure(title:memoryKey:content:)",
+   "hash": "55bd2b24dbfb57a8",
+   "does": "Stores title/key/content and initializes expanded = last expansion timestamp under memoryKey is within 30 days.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:<memoryKey>"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var EngineRoomDisclosure.body",
+   "hash": "4791ecdc6d456888",
+   "does": "Button toggling expansion with a hint; content shown below when expanded.",
+   "entry": "SwiftUI body; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::func EngineRoomDisclosure.toggle()",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::var EngineRoomDisclosure.bodyLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "expanded",
+     "effect": "hint \"Tap to collapse\"; else \"Tap to expand\""
+    },
+    {
+     "at": "+9",
+     "cond": "expanded",
+     "effect": "render content; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::func EngineRoomDisclosure.toggle()": "cfa1adb88461efab",
+    "Emuqu/Sources/Views/EngineRoomDisclosure.swift::var EngineRoomDisclosure.bodyLabel": "c2af8b0acb23f7e3"
+   }
+  },
+  {
+   "key": "func EngineRoomDisclosure.toggle()",
+   "hash": "d588293b14471d6f",
+   "does": "Toggles expanded with animation; when now expanded, stores the current time under memoryKey.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:<memoryKey>"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "expanded after toggle",
+     "effect": "write timestamp; collapsing writes nothing, so a collapse is not remembered"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var EngineRoomDisclosure.bodyLabel",
+   "hash": "ee190b573ede2a4c",
+   "does": "Title + rotating chevron on a tinted rounded background.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "expanded",
+     "effect": "chevron 0°; else -90°"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

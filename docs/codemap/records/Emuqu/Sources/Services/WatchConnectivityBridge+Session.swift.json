@@ -1,0 +1,989 @@
+{
+ "file": "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift",
+ "hash": "f46eb3c8f64eb4b2",
+ "role": "iOS-side WCSessionDelegate for the Watch link: activation/reachability, inbound message routing (HR samples, strap samples, workout controls, voice chat, state requests), queued-intent staleness filtering, reply construction, voice-chat state push, and plist round-tripping of payloads to the main actor.",
+ "types": [
+  "WatchConnectivityBridge: extension — WCSessionDelegate conformance and message handling",
+  "WatchConnectivityBridge: extension — plistData/plistDictionary helpers",
+  "WCReplyBox: struct (@unchecked Sendable, private) — carries a WC reply handler to the main actor"
+ ],
+ "state": [
+  "mem:WatchConnectivityBridge.maxQueuedIntentAge = 120 s",
+  "mem:WatchConnectivityBridge.maxStrapSampleAge = 5 s"
+ ],
+ "toplevel": "Two static constants. The extension mutates bridge state declared in WatchConnectivityBridge.swift: mem:WatchConnectivityBridge.isReachable, latestWatchHR, latestWatchStrapHR, latestWatchStrapRRMillis, pendingWatchStrapRR (capped at 1000), latestWatchStrapAt, lastProcessedContextTimestamp.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "lastProcessedContextTimestamp is documented as deduping applicationContext against the live didReceiveMessage path, but only the queued paths read or write it; a message handled via didReceiveMessage never records its ts. The Watch currently sends either live or queued (WatchSessionManager.swift:482/498), so no double-fire is observed today.",
+   "evidence": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift:252",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:125",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:52"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WatchConnectivityBridge.session(_:activationDidCompleteWith:error:)",
+   "hash": "1ecb966eda321598",
+   "does": "WC activation callback: publishes isReachable on the main actor; when activated, invokes onWCSessionActivated (wired to push current strap state).",
+   "entry": "WCSessionDelegate session(_:activationDidCompleteWith:error:) — called by WatchConnectivity after WCSession.activate().",
+   "calls": [
+    "closure:onWCSessionActivated = onRequestStrapStateFromWatch set in WatchConnectivityBridge.swift:524 (pushes strap state to the Watch)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge.isReachable"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "activationState != .activated",
+     "effect": "returns after updating reachability; no strap push"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.sessionReachabilityDidChange(_:)",
+   "hash": "0445808e2a43cd67",
+   "does": "Reachability change: resets the send-timeout circuit breaker when reachable; publishes isReachable and clears latestWatchHR when unreachable.",
+   "entry": "WCSessionDelegate sessionReachabilityDidChange(_:).",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WatchConnectivityBridge.timeoutCounter",
+    "mem:WatchConnectivityBridge.isReachable",
+    "mem:WatchConnectivityBridge.latestWatchHR"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session reachable",
+     "effect": "resets timeout counter"
+    },
+    {
+     "at": "+14",
+     "cond": "not reachable",
+     "effect": "latestWatchHR = nil (and its timestamp)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()": "827e9e5d5b87ba49",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.session(_:didReceiveMessage:)",
+   "hash": "8fdd199bdefaa70f",
+   "does": "Live message without reply: serialises to plist Data, then on the main actor logs the type and routes the decoded dictionary through handleIncoming.",
+   "entry": "WCSessionDelegate session(_:didReceiveMessage:) for Watch sendMessage without replyHandler.",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "wc:type"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "message has no string \"type\" (??)",
+     "effect": "logs \"unknown\"; routing then ignores it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.session(_:didReceiveMessage:replyHandler:)",
+   "hash": "97d18f1f67fa50a8",
+   "does": "Live message with reply: boxes the reply handler, decodes on the main actor and replies with handleIncomingWithReply's dictionary.",
+   "entry": "WCSessionDelegate session(_:didReceiveMessage:replyHandler:) — Watch start/stop/voice/state requests.",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::init WCReplyBox(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WCReplyBox.send(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "wc:type"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no string \"type\" (??)",
+     "effect": "logs \"unknown\"; handleIncomingWithReply replies unknownMessage refusal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WCReplyBox.send(_:)": "a0ebf85643006137",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8cbbd57155da7a2d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::init WCReplyBox(_:)": "123a51b3dfd05e9b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.session(_:didReceiveUserInfo:)",
+   "hash": "7d5b039490b8b105",
+   "does": "transferUserInfo receipt: decodes on main, drops it unless acceptsQueuedIntent, else routes via handleIncoming.",
+   "entry": "WCSessionDelegate session(_:didReceiveUserInfo:).",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "wc:type",
+    "wc:ts",
+    "wc:expiresAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no \"type\" (??)",
+     "effect": "logs \"unknown\""
+    },
+    {
+     "at": "+6",
+     "cond": "acceptsQueuedIntent false",
+     "effect": "drops the payload"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)": "d433e6ab7c4f7e6c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.sessionDidBecomeInactive(_:)",
+   "hash": "489be7feeeefefdb",
+   "does": "No-op required delegate method.",
+   "entry": "WCSessionDelegate sessionDidBecomeInactive(_:) (iOS, Watch switching).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.sessionDidDeactivate(_:)",
+   "hash": "30fc3275a4dfbfe8",
+   "does": "Re-activates the WCSession after deactivation (Watch switch).",
+   "entry": "WCSessionDelegate sessionDidDeactivate(_:).",
+   "calls": [
+    "ext:WCSession.activate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.session(_:didReceiveApplicationContext:)",
+   "hash": "8c19bce25e82c68d",
+   "does": "applicationContext receipt (Watch intents queued while iPhone unreachable): decodes on main, drops stale/duplicate/expired/pre-workout intents, else routes via handleIncoming.",
+   "entry": "WCSessionDelegate session(_:didReceiveApplicationContext:).",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)"
+   ],
+   "reads": [
+    "wc:applicationContext"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "acceptsQueuedIntent false",
+     "effect": "drops"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.acceptsQueuedIntent(_:)": "d433e6ab7c4f7e6c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistData(_:)": "941f31e547b69278",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.plistDictionary(_:)": "277b961ab8085e6e"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.acceptsQueuedIntent(_:)",
+   "hash": "14e85e413c722e4d",
+   "does": "Queued-intent filter: rejects a ts not newer than lastProcessedContextTimestamp (updating it otherwise), intents older than 120 s or past expiresAt, and stop/pause/resume stamped before the current workout started.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:WatchConnectivityBridge.lastProcessedContextTimestamp",
+    "wc:ts"
+   ],
+   "writes": [
+    "mem:WatchConnectivityBridge.lastProcessedContextTimestamp"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no numeric ts (??)",
+     "effect": "ts = 0: dedupe and staleness skipped"
+    },
+    {
+     "at": "+2",
+     "cond": "ts > 0 and ts <= last processed",
+     "effect": "returns false (duplicate)"
+    },
+    {
+     "at": "+3",
+     "cond": "ts > 0",
+     "effect": "records ts as last processed (before the stale/expiry checks)"
+    },
+    {
+     "at": "+4",
+     "cond": "stale (>120 s) or expired",
+     "effect": "logs warning and returns false"
+    },
+    {
+     "at": "+8",
+     "cond": "workout control predating current workout",
+     "effect": "logs warning and returns false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isExpired(_:)": "969eb281db069232",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleQueuedIntent(_:)": "b1906f3e664d8760",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)": "3f6f847891c7665e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.predatesCurrentWorkout(_:ts:)",
+   "hash": "497b87087c228c32",
+   "does": "True when ts > 0, a live workout start is known, the type is stop/pause/resume, and ts precedes the workout start.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchConnectivityBridge.liveWorkoutStartedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ts <= 0, no workout start, or unknown/missing type",
+     "effect": "returns false; else checks type membership and ts < start"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.isStaleQueuedIntent(_:)",
+   "hash": "76aad11cf69c7142",
+   "does": "True when ts > 0 and more than 120 s old.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.isExpired(_:)",
+   "hash": "540c78fcc0d29de2",
+   "does": "True when the payload carries expiresAt and it is in the past; false without the stamp.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "wc:expiresAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no expiresAt",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.isStaleStrapSample(_:)",
+   "hash": "5eb59b550ec7c770",
+   "does": "True (with info log) when a strap sample carries ts more than 5 s old; false without ts or when fresh.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "wc:ts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no ts",
+     "effect": "returns false (accepted)"
+    },
+    {
+     "at": "+3",
+     "cond": "age <= 5 s",
+     "effect": "returns false; else logs and true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.handleIncoming(_:)",
+   "hash": "5874a2cbd2e5c73b",
+   "does": "Routes an inbound message by MessageType: wrist HR → latestWatchHR (bounded), strap sample → handleWatchStrapSample, startVoiceChat → toggle, requestStrapState → strap push callback, requestCurrentState → replay cached live state, workout controls → handleIncomingWithReply (reply discarded), others ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.replayCachedLiveState()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:onRequestStrapStateFromWatch set in WatchConnectivityBridge.swift:520"
+   ],
+   "reads": [
+    "wc:type",
+    "wc:heartRate"
+   ],
+   "writes": [
+    "mem:WatchConnectivityBridge.latestWatchHR"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "missing/unknown type",
+     "effect": "returns, message ignored"
+    },
+    {
+     "at": "+5",
+     "cond": "case .watchHRSample",
+     "effect": "sets latestWatchHR when 25...250 bpm; implausible values ignored"
+    },
+    {
+     "at": "+6",
+     "cond": "plausible HR",
+     "effect": "latestWatchHR set; else unchanged"
+    },
+    {
+     "at": "+7",
+     "cond": "case .watchStrapSample",
+     "effect": "handleWatchStrapSample"
+    },
+    {
+     "at": "+9",
+     "cond": "case .startVoiceChat",
+     "effect": "startVoiceChatReply (toggles voice chat), reply discarded"
+    },
+    {
+     "at": "+12",
+     "cond": "case .requestStrapState",
+     "effect": "invokes onRequestStrapStateFromWatch"
+    },
+    {
+     "at": "+14",
+     "cond": "case .requestCurrentState",
+     "effect": "replayCachedLiveState"
+    },
+    {
+     "at": "+16",
+     "cond": "case start/stop/pause/resume/acknowledge workout",
+     "effect": "handleIncomingWithReply; any refusal is discarded (queued path gives the Watch no answer)"
+    },
+    {
+     "at": "+18",
+     "cond": "default",
+     "effect": "ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncomingWithReply(_:)": "8cbbd57155da7a2d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleWatchStrapSample(_:)": "c9d66a788fe7fdc8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.replayCachedLiveState()": "03b80c199f14720b",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "27a30ef24a5e8e8c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "31bb4052344f7ae3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.replayCachedLiveState()",
+   "hash": "1fcb2a903e20c18d",
+   "does": "If a live-state snapshot is cached, re-sends it to the Watch on wcQueue via transportLiveStatePayload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)"
+   ],
+   "reads": [
+    "mem:WatchConnectivityBridge.liveStateCache"
+   ],
+   "writes": [
+    "wc:liveState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nothing cached",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "de79ccfefaa01c73"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.handleWatchStrapSample(_:)",
+   "hash": "7347c6b70bd5cf7a",
+   "does": "Strap sample relayed by the Watch: drops it if >5 s old; stores plausible HR, sets latest RR batch and appends to the pending RR queue (lock-protected, capped to the last 1000), and stamps latestWatchStrapAt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)",
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.rrMillis(in:)"
+   ],
+   "reads": [
+    "wc:hr",
+    "wc:rrMillis",
+    "wc:ts"
+   ],
+   "writes": [
+    "mem:WatchConnectivityBridge.latestWatchStrapHR",
+    "mem:WatchConnectivityBridge.latestWatchStrapRRMillis",
+    "mem:WatchConnectivityBridge.pendingWatchStrapRR",
+    "mem:WatchConnectivityBridge.latestWatchStrapAt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sample stale (>5 s)",
+     "effect": "returns, nothing updated"
+    },
+    {
+     "at": "+2",
+     "cond": "hr plausible",
+     "effect": "latestWatchStrapHR updated; else keeps the previous value"
+    },
+    {
+     "at": "+6",
+     "cond": "batch has plausible RR",
+     "effect": "stores and enqueues; else nothing"
+    },
+    {
+     "at": "+13",
+     "cond": "queue > 1000",
+     "effect": "drops the oldest beyond 1000"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "An implausible or missing hr leaves latestWatchStrapHR at its previous value while latestWatchStrapAt is refreshed, so applyWatchRoutedHR (WorkoutRecorder+Ticker.swift:418) shows the old heart rate as current when this batch brings RR beats.",
+     "evidence": [
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:222",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:238",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:418"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStaleStrapSample(_:)": "b0e8e702057c890e",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.rrMillis(in:)": "27f011ef0cc3f963"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.rrMillis(in:)",
+   "hash": "c2d0e3604e6258d3",
+   "does": "Extracts rrMillis as [Double] or [Any] of Double/NSNumber and filters with WatchPayloadBounds.plausibleRRMillis; [] when absent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)"
+   ],
+   "reads": [
+    "wc:rrMillis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrMillis is [Double]",
+     "effect": "filtered and returned"
+    },
+    {
+     "at": "+2",
+     "cond": "rrMillis is not [Any]",
+     "effect": "returns []"
+    },
+    {
+     "at": "+3",
+     "cond": "element not Double (??)",
+     "effect": "tries NSNumber.doubleValue; non-numbers dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "6ec06394ea861658"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.controlReply(_:sport:)",
+   "hash": "77ba422b8839c40c",
+   "does": "Common reply for a control: phoneNotReady refusal if no handler wired, the handler's refusal if it returns one, else {ok:true}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "closure:control handler (onStop/onPause/onResume/onAcknowledge → EmuquApp.postWatchTransport, or onStartWorkoutFromWatch wrapper)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no handler",
+     "effect": "refusal .phoneNotReady"
+    },
+    {
+     "at": "+3",
+     "cond": "handler returned a refusal",
+     "effect": "refusal reply; else {ok:true}"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.refusalReply(_:sport:)",
+   "hash": "9ed5c86a28e4ba61",
+   "does": "Builds {ok:false, errorCode: refusal.rawValue, error: refusal.phoneText(sport:)}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.startWorkoutReply(_:)",
+   "hash": "bf7f90641a2b910a",
+   "does": "Start-workout reply: reads sport (default \"run\") and optional targetZone, wraps onStartWorkoutFromWatch into a no-arg handler and returns controlReply with the sport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)",
+    "closure:onStartWorkoutFromWatch set in EmuquApp.swift:773 (refuses unknown sport/paywall/strap busy, else posts .watchRequestedWorkoutStart)"
+   ],
+   "reads": [
+    "wc:sport",
+    "wc:targetZone"
+   ],
+   "writes": [
+    "notif:watchRequestedWorkoutStart"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sport missing (??)",
+     "effect": "defaults to \"run\""
+    },
+    {
+     "at": "+4",
+     "cond": "zone nil (?? in log)",
+     "effect": "log prints \"nil\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "0c9cc31fb9e0f7e1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.handleIncomingWithReply(_:)",
+   "hash": "e6c389a7f1716cbc",
+   "does": "Reply-producing router: unknownMessage refusal for missing/unknown type; stop/pause/resume/acknowledge → controlReply of the matching callback; start → startWorkoutReply; startVoiceChat → startVoiceChatReply; requestCurrentState → currentStateReply; other types run handleIncoming and reply {ok:true}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startWorkoutReply(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.currentStateReply()",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)"
+   ],
+   "reads": [
+    "wc:type"
+   ],
+   "writes": [
+    "notif:watchRequestedWorkoutStop",
+    "notif:watchRequestedWorkoutPause",
+    "notif:watchRequestedWorkoutResume",
+    "notif:watchAcknowledgedFinished"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "missing/unknown type",
+     "effect": "returns refusal .unknownMessage"
+    },
+    {
+     "at": "+4",
+     "cond": "type is one of the four transport controls",
+     "effect": "controlReply(handler)"
+    },
+    {
+     "at": "+9",
+     "cond": "case .startWorkoutFromWatch",
+     "effect": "startWorkoutReply"
+    },
+    {
+     "at": "+11",
+     "cond": "case .startVoiceChat",
+     "effect": "startVoiceChatReply"
+    },
+    {
+     "at": "+13",
+     "cond": "case .requestCurrentState",
+     "effect": "currentStateReply"
+    },
+    {
+     "at": "+15",
+     "cond": "default",
+     "effect": "handleIncoming then {ok:true}"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlHandler(for:)": "2b7ba894afd3798d",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.controlReply(_:sport:)": "0c9cc31fb9e0f7e1",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.currentStateReply()": "83cbc9b969562e38",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.handleIncoming(_:)": "fbbbe0613c33ff78",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startVoiceChatReply()": "27a30ef24a5e8e8c",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.startWorkoutReply(_:)": "810bc435b3ced8c5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.controlHandler(for:)",
+   "hash": "639e201a473129cc",
+   "does": "Maps stop/pause/resume/acknowledge MessageType to its callback; nil otherwise (also nil when that callback is unwired, making the router fall to its default branch).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .stopWorkoutFromWatch",
+     "effect": "onStopWorkoutFromWatch"
+    },
+    {
+     "at": "+3",
+     "cond": "case .pauseWorkoutFromWatch",
+     "effect": "onPauseWorkoutFromWatch"
+    },
+    {
+     "at": "+4",
+     "cond": "case .resumeWorkoutFromWatch",
+     "effect": "onResumeWorkoutFromWatch"
+    },
+    {
+     "at": "+5",
+     "cond": "case .acknowledgeFinishedFromWatch",
+     "effect": "onAcknowledgeFinishedFromWatch"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "When a stop/pause/resume/acknowledge callback is nil, controlHandler returns nil, handleIncomingWithReply falls to its default branch and calls handleIncoming, whose case for these types calls handleIncomingWithReply again: unbounded mutual recursion (stack overflow crash) instead of the phoneNotReady refusal controlReply was written to give. It is avoided today only because EmuquApp wires all four callbacks (EmuquApp.swift:678,799-803) in the same main-actor turn as watchBridge.boot(), before any queued delegate Task runs.",
+     "evidence": [
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:297",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:310",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:196",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:262",
+      "Emuqu/EmuquApp.swift:678"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.startVoiceChatReply()",
+   "hash": "099c1700cd96fdb0",
+   "does": "Voice chat request: phoneNotReady if no toggle wired; else runs the toggle (EmuquApp.toggleVoiceChatFromWatch) and builds the reply from its refusal, the disclaimer flag and the current voice controller state label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel",
+    "closure:onStartVoiceChatFromWatch set in EmuquApp.swift:740 → EmuquApp.toggleVoiceChatFromWatch"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer",
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no toggle wired",
+     "effect": "refusal .phoneNotReady"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "49edab9094df9643",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)",
+   "hash": "e0833e43596c18f4",
+   "does": "Voice reply: refusal reply if refused; {ok:false, needsDisclaimer:true} when the AI disclaimer is not accepted; else {ok:true, voiceChatState}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "refusal present",
+     "effect": "refusal reply"
+    },
+    {
+     "at": "+2",
+     "cond": "disclaimer not accepted",
+     "effect": "{ok:false, needsDisclaimer:true}; else ok with state label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.currentStateReply()",
+   "hash": "2a47e53b469046e9",
+   "does": "Reply to the Watch asking for current state: the cached live-state snapshot tagged type liveState and ok:true, or {ok:true, type:liveState, isRecording:false} when nothing is cached.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()"
+   ],
+   "reads": [
+    "mem:WatchConnectivityBridge.liveStateCache"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "a snapshot is cached",
+     "effect": "returns it tagged; else explicit not-recording reply"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "ac0c6b7ae1d4cb2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.pushVoiceChatState(_:)",
+   "hash": "f277f0ac0d5af322",
+   "does": "Pushes the voice-chat state label to the Watch: when WC is supported and activated, sends it by sendMessage if reachable (errors ignored) and always also via transferUserInfo.",
+   "entry": null,
+   "calls": [
+    "ext:WCSession.sendMessage",
+    "ext:WCSession.transferUserInfo"
+   ],
+   "reads": [],
+   "writes": [
+    "wc:voiceChatState"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "WCSession unsupported",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "session not activated",
+     "effect": "returns"
+    },
+    {
+     "at": "+10",
+     "cond": "Watch reachable",
+     "effect": "sendMessage then also transferUserInfo; unreachable: transferUserInfo only"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says transferUserInfo is the fallback \"when the Watch is briefly unreachable\", but it is sent on every call, so each voice state change is delivered twice when reachable and queued transfers pile up while the Watch app is not running; the Watch drops older ts (WatchSessionManager.swift:610) so ordering stays correct.",
+     "evidence": [
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:384",
+      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:407"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.plistData(_:)",
+   "hash": "93b700ea9b547cf5",
+   "does": "Serialises a WC dictionary to binary plist Data; on failure logs a warning and returns empty Data (payload dropped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch: not a property list",
+     "effect": "logs and returns Data(); decoding then yields [:] and the message is ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WatchConnectivityBridge.plistDictionary(_:)",
+   "hash": "01f2c6e17183fed5",
+   "does": "Decodes plist Data back into [String: Any]; [:] on decode failure (logged) or non-dictionary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "decoded value is not a dictionary (??)",
+     "effect": "returns [:]"
+    },
+    {
+     "at": "+3",
+     "cond": "catch: decode threw (incl. empty Data from a failed serialise)",
+     "effect": "logs warning and returns [:]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "init WCReplyBox(_:)",
+   "hash": "41807aee92c7c851",
+   "does": "Stores the WC reply handler.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WCReplyBox.send(_:)",
+   "hash": "100c28a15edee2e5",
+   "does": "Invokes the stored WC reply handler with the reply dictionary.",
+   "entry": null,
+   "calls": [
+    "closure:WatchConnectivity replyHandler"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

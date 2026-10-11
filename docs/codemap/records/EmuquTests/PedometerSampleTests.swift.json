@@ -1,0 +1,233 @@
+{
+ "file": "EmuquTests/PedometerSampleTests.swift",
+ "hash": "120cdbdaaf1782e6",
+ "role": "XCTest suite for PedometerSample: distance and cadence are published only when finite and non-negative (rejected, not clamped), cadence converts steps/s→steps/min, steps pass through, and the type is Sendable.",
+ "types": [
+  "PedometerSampleTests: class — XCTestCase over PedometerSample"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PedometerSampleTests.sample(distance:steps:cadence:)",
+   "hash": "a50adc5f372417e7",
+   "does": "Helper: PedometerSample with defaults distance 100, steps 500, cadence 1.5/s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testFiniteNonNegativeDistanceIsPublished()",
+   "hash": "7fa6dbbb6c0ce245",
+   "does": "Asserts distances 1234.5 and 0 are published unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testNonFiniteDistanceIsRejectedRatherThanPublished()",
+   "hash": "662daa50174607f2",
+   "does": "Asserts NaN, +inf and -inf distances publish nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The test's doc comment says a distance 'past Int.max' traps and 'neither may ever be published', but no case covers a huge finite value and the code only checks isFinite && >= 0, so e.g. 1e300 m is published and later Int(...)-converted (split index / mile marker / MET pace) where it traps — the stated guard is neither implemented nor tested.",
+     "evidence": [
+      "EmuquTests/PedometerSampleTests.swift:26",
+      "EmuquTests/PedometerSampleTests.swift:27",
+      "Emuqu/Sources/Collection/WorkoutPedometer.swift:120",
+      "Emuqu/Sources/Collection/WorkoutPedometer.swift:113"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testNegativeDistanceIsRejected()",
+   "hash": "309d20b1646ffe19",
+   "does": "Asserts -0.5 m publishes nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testMissingDistanceIsRejected()",
+   "hash": "1c08f35733804e68",
+   "does": "Asserts nil distance publishes nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testRejectionIsNotClampedToZero()",
+   "hash": "b31acbe1e6e18733",
+   "does": "Asserts NaN and -5 distances do not publish 0 (rejected rather than clamped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testCadenceIsConvertedFromPerSecondToPerMinute()",
+   "hash": "344d78fe381953b7",
+   "does": "Asserts cadence 1.5/s publishes 90/min and 0 publishes 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "14344690bf964b04",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testInvalidCadenceIsRejected()",
+   "hash": "8c891468675c91db",
+   "does": "Asserts NaN, inf, -1 and nil cadence publish nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "14344690bf964b04",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testStepsPassThroughUnchanged()",
+   "hash": "ebca326f23905390",
+   "does": "Asserts steps 0 and 12345 pass through unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.testSampleIsSendable()",
+   "hash": "fac4efff3445c0a1",
+   "does": "Compile-time check that PedometerSample conforms to Sendable (the runtime assertion is always true).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.requireSendable(_:)",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.requireSendable(_:)": "dd63aa85c6d8b329",
+    "EmuquTests/PedometerSampleTests.swift::func PedometerSampleTests.sample(distance:steps:cadence:)": "53c9015d1db87285"
+   }
+  },
+  {
+   "key": "func PedometerSampleTests.requireSendable(_:)",
+   "hash": "d66fce1807b9fae1",
+   "does": "Nested helper constrained to `some Sendable`; always returns true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

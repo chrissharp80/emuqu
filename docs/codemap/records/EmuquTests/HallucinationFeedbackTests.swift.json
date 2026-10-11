@@ -1,0 +1,462 @@
+{
+ "file": "EmuquTests/HallucinationFeedbackTests.swift",
+ "hash": "70251af47e7bf468",
+ "role": "Three XCTest classes for MetricsVerifier: HallucinationFeedbackTests (cross-turn corrections buffer record/consume/cap-4/accumulate), LiveClaimVerificationTests (verify only corrects present-tense live claims, not targets/thresholds/other metrics) and SleepClaimVerificationTests (last-night sleep duration/efficiency discrepancies, formats, rounding, non-claims, spelled numbers, unmeasured efficiency, duration text). Plus a file-private wholeRange helper.",
+ "types": [
+  "HallucinationFeedbackTests: class — XCTestCase for MetricsVerifier corrections buffer",
+  "LiveClaimVerificationTests: class — XCTestCase for MetricsVerifier.verify live claims",
+  "SleepClaimVerificationTests: class — XCTestCase for MetricsVerifier sleep checks"
+ ],
+ "state": [
+  "mem:SleepClaimVerificationTests.nightMinutes (415)",
+  "mem:SleepClaimVerificationTests.efficiency (93.2)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The buffer under test is the process-global MetricsVerifier.pendingCorrections, shared with the hosting app's assistant/voice code; tests drain it only in setUp, so anything the host or another suite records between drain and assertion changes the block. The documented de-duplication of identical metric/claim/value corrections (MetricsVerifier.swift:588-596) has no test.",
+   "evidence": [
+    "EmuquTests/HallucinationFeedbackTests.swift:24",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift:582",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift:594"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HallucinationFeedbackTests.setUp()",
+   "hash": "2e94fa17686e334f",
+   "does": "Calls super.setUp and drains the corrections buffer so each test starts empty.",
+   "entry": "XCTest runner: setUp before each test method",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587"
+   }
+  },
+  {
+   "key": "func HallucinationFeedbackTests.testEmptyBufferReturnsNil()",
+   "hash": "b57e845d86960ba0",
+   "does": "Asserts consumePendingCorrectionsBlock returns nil when nothing was recorded.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587"
+   }
+  },
+  {
+   "key": "func HallucinationFeedbackTests.testRecordOneCorrectionThenConsumeClearsBuffer()",
+   "hash": "bfd085565cea42c9",
+   "does": "Records one HR 72→91 discrepancy and asserts the block contains 'DO NOT FABRICATE', 'HR=72' and 'actual was 91', and a second consume returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "block?.contains('DO NOT FABRICATE') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+14",
+     "cond": "block?.contains('HR=72') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+16",
+     "cond": "block?.contains('actual was 91') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+   }
+  },
+  {
+   "key": "func HallucinationFeedbackTests.testRecordMultipleInOneBatch()",
+   "hash": "44695a8a0b63eb70",
+   "does": "Records HR and pace discrepancies in one batch and asserts both claims and actuals are in the block.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "block?.contains('HR=72') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+14",
+     "cond": "block?.contains('pace=8:30') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+15",
+     "cond": "block?.contains('actual was 91') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+16",
+     "cond": "block?.contains('actual was 9:15') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+   }
+  },
+  {
+   "key": "func HallucinationFeedbackTests.testBufferCapsAtFour()",
+   "hash": "e774067fd201c6d3",
+   "does": "Records six distinct discrepancies one at a time and asserts only the newest four (metric2…metric5) remain.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for i in 0..<6",
+     "effect": "records one discrepancy per iteration"
+    },
+    {
+     "at": "+15",
+     "cond": "block?.contains('metric0' (negative check, default true)) ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+17",
+     "cond": "block?.contains('metric1' (negative check, default true)) ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+18",
+     "cond": "block?.contains('metric2') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+19",
+     "cond": "block?.contains('metric5') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+   }
+  },
+  {
+   "key": "func HallucinationFeedbackTests.testRecordingAcrossCallsAccumulates()",
+   "hash": "ee55a188e44d66d9",
+   "does": "Records HR then pace in separate calls and asserts both appear in one consumed block.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "writes": [
+    "mem:MetricsVerifier.pendingCorrections"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "block?.contains('HR=70') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    },
+    {
+     "at": "+16",
+     "cond": "block?.contains('pace=8:00') ?? default",
+     "effect": "nil block falls back to the default (false for positive checks, true for negative checks) so the assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "45789eb8209ee2aa"
+   }
+  },
+  {
+   "key": "func LiveClaimVerificationTests.testCurrentHeartRateClaimIsCorrectedWithoutItsLabel()",
+   "hash": "b98475d948d70705",
+   "does": "Asserts verify('Your HR is 150 bpm…') against HR 162 yields one discrepancy whose range covers only '150 bpm' and actual '162 bpm'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+   }
+  },
+  {
+   "key": "func LiveClaimVerificationTests.testTargetsOtherMetricsAndThresholdsAreNotClaims()",
+   "hash": "cc78dcbb60462132",
+   "does": "Asserts verify returns nothing for targets, resting HR, 'around … or lower', α1 thresholds and power targets against a live snapshot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each non-claim sentence",
+     "effect": "asserts no discrepancy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+   }
+  },
+  {
+   "key": "func LiveClaimVerificationTests.testCurrentAlphaAndPowerClaimsAreStillChecked()",
+   "hash": "bfdc2690658383dd",
+   "does": "Asserts present-tense α1 and power claims are still checked (metrics 'alpha1' and 'power_watts').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
+    "EmuquTests/HallucinationFeedbackTests.swift::func LiveClaimVerificationTests.context(hr:alpha1:watts:)": "da69d3f8ac88cf1b"
+   }
+  },
+  {
+   "key": "func LiveClaimVerificationTests.context(hr:alpha1:watts:)",
+   "hash": "06a2be444c8b611d",
+   "does": "Test helper: builds a WorkoutAIContext for a 10-minute run with the given heart rate, α1 and power and every other field nil/zero/default.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "hr ?? 0",
+     "effect": "peakHR is 0 when no heart rate is supplied"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testWrongDurationAndEfficiencyAreCorrected()",
+   "hash": "0f15e212ae872658",
+   "does": "Asserts a 7h05m / 95% sentence against 415 min / 93.2% yields sleep_duration and sleep_efficiency discrepancies and correctedText gives '6 hours and 55 minutes … 93%'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4988656d08a92650",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testShortFormsAreCorrectedInTheirOwnFormat()",
+   "hash": "1e84c4d16a8b60eb",
+   "does": "Asserts short form 'Sleep: 7h 20m, 88% efficiency.' is corrected to '6h 55m, 93%'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "4988656d08a92650",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testRightOrRoundedValuesAreLeftAlone()",
+   "hash": "2e3316b43d454dd1",
+   "does": "Asserts correct or rounded claims (6h 55m/93%, about 7 hours, 6.9 hours) produce no discrepancies.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each fine sentence",
+     "effect": "asserts no discrepancy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testNormsOtherNightsAndAveragesAreNotClaims()",
+   "hash": "000ac9c6efd22b4b",
+   "does": "Asserts norms, targets, other dates, averages, 'two nights ago' and running efficiency are not treated as last-night claims.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each non-claim sentence",
+     "effect": "asserts no discrepancy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testSpelledOutDurationIsCheckedAfterNormalising()",
+   "hash": "4ce7acf880b43bdf",
+   "does": "Normalises 'seven hours and five minutes' and asserts the duration discrepancy's actual is '6 hours and 55 minutes'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testUnmeasuredEfficiencyIsNotChecked()",
+   "hash": "6bdafa0437762ad2",
+   "does": "Asserts an efficiency claim is not checked when efficiency is nil (unmeasured).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDiscrepancies(in:nightMinutes:efficiency:)": "f25c48f6b37a3c57"
+   }
+  },
+  {
+   "key": "func SleepClaimVerificationTests.testDurationText()",
+   "hash": "51ff485fe6df58a5",
+   "does": "Asserts sleepDurationText long/short forms: 415→'6 hours and 55 minutes'/'6h 55m', 61→'1 hour and 1 minute', 420→'7 hours'/'7h'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationText(_:longForm:)": "b0f69d545534646f"
+   }
+  },
+  {
+   "key": "func wholeRange(_:)",
+   "hash": "40c5ed0806cf67d6",
+   "does": "File-private test helper: returns the full index range of a string (avoids a force-unwrapped range(of:)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

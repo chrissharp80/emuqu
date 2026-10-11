@@ -1,0 +1,663 @@
+{
+ "file": "EmuquTests/CauseDetectorTests.swift",
+ "hash": "d8d415b74595d5ad",
+ "role": "Unit tests for CauseDetector (aggregator) and each CauseDetectionStrategy (positive, severe, tag, sleep, metric, pattern), DetectedCause conversion, confidence-label wording and illness/blood-sugar copy restrictions.",
+ "types": [
+  "CauseDetectorTests: class — @MainActor XCTestCase over the cause-detection strategies"
+ ],
+ "state": [
+  "CauseDetectorTests.detector: CauseDetector() instance property, rebuilt per test instance"
+ ],
+ "toplevel": "Stored property `detector = CauseDetector()` builds the six default strategies for every test method instance.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "createContext always uses a bare HRVSession() (no analysisResult) and sleepTrend nil, so CauseDetectionContext.currentHR is nil and sleepTrend-based causes never fire: SevereCauseDetector's 'Elevated HR + Low HRV' rule, MetricBased elevated-RHR paths and all positive sleep-trend causes are unreachable from every test in this file.",
+   "evidence": [
+    "EmuquTests/CauseDetectorTests.swift:55",
+    "EmuquTests/CauseDetectorTests.swift:68",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:83",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:49",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CauseDetectorTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "Calls super.setUp then pinEnglishLanguage(): only when the app locale is not already English, switches LanguageManager to .en (persisting AppleLanguages in standard UserDefaults and posting languageDidChangeNotification) and registers a teardown restoring the previous AppLanguage.",
+   "entry": "XCTest per-test setUp (async throws override)",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager.shared",
+    "ud:AppleLanguages",
+    "notif:LanguageManagerDidChangeLanguage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+   "hash": "a5a3783a7cabc56c",
+   "does": "Builds a CauseDetectionContext from the given metrics/tags/sleep minutes with fixed TrendStats (avgRMSSD 45, baselineRMSSD 42, avgHR 58, 7 sessions over 14 days), an AnalysisSleepInput derived from totalSleepMinutes, a fresh HRVSession(), nil sleepTrend and no recent sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testDetectorReturnsLimitedCauses()",
+   "hash": "4a20c0e7794958a3",
+   "does": "Runs the default CauseDetector with limit 3 on a low-HRV/high-stress context and asserts at most 3 causes are returned.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6|Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testDetectorSortsByWeight()",
+   "hash": "82b74121911ad1a1",
+   "does": "Runs the default CauseDetector with limit 10 on a low-HRV/high-stress context and asserts rankingWeight is non-increasing across the returned list.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6|Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each adjacent pair i in 0..<(count-1)",
+     "effect": "asserts causes[i].rankingWeight >= causes[i+1].rankingWeight; loop body never runs for count 1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "`0 ..< (causes.count - 1)` traps with 'Range requires lowerBound <= upperBound' when detectCauses returns an empty array, so a regression that yields no causes crashes the test process instead of failing an assertion.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:90"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testDetectorWithCustomStrategies()",
+   "hash": "66510a5fb9e919e1",
+   "does": "Builds a CauseDetector with only SevereCauseDetector and asserts every returned cause (or none) has confidence critical/veryHigh/high.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Assertion accepts an empty result, so the test passes even if the custom strategy list were ignored and nothing was detected; with rmssd 15 vs avgRMSSD 45 a 'Sharp HRV Drop' is deterministic and could be asserted.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:103"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)": "2f8de351f3557101",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testPositiveDetectorOnlyTriggersForGoodReadings()",
+   "hash": "ccb38e324f1d2b8a",
+   "does": "Asserts PositiveCauseDetector returns no causes for a non-good reading; runs it on a good context but discards the result.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The good-context result is discarded (`_ =`), so the 'only triggers for good readings' half of the name is never asserted.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:117"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testPositiveDetectorDetectsSolidSleep()",
+   "hash": "b255b790b2e8c2bd",
+   "does": "Runs PositiveCauseDetector on a good reading with 480 min sleep at 92% efficiency and asserts some cause mentions 'sleep'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testSevereDetectorSkipsGoodReadings()",
+   "hash": "b651034d5cc5cbbd",
+   "does": "Asserts SevereCauseDetector returns nothing for a good reading.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testSevereDetectorDetectsHRVCrash()",
+   "hash": "73757b5b2c2c42f9",
+   "does": "Runs SevereCauseDetector with rmssd 15 / stress 350 and asserts the result is empty or contains a critical/veryHigh cause.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comment says it only verifies the detector runs without crashing; the disjunction with isEmpty means the HRV-crash rule (66% below the fixture avg of 45, which always yields 'Sharp HRV Drop') is never actually required.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:158",
+      "EmuquTests/CauseDetectorTests.swift:160",
+      "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:27"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTagDetectorDetectsAlcohol()",
+   "hash": "932041d7a456b10b",
+   "does": "Runs TagBasedCauseDetector with an 'Alcohol' system tag and rmssd 25 and asserts an alcohol cause with confidence veryHigh or high.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTagDetectorDetectsPoorSleep()",
+   "hash": "9d6c540ded60d32c",
+   "does": "Runs TagBasedCauseDetector with a 'Poor Sleep' tag and asserts a cause mentioning 'sleep'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTagDetectorDetectsStress()",
+   "hash": "66dffa38879a5615",
+   "does": "Runs TagBasedCauseDetector with a 'Stressed' tag and LF/HF 4.0 and asserts a cause mentioning 'stress'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTagDetectorDetectsIllness()",
+   "hash": "cdff8a4d17713d72",
+   "does": "Runs TagBasedCauseDetector with an 'Illness' tag and rmssd 15 and asserts an illness cause with confidence veryHigh.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testTagDetectorSkipsGoodReadings()",
+   "hash": "036b867c0bcf3883",
+   "does": "Asserts TagBasedCauseDetector returns nothing for a good reading even with an Alcohol tag.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testSleepDetectorDetectsInsufficientSleep()",
+   "hash": "fdc9966486f13b05",
+   "does": "Runs SleepCauseDetector with 300 min sleep and asserts a cause mentioning 'insufficient' or 'sleep'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "6371202711fe6096",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testSleepDetectorDetectsFragmentedSleep()",
+   "hash": "0977a37e9f154988",
+   "does": "Runs SleepCauseDetector with 420 min sleep at 70% efficiency and asserts a cause mentioning 'fragment'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "6371202711fe6096",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testSleepDetectorSkipsGoodReadings()",
+   "hash": "b9c9cf52891b555f",
+   "does": "Runs SleepCauseDetector on a good reading with 300 min sleep and asserts no 'insufficient' cause is returned.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "For good readings SleepCauseDetector returns detectPositiveSleepCauses, which returns [] whenever sleepTrend is nil; createContext always passes nil, so the assertion cannot fail regardless of how short sleep is handled.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:68",
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "6371202711fe6096",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testMetricDetectorSkipsGoodReadings()",
+   "hash": "cb5b64f7b91a56fe",
+   "does": "Asserts MetricBasedCauseDetector returns nothing for a good reading.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testMetricDetectorDetectsUntaggedStress()",
+   "hash": "cdefc178ec187345",
+   "does": "Runs MetricBasedCauseDetector with stress 250 and LF/HF 4.0 (no tags) and asserts a cause mentioning 'stress'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testMetricDetectorSkipsWhenTagged()",
+   "hash": "902f765127644492",
+   "does": "Runs MetricBasedCauseDetector with a 'Stressed' tag plus high stress/LF-HF and asserts no 'Unidentified Stress' cause.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testPatternDetectorSkipsGoodReadings()",
+   "hash": "c458410691147e70",
+   "does": "Asserts PatternCauseDetector returns nothing for a good reading.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "7901f149aed57126",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testPatternDetectorRequiresSufficientHistory()",
+   "hash": "70a62bfa8d617718",
+   "does": "Asserts PatternCauseDetector returns nothing when recentSessions is empty.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "7901f149aed57126",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testDetectedCauseToProbableCause()",
+   "hash": "5d57f5063c5f96c6",
+   "does": "Converts a DetectedCause(.high) via toProbableCause and asserts cause/explanation are copied and confidence string is 'Clear pattern match'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func DetectedCause.toProbableCause()": "94d41e0150b4c95c"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testConfidenceLabelsDescribeMatchStrengthNotLikelihood()",
+   "hash": "d311929d27b4a7b1",
+   "does": "Asserts the raw values of five CauseConfidence cases are the 'pattern match' wording and that none of seven negative-tier cases contains likely/probable/confidence/certain/chance.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each of 7 confidence levels",
+     "effect": "runs the inner word check for that level"
+    },
+    {
+     "at": "+10",
+     "cond": "for each of 5 probability words",
+     "effect": "asserts the lowercased raw value does not contain the word"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CauseDetectorTests.testSevereAndMetricCausesDescribePhysiologyNotIllness()",
+   "hash": "99de177d2af33b38",
+   "does": "Runs SevereCauseDetector and MetricBasedCauseDetector on rmssd 15 / stress 300 and asserts titles include 'Sharp HRV Drop' and 'Very Low HRV with High Stress Index' and no title+explanation contains illness phrases (possible illness, immune, monitor, stay home, cold/flu, ...).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each detected cause",
+     "effect": "builds lowercased title+explanation and runs the phrase check"
+    },
+    {
+     "at": "+15",
+     "cond": "for each forbidden phrase",
+     "effect": "asserts the text does not contain it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testFluidAndFoodCauseNamesNoBloodSugarCondition()",
+   "hash": "bb6f609dc4c15c10",
+   "does": "Runs MetricBasedCauseDetector on rmssd 25 / stress 200 / LF-HF 1.0 and asserts a 'Dehydration or Fasting' cause exists and no explanation mentions blood sugar or glucose.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each detected cause",
+     "effect": "asserts its explanation contains neither 'blood sugar' nor 'glucose'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testFullCauseDetectionPipeline()",
+   "hash": "4d06e39130b78835",
+   "does": "Runs the default CauseDetector (limit 5) on a bad reading with an Alcohol tag, short and inefficient sleep, and asserts at least one cause and an alcohol cause among the top 5.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6|Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)|Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  },
+  {
+   "key": "func CauseDetectorTests.testGoodReadingOnlyGetsPositiveCauses()",
+   "hash": "a785d1179b7a2976",
+   "does": "Runs the default CauseDetector on a good+excellent reading and asserts every returned cause's confidence is one of goodSign/excellent/contributingFactor/high/moderateHigh/pattern.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each returned cause",
+     "effect": "asserts its confidence is in the allowed positive set"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 'only positive causes' allow-list includes .high and .moderateHigh, which negative rules also emit (Insufficient Sleep .high, Fragmented Sleep .high/.moderateHigh, Unidentified Stress .moderateHigh), so a negative cause leaking into a good reading with one of those levels would pass.",
+     "evidence": [
+      "EmuquTests/CauseDetectorTests.swift:478",
+      "EmuquTests/CauseDetectorTests.swift:479",
+      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:74",
+      "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:187"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "6025cccfd6936fef",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)": "21de0eeadfe1ad1f",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "6371202711fe6096",
+    "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1030 @@
+{
+ "file": "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift",
+ "hash": "2f1dfd925b24e9c9",
+ "role": "Extension of SleepTimelineEditorView with boundary handles + drag gesture, segment inspector (stage pills, source, Split/Carve/Merge/Delete), hint card, edits summary + Reset, Refresh-from-Health card, apply/commit and helpers.",
+ "types": [
+  "SleepTimelineEditorView: extension — handles, inspector, apply/commit"
+ ],
+ "state": [
+  "SleepTimelineEditorView.timelineSpace = \"sleepTimeline\" (static coordinate-space name)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "fetchSleepData returns a non-nil SleepData.empty (no intervals, nil sleepStart/sleepEnd) when the resolved night is implausible for the recording (HealthKitManager+Sleep.swift:122-123); runRefreshFromHealthKit treats any non-nil as success, replaces originalSleepData and state with it, so the timeline goes blank with \"0 segments\" and no error is shown (only try? errors map to nil and the error text).",
+   "evidence": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:399",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:123",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift:209"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "Undo after Refresh restores the pre-refresh state but originalSleepData stays at the refreshed data: commit() then rebuilds SleepData from the fresh original with the old segments/edits (mixing date/boundarySource/deep-REM nil-ness from one fetch with timeline from another), and editsThisVisit drops originalSleepData.edits.count from a state whose edits came from the old original, miscounting. Reset after such an undo also jumps to the refreshed data.",
+   "evidence": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:94",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:402",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:296",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:446"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SleepTimelineEditorView.boundaryHandle(seg:side:vp:width:barHeight:)",
+   "hash": "3803d1f8409bd995",
+   "does": "20pt primary circle handle with 44pt hit area, drag gesture for the boundary, accessibility label Start/End, value = boundary time, and adjustable action that nudges 5 min.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.nudgeBoundary(segmentId:side:direction:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "side == .start",
+     "effect": "label \"Start\", else \"End\""
+    },
+    {
+     "at": "+20",
+     "cond": "side == .start",
+     "effect": "value shows seg.start, else seg.end"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)": "bd3bbf22f185e268",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.nudgeBoundary(segmentId:side:direction:)": "bace3776df253301",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.nudgeBoundary(segmentId:side:direction:)",
+   "hash": "e3fc28bed436973a",
+   "does": "VoiceOver adjust: moves the boundary of the current segment by +-5 min via apply(.adjustBoundary).",
+   "entry": "accessibilityAdjustableAction on a boundary handle",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.segment(for:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "segment id no longer exists",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": ".increment",
+     "effect": "step +300 s"
+    },
+    {
+     "at": "+5",
+     "cond": ".decrement",
+     "effect": "step -300 s"
+    },
+    {
+     "at": "+6",
+     "cond": "@unknown direction",
+     "effect": "return without change"
+    },
+    {
+     "at": "+8",
+     "cond": "side == .start",
+     "effect": "anchor = start else end"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)": "5d365f2d2804a2ae",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.segment(for:)": "f31a1c18dd52431b"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)",
+   "hash": "3668a26c5b16e67b",
+   "does": "DragGesture (min 8pt, timeline coordinate space): on change converts anchor x + translation (clamped to the canvas) to a time snapped to 5 min and stores dragPreview; on end applies adjustBoundary with the preview time and clears dragPreview.",
+   "entry": "DragGesture onChanged/onEnded on a boundary handle",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.segment(for:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.snapTo5Min(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "segment no longer found by id",
+     "effect": "?? uses captured seg"
+    },
+    {
+     "at": "+10",
+     "cond": "side == .start",
+     "effect": "anchor = start else end"
+    },
+    {
+     "at": "+17",
+     "cond": "dragPreview non-nil at end",
+     "effect": "true: apply adjustBoundary; then always clear preview"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "newX is clamped to [0,width] of the viewport, which is only 15 min past the outermost segment, so one drag can extend a boundary by at most ~15 min beyond the current extent; and dragPreview is plain @State cleared only in onEnded, so a cancelled gesture (no onEnded) leaves the bar showing a stale preview until the next drag ends.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:70",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:65",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:78"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)": "5d365f2d2804a2ae",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.segment(for:)": "f31a1c18dd52431b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.snapTo5Min(_:)": "07dc94b22f8f0402"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.dragPreviewLabel(seg:preview:width:height:vp:)",
+   "hash": "cb7f6eb279c4d492",
+   "does": "Dark pill text with the previewed boundary time, offset to the preview x position.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.segmentInspector(_:)",
+   "hash": "626d10d10e9dab96",
+   "does": "Inspector card for the selected segment: header, stage pills when any sleep/awake minutes, \"Source:\" provenance label, action buttons.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorHeader(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorStagePills(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.sourceLabel(for:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorActions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "stages.totalSleep > 0 or awake > 0",
+     "effect": "true: show stage pills; false: none (envelope segments)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "4f07e52bbfe7eb09",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "fc89852f0545e95c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorActions(_:)": "1b672b856ca6773e",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorHeader(_:)": "5f404650dc2df566",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorStagePills(_:)": "dd24258d80229e4c",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.sourceLabel(for:)": "8464e67f7206474a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.inspectorHeader(_:)",
+   "hash": "5c7e742152ca3333",
+   "does": "Header with segment time range and duration in minutes.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)": "b6abb79a05a8eaac",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.inspectorStagePills(_:)",
+   "hash": "c69c7b67c8b18af1",
+   "does": "Pills for each of deep/core/REM/awake that has > 0 minutes (unspecified minutes never shown).",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.stagePill(_:minutes:stage:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deep > 0",
+     "effect": "Deep pill"
+    },
+    {
+     "at": "+3",
+     "cond": "core > 0",
+     "effect": "Core pill"
+    },
+    {
+     "at": "+4",
+     "cond": "rem > 0",
+     "effect": "REM pill"
+    },
+    {
+     "at": "+5",
+     "cond": "awake > 0",
+     "effect": "Awake pill"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "User-added and unstaged (.unspecified) minutes get no pill, so a segment of only unspecified sleep shows its source but no minutes in the stage row.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:133",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:107"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Inspector labels the core stage 'Core' while SleepTimelineChart's axis and USERS_MANUAL call it 'Light'.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:136",
+      "Emuqu/Sources/Views/Results/SleepTimelineChart.swift:99",
+      "docs/USERS_MANUAL.md:190"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.stagePill(_:minutes:stage:)": "53f3cd6d265d6c31"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.inspectorActions(_:)",
+   "hash": "4c04f2f135f5d5fe",
+   "does": "Row of Split, Carve Awake (sets pendingCarve to a 30 min window around the midpoint), Merge and Delete (apply .removeSegment, clear selection) buttons.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button taps",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.splitButton(_:mid:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.mergeButton(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)": "5d365f2d2804a2ae",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)": "1cbac1637559f190",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.mergeButton(_:)": "0790a22e0773eb0b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.splitButton(_:mid:)": "2f47da4e505a6b19"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.splitButton(_:mid:)",
+   "hash": "68ba424283b871dc",
+   "does": "Split button (sets pendingSplit at the midpoint) shown only for segments longer than 120 s.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "segment duration > 120 s",
+     "effect": "true: shows button; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)": "1cbac1637559f190"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.mergeButton(_:)",
+   "hash": "850c8f36ca886395",
+   "does": "Merge button shown only when nearestMergeNeighbor finds a segment within 60 min; tap applies .merge.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.nearestMergeNeighbor(of:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a merge neighbour exists",
+     "effect": "true: button; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.apply(_:)": "5d365f2d2804a2ae",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)": "1cbac1637559f190",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.nearestMergeNeighbor(of:)": "dc6260c8a09de91a"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.sourceLabel(for:)",
+   "hash": "3ef1b0b49e7b9515",
+   "does": "Joins names for the provenances present: Watch, iPhone, HRV, You (added/awake/edited); \"Recording bounds\" when empty.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no provenances (interval-less segment)",
+     "effect": "\"Recording bounds\""
+    },
+    {
+     "at": "+4",
+     "cond": ".watch",
+     "effect": "\"Watch\" (unlocalized literal)"
+    },
+    {
+     "at": "+5",
+     "cond": ".iphone",
+     "effect": "\"iPhone\""
+    },
+    {
+     "at": "+6",
+     "cond": ".hrvDerived",
+     "effect": "\"HRV\""
+    },
+    {
+     "at": "+7",
+     "cond": ".userAdded",
+     "effect": "\"You (added)\""
+    },
+    {
+     "at": "+8",
+     "cond": ".userCarved",
+     "effect": "\"You (awake)\""
+    },
+    {
+     "at": "+9",
+     "cond": ".userAdjusted",
+     "effect": "\"You (edited)\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Names are built by iterating a Set, so their order in the \"Source:\" line is not stable across renders/launches.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:183"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.stagePill(_:minutes:stage:)",
+   "hash": "e73f88301d0e929c",
+   "does": "Small coloured dot + \"<label> <minutes>\" text in the stage colour.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepStageColors.color(for:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::func SleepStageColors.color(for:)": "47243501e4ccc314",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)": "b6abb79a05a8eaac",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.inspectorButton(icon:label:destructive:action:)",
+   "hash": "28b122958c90f246",
+   "does": "Plain-style icon+label button tinted primary or terracotta (destructive).",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "destructive",
+     "effect": "terracotta foreground else primary"
+    },
+    {
+     "at": "+11",
+     "cond": "destructive",
+     "effect": "terracotta background tint else primary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.hintCard",
+   "hash": "47e4b58d07adbb3f",
+   "does": "Card with hints: tap a segment to edit, long-press to add sleep.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.editsSummaryCard",
+   "hash": "de639da01b415d95",
+   "does": "Card with edits summary text and a Reset button.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsSummaryText",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.resetButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md:853 says SleepData.edits is shown in a 'View changes' disclosure; the editor only shows per-kind counts and a Reset button (comment 248-254), and no view lists SleepEditRecord rows.",
+     "evidence": [
+      "docs/FLOWCHART.md:853",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:256"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsSummaryText": "7dc06714b6a7d365",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.resetButton": "5cfdbcce69173d82",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.editsSummaryText",
+   "hash": "6c7d57a2d792062b",
+   "does": "\"N edits applied\" plus a per-kind counts line when non-empty.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.editKindCounts(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.formatEditSummary(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "summary non-empty",
+     "effect": "true: shows counts line; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.editKindCounts(_:)": "1902362139216ae3",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.formatEditSummary(_:)": "48a80cff54d92860",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit": "fa49172f3765065a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.resetButton",
+   "hash": "a560daf3d1010e57",
+   "does": "Reset button that calls resetEditsToOriginal.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.resetEditsToOriginal()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.resetEditsToOriginal()": "e0a421bfd83ec9bb"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.editsThisVisit",
+   "hash": "600562e02fb462f1",
+   "does": "state.edits minus the first originalSleepData.edits.count records (edits made this visit).",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Undo after Refresh restores the pre-refresh state but originalSleepData stays at the refreshed data: commit() then rebuilds SleepData from the fresh original with the old segments/edits (mixing date/boundarySource/deep-REM nil-ness from one fetch with timeline from another), and editsThisVisit drops originalSleepData.edits.count from a state whose edits came from the old original, miscounting. Reset after such an undo also jumps to the refreshed data.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:94",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:402",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:296",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:446"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SleepTimelineEditorView.editKindCounts(_:)",
+   "hash": "43ac9fb2baf36d72",
+   "does": "Counts edits per SleepEditRecord.Kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loop over edits",
+     "effect": "increments that kind"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepTimelineEditorView.formatEditSummary(_:)",
+   "hash": "28553f6d8556210f",
+   "does": "Joins localized counted labels in fixed order adjustBoundary, addSegment, removeSegment, split, merge, carveAwake.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.countedLabel(for:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "loop over the order",
+     "effect": "each kind"
+    },
+    {
+     "at": "+6",
+     "cond": "count missing or 0",
+     "effect": "skip"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": ".unknown edit kind is never included in the order list, so countedLabel's .unknown case is unreachable from formatEditSummary and edits of unknown kind (decoded from newer builds) are counted in \"N edits applied\" but listed nowhere.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:306",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:329"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.countedLabel(for:count:)": "b9895d4ed8220588"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.countedLabel(for:count:)",
+   "hash": "a36842514cc5d19e",
+   "does": "Localized pluralizable \"<n> <noun>\" string per edit kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".adjustBoundary",
+     "effect": "\"n boundary moves\""
+    },
+    {
+     "at": "+4",
+     "cond": ".addSegment",
+     "effect": "\"n segments added\""
+    },
+    {
+     "at": "+5",
+     "cond": ".removeSegment",
+     "effect": "\"n segments removed\""
+    },
+    {
+     "at": "+6",
+     "cond": ".split",
+     "effect": "\"n splits\""
+    },
+    {
+     "at": "+7",
+     "cond": ".merge",
+     "effect": "\"n merges\""
+    },
+    {
+     "at": "+8",
+     "cond": ".carveAwake",
+     "effect": "\"n marked awake periods\""
+    },
+    {
+     "at": "+9",
+     "cond": ".unknown",
+     "effect": "\"n edits\" (not reachable from formatEditSummary)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.resetEditsToOriginal()",
+   "hash": "46fa118995c211a0",
+   "does": "Pushes current state to undo and resets state to initial(from: originalSleepData).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.refreshCard",
+   "hash": "ce0d4f0421d6299f",
+   "does": "Card with the refresh row and, when set, the red refreshError text.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199) when onRefreshFromHealthKit != nil",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshFromAppleHealthSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "refreshError non-nil",
+     "effect": "shows error text, else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshFromAppleHealthSection": "dc5c43ccb93329cc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.refreshFromAppleHealthSection",
+   "hash": "6edaf97d17e1e198",
+   "does": "Row with icon, refresh label, and a spinner while refreshing else the Refresh button.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshFromHealthLabel",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "refreshing",
+     "effect": "spinner, else Refresh button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshButton": "0725007db9396352",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshFromHealthLabel": "953176a374a16ebb",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.refreshButton",
+   "hash": "66652a5389e321e8",
+   "does": "Refresh button launching a Task that awaits runRefreshFromHealthKit.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()": "5ccb5344458bf493"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.refreshFromHealthLabel",
+   "hash": "28d56b58dcd9b889",
+   "does": "Title and caption: re-pull latest sleep, current edits discarded.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.runRefreshFromHealthKit()",
+   "hash": "a70077f8646b3b65",
+   "does": "Calls the injected refresh provider; on non-nil result pushes current state to undo and replaces originalSleepData and state with the fresh night; on nil sets a localized error telling the user to check Health permissions. Toggles refreshing around the call.",
+   "entry": "Task from Refresh button tap",
+   "calls": [
+    "closure:onRefreshFromHealthKit = SleepDetailV2View.sleepEditor closure calling collector.healthKit.fetchSleepData(for:recordingEnd:) with try? (SleepDetailV2View.swift:205-214) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 -> Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:103",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis (via provider)",
+    "ud:SleepDataCache.v2 (via fetchSleepData cache)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onRefreshFromHealthKit nil",
+     "effect": "return (card is not shown in that case)"
+    },
+    {
+     "at": "+6",
+     "cond": "provider returns non-nil SleepData",
+     "effect": "true: undo push + replace original/state; false: set refreshError"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "fetchSleepData returns a non-nil SleepData.empty (no intervals, nil sleepStart/sleepEnd) when the resolved night is implausible for the recording (HealthKitManager+Sleep.swift:122-123); runRefreshFromHealthKit treats any non-nil as success, replaces originalSleepData and state with it, so the timeline goes blank with \"0 segments\" and no error is shown (only try? errors map to nil and the error text).",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:399",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:123",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:209"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The refresh provider calls HealthKitManager.fetchSleepData, which returns SleepDataCache first when a plausible cached night exists (HealthKitManager+Sleep.swift:105-107), so 'Refresh' after editing sleep in the Health app returns the cached pre-edit copy for any night whose cache entry was not rewritten; the observer only rewarms last night (HealthKitManager+SleepTrends.swift:516-519).",
+     "evidence": [
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:209",
+      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:105",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:516"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "When the refresh returns SleepData.empty (implausible night), originalSleepData becomes .empty; if the user then adds a segment and taps Done, buildSleepDataFromTimelineState copies date from SleepData.empty, a static let whose date is Date() at first access (app-run time, not the night), plus boundarySource .recordingBounds and nil deep/REM, into the saved night.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+      "Emuqu/Sources/Models/SleepData.swift:263",
+      "Emuqu/Sources/Models/SleepData.swift:264",
+      "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift:569"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.apply(_:)",
+   "hash": "b1263de73a7f1855",
+   "does": "Applies an edit to state; if the result differs (synthesized ==, including UUIDs) pushes the old state to undo and stores the new one.",
+   "entry": "Called from gesture/button/sheet handlers",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "after == before (edit rejected)",
+     "effect": "return, nothing pushed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.commit()",
+   "hash": "36c9b6de943a82d4",
+   "does": "Done: if state has same content as initial(originalSleepData) just dismisses; otherwise builds SleepData via SleepScienceAnalyzer.buildSleepDataFromTimelineState and passes it to onSave, then dismisses.",
+   "entry": "Done toolbar button (SleepTimelineEditorView.swift:134)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.hasSameContent(as:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "closure:onSave = SleepDetailV2View.sleepEditor closure calling onAdjust?(adjusted) and clearing editorSleepData (SleepDetailV2View.swift:202-204); onAdjust set by DashboardV2View.swift:487 / MorningResultsView.swift:331"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "state content equals initial(originalSleepData)",
+     "effect": "true: dismiss without saving; false: onSave(rebuilt) then dismiss"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Undo after Refresh restores the pre-refresh state but originalSleepData stays at the refreshed data: commit() then rebuilds SleepData from the fresh original with the old segments/edits (mixing date/boundarySource/deep-REM nil-ness from one fetch with timeline from another), and editsThisVisit drops originalSleepData.edits.count from a state whose edits came from the old original, miscounting. Reset after such an undo also jumps to the refreshed data.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift:94",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:402",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:296",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:446"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "After 'Refresh from Apple Health' with no further edit, Done compares state against initial(from: originalSleepData) which is now the refreshed night, finds them equal, and dismisses without onSave, so the refreshed snapshot the card promised ('Re-pull the latest sleep snapshot') is discarded and the session keeps its old sleep. The comment at 439-440 makes this deliberate to avoid setting sleepUserAdjusted, but nothing else persists the refresh.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:386",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:403",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:442",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift:440"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.hasSameContent(as:)": "a4049b0179f08d5b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.snapTo5Min(_:)",
+   "hash": "7b6ffe288ff33c94",
+   "does": "Rounds a Date to the nearest 300 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepTimelineEditorView.selectedSegment",
+   "hash": "5f3dd5e4453293a7",
+   "does": "The segment whose id is selectedSegmentId, or nil.",
+   "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selectedSegmentId nil",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepTimelineEditorView.segment(for:)",
+   "hash": "fddec031a68dded0",
+   "does": "First segment in state with the given id.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepTimelineEditorView.nearestMergeNeighbor(of:)",
+   "hash": "2361dfbca227949f",
+   "does": "Among other segments, returns the one with the smallest non-negative gap to seg that is <= 60 min; overlapping segments (gap -1) skipped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loop over other segments",
+     "effect": "each"
+    },
+    {
+     "at": "+4",
+     "cond": "other starts at/after seg end",
+     "effect": "gap = other.start - seg.end"
+    },
+    {
+     "at": "+6",
+     "cond": "seg starts at/after other end",
+     "effect": "gap = seg.start - other.end; else -1 (overlap)"
+    },
+    {
+     "at": "+11",
+     "cond": "gap < 0 or > 3600",
+     "effect": "continue"
+    },
+    {
+     "at": "+12",
+     "cond": "gap < current best (best nil -> ?? infinity)",
+     "effect": "becomes best"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,348 @@
+{
+ "file": "EmuquTests/TopoElevationServiceTests.swift",
+ "hash": "b79914afba6e0838",
+ "role": "XCTest suite for TopoElevationService's pure parts: sustainedClimb gain/loss accumulation (flat steps are not reversals, sub-threshold noise rejected, threshold inclusive), downsampleIndices (keeps endpoints, monotonic, short input unchanged) and request(for:) (User-Agent with contact, 20 s timeout).",
+ "types": [
+  "TopoElevationServiceTests: class — XCTestCase over TopoElevationService.sustainedClimb/downsampleIndices/request"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TopoElevationServiceTests.gainLoss(_:threshold:)",
+   "hash": "88bbe6a0bb956734",
+   "does": "Test helper: TopoElevationService.sustainedClimb(in:threshold:) with threshold default 10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testQuantisedClimbIsNotDiscarded()",
+   "hash": "ab8865f13d01054e",
+   "does": "Asserts the quantised climb [0,0,5,5,…,20,20] yields gain 20 and loss 0 (flat steps do not split the run).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testQuantisedDescentIsNotDiscarded()",
+   "hash": "da11d425e97db7f8",
+   "does": "Asserts the quantised descent [20,20,…,0,0] yields loss 20 and gain 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testLongFlatSectionMidClimbDoesNotSplitIt()",
+   "hash": "f82b7cd2bf6040d0",
+   "does": "Asserts a climb with a 5-sample plateau at 8 m yields gain 20 (one run).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testNoiseBelowThresholdIsRejected()",
+   "hash": "774abcf86f4975e4",
+   "does": "Asserts alternating 2–3 m wobble yields gain 0 and loss 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testRunExactlyAtThresholdCounts()",
+   "hash": "984e3610e4fbd1c9",
+   "does": "Asserts a single 10 m step at threshold 10 counts as gain 10 (inclusive).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testRunJustUnderThresholdDoesNot()",
+   "hash": "9030c4b81af84f4c",
+   "does": "Asserts a 9.99 m step yields gain 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testClimbThenDescentCountsBoth()",
+   "hash": "2aa078c8d4ce5376",
+   "does": "Asserts 0→30→0 yields gain 30 and loss 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testRollingTerrainAccumulatesEachSustainedRun()",
+   "hash": "7de8e8981f44e384",
+   "does": "Asserts [0,15,0,15,0] yields gain 30 and loss 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testEntirelyFlatTerrainHasNoGain()",
+   "hash": "c6f4d2d078f19530",
+   "does": "Asserts flat [10×5] yields gain 0 and loss 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.commit(threshold:)": "ddf411ba42d8bcfb",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.finish(threshold:)": "35ff9f22b83feb12",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.ClimbRun.step(by:threshold:)": "f0d4a51a7bc8ed6a",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testSingleSampleIsSafe()",
+   "hash": "fa3ff0432700f255",
+   "does": "Asserts a single sample returns (0,0) without trapping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testEmptyInputIsSafe()",
+   "hash": "8c389ea0d8f5d81e",
+   "does": "Asserts empty input returns (0,0) without trapping on 1..<0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
+    "EmuquTests/TopoElevationServiceTests.swift::func TopoElevationServiceTests.gainLoss(_:threshold:)": "05b696fe728f88dc"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testDownsampleKeepsFirstAndLast()",
+   "hash": "682db1eebdb828b3",
+   "does": "Asserts downsampleIndices(count 1000, target 100) starts at 0, ends at 999 and has 100 entries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testDownsampleIsMonotonic()",
+   "hash": "6b86872d4cae1ba8",
+   "does": "Asserts downsampleIndices(500, 60) is sorted ascending.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testDownsampleShorterThanTargetIsUnchanged()",
+   "hash": "befff9c6588d7e20",
+   "does": "Asserts downsampleIndices(5, 100) returns 0..<5 unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.downsampleIndices(count:target:)": "edb5fc6bb3526696"
+   }
+  },
+  {
+   "key": "func TopoElevationServiceTests.testRequestIdentifiesTheAppWithAContact()",
+   "hash": "8da98f15d17e6e12",
+   "does": "Asserts request(for:) sets User-Agent to TopoElevationService.userAgent, which starts with 'Emuqu/<appVersion> ' and contains '@', and a 20 s timeout.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.request(for:)": "aad4851b997a9adb",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "e23b8fc68ca5f22c"
+   }
+  }
+ ],
+ "deps": {}
+}

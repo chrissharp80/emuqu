@@ -1,0 +1,326 @@
+{
+ "file": "Emuqu/Sources/Utilities/SafeObjC.m",
+ "hash": "0a2c0f9dc28819a8",
+ "role": "Implementation of the SafeObjC shims: each nil-checks its receiver, calls the AVFoundation method inside @try, and on NSException returns NO with an NSError in domain \"FlowRecovery.SafeAudioEngine\" carrying NSExceptionName/NSExceptionReason. Compiled into the iOS app target (project.pbxproj:4149).",
+ "types": [],
+ "state": [
+  "mem:FRSafeAudioEngineErrorDomain = @\"FlowRecovery.SafeAudioEngine\" (global NSString, not declared in the header; no Swift code matches on it)"
+ ],
+ "toplevel": "Defines FRSafeAudioEngineErrorDomain (line 7). Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "FRSafeStartAudioEngine, FRSafeInstallTap and FRSafePrepareAudioEngine each inline the same exception-to-NSError construction that _FRSafeErrorFromException (SafeObjC.m:103) was later added to centralise.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/SafeObjC.m:27",
+    "Emuqu/Sources/Utilities/SafeObjC.m:59",
+    "Emuqu/Sources/Utilities/SafeObjC.m:87",
+    "Emuqu/Sources/Utilities/SafeObjC.m:103"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "c FRSafeStartAudioEngine",
+   "hash": "bd27ca85199894a1",
+   "does": "Starts an AVAudioEngine via startAndReturnError: inside @try. Returns YES on success; NO with the bridged NSError on recoverable failure, or NO with code -2 NSError on NSException; nil engine → NO code -1. Callers: VoiceConversationController+Pipeline startAudioEngineWithRetry (line 202), SpeechInputManager.startEngine (SpeechInputManager.swift:102).",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioEngine.startAndReturnError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "engine == nil",
+     "effect": "set code -1 \"engine is nil\" if outError, return NO (unreachable from Swift: nonnull parameter)"
+    },
+    {
+     "at": "+3",
+     "cond": "outError non-NULL",
+     "effect": "write error; else skip"
+    },
+    {
+     "at": "+12",
+     "cond": "!ok || startErr != nil",
+     "effect": "copy startErr to outError and return NO — also when ok==YES but an error object was set, so a running engine is reported as failed; else return YES"
+    },
+    {
+     "at": "+18",
+     "cond": "@catch NSException",
+     "effect": "build userInfo with reason ?: name ?: fallback text, set code -2 if outError, return NO"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Returns NO when startAndReturnError: returned YES but wrote an error object (`!ok || startErr != nil`), contrary to the Cocoa rule that the error out-param is only meaningful on failure; the Pipeline caller then retries start, removes the mic tap and throws audioSessionUnavailable although the engine may be running. Separately, SafeObjC.m is compiled with ARC (CLANG_ENABLE_OBJC_ARC = YES) and without -fobjc-arc-exceptions, so strong objects in each @try scope are not released when an NSException is caught, and the engine is reused after an exception Apple frameworks do not guarantee to recover from (retry at Pipeline:209).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/SafeObjC.m:21",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:204",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:209",
+      "Emuqu.xcodeproj/project.pbxproj:4712"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "c FRSafeInstallTap",
+   "hash": "7f88f1df90ed397a",
+   "does": "Installs a tap block on an AVAudioInputNode bus inside @try; YES on success, NO with code -11 NSError on NSException, NO with code -10 if node nil. Callers: VoiceConversationController+Pipeline installMicTap (line 152, retries with nil format on failure), SpeechInputManager.startEngine.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioInputNode.installTapOnBus"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "node == nil",
+     "effect": "code -10 \"input node is nil\", NO (unreachable from Swift)"
+    },
+    {
+     "at": "+18",
+     "cond": "@catch NSException",
+     "effect": "code -11 with exception reason/name if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "c FRSafePrepareAudioEngine",
+   "hash": "cdc76a712e7940db",
+   "does": "Calls [AVAudioEngine prepare] inside @try; YES on success, NO with code -21 on NSException, NO with code -20 if engine nil. Callers: VoiceConversationController+Pipeline prepareAudioEngine (line 173), SpeechInputManager.startEngine.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioEngine.prepare"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "engine == nil",
+     "effect": "code -20, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+14",
+     "cond": "@catch NSException",
+     "effect": "code -21 with reason/name if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "c _FRSafeErrorFromException",
+   "hash": "8cebaac621340d7d",
+   "does": "Builds an NSError in FRSafeAudioEngineErrorDomain with the given code; NSLocalizedDescription = exception reason, else name, else the fallback string; adds NSExceptionName/NSExceptionReason keys when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "ex.reason / ex.name nil",
+     "effect": "?: falls back reason → name → fallback string"
+    },
+    {
+     "at": "+5",
+     "cond": "ex.name non-nil",
+     "effect": "add NSExceptionName key; else omit"
+    },
+    {
+     "at": "+6",
+     "cond": "ex.reason non-nil",
+     "effect": "add NSExceptionReason key; else omit"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "c FRSafeRemoveTap",
+   "hash": "fb046aaa62c6949f",
+   "does": "Calls removeTapOnBus: inside @try; YES on success, NO + code -31 on NSException, NO + code -30 if node nil. Callers: VoiceConversationController resetAudioEngineSafely/removeMicTapBestEffort/stopAudioEngineSafely, SpeechInputManager start/stop/cancel paths (most discard the result).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVAudioInputNode.removeTapOnBus"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "node == nil",
+     "effect": "code -30, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+15",
+     "cond": "@catch NSException",
+     "effect": "code -31 via _FRSafeErrorFromException if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeSetVoiceProcessing",
+   "hash": "683ff6b1006f5bcf",
+   "does": "Calls setVoiceProcessingEnabled:error: inside @try and returns its BOOL; on NO copies the inner NSError (which may be nil) to outError; NSException → NO code -41; nil node → NO code -40. Caller: VoiceConversationController+Pipeline configuredInputFormat (line 580).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVAudioInputNode.setVoiceProcessingEnabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "node == nil",
+     "effect": "code -40, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+14",
+     "cond": "!ok && outError",
+     "effect": "pass inner error through (could be nil, giving NO with no error); return ok"
+    },
+    {
+     "at": "+17",
+     "cond": "@catch NSException",
+     "effect": "code -41 if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeAudioEngineStop",
+   "hash": "03b2de4bf1c4ef5e",
+   "does": "Calls [AVAudioEngine stop] inside @try; YES / NO+code -51 on NSException / NO+code -50 if nil. Callers: VoiceConversationController resetAudioEngineSafely and stopAudioEngineSafely, SpeechInputManager resetEngineAndReadFormat/stop/cancel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVAudioEngine.stop"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "engine == nil",
+     "effect": "code -50, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+14",
+     "cond": "@catch NSException",
+     "effect": "code -51 if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeAudioEngineReset",
+   "hash": "0a67bdb806c1ccaf",
+   "does": "Calls [AVAudioEngine reset] inside @try; YES / NO+code -61 on NSException / NO+code -60 if nil. Callers: VoiceConversationController resetAudioEngineSafely, SpeechInputManager.resetEngineAndReadFormat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVAudioEngine.reset"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "engine == nil",
+     "effect": "code -60, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+14",
+     "cond": "@catch NSException",
+     "effect": "code -61 if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeSpeak",
+   "hash": "159a640593dd12e2",
+   "does": "Calls speakUtterance: inside @try; YES / NO+code -71 on NSException / NO+code -70 if synthesizer or utterance nil. Callers: VoiceConversationController+Speech speak, WorkoutVoiceCoach.speakPrepared, BreathingAudioManager.speak, WorkoutStartCue.buildAndSpeakStartUtterance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVSpeechSynthesizer.speakUtterance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "synthesizer == nil || utterance == nil",
+     "effect": "code -70, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+15",
+     "cond": "@catch NSException",
+     "effect": "code -71 if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  },
+  {
+   "key": "c FRSafeStopSpeaking",
+   "hash": "76129d66fbf9cd3c",
+   "does": "Calls stopSpeakingAtBoundary: inside @try; YES / NO+code -73 on NSException / NO+code -72 if nil. Callers pass outError nil and discard the result: VoiceConversationController+Speech stopSynthesizer/stopAnyOngoingSpeech, +Control playAIPromptTriggerNow/playSpokenTriggerNow, BreathingAudioManager.stop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",
+    "ext:AVSpeechSynthesizer.stopSpeakingAtBoundary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "synthesizer == nil",
+     "effect": "code -72, NO (unreachable from Swift)"
+    },
+    {
+     "at": "+15",
+     "cond": "@catch NSException",
+     "effect": "code -73 if outError; NO"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException": "4921cb0f00cc5aa8"
+   }
+  }
+ ],
+ "deps": {}
+}

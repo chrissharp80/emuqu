@@ -1,0 +1,118 @@
+{
+ "file": "EmuquTests/FosterMonotonyWarningTests.swift",
+ "hash": "863cd733894de0cc",
+ "role": "XCTest suite for FosterMonotonyWarning: warning requires monotony > 2.0 AND strain > Foster's strain threshold, unifying the Load & Trajectory and Training Load screens.",
+ "types": [
+  "FosterMonotonyWarningTests: class — XCTestCase for FosterMonotonyWarning.isRaised"
+ ],
+ "state": [
+  "mem:FosterMonotonyWarningTests.reference (fixed Date 1_790_000_000)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FosterMonotonyWarningTests.week(_:)",
+   "hash": "d4251bdeeece0be6",
+   "does": "Test helper: maps a list of daily loads to [startOfDay(reference) - offset days: load] in Calendar.current.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarningTests.testALightUnvariedWeekDoesNotWarn()",
+   "hash": "2494f5087f45cc55",
+   "does": "Seven ~20 TRIMP days: asserts fosterMonotonyStrain gives monotony > monotonyThreshold and strain > 200, yet isRaised is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)": "ab824cd92efd0efd"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarningTests.testAHeavyUnvariedWeekWarns()",
+   "hash": "66c61d94bc3964c5",
+   "does": "Seven ~70 TRIMP days: asserts isRaised is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)": "ab824cd92efd0efd"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarningTests.testAHeavyVariedWeekDoesNotWarn()",
+   "hash": "cbae75de081b4b82",
+   "does": "Varied heavy week (150,0,60,140,0,50,130): asserts isRaised false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
+    "EmuquTests/FosterMonotonyWarningTests.swift::func FosterMonotonyWarningTests.week(_:)": "ab824cd92efd0efd"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarningTests.testAnEmptyWeekDoesNotWarn()",
+   "hash": "e1c5ecb19c9b172d",
+   "does": "Empty load map: asserts isRaised false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527"
+   }
+  },
+  {
+   "key": "func FosterMonotonyWarningTests.testTheGateIsMonotonyAndStrainBothOverTheirThresholds()",
+   "hash": "8d04fb9659b3c0cb",
+   "does": "Asserts the tuple gate: raised only when monotony > threshold AND strain > strainThreshold (true at +0.1/+1; false with strain −1 or monotony −0.1).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d"
+   }
+  }
+ ],
+ "deps": {}
+}

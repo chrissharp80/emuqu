@@ -1,0 +1,132 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift",
+ "hash": "e01231502ba24f45",
+ "role": "Static forwarders on RecoveryScoreCalculator to VitalsScoring, kept so existing call sites (and tests) still compile after the vitals code moved.",
+ "types": [
+  "RecoveryScoreCalculator: extension — vitals forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)",
+   "hash": "e62dd93443c78bdc",
+   "does": "Forwards to VitalsScoring.calculateVitalsScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.buildVitalsDetail(vitals:baselineStats:score:)",
+   "hash": "d5173e4195706685",
+   "does": "Forwards to VitalsScoring.buildVitalsDetail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller of RecoveryScoreCalculator.buildVitalsDetail; only EmuquTests/ScoringCharacterizationTests.swift references it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift:17",
+      "EmuquTests/ScoringCharacterizationTests.swift:569"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.buildVitalsDetail(vitals:baselineStats:score:)": "f487f1c8fa4b20a4"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+   "hash": "c539a81c5aa398ff",
+   "does": "Forwards to VitalsScoring.breakdownRefreshingVitalsFactor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+   "hash": "5e2c12b0d5693a9a",
+   "does": "Forwards to VitalsScoring.respiratoryPopulationScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only EmuquTests/RecoveryScoreVitalsFallbackTests.swift calls RecoveryScoreCalculator.respiratoryPopulationScore; no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift:37",
+      "EmuquTests/RecoveryScoreVitalsFallbackTests.swift:19"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)",
+   "hash": "da2cf32619a7c180",
+   "does": "Forwards to VitalsScoring.applyVitalsOverrides (flat -10 SpO2 penalty, floor 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)": "3b32c0981e9183bc"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)",
+   "hash": "515f1a969838cbfa",
+   "does": "Forwards to VitalsScoring.vitalsPenaltyDescriptions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)": "7ce480124795cabc"
+   }
+  }
+ ],
+ "deps": {}
+}

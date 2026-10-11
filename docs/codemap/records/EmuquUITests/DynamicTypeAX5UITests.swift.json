@@ -1,0 +1,286 @@
+{
+ "file": "EmuquUITests/DynamicTypeAX5UITests.swift",
+ "hash": "79c7ce0c76f5bdc6",
+ "role": "XCUITest at the largest accessibility text size (AX5 via -UIPreferredContentSizeCategoryName): proves the size applies, app renders, disclaimer accept stays hittable/labelled/>=44pt, tab buttons stay >=44pt and on screen.",
+ "types": [
+  "DynamicTypeAX5UITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift:38",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DynamicTypeAX5UITests.screen",
+   "hash": "3a016a7db40c334c",
+   "does": "Computed: frame of the app's first window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.setUp()",
+   "hash": "3185f4a0b4739cd1",
+   "does": "Sets continueAfterFailure=false and launches with -UITests, -UITests-FreshInstall, -UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL and English; does not walk gates.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.testAX5LaunchArgumentIsActuallyApplied()",
+   "hash": "e8d76e9db03d0b20",
+   "does": "Asserts disclaimer.agree appears, scrolls to reveal it, and asserts its height > 65pt (AX5 measured 214pt, default 104pt).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.testAppLaunchesAndRendersAtAX5()",
+   "hash": "1be7e412a8474b8b",
+   "does": "Asserts the app reaches foreground within 20s and that any static text or button appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.testDisclaimerAcceptRemainsHittableAtAX5()",
+   "hash": "935406db6336f13d",
+   "does": "Asserts disclaimer.agree appears, reveals it, asserts isHittable and that it is >=44x44 and on screen.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "10620a1e9034251a",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.testPrimaryButtonsKeepTheirLabelsAtAX5()",
+   "hash": "61d427071d053eaf",
+   "does": "Asserts disclaimer.agree appears and its label is non-empty after trimming spaces.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc says every element that carries a label must keep a non-empty one at AX5; the test checks only the disclaimer agree button",
+     "evidence": [
+      "EmuquUITests/DynamicTypeAX5UITests.swift:106",
+      "EmuquUITests/DynamicTypeAX5UITests.swift:112"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.testTabBarRemainsUsableAtAX5()",
+   "hash": "37ee8d7e144f0dd0",
+   "does": "Taps the disclaimer if hittable, asserts the tab bar exists, at least 3 tab buttons, and each is >=44x44 and intersects the screen.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each tab button that exists",
+     "effect": "assert usable target"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Only the disclaimer is dismissed; the onboarding walk-through that follows on a fresh install is never walked, and the tab bar exists in the hierarchy under that cover (EmuquUITests.swift:593-596), so the test passes without the tab bar ever being reachable at AX5",
+     "evidence": [
+      "EmuquUITests/DynamicTypeAX5UITests.swift:121",
+      "EmuquUITests/EmuquUITests.swift:593"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.assertUsableTarget(_:named:)": "10620a1e9034251a",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()": "68b04e539edf0f90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.assertUsableTarget(_:named:)",
+   "hash": "b20c0b50e27cb971",
+   "does": "Fails if the element frame is zero; otherwise asserts height>=44, width>=44 and that it intersects the window frame.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift::var DynamicTypeAX5UITests.screen"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "frame == .zero",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/DynamicTypeAX5UITests.swift::var DynamicTypeAX5UITests.screen": "4c2d0efbf05d2c89"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.scrollToReveal(_:)",
+   "hash": "97b1597fd1722829",
+   "does": "If the element is not hittable and a scroll view exists, swipes the first scroll view up to 6 times until it is hittable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "element already hittable",
+     "effect": "return"
+    },
+    {
+     "at": "+3",
+     "cond": "no scroll view",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "for up to 6 swipes while not hittable",
+     "effect": "swipe up"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Uses bare isHittable, which the harness documents raises (fails the test) when no activation point can be derived (EmuquUITests.swift:247-259), and scrollViews.firstMatch, which can be the dashboard behind the cover (EmuquUITests.swift:736-739)",
+     "evidence": [
+      "EmuquUITests/DynamicTypeAX5UITests.swift:153",
+      "EmuquUITests/EmuquUITests.swift:247",
+      "EmuquUITests/EmuquUITests.swift:736"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+   }
+  },
+  {
+   "key": "func DynamicTypeAX5UITests.dismissDisclaimerIfPresent()",
+   "hash": "886185943f5d2631",
+   "does": "Waits up to 20s for disclaimer.agree; if present reveals it and taps it when hittable. No assertion.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "agree button absent",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "agree hittable",
+     "effect": "tap; else leave it (button may also be disabled until scrolled)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/DynamicTypeAX5UITests.swift::func DynamicTypeAX5UITests.scrollToReveal(_:)": "0622e50ef17aa8bf",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,534 @@
+{
+ "file": "Emuqu/Sources/Models/DashboardSessionPolicy.swift",
+ "hash": "0f9c9f1cbd8c85af",
+ "role": "Pure, clock-free session-selection rules for the v2 dashboard (hero score, HRV/sleep/vitals sources, 7-day Recent strip) on full sessions and on the lightweight index for cold-start seeds, plus ScoreAppearancePolicy night thresholds.",
+ "types": [
+  "DashboardSessionPolicy: enum — dashboard selection rules",
+  "DashboardSessionPolicy.RecentDay: struct — strip cell (date, score, verdict)",
+  "DashboardSessionPolicy.DashboardSeed: struct — cold-start HRV/sleep/recent seed",
+  "ScoreAppearancePolicy: enum — when the score/verdict appear (14 shown, 28 full)",
+  "ScoreAppearancePolicy.Stage: enum — building/provisional/full"
+ ],
+ "state": [
+  "ScoreAppearancePolicy.personalBaselineNights = RecoveryBaselineStats.minimumDays",
+  "ScoreAppearancePolicy.scoreShownNights = 14",
+  "ScoreAppearancePolicy.fullBaselineNights = 28"
+ ],
+ "toplevel": "Static constants only.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "ScoreAppearancePolicy.personalBaselineNights is declared but never referenced anywhere in the repo (grep finds only the declaration).",
+   "evidence": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift:334"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)",
+   "hash": "c24b71622ed68071",
+   "does": "From index entries, keeps reliable overnights with a recoveryScore, groups by start-of-day of their wake day, takes the latest night and its longest entry, and returns safeDisplayScore(score*10); nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no qualifying entries",
+     "effect": "return nil"
+    },
+    {
+     "at": "+6",
+     "cond": "byNight.keys.max() nil",
+     "effect": "return nil (unreachable once candidates non-empty)"
+    },
+    {
+     "at": "+7",
+     "cond": "endDate ?? date in the inline duration closure",
+     "effect": "zero duration when endDate nil"
+    },
+    {
+     "at": "+8",
+     "cond": "no winner or winner.recoveryScore nil",
+     "effect": "return nil (score nil unreachable after filter)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements latestScoredOvernightEntry (same filter/grouping/selection) and inlines a copy of entryDuration instead of calling them.",
+     "evidence": [
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:44-51",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:79-93"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.dashboardSummarySeed(inEntries:today:calendar:)",
+   "hash": "525db14770eeb28b",
+   "does": "Builds the cold-start DashboardSeed: HRV from the latest scored overnight entry's meanRMSSD (rounded), sleep minutes from its stage minutes, and the 7-day strip from the index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(fromEntries:today:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "dashboardSummarySeed and recentDays(fromEntries:) have no tests (grep EmuquTests for inEntries/fromEntries/dashboardSummarySeed finds only latestOvernightScore in DemoSessionSeederTests.swift:235), although the type doc says regression coverage lives in DashboardSessionPolicyTests.",
+     "evidence": [
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:17",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:68",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:109"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)": "4b423b376e16cf8d",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(fromEntries:today:calendar:)": "c4b39e63f3087dc3",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.latestScoredOvernightEntry(in:calendar:)",
+   "hash": "d6e3c96cbafbb2d9",
+   "does": "Returns the longest reliable, scored overnight entry on the most recent wake day, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.entryDuration(_:)",
+   "hash": "4d0cdc5d2a27a74e",
+   "does": "Entry duration = (endDate ?? date) - date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil (??)",
+     "effect": "uses date, duration 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DashboardSessionPolicy.totalSleepMinutes(in:)",
+   "hash": "99c2f7453bde7704",
+   "does": "Sum of deep + REM + core sleep minutes from the index (nil components count 0); nil when the sum is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "each stage minute nil (??)",
+     "effect": "counts as 0"
+    },
+    {
+     "at": "+2",
+     "cond": "total > 0",
+     "effect": "return total; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.recentDays(fromEntries:today:calendar:)",
+   "hash": "992e1a66ab2c2522",
+   "does": "Seven RecentDay cells (6 days ago .. today) from the index: per day picks entryForDay and maps its recoveryScore to a 0-100 display score and verdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for offset 6..0",
+     "effect": "one cell per day"
+    },
+    {
+     "at": "+4",
+     "cond": "Calendar.date(byAdding:) nil",
+     "effect": "skip that day (continue)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Doc claims the same day rules as sessionForDay so the strip does not move on full load, but entryForDay requires recoveryScore != nil while isDayCandidate also admits sessions with only an analysisResult and recentDays falls back to readinessScore; a day whose overnight lacks a stored recoveryScore picks a different session (or none) in the seed than after full load.",
+     "evidence": [
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:102-105",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:125",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:253",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:310"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryForDay(_:in:calendar:)": "c5b1c400b4f25717",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.entryForDay(_:in:calendar:)",
+   "hash": "2192d7c7031f8b54",
+   "does": "Among index entries on the given wake day that are not workouts, carry a recoveryScore and are HRV-reliable, returns the longest overnight, else the longest other entry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "an overnight candidate exists",
+     "effect": "return the longest overnight; else longest of all candidates (nil if none)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "833161fbb2854061",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "a7a027d1823096d5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.entryDay(of:)",
+   "hash": "1e8abe66b56043df",
+   "does": "Day an index entry belongs to: an overnight with sleepEnd uses sleepEnd; otherwise endDate ?? date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnight AND sleepEnd present",
+     "effect": "return sleepEnd"
+    },
+    {
+     "at": "+2",
+     "cond": "endDate nil (??)",
+     "effect": "fallback to date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+   "hash": "82304ade842d1a90",
+   "does": "Among overnight sessions with an analysisResult that are reliable for HRV aggregates, groups by start-of-day of dayOf (wake day) and returns the longest session of the most recent night.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no candidates",
+     "effect": "return nil"
+    },
+    {
+     "at": "+8",
+     "cond": "no max key",
+     "effect": "return nil (unreachable once non-empty)"
+    },
+    {
+     "at": "+9",
+     "cond": "byNight lookup nil (??)",
+     "effect": "empty array -> nil (unreachable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.latestWithSleep(in:)",
+   "hash": "58b6a577ec28d2b8",
+   "does": "First session (newest-first input) with a sleepSnapshot, not gated on HRV reliability.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.latestWithVitals(in:)",
+   "hash": "87d47074dfa4381f",
+   "does": "First session with a non-empty vitalsSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitalsSnapshot nil -> isEmpty ?? true",
+     "effect": "treated as empty, session skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+   "hash": "e456396431fcc7b7",
+   "does": "For a day: candidates per isDayCandidate; returns longest overnight, else longest non-overnight candidate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "an overnight candidate exists",
+     "effect": "return longest overnight; else longest of the rest (the .filter != .overnight is redundant since no overnights exist then)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+   "hash": "7c6bfd10627b5b21",
+   "does": "True for a non-workout session with an analysisResult or recoveryScore, reliable for HRV aggregates, whose dayOf falls on the date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.dayOf(_:)",
+   "hash": "1e95f78a31403dc9",
+   "does": "Wake day of a session: for overnights the snapshot sleepEnd, else startDate + sleepEndMs; otherwise endDate ?? startDate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session is overnight",
+     "effect": "try sleep-based end"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepSnapshot.sleepEnd present",
+     "effect": "return it"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepEndMs present",
+     "effect": "return startDate + sleepEndMs"
+    },
+    {
+     "at": "+9",
+     "cond": "endDate nil (??)",
+     "effect": "fallback startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.duration(of:)",
+   "hash": "ae8eb03ebc2a686e",
+   "does": "Session duration = (endDate ?? startDate) - startDate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil (??)",
+     "effect": "duration 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DashboardSessionPolicy.recentDays(from:today:calendar:)",
+   "hash": "e4c911707a71c8f0",
+   "does": "Seven RecentDay cells from full sessions: per day sessionForDay, score = recoveryScore ?? readinessScore mapped to 0-100 and verdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for offset 6..0",
+     "effect": "one cell per day"
+    },
+    {
+     "at": "+4",
+     "cond": "date math nil",
+     "effect": "skip day"
+    },
+    {
+     "at": "+10",
+     "cond": "recoveryScore nil (??)",
+     "effect": "fall back to readinessScore; both nil -> score nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func ScoreAppearancePolicy.showsScore(baselineNights:)",
+   "hash": "134e1158789dae5f",
+   "does": "True when baselineNights >= 14.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreAppearancePolicy.stage(baselineNights:)",
+   "hash": "a07f8c1f9cc87baf",
+   "does": "Maps baseline nights to .building (<14), .provisional (<28) or .full.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baselineNights < 14",
+     "effect": ".building"
+    },
+    {
+     "at": "+2",
+     "cond": "baselineNights < 28",
+     "effect": ".provisional; else .full"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,282 @@
+{
+ "file": "EmuquTests/StrapReadinessTests.swift",
+ "hash": "090900cc91ab4ed5",
+ "role": "XCTest suite for the pure StrapReadiness value type: per-link generation counting, discarding feature state on link loss, ignoring reports while unlinked, and the waitOutcome rules (ready / unavailable / unconfirmed after settle / nil while waiting).",
+ "types": [
+  "StrapReadinessTests: class — XCTestCase over StrapReadiness/StrapFeature/StrapFeatureWait"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapReadinessTests.linked()",
+   "hash": "21ee10b6977faf28",
+   "does": "Test helper: returns StrapReadiness.initial after one linkEstablished() (generation 1, linked, all features pending).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testNothingIsKnownWithoutALink()",
+   "hash": "9c534f4f9acbdaf7",
+   "does": "Asserts StrapReadiness.initial is unlinked, generation 0, and every StrapFeature is .pending with waitOutcome nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each StrapFeature.allCases",
+     "effect": "asserts state .pending and waitOutcome nil for each of the 4 features"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testReportsWithoutALinkAreIgnored()",
+   "hash": "a6a0e30b006a271c",
+   "does": "Calls markReady, confirm, applySummary and settleWithoutSummary on an unlinked readiness and asserts isSettled stays false and every feature reads .pending.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each StrapFeature.allCases",
+     "effect": "asserts state(of:) == .pending"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The per-feature .pending assertions cannot fail: state(of:) returns .pending whenever !isLinked (StrapReadiness.swift:65) regardless of the states dictionary, so removing the isLinked guards in markReady/confirm would not be detected; only the isSettled assertion has teeth.",
+     "evidence": [
+      "EmuquTests/StrapReadinessTests.swift:42",
+      "Emuqu/Sources/Collection/StrapReadiness.swift:65",
+      "Emuqu/Sources/Collection/StrapReadiness.swift:96"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testEachLinkIsANewGeneration()",
+   "hash": "fc113972f3b93a92",
+   "does": "Asserts generation is 1 after first link, stays 1 after linkLost, and becomes 2 after the next linkEstablished.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testNothingSurvivesALostLink()",
+   "hash": "5a1875089fd2eb38",
+   "does": "Marks h10Recording ready and applies a summary, then linkLost: asserts unlinked and unsettled; after linkEstablished asserts every feature is .pending and isSettled is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each StrapFeature.allCases",
+     "effect": "asserts state(of:) == .pending (nothing carried over)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "928a22bc76f7f04a",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testAFreshLinkKeepsWaitersWaiting()",
+   "hash": "6f4569d1f11fa72d",
+   "does": "Asserts a freshly linked, unsettled readiness returns waitOutcome nil (keep waiting) for every feature.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each StrapFeature.allCases",
+     "effect": "asserts waitOutcome nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testAReportedFeatureIsReady()",
+   "hash": "1136397f8ee555da",
+   "does": "After markReady(.heartRate) asserts isReady(.heartRate), waitOutcome(.heartRate) == .ready and waitOutcome(.h10Recording) nil (unsettled pending).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testASummaryLeavesUnreportedFeaturesUnconfirmedNotUnavailable()",
+   "hash": "9b9b17150731b070",
+   "does": "After applySummary(ready:[heartRate], unavailable:[offlineRecording]) asserts isSettled, heartRate .ready, offlineRecording .unavailable, h10Recording state .pending but waitOutcome .unconfirmed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.state(of:)": "4a37b06c313d6ed4",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testASummaryDoesNotDowngradeAFeatureAlreadyReady()",
+   "hash": "6155b846ceb83421",
+   "does": "Asserts a summary listing onlineStreaming unavailable does not downgrade it after markReady: waitOutcome stays .ready.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testSettlingWithoutASummaryMakesPendingFeaturesUnconfirmed()",
+   "hash": "ee638677f9991db1",
+   "does": "After markReady(.heartRate) and settleWithoutSummary asserts heartRate .ready and h10Recording .unconfirmed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.markReady(_:)": "45143fd6e7249273",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  },
+  {
+   "key": "func StrapReadinessTests.testASuccessfulOperationConfirmsItsFeature()",
+   "hash": "1a192d384ea73ae2",
+   "does": "After a summary marking h10Recording unavailable, confirm(.h10Recording) upgrades it: asserts waitOutcome .ready.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.applySummary(ready:unavailable:)": "cce209df7497c9ab",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.confirm(_:)": "7675e635229c9a03",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "2575c6416a310633",
+    "EmuquTests/StrapReadinessTests.swift::func StrapReadinessTests.linked()": "a4884d8e04a57f67"
+   }
+  }
+ ],
+ "deps": {}
+}

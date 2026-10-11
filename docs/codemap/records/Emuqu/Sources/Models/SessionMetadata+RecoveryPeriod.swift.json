@@ -1,0 +1,143 @@
+{
+ "file": "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift",
+ "hash": "ddadac2656198385",
+ "role": "HRVSession static helpers that chain pause/resume overnight sessions into one recovery window and derive the sleep-fetch window extended to the morning cutoff.",
+ "types": [
+  "HRVSession: extension — recovery-period window selection"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+   "hash": "787caf0e38c8d269",
+   "does": "For an overnight session, expands [start,end] backward/forward over other complete/paused overnight sessions separated by ≤ mergeGapSeconds, forward only for candidates starting before the morning cutoff (wake+4h); non-overnight sessions return their own [start, end ?? start].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.chainableOvernightSessions(excluding:from:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.expandBackward(_:over:maxGap:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.expandForward(_:over:maxGap:morningCutoff:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session.endDate ?? startDate",
+     "effect": "open session → end = start"
+    },
+    {
+     "at": "+9",
+     "cond": "session.sessionType != .overnight",
+     "effect": "returns own [start,end] without chaining"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.chainableOvernightSessions(excluding:from:)": "a403b6e0cd8fce46",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.expandBackward(_:over:maxGap:)": "901e16330d88518f",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.expandForward(_:over:maxGap:morningCutoff:)": "bcb274715adb4b3b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303"
+   }
+  },
+  {
+   "key": "func HRVSession.expandBackward(_:over:maxGap:)",
+   "hash": "3ecaf11097955071",
+   "does": "Walks chainable sessions newest-start first and moves earliestStart back to any candidate whose end lies 0…maxGap before the current earliestStart (repeatedly chaining).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for candidate in chainable.reversed()",
+     "effect": "iterates newest-start first"
+    },
+    {
+     "at": "+4",
+     "cond": "candidate.endDate is nil",
+     "effect": "skips candidate"
+    },
+    {
+     "at": "+6",
+     "cond": "0 <= gap <= maxGap",
+     "effect": "true: earliestStart = candidate.startDate; false: unchanged (overlapping or far candidates ignored)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSession.expandForward(_:over:maxGap:morningCutoff:)",
+   "hash": "50bba633a6d57681",
+   "does": "Walks chainable sessions oldest first and extends latestEnd to a candidate's end when it starts 0…maxGap after latestEnd and not after morningCutoff.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for candidate in chainable",
+     "effect": "oldest start first"
+    },
+    {
+     "at": "+4",
+     "cond": "candidate.endDate nil",
+     "effect": "skips"
+    },
+    {
+     "at": "+6",
+     "cond": "0<=gap<=maxGap and start <= morningCutoff",
+     "effect": "true: latestEnd = candidate end; false: unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVSession.chainableOvernightSessions(excluding:from:)",
+   "hash": "7ae29e4b5ba0a4ac",
+   "does": "Returns sessions other than `session` that are overnight and in state complete or paused, sorted by startDate ascending.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+   "hash": "ab16319ecb13d119",
+   "does": "Computes the chained recovery window and, for overnight sessions, extends its end to max(end, morning cutoff of the night containing chained.start).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "session.sessionType != .overnight",
+     "effect": "returns chained window unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303"
+   }
+  }
+ ],
+ "deps": {}
+}

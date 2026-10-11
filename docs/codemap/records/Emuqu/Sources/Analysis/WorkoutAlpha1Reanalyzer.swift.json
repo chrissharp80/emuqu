@@ -1,0 +1,184 @@
+{
+ "file": "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift",
+ "hash": "c450cbe2edaafe23",
+ "role": "Offline regeneration of per-sample DFA α1 for an archived workout from its stored RR series, mirroring the live analyzer's 120 s window / 20 s cadence / artifact gate, and mapping readings back onto WorkoutSamples.",
+ "types": [
+  "WorkoutAlpha1Reanalyzer: enum — namespace for reanalyze/applyReadings",
+  "WorkoutAlpha1Reanalyzer.Reading: struct — offsetSec, alpha1, fitQualityR2"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references WorkoutAlpha1Reanalyzer; its only caller is the post-summary 'Re-analyze α1' path (FitnessPostSummaryView+Cards.swift:859/863), which overwrites archived α1 samples.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:66",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:128",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:859"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
+   "hash": "65dad02b6aee1ec0",
+   "does": "Re-stamps the session's RR points on the gap-corrected timeline and sweeps a windowSec (120 s) window every cadenceSec (20 s) from t = windowSec to session duration, fitting α1 on each window; returns the readings that passed the fit gates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.wallClockTimeline(_:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init RRWindowSweep(_:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:minBeatsForFit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no RR series or fewer than minBeatsForFit (64) points",
+     "effect": "return []"
+    },
+    {
+     "at": "+8",
+     "cond": "session.duration nil",
+     "effect": "duration = last gap-corrected t_ms / 1000 (0 if timeline empty)"
+    },
+    {
+     "at": "+9",
+     "cond": "duration <= windowSec",
+     "effect": "return []"
+    },
+    {
+     "at": "+15",
+     "cond": "while t <= duration",
+     "effect": "fit one window per cadence tick"
+    },
+    {
+     "at": "+18",
+     "cond": "fit returned a reading",
+     "effect": "append it; else the window is skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Readings are stamped on the RR beat timeline including paused stretches (beats keep streaming while paused; gap correction only adds dropout time), but WorkoutSample.offsetSec is active elapsed seconds that stop during a pause (Ticker increments elapsedSeconds only when not paused and skips sample capture while paused). The pause timeline is not persisted, so for any workout with a pause applyReadings writes each reading onto samples shifted later by the cumulative pause length and overwrites the archived alpha1. The header/doc claim that the gap-corrected timeline is 'the same wall-clock seconds the workout samples are stamped in' is false for paused workouts.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:62",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:73",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:119",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:67",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:548",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:558",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:734"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init RRWindowSweep(_:)": "7c6e5b3edcc32f9f",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:minBeatsForFit:)": "993f610a7c737813",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.wallClockTimeline(_:)": "840373b1c85df24a"
+   }
+  },
+  {
+   "key": "func WorkoutAlpha1Reanalyzer.wallClockTimeline(_:)",
+   "hash": "fbb326d982bcdeb6",
+   "does": "Maps each RR point to a copy whose t_ms is the gap-corrected wall-clock offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)": "97b2a35ced5bf004",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:minBeatsForFit:)",
+   "hash": "418c150178256b1e",
+   "does": "Fits α1 for one window: requires >= minBeatsForFit beats, cleans RR with LiveDFAAnalyzer.cleanRRForDFA, rejects when correctedFraction > LiveDFAAnalyzer.maxCorrectedFraction or DFA fails; returns Reading(offsetSec: Int(t), alpha1, R²).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer beats than minBeatsForFit",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "corrected fraction above threshold or DFAAnalyzer.compute returns nil",
+     "effect": "nil; else Reading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9"
+   }
+  },
+  {
+   "key": "func WorkoutAlpha1Reanalyzer.applyReadings(_:to:cadenceSec:)",
+   "hash": "a41620465e48dacb",
+   "does": "For time-ordered samples, sets alpha1 to the latest reading at or before the sample if it is < cadenceSec old, else clears alpha1 to nil; returns samples unchanged when readings is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withAlpha1(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "readings empty",
+     "effect": "return samples unchanged"
+    },
+    {
+     "at": "+10",
+     "cond": "next reading offset <= sample offset",
+     "effect": "advance cursor"
+    },
+    {
+     "at": "+11",
+     "cond": "no reading yet or latest reading >= cadenceSec older",
+     "effect": "sample alpha1 cleared to nil; else set to that reading's alpha1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Assumes samples are sorted by offsetSec (forward-only cursor) and that the readings' cadence equals the cadenceSec default here; reanalyze takes its own cadenceSec parameter and the two are not linked, so a non-default cadence passed to reanalyze but not here clears or stretches alpha1 wrongly. Only caller uses both defaults.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:131",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:138",
+      "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift:69",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:859"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withAlpha1(_:)": "3ae629a5fef77f35"
+   }
+  }
+ ],
+ "deps": {}
+}

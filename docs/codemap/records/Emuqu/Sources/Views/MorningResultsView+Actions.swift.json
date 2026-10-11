@@ -1,0 +1,628 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsView+Actions.swift",
+ "hash": "07f3576812ba5c57",
+ "role": "MorningResultsView extension rendering the 'What This Means' analysis summary card and the bottom action buttons (Export PDF, Email Report, Export RR, Re-analyze, Done/Discard, Delete).",
+ "types": [
+  "MorningResultsView: extension — analysis summary section and action button rows"
+ ],
+ "state": [],
+ "toplevel": "No top-level code; relies on MorningResultsView @State flags declared in MorningResultsView.swift (showEmailSectionPicker, showReportSectionPicker, showingReanalyzeConfirmation, showingDeleteConfirmation).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MorningResultsView.analysisSummarySection",
+   "hash": "fcde02cf5a59a22b",
+   "does": "Card stacking header, diagnostic card, probable causes, key findings and recommendations from vm.analysisSummary, styled with zenCard.",
+   "entry": "SwiftUI view property used by MorningResultsView body (MorningResultsView.swift:352)",
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.analysisSummary",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.analysisSummaryHeader",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.diagnosticCard(_:)",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCausesSection(_:)",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.keyFindingsSection(_:)",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.recommendationsSection(_:)",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.analysisSummary": "b0e006d8a27af7b2",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.diagnosticCard(_:)": "cfd550ae1ecfe1fd",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.keyFindingsSection(_:)": "b6da06703dacb0a8",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCausesSection(_:)": "adef4be9e5efee9b",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.recommendationsSection(_:)": "2e3712fde4f84f08",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.analysisSummaryHeader": "ed02731bb5a71da2",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+   }
+  },
+  {
+   "key": "var MorningResultsView.analysisSummaryHeader",
+   "hash": "2061c2f4a79e9eb9",
+   "does": "Header row: magnifying-glass icon and 'What This Means'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func MorningResultsView.diagnosticCard(_:)",
+   "hash": "6d16250f78dbbb8d",
+   "does": "DiagnosticCard whose title/glyph/colour are the ScoreVerdict of vm.compositeRecoveryScore (same verdict as the ring) and whose explanation is summary.analysisExplanation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName": "a6ccfed84ddc0ce9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7"
+   }
+  },
+  {
+   "key": "func MorningResultsView.probableCausesSection(_:)",
+   "hash": "9fe15c900af849a8",
+   "does": "Shows the probable-causes list only when the summary has any.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCausesList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "summary.probableCauses is non-empty",
+     "effect": "true → list shown; false → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCausesList(_:)": "12cfa3886558f530"
+   }
+  },
+  {
+   "key": "func MorningResultsView.probableCausesList(_:)",
+   "hash": "e1c96ea9bcf7b66e",
+   "does": "'Possible Explanations' title and one ranked ProbableCauseRow per cause (rank = index+1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCauseRow(rank:cause:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.probableCauseRow(rank:cause:)": "19fea433a142eda8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func MorningResultsView.probableCauseRow(rank:cause:)",
+   "hash": "add4ffe13746def6",
+   "does": "Builds a ProbableCauseRow from a cause: text, confidenceLabel, explanation, confidence level.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel": "8d42c57265c06cf9"
+   }
+  },
+  {
+   "key": "func MorningResultsView.keyFindingsSection(_:)",
+   "hash": "d05dcb3ac02b21e5",
+   "does": "'Key Findings' title and a bulleted row per finding string (ForEach id \\.self, so duplicate finding strings collide).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.keyFindingRow(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.keyFindingRow(_:)": "a120133b70d00654",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func MorningResultsView.keyFindingRow(_:)",
+   "hash": "f8264ad719154698",
+   "does": "Bullet row with verbatim finding text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MorningResultsView.recommendationsSection(_:)",
+   "hash": "6e7505b9b40ab09d",
+   "does": "'What To Do' title and a row per actionable step.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.recommendationRow(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.recommendationRow(_:)": "fab1c0d0b97fe140",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func MorningResultsView.recommendationRow(_:)",
+   "hash": "fdc19d94930cd2f4",
+   "does": "Arrow-icon row with verbatim step text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MorningResultsView.actionButtons",
+   "hash": "66b32dc6faf73c37",
+   "does": "Vertical stack of export row, re-analyze row and dismiss row.",
+   "entry": "SwiftUI view property used by MorningResultsView body (MorningResultsView.swift:356)",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.exportButtonsRow",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeRow",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.dismissButtonsRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.dismissButtonsRow": "3f62abb89e0535cf",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.exportButtonsRow": "6b38d950fb52251b",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeRow": "9e54d9310a0e4104"
+   }
+  },
+  {
+   "key": "var MorningResultsView.exportButtonsRow",
+   "hash": "113d093214ff8d52",
+   "does": "Row with Export PDF, Email Report (if mail available) and Export RR (if raw data) buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatingButton",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportButton",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.exportRRButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportButton": "7dbdab37033df4a5",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.exportRRButton": "2542e60a90ebcf9c",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatingButton": "849d0660442158d1"
+   }
+  },
+  {
+   "key": "var MorningResultsView.emailReportButton",
+   "hash": "75bc873ad8fbac6f",
+   "does": "Shows the email button only when the device can send mail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportAction",
+    "ext:MFMailComposeViewController.canSendMail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "MFMailComposeViewController.canSendMail()",
+     "effect": "true → button; false → button absent (no other email route here)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportAction": "eb92799552d4bb8d"
+   }
+  },
+  {
+   "key": "var MorningResultsView.emailReportAction",
+   "hash": "671ad76fd3ba29d5",
+   "does": "Button that sets showEmailSectionPicker, disabled while vm.isGeneratingEmailPDF; presents the email section picker sheet.",
+   "entry": "Button action on user tap; .sheet presentation driven by showEmailSectionPicker",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportLabel",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailSectionPickerSheet",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isGeneratingEmailPDF"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailReportLabel": "d7df449594cf3e65",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.emailSectionPickerSheet": "adbc658d50abe7d3",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.emailReportLabel",
+   "hash": "8e4c09e1a5c041be",
+   "does": "Label: spinner + 'Preparing...' while generating the email PDF, else 'Email Report' envelope label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isGeneratingEmailPDF"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.isGeneratingEmailPDF",
+     "effect": "true → progress label; false → Email Report label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MorningResultsView.emailSectionPickerSheet",
+   "hash": "5c96d39ccd45fb85",
+   "does": "ReportSectionPicker sheet (medium/large detents) whose onGenerate calls emailReport(style:sections:) with the available sections.",
+   "entry": "Sheet content; onGenerate closure invoked by ReportSectionPicker on user confirm",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.emailReport(style:sections:)",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::init ReportSectionPicker(onGenerate:availableSections:)": "6d7e122391354695",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.emailReport(style:sections:)": "882db15c0e02d7eb",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections": "81c4a62b109276c7"
+   }
+  },
+  {
+   "key": "var MorningResultsView.exportRRButton",
+   "hash": "e13af02e891f7b8c",
+   "does": "Export RR button shown only when vm.hasRawData; tap calls exportRRData().",
+   "entry": "Button action on user tap",
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportRRData()",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.hasRawData",
+     "effect": "true → button shown; false → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportRRData()": "d1c078fe13d26097",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.reanalyzeRow",
+   "hash": "d81e3fa2c14d6db8",
+   "does": "Re-analyze button row shown only with raw data and an onReanalyze handler.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.hasRawData and onReanalyze != nil",
+     "effect": "true → button; false → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeButton": "d0acb4dbafcbbc8a"
+   }
+  },
+  {
+   "key": "var MorningResultsView.reanalyzeButton",
+   "hash": "d71bad45a5e7cbcb",
+   "does": "Button setting showingReanalyzeConfirmation = true (confirmation dialog lives in MorningResultsView), disabled while vm.isReanalyzing.",
+   "entry": "Button action on user tap",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeLabel",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeLabel": "536b42e2aa1ba159",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.reanalyzeLabel",
+   "hash": "964e58010253008e",
+   "does": "Spinner + 'Analyzing...' while reanalyzing, else 'Re-analyze' label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isReanalyzing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.isReanalyzing",
+     "effect": "true → progress; false → Re-analyze label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MorningResultsView.dismissButtonsRow",
+   "hash": "d96e3278b81083e1",
+   "does": "Row with Done/Discard and Delete buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.deleteButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.deleteButton": "1f7f1c815ad50bdc",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "a1af69db2fec5227"
+   }
+  },
+  {
+   "key": "var MorningResultsView.doneButton",
+   "hash": "da1d6bba1a009d3c",
+   "does": "Button that calls onUpdateTags(selected tags, notes or nil if empty) when provided, then onDiscard(). Label/icon/colour is 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta).",
+   "entry": "Button action on user tap",
+   "calls": [
+    "closure:onUpdateTags — set by HistoryView.sessionDetailContent (HistoryView.swift:452) to persist tags/notes via HistoryView.onUpdateTags; nil from RecordView morningResults",
+    "closure:onDiscard — set by callers (RecordView dismissMorningReading, HistoryView clears selectedSession, ImportDataView discardImport, RecordView discardQuickReading)",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedTags",
+    "mem:MorningResultsViewModel.notes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "vm.notes.isEmpty",
+     "effect": "true → passes nil notes; false → passes notes; onUpdateTags?. skipped when nil"
+    },
+    {
+     "at": "+6",
+     "cond": "onDelete != nil",
+     "effect": "true → 'Done'/checkmark; false → 'Discard'/xmark"
+    },
+    {
+     "at": "+8",
+     "cond": "onDelete != nil",
+     "effect": "true → primary text colour; false → terracotta"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "high",
+     "text": "Tags and notes edited in the Tags & Notes card (always rendered, MorningResultsView.swift:354; writes vm.selectedTags/vm.notes) are persisted only here via onUpdateTags, which only HistoryView passes. RecordView morning (RecordView+Sections.swift:341-353), quick reading (:396-402) and ImportDataView (ImportDataView.swift:117-124) pass no onUpdateTags, and their own Done paths save RecordView's separate selectedTags/sessionNotes (RecordView+Results.swift:131-145) or nothing (finishQuickReading :433-441), so the user's edits are silently dropped. In History, dismissing the sheet by swipe (HistoryView.swift:304, no interactiveDismissDisabled) also drops them.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:250",
+      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:218",
+      "Emuqu/Sources/Views/MorningResultsView.swift:354",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:341",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:396",
+      "Emuqu/Sources/Views/ImportDataView.swift:117",
+      "Emuqu/Sources/Views/RecordView+Results.swift:131",
+      "Emuqu/Sources/Views/HistoryView.swift:304"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "USERS_MANUAL says the report's Notes section 'Auto-saves when changed'; notes are saved only when this Done button is tapped and only when onUpdateTags is set (History).",
+     "evidence": [
+      "docs/USERS_MANUAL.md:950",
+      "docs/USERS_MANUAL.md:952",
+      "Emuqu/Sources/Views/MorningResultsView+Actions.swift:250"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.deleteButton",
+   "hash": "3d8ee8740179fec5",
+   "does": "Destructive Delete button (only when onDelete exists) that sets showingDeleteConfirmation = true.",
+   "entry": "Button action on user tap",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onDelete != nil",
+     "effect": "true → button shown; false → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.generatingButton",
+   "hash": "babfb45dedfb8eaa",
+   "does": "Returns generatePDFButton (pure alias).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatePDFButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatePDFButton": "619a297692241cf5"
+   }
+  },
+  {
+   "key": "var MorningResultsView.generatePDFButton",
+   "hash": "a768da0de3a9ca74",
+   "does": "Button that sets showReportSectionPicker, disabled while vm.isGeneratingPDF, presenting the report section picker sheet.",
+   "entry": "Button action on user tap; sheet driven by showReportSectionPicker",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatePDFLabel",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reportSectionPickerSheet",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isGeneratingPDF"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.generatePDFLabel": "fbe850e4f89c075e",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reportSectionPickerSheet": "8e01ca1ee301905b",
+    "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary": "7094e3a6d06b7e24"
+   }
+  },
+  {
+   "key": "var MorningResultsView.generatePDFLabel",
+   "hash": "f1baff7c007b3ac9",
+   "does": "Spinner + 'Generating...' while generating, else 'Export PDF' label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.isGeneratingPDF"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vm.isGeneratingPDF",
+     "effect": "true → progress; false → Export PDF label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MorningResultsView.reportSectionPickerSheet",
+   "hash": "21e44f477bd8ba56",
+   "does": "ReportSectionPicker sheet whose onGenerate calls exportPDF(style:sections:) with available sections.",
+   "entry": "Sheet content; onGenerate invoked by ReportSectionPicker",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportPDF(style:sections:)",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionPicker.swift::init ReportSectionPicker(onGenerate:availableSections:)": "6d7e122391354695",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::func MorningResultsView.exportPDF(style:sections:)": "8171c3fdc6ddf009",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.availableReportSections": "81c4a62b109276c7"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,452 @@
+{
+ "file": "docs/FEATURES.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "User-facing feature reference for every app area (dashboard, HRV, training load, fitness, sleep, recording, history, Flo, localization, customization, help, onboarding, Watch, navigation).",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Emuqu — feature reference",
+   "hash": "74ccb789438c851d",
+   "does": "no behavioural claim: title and pointer to MAINTAINERS.md.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features",
+   "hash": "9214cf33ff90e03f",
+   "does": "no behavioural claim: section heading for the feature list.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Recovery Dashboard",
+   "hash": "beadf5cb1b6d24ff",
+   "does": "Claims recovery score 0-100 from HRV 60 / Sleep 25 / Vitals 15 with ln(RMSSD) z-score vs the last 60 nights, three tiers, vitals average of available RHR/RR/temp, 21-day comeback 80/20/0, confidence pips 0-13/14-27/28+, feeling chip, Tier-1 window ranking, frozen historical scores, training readiness gauge modulated by recovery, pre-score 1-5 feeling. Matches ScoringWeights.Tier3/Comeback, BaselineTracker.stats suffix(60), VitalsScoring.calculateVitalsScore, ScoreAppearancePolicy 14/28, rankByTier1Score, ReadinessScoring.applyRecoveryModulation (see ARCHITECTURE records for detail).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "f3653c3dee27ee86",
+    "Emuqu/Sources/Views/ConfidencePip.swift::var ConfidencePip.stage": "f8d4d9ff30f2e60b"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Advanced HRV Analysis",
+   "hash": "315e71c022858482",
+   "does": "Claims time-domain (RMSSD, SDNN, pNN50, mean RR), LF/HF reported as measurements, DFA alpha1 with log-spaced boxes, Poincare SD1/SD2, artifact detection, and tap-to-analyse manual windows compared side-by-side with the algorithm's pick. Manual pick keeps autoWindowResult/autoWindowScore for comparison (ReanalysisService.preserveAutoWindow) and is persisted to the archive and baseline (see ARCHITECTURE.md:264 record).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "6101138b43745ab5"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Training Load (Load & Trajectory page — does NOT feed the recovery score)",
+   "hash": "238b6838d1c77f3a",
+   "does": "Claims ATL/CTL/TSB curves, descriptive ACWR gauge, Foster monotony banner (>2.0 with heavy weekly load), Banister TRIMP with sex-specific coefficients anchored to configured HRmax/HRrest/LTHR, hrTSS = TRIMP / one-hour-at-LTHR TRIMP * 100, frozen training context. Code: RecoveryScoreConstants.Training.monotonyThreshold 2.0; WorkoutAnalyzer.banisterTRIMP / computeHrTSS / oneHourAtLTHRTRIMP.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)": "704785dd3e3b719c"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Fitness Tab (Workouts)",
+   "hash": "6fe4261835765be6",
+   "does": "Claims workout recording across 10 sports, auto-reconnect of strap and foot pod at start (connectToLastDevice / reconnectLast), Get Me Back with 30 s / 25 m commits, 100 m accuracy cut-off and SOS that dials 112 by default or 911 for 911 regions, 50-trail archive with auto-archived GPS workouts, Stryd/FTMS/PM5 power, Power-TSS, threshold coach, route library, OSM trail discovery, road context via CLGeocoder plus MKLocalSearch cross street, MET Norway weather every 30 min, Zwift broadcaster, barometric elevation (15-sample MA, 2 m hysteresis), topo lookup, alpha1 filter and re-analysis, cadence caps 125/220/140, PDF report <=250 points, HRR in a 120 s window, interval plans, unit-aware exports. Code: WorkoutPreflightView.swift:343 connectToLastDevice; BreadcrumbRecorder 25 m/30 s; GetMeBackView.emergencyNumber returns 112 by default, 911 for US/CA/MX/AS/GU/PR/VI/PH and also 999/000/111/119/120/193 for other regions; BreadcrumbStore.archiveRetentionLimit 50; FootPodManager 1814/1818/1826; WeatherService.cacheTTL 30 min; Zwift UUIDs; BarometricAltitudeProcessor.process; WorkoutStatsCards.cadenceCap; HRRCaptureService captureWindowSec 120; maxPDFPoints 250. RoadGeocodingService resolves via MKLocalSearch tiles before CLGeocoder (see ARCHITECTURE.md:983).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Live road context is described as CLGeocoder reverse geocoding with MKLocalSearch as a second stage for the cross street; performLookup resolves the current road from MKLocalSearch map tiles first and uses CLGeocoder only when tiles return nothing.",
+     "evidence": [
+      "docs/FEATURES.md:52",
+      "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift:36",
+      "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift:42"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "297cbefb6dac851f",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "8a84f23e7046cf15",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f715486ad279534a",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "cc72a6f5b5455e6e"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Sleep Integration",
+   "hash": "27ffe0a88dbd3c6d",
+   "does": "Claims sleep score from duration/efficiency/deep/REM enhanced by SleepScienceAnalyzer when stages exist, HRV stage classifier without a Watch and optional augmentation with one, sleep export to Health only on nights with no Health sleep and only asleep/awake values, adjustable timeline, HR-estimated sleep fallback (RR then Watch HR), no post-strap sleep extension. Code: exportSleepIfSoleSource exports only HR-estimated nights when no other source wrote sleep; hkSleepValue maps every non-awake stage to asleepUnspecified; SleepResolver.maybeAugment/inferStagesFromRR; MorningResultsViewModel.estimateSleepFallback. The weighted sleep formula runs only for zero-minute nights (see ARCHITECTURE.md:367 record).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "7a240281c4863d44",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "1d889b52439dc5b3",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "4dae1c525ba31b62",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "375d75f53a50f643",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)": "edc7063b85dc483c"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Data Recording",
+   "hash": "cc650d312ae4d659",
+   "does": "Claims session-first flow, hybrid H10 recording, pause/resume as linked segments, merge gap Off / Default 4.5 h / Custom 1-12 h, quick readings of 2/3/5 minutes, 5.5 breaths/min breathing guide, 60 s incremental backup, battery warnings, multi-device, strap-memory recovery with Resume / Save as is / Dismiss. Code: SessionMergeMode off/defaultGap/custom; RecordView+Panels starts a 120 s session and startStreamingSession defaults to 180; BreathingMandalaView documents 5.5 breaths/min; RawRRBackup.incrementalBackup interval 60.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.startStreamingSession(durationSeconds:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)": "0656b7d1b0a6a3b9",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "04f5a4e44402eaba",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.startStreamingSession(durationSeconds:)": "7c8d780142e5e593",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "be1f9701a209f1a1"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > History & Trends",
+   "hash": "65b3ebdd0c0c181c",
+   "does": "Claims history paginated 10 at a time, 14 built-in tags plus custom tags, trends over 7/14/30/90 days or all time, calendar, organized-window overlay, PDF reports, import from CSV/JSON/TXT/Kubios/EliteHRV. Code: HistoryViewModel pageSize 10; ReadingTag.systemTagDefinitions has 14 entries (HRVSession.swift:83-97); TrendAnalyzer.TimePeriod week/twoWeeks/month/threeMonths/all = 7/14/30/90/nil; Import/RRDataImporter+CSV/JSON/EliteHRV/FlowHRV files.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Flo — the AI Assistant",
+   "hash": "0394c958bace4aef",
+   "does": "Claims six providers; Quick/Auto/Deep/Manual routing only with Apple selected; Auto uses a four-axis capability classifier gated by keyword AND embedding cosine >= 0.55, a daily cap of 50 top-tier turns and 3 settling turns; a 14-pattern deterministic intent catalog; Apple session rotation after 20 turns; ~240 facts in 21 namespaces; 10 suggestion chips. Code: CapabilityClassifier.axisThreshold 0.55; SmartProviderRouter.dailyTier3Cap 50 and settlingTurns 3; DeterministicIntent has 14 Pattern entries; AppleFoundationProvider maxTurnsPerSession 20; AIProvider cases apple/anthropic/openai/gemini/grok/deepseek. Fact counts were not recounted here.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "5a0445d7104b7218",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Localization",
+   "hash": "499a8b4f89fb69f5",
+   "does": "Claims 17 languages with live switching and narrative built from translated catalogue sentences. Localizable.xcstrings carries exactly 17 locale codes matching the listed languages; LanguageManager.setLanguage switches live.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Customization",
+   "hash": "8266664fab47313b",
+   "does": "Claims six accent themes (Blue, Teal, Indigo, Purple, Rose, Orange), Light/Dim/Dark appearance, VoiceOver support. The accent enum in UserSettings.swift:205-210 has exactly those six cases.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "98b2b0ce43bd809d",
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "de62d06acaccd742",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection": "148450a6eae5c3d7",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection": "c6b8cdc9e2f76b10",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > In-App Help",
+   "hash": "8e327c41597bf2ad",
+   "does": "Claims a searchable Help Center with 12 categories. HelpCategory static instances: gettingStarted, recording, recoveryScore, aiAssistant, getMeBack, yourData, personalization, appNavigation, sleepAnalysis, trainingLoad, vitals plus the HRV-science category built in HelpContent+ScienceArticles.swift:355 = 12.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.whatIsHRV(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.metricsGuide(forAge:)",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "359493c26c0c6f6a",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid": "e086686fc7afb4e7",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "942bc7baca7866eb",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "1e8352913895189b",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.metricsGuide(forAge:)": "b557c171ba9feb3e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.whatIsHRV(forAge:)": "47bbf1ac207312ca",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "d95e816a8421e98f"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Onboarding",
+   "hash": "ee6ab19fe3afc913",
+   "does": "Claims disclaimer first, then a 7-page wizard (Welcome, Value Prop, Profile, Sensor, Apple Health, Backup, You're In), skippable pages, disclaimer acceptance device-local. OnboardingView.pageCount = 7 and the Onboarding folder holds Welcome/ValueProp/Profile/Sensor/Health/Backup page views; disclaimer key hasAcceptedHealthDisclaimer is a UserDefaults key (Constants.swift:74).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.presentLaunchModal()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.iAgreeButton",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.body",
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.cardPager",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.stack",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.illDoThisLaterButton",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.iCloudSyncToggle",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "c92fe77750de1197",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "d3ba6f96ccf8788a",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.presentLaunchModal()": "dd52ff49e2e14c2d",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "04785eeb1b5bb490",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressSection": "1e98c60a89cf7bad",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.iAgreeButton": "9eba9512c60787b5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.iCloudSyncToggle": "bcdb7c694eaa5a81",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()": "994a0228c183ccb0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.stack": "2625ddf2abe00e7b",
+    "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.illDoThisLaterButton": "f5eff45cc9043e3e",
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.cardPager": "88bd4f27a7901a81",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "31fe52370fc21417",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "c6e30a3e9493dd24",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "6a21fbee5ef404ff",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages": "3451ed6421973672",
+    "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.body": "e10492407c16c67e"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > Key Features > Apple Watch app",
+   "hash": "2f7fbe0ad2d62d58",
+   "does": "Claims the Watch app mirrors the phone workout with wrist controls over WatchConnectivity, optional direct strap via WatchStrapConnector, embedded in the iOS build; no widget or Live Activity. Watch files exist; no widget code in Emuqu/Sources.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "5eabea06d36d7da6"
+   }
+  },
+  {
+   "key": "§ Emuqu — feature reference > App Navigation",
+   "hash": "2fa69dd116ccac77",
+   "does": "Claims a 5-tab layout (Dashboard, Record, Fitness, Flo, More) with Trends/Settings/Help/About under More, History from the Dashboard strip, Fitness hideable (hideFitnessTab) and Flo removable, collapsing to 3 tabs. MainTabView.Tab has dashboard, record, fitness, coach (\"Flo\"), more plus retired assistant/history cases kept for deep links; UserSettings.hideFitnessTab exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabs",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.recordTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.fitnessTab",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.coachTab",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.leaveHiddenFitnessTab(_:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloMenu",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.body",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseSection",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.trendsRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.settingsRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.helpRow",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.aboutRow",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "doc says turning off Flo is 'applied on next launch'; MainTabView.coachTab is gated live on settings.enableAIAssistant (an observed setting), so the Flo tab disappears as soon as the toggle changes, and the toggle's own caption makes no mention of a relaunch",
+     "evidence": [
+      "docs/FEATURES.md:186",
+      "Emuqu/Sources/Views/MainTabView.swift:683",
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:173"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields": "c4c0e7731ce58dcc",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields": "3090f293f1365301",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.leaveHiddenFitnessTab(_:)": "d0beeaa8bd93f4f3",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloMenu": "9b8e77e18668ec3e",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.coachTab": "4d393662bc7f76b2",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardTab": "dad4e70500a2c9cf",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.fitnessTab": "af5f98220f2edb70",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.recordTab": "ec5a0db17558afb6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabs": "a64166dd76f4355d",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.aboutRow": "d79844935748fdf3",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.body": "7c326038b5aaf6ae",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.helpRow": "07ed472053988e07",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.purchaseSection": "dfdfa95cdef240e1",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.settingsRow": "ddeb23bcf1cc7861",
+    "Emuqu/Sources/Views/MoreMenuView.swift::var MoreMenuView.trendsRow": "93f108accbdf0726",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields": "2ddf7dfe0e487ad5"
+   }
+  }
+ ],
+ "deps": {}
+}

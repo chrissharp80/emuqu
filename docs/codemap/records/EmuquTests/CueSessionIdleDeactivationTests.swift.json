@@ -1,0 +1,265 @@
+{
+ "file": "EmuquTests/CueSessionIdleDeactivationTests.swift",
+ "hash": "40084ade6413a2cd",
+ "role": "XCTest suite for BackgroundAudioManager.deactivateIfIdle (voice-chat teardown deactivation): deactivates when idle, keeps the session while a cue holds it or another claimant holds it, and reports a failed deactivation. Defines IdleRecordingSession, a CueAudioSession stand-in that counts deactivations.",
+ "types": [
+  "CueSessionIdleDeactivationTests: class (XCTestCase)",
+  "IdleRecordingSession: class (private, CueAudioSession) — lock-guarded fake session with configurable other-claimant and deactivation failure",
+  "IdleRecordingSession.State: struct (private) — cueClaimed, otherClaimant, failsDeactivation, deactivations"
+ ],
+ "state": [
+  "IdleRecordingSession.state: OSAllocatedUnfairLock<State> per instance"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CueSessionIdleDeactivationTests.testIdleSessionIsDeactivated()",
+   "hash": "07c22bf5bfb74a7f",
+   "does": "Idle manager (no cue, no other claimant): deactivateIfIdle completes with no error and the fake session records exactly 1 deactivation.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "691b5e2bbc3bf206",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)": "1be4256d457d43d8",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "9a2d95bd7c944abb",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations": "9061a259d4ebe6e1",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims": "b0b62755fd2f1f1b"
+   }
+  },
+  {
+   "key": "func CueSessionIdleDeactivationTests.testSpeakingCueKeepsTheSession()",
+   "hash": "6f5d6d5a97f1b53a",
+   "does": "beginCue (claims+activates), then deactivateIfIdle completes nil with 0 deactivations (cue not cut off); endCue + waitForPendingTransitions then yields 1 deactivation via releaseWhenIdle.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.waitForPendingTransitions()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForCues()": "722e40aafc25042c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "73c6ae1ce9608494",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "416d3a125402698c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "edd7185e77a46bd4",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.waitForPendingTransitions()": "5080a5c058e63bb9",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "691b5e2bbc3bf206",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)": "1be4256d457d43d8",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "4a6774a9d46d3c08",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "63f3fa35011b423a",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "9a2d95bd7c944abb",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "88e1121f6d6d3ae0",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations": "9061a259d4ebe6e1",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims": "b0b62755fd2f1f1b"
+   }
+  },
+  {
+   "key": "func CueSessionIdleDeactivationTests.testOtherClaimantKeepsTheSession()",
+   "hash": "9707b75c3b63c09f",
+   "does": "With otherClaimant set, deactivateIfIdle completes nil and the session is never deactivated.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.setOtherClaimant(_:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "691b5e2bbc3bf206",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)": "1be4256d457d43d8",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.setOtherClaimant(_:)": "304dc7d9a83e2de9",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations": "9061a259d4ebe6e1",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims": "b0b62755fd2f1f1b"
+   }
+  },
+  {
+   "key": "func CueSessionIdleDeactivationTests.testDeactivationFailureIsReported()",
+   "hash": "1fb882fefb5551ba",
+   "does": "With failsDeactivation set, deactivateIfIdle's completion receives a non-nil error (code returned non-nil).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.setFailsDeactivation(_:)",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "691b5e2bbc3bf206",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func CueSessionIdleDeactivationTests.deactivate(_:)": "1be4256d457d43d8",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "9a2d95bd7c944abb",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.setFailsDeactivation(_:)": "f26b4527ed42900a",
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.hasActiveClaims": "b0b62755fd2f1f1b"
+   }
+  },
+  {
+   "key": "func CueSessionIdleDeactivationTests.deactivate(_:)",
+   "hash": "4f164722945bdd67",
+   "does": "Calls manager.deactivateIfIdle, captures the NSError code passed to the completion (nil when none) in a lock, waits up to 2 s on an expectation, returns the captured code.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)",
+    "ext:XCTestExpectation.wait"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c"
+   }
+  },
+  {
+   "key": "var IdleRecordingSession.deactivations",
+   "hash": "9efb455feacb3caf",
+   "does": "Returns the deactivation count from the locked state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.setOtherClaimant(_:)",
+   "hash": "eacbbf77fbdcb391",
+   "does": "Sets whether another claimant holds the session (feeds hasActiveClaims).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.setFailsDeactivation(_:)",
+   "hash": "25ae653b686a7edb",
+   "does": "Sets whether deactivate() throws.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.claimCuePlayback()",
+   "hash": "e6fe808df31cc84a",
+   "does": "Records cueClaimed = true.",
+   "entry": "CueAudioSession protocol witness, called by BackgroundAudioManager.activateForCues on the transitions queue",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.releaseCuePlayback()",
+   "hash": "ca35e859db579535",
+   "does": "Records cueClaimed = false.",
+   "entry": "CueAudioSession protocol witness, called by BackgroundAudioManager.releaseWhenIdle",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var IdleRecordingSession.hasActiveClaims",
+   "hash": "8724c5e3c3e773ba",
+   "does": "True when a cue claim or another claimant is recorded.",
+   "entry": "CueAudioSession protocol witness, read by BackgroundAudioManager.deactivateIfIdle/releaseWhenIdle",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.activate()",
+   "hash": "4ac1ae0595d155c3",
+   "does": "No-op activation that never throws.",
+   "entry": "CueAudioSession protocol witness, called by BackgroundAudioManager.activateForCues",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IdleRecordingSession.deactivate()",
+   "hash": "48ee287f95aa0b75",
+   "does": "Under the lock increments deactivations unless failsDeactivation is set; then throws NSError(NSOSStatusErrorDomain, 561_017_449) when failing.",
+   "entry": "CueAudioSession protocol witness, called by BackgroundAudioManager.deactivateIfIdle/releaseWhenIdle",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!failsDeactivation",
+     "effect": "true: deactivations += 1; false: count unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "fails",
+     "effect": "true: throws NSError code 561_017_449 ('!act' session busy); false: returns normally"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::var IdleRecordingSession.deactivations": "9061a259d4ebe6e1"
+   }
+  }
+ ],
+ "deps": {}
+}

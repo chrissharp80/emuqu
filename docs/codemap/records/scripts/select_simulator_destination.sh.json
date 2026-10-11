@@ -1,0 +1,11 @@
+{
+ "file": "scripts/select_simulator_destination.sh",
+ "hash": "7f49d6bc493bcd6c",
+ "role": "Prints `id=<udid>` of an iOS Simulator destination for scheme $1/project $2 (used by Makefile test, run_tests_with_coverage.sh, check_thread_sanitizer.sh, verify_tests_fail.sh, ci.yml tests job and performance.yml).",
+ "types": [],
+ "state": [],
+ "toplevel": "set -euo pipefail. `xcodebuild -showdestinations` (errors swallowed with || true) piped to awk: for lines with 'platform:iOS Simulator' and not 'placeholder', extracts the id; remembers the first as fallback; prints and exits on the first whose line contains 'name:iPhone'; END prints the fallback only if no iPhone was found. Empty result -> stderr and exit 1; else prints 'id=<udid>'. The first listed iPhone is taken, not a specific model or OS.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

@@ -1,0 +1,864 @@
+{
+ "file": "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift",
+ "hash": "bcd376f81f7e3c86",
+ "role": "Tier composition (Tier 3 60/25/15 or comeback 80/20/0, Tier 2 70/30 with 85/15 double-penalty dampening, Tier 1 HRV only) and the localised detail sentences/facts for the HRV and Sleep factors, plus staleness-day helper.",
+ "types": [
+  "ScoreDetailBuilder: enum — tier composition and detail text",
+  "ScoreDetailBuilder.TierInputs: struct — signals for the tier ladder",
+  "ScoreDetailBuilder.DescribedDetail: struct — detail text + ScoreFactorFacts",
+  "ScoreDetailBuilder.SleepDetailInputs: struct — numbers the sleep sentences quote"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ScoreDetailBuilder.buildTierComposite(_:)",
+   "hash": "5f812a96119cbccc",
+   "does": "Tier 3 when sleep and vitals scores both present, Tier 2 when only sleep, else Tier 1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier1(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleepScore and vitalsScore non-nil",
+     "effect": "buildTier3"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepScore non-nil",
+     "effect": "buildTier2; else buildTier1 (vitals ignored when no sleep score)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier1(_:)": "552b6e32661db094",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "c56b06672fd5d0dd",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepScore": "e092a243ffe6aedd"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)",
+   "hash": "0bea84b040b98c96",
+   "does": "Tier 3: weights from tier3Weights; factors HRV, Sleep, Vitals (VitalsScoring.vitalsFactor); composite = tier1*hW + sleep*sW + vitals*vW.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)": "13027e34a726ae9a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)": "b17865feb70556d5",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)": "3d1a132ab2d018b6",
+    "EmuquTests/ScoringCharacterizationTests.swift::func ScoringCharacterizationTests.tier1(rmssd:meanHR:dfaAlpha1:stats:readiness:ansBalance:referenceDate:)": "76cc16acfb4528d2"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+   "hash": "dd584e2187a6e5dc",
+   "does": "(0.80,0.20,0.0) when comeback active else (0.60,0.25,0.15).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "comebackModeActive",
+     "effect": "true: comeback weights; false: standard Tier 3 weights"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)",
+   "hash": "f31fff658d85fc71",
+   "does": "HRV ScoreFactor from a DescribedDetail; impact positive>=60, neutral>=40, else negative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tier1 >= 60 / >= 40",
+     "effect": "positive / neutral / negative"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: String, weight: Double)",
+   "hash": "48846852e174fa97",
+   "does": "HRV ScoreFactor from a plain detail string (no facts); same impact thresholds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tier1 >= 60 / >= 40",
+     "effect": "positive / neutral / negative"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is RecoveryScoreCalculator.hrvFactor (DetailForwarding.swift:46), which itself has no callers in the repo; tests call the DescribedDetail overload.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:101",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift:46",
+      "EmuquTests/ScoreFactorFactsTests.swift:48"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)",
+   "hash": "43fb83463299fc09",
+   "does": "Sleep ScoreFactor with describeSleep text/facts; impact positive>=70, neutral>=50, else negative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeSleep(score:sleepData:typicalSleepHours:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "sleep >= 70 / >= 50",
+     "effect": "positive / neutral / negative"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeSleep(score:sleepData:typicalSleepHours:)": "b2698104f4c1d7ef"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.buildTier2(_:sleep:)",
+   "hash": "9eefb72461b3dbb0",
+   "does": "Tier 2: zHrv from baseline (0 when no stats/rmssd); if zHrv<-1 and sleep<50 weights 85/15 else 70/30; factors HRV+Sleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baselineStats and rmssd>0 present",
+     "effect": "true: zHrv from ln(rmssd); false: 0 (no dampening)"
+    },
+    {
+     "at": "+7",
+     "cond": "dampened (zHrv<-1 and sleep<50)",
+     "effect": "hrv weight 0.85 else 0.70"
+    },
+    {
+     "at": "+8",
+     "cond": "dampened",
+     "effect": "sleep weight 0.15 else 0.30"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)": "13027e34a726ae9a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.sleepFactor(sleep:sleepData:typicalSleepHours:weight:)": "b17865feb70556d5",
+    "EmuquTests/ScoringCharacterizationTests.swift::func ScoringCharacterizationTests.tier1(rmssd:meanHR:dfaAlpha1:stats:readiness:ansBalance:referenceDate:)": "76cc16acfb4528d2"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.buildTier1(_:)",
+   "hash": "f41864b2b0d2b2e7",
+   "does": "Tier 1: composite = tier1, single HRV factor with weight 1.0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvFactor(tier1: Double, detail: DescribedDetail, weight: Double)": "13027e34a726ae9a",
+    "EmuquTests/ScoringCharacterizationTests.swift::func ScoringCharacterizationTests.tier1(rmssd:meanHR:dfaAlpha1:stats:readiness:ansBalance:referenceDate:)": "76cc16acfb4528d2"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.DescribedDetail.note(_:)",
+   "hash": "f9f4c230048231f1",
+   "does": "DescribedDetail for a Note: note.text + ScoreFactorFacts(note:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(note:)": "e75ae69725eec00b",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Note.text": "44c833ca98a11e63"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.buildHRVDetail(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)",
+   "hash": "85aac00398d5645e",
+   "does": "Returns describeHRV(...).text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is RecoveryScoreCalculator.buildHRVDetail forwarder (DetailForwarding.swift:18), which has no callers anywhere, tests included.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:174",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift:18"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "72e31dd9d03ba37e"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)",
+   "hash": "d0ac81e275e0bc6a",
+   "does": "HRV detail: note when no baseline/rmssd (readiness vs no-baseline wording); else z, rounded base score from zToRecoveryScore and rounded adjustments (RHR, DFA, CV, ANS, staleness) as sentence + facts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.restingHRAdjustments(meanHR:stats:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.dfaAlpha1Adjustments(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.cvAdjustments(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.ansBalanceAdjustments(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.HRV.sentence(rmssd:z:baseScore:adjustments:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts.HRV(rmssd:z:baseScore:adjustments:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(hrv:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "baselineStats and rmssd>0 present",
+     "effect": "false: returns note"
+    },
+    {
+     "at": "+10",
+     "cond": "hrvReadiness != nil",
+     "effect": "true: 'No baseline yet (using readiness score)'; false: 'No baseline yet'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When a baseline exists but rmssd is nil and hrvReadiness is set, the factor is scored from readiness (calculateTier1) and labelled 'No baseline yet (using readiness score)', which is false: the baseline exists.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:199",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:200",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:36"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says base + shown adjustments reconstruct the factor score, but each adjustment is rounded separately and calculateTier1 clamps the sum to 0...100 while the shown parts are not clamped, so the displayed parts can differ from the factor score (e.g. z<=-3 base 5 with RHR -10 and DFA -5 shows -10 parts against a 0 factor).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:203",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:205",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:223",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:251",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:29"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "With a baseline present but rmssd nil and no readiness, calculateTier1 returns the neutral 50 while the detail reads 'No baseline yet', which is false.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:199",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:200",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:37",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:678"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.ansBalanceAdjustments(_:)": "7ce75310d4eb97b9",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)": "d984fb401fc91fa7",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.cvAdjustments(_:)": "dee8f0dd0ee61a8a",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.dfaAlpha1Adjustments(_:)": "9b08026013d9b2fc",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.restingHRAdjustments(meanHR:stats:)": "2037b66d09c694b4",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.HRV.sentence(rmssd:z:baseScore:adjustments:)": "fa5f3ed91833edb1",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(hrv:)": "3296e0514f45c61a",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts.HRV(rmssd:z:baseScore:adjustments:)": "c01a0108c36813c4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.restingHRAdjustments(meanHR:stats:)",
+   "hash": "042acd702d2bf308",
+   "does": "Rounded RHR adjustment as [.restingHR(points)] (empty when 0 or meanHR nil); duplicates rhrAdjustment arithmetic.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "meanHR nil",
+     "effect": "returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "rounded == 0",
+     "effect": "returns []; else one adjustment"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreDetailBuilder.ansBalanceAdjustments(_:)",
+   "hash": "355496d87358bb5e",
+   "does": "Rounded ansBalanceAdjustment as [.autonomicBalance] or [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rounded == 0",
+     "effect": "[] else one adjustment"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "c24879b45c062893"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.baselineStalenessAdjustments(stats:referenceDate:)",
+   "hash": "22a05c2b027d9b4a",
+   "does": "Rounded staleness penalty as [.staleBaseline(days, points)]; duplicates stalenessPenalty arithmetic.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lastDataPointDate nil",
+     "effect": "returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "daysSince >= 7",
+     "effect": "false returns []"
+    },
+    {
+     "at": "+13",
+     "cond": "penaltyRounded > 0",
+     "effect": "false returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)": "f8094c87c7252f22"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.hrvBaseClause(rmssd:z:baseScore:)",
+   "hash": "51026e9c1604c653",
+   "does": "Localised '<rmssd>ms — <band> your average (base score N)' by z band (>=1.5, >=0.5, >=-0.5, >=-1.5, else).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "z >= 1.5",
+     "effect": "well above"
+    },
+    {
+     "at": "+3",
+     "cond": "z >= 0.5",
+     "effect": "above"
+    },
+    {
+     "at": "+5",
+     "cond": "z >= -0.5",
+     "effect": "near"
+    },
+    {
+     "at": "+7",
+     "cond": "z >= -1.5",
+     "effect": "below; else well below"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.hrvDetailSentence(base:adjustments:)",
+   "hash": "12494ee2970ea6c4",
+   "does": "Base clause plus '. ' and adjustments joined by '; ' with first capitalised (NarrativeLanguage.locale).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "adjustments empty",
+     "effect": "returns base only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale": "6607dabc385ef333"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.buildSleepDetail(score:sleepData:typicalSleepHours:)",
+   "hash": "4f5c6d5a954d21c8",
+   "does": "Returns describeSleep(...).text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeSleep(score:sleepData:typicalSleepHours:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is RecoveryScoreCalculator.buildSleepDetail forwarder (DetailForwarding.swift:38), which has no callers anywhere.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:281",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+DetailForwarding.swift:38"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeSleep(score:sleepData:typicalSleepHours:)": "b2698104f4c1d7ef"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.describeSleep(score:sleepData:typicalSleepHours:)",
+   "hash": "d8f66a8152a24642",
+   "does": "Sleep detail: noSleepData note when nil; else ScoreFactorFacts.Sleep(score, night hours, credited hours incl. nap, measured efficiency, target max(typical,1)) and its line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Sleep.line",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(sleep:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepData nil",
+     "effect": "returns .noSleepData note"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.DescribedDetail.note(_:)": "a76e785a36f0e4e6",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::init ScoreFactorFacts(sleep:)": "36793c00a66d6f4d",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Sleep.line": "f1d0284d60f6119f",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.sleepSentence(score:_:)",
+   "hash": "9a0192ab6fce9c1e",
+   "does": "Sleep sentence by score band: >=85 locked-in, >=65 decent, >=45 mediocre, else poor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.lockedInSleepDetail(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.decentSleepDetail(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.mediocreSleepDetail(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.poorSleepDetail(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "score >= 85",
+     "effect": "lockedInSleepDetail"
+    },
+    {
+     "at": "+2",
+     "cond": "score >= 65",
+     "effect": "decentSleepDetail"
+    },
+    {
+     "at": "+3",
+     "cond": "score >= 45",
+     "effect": "mediocreSleepDetail; else poorSleepDetail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.decentSleepDetail(_:)": "59d68d7fa11efa95",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.lockedInSleepDetail(_:)": "4e2499a676b79ef8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.mediocreSleepDetail(_:)": "7bfae8ec00821811",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.poorSleepDetail(_:)": "0652acbade32f7ae"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)",
+   "hash": "7382f9bff9ac1376",
+   "does": "creditedHours < target - deficit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreDetailBuilder.SleepDetailInputs.targetText",
+   "hash": "bb5721cafc8f8b5f",
+   "does": "Target hours formatted with 0-2 fraction digits in NarrativeLanguage.locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.locale": "6607dabc385ef333",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var ScoreDetailBuilder.SleepDetailInputs.hoursText",
+   "hash": "2633fc3b28b2c2fa",
+   "does": "Night hours to one decimal via NarrativeLanguage.number.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.lockedInSleepDetail(_:)",
+   "hash": "41e2635bbe6636e9",
+   "does": "Locked-in (>=85) copy; names duration debt when credited hours short by slightDeficit; with/without efficiency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "efficiency measured",
+     "effect": "false: no-efficiency copy"
+    },
+    {
+     "at": "+4",
+     "cond": "short (no efficiency)",
+     "effect": "duration-debt vs nothing-to-fix copy"
+    },
+    {
+     "at": "+8",
+     "cond": "short (with efficiency)",
+     "effect": "duration-debt copy; else locked-in copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)": "21983c456f7d5532",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText": "0b2ff653adf57bb8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText": "4bed9cdac81e7410",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.decentSleepDetail(_:)",
+   "hash": "50c27dc65bdf85f2",
+   "does": "Decent (65-85) copy: short-of-target, low-efficiency (<80) or generic room-to-improve, with/without efficiency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "efficiency measured",
+     "effect": "false: no-efficiency copy"
+    },
+    {
+     "at": "+4",
+     "cond": "short (no efficiency)",
+     "effect": "more-time-in-bed vs decent copy"
+    },
+    {
+     "at": "+9",
+     "cond": "short",
+     "effect": "short-of-target copy"
+    },
+    {
+     "at": "+11",
+     "cond": "efficiency < 80",
+     "effect": "too-much-time-awake copy; else decent copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)": "21983c456f7d5532",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText": "0b2ff653adf57bb8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText": "4bed9cdac81e7410",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.mediocreSleepDetail(_:)",
+   "hash": "cf1d75e73bcf580b",
+   "does": "Mediocre (45-65) copy: well-short if short by moderateDeficit; else no-efficiency, poor-efficiency (<75) or mediocre copy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "short by moderateDeficit",
+     "effect": "well-short copy"
+    },
+    {
+     "at": "+5",
+     "cond": "efficiency measured",
+     "effect": "false: mediocre no-efficiency copy"
+    },
+    {
+     "at": "+9",
+     "cond": "efficiency < 75",
+     "effect": "poor-efficiency copy; else mediocre copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)": "21983c456f7d5532",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText": "0b2ff653adf57bb8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText": "4bed9cdac81e7410",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.poorSleepDetail(_:)",
+   "hash": "2f00e939f076a34a",
+   "does": "Poor (<45) copy: nowhere-near-enough when short by severeDeficit; else poor-sleep copy with/without efficiency.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "short by severeDeficit",
+     "effect": "nowhere-near copy"
+    },
+    {
+     "at": "+5",
+     "cond": "efficiency measured",
+     "effect": "with-efficiency vs no-efficiency poor copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.SleepDetailInputs.isShort(by:)": "21983c456f7d5532",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.hoursText": "0b2ff653adf57bb8",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::var ScoreDetailBuilder.SleepDetailInputs.targetText": "4bed9cdac81e7410",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ScoreDetailBuilder.baselineStalenessDays(baselineDate:referenceDate:)",
+   "hash": "956a4624ed197358",
+   "does": "Whole days between baseline date and reference date (Calendar.current); 0 if nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": ".day ?? 0",
+     "effect": "nil components → 0 days (no staleness)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreDetailBuilder.dfaAlpha1Adjustments(_:)",
+   "hash": "f8067184e06da112",
+   "does": "DFA α1 adjustment as fact: alphaBalanced / alphaStrained / alphaReduced / none; duplicates dfaAlpha1Adjustment bands.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dfaAlpha1 nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+2",
+     "cond": "0.75<=α1<=1.0",
+     "effect": "[.alphaBalanced]"
+    },
+    {
+     "at": "+5",
+     "cond": "α1 > 1.2",
+     "effect": "[.alphaStrained]"
+    },
+    {
+     "at": "+6",
+     "cond": "α1 < 0.60",
+     "effect": "[.alphaReduced]; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreDetailBuilder.cvAdjustments(_:)",
+   "hash": "af4248c326a63f60",
+   "does": "CV adjustment as fact: variabilityFlat (<2) / variabilityErratic (>12) / none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cv nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+2",
+     "cond": "cv < 2.0",
+     "effect": "[.variabilityFlat]"
+    },
+    {
+     "at": "+3",
+     "cond": "cv > 12.0",
+     "effect": "[.variabilityErratic]; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

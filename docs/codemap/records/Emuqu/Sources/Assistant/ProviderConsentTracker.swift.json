@@ -1,0 +1,163 @@
+{
+ "file": "Emuqu/Sources/Assistant/ProviderConsentTracker.swift",
+ "hash": "c782e3a217843726",
+ "role": "Per-provider consent gate for sending health data to hosted AI providers: persists a versioned boolean + grant date per provider in UserDefaults and mirrors it in an @Observable in-memory set.",
+ "types": [
+  "ProviderConsentTracker: final class (@Observable, @MainActor) — consent store"
+ ],
+ "state": [
+  "mem:ProviderConsentTracker.shared (singleton, returned by AppDependencies ProviderServices.providerConsentTracker unless overridden)",
+  "static let consentSchemaVersion = 8",
+  "static let providersRequiringConsent = [anthropic, openai, gemini, grok, deepseek] (apple exempt)",
+  "ud:assistant.consent.v8.<provider> (Bool, standard suite)",
+  "ud:assistant.consent.v8.<provider>.grantedAt (Date, standard suite)",
+  "mem:ProviderConsentTracker.acknowledgedProviders (@Observable, private(set))"
+ ],
+ "toplevel": "Header comment documents the schema-bump and revoke invariants; consentSchemaVersion history 1-8.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ProviderConsentTracker.storageKey(for:)",
+   "hash": "75185decc2d1d8bd",
+   "does": "Returns the UserDefaults key 'assistant.consent.v<schema>.<provider rawValue>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTracker.grantedDateKey(for:)",
+   "hash": "c8b20307f68c274d",
+   "does": "Returns the storageKey plus '.grantedAt'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "init ProviderConsentTracker()",
+   "hash": "c85b61d291261074",
+   "does": "Loads acknowledgedProviders from the standard UserDefaults bools for each provider requiring consent under the current schema.",
+   "entry": "Called once via `static let shared` initialiser (first access through AppDependencies.providers.providerConsentTracker) or by tests",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider>"
+   ],
+   "writes": [
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored bool for provider is true",
+     "effect": "provider inserted; otherwise left out (requires consent)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTracker.requiresConsent(_:)",
+   "hash": "372c9383fe694e73",
+   "does": "True when the provider is one requiring consent and has not been acknowledged under the current schema.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider not in providersRequiringConsent (apple)",
+     "effect": "returns false; else returns !acknowledged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTracker.acknowledge(_:)",
+   "hash": "a25ce171033684c1",
+   "does": "Records consent: inserts into the set and writes the bool and the grant Date to standard UserDefaults.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "ud:assistant.consent.v8.<provider>",
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider does not require consent",
+     "effect": "returns without writing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTracker.revoke(_:)",
+   "hash": "98460c99edf19c90",
+   "does": "Withdraws consent: removes from the set and deletes the bool and grant-date keys (called from Settings withdraw, API-key removal and DataPurgeService).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "ud:assistant.consent.v8.<provider>",
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTracker.consentGrantedAt(_:)",
+   "hash": "7427d4da7132096d",
+   "does": "Returns the stored grant Date for the provider under the current schema, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a"
+   }
+  }
+ ],
+ "deps": {}
+}

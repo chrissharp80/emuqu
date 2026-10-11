@@ -1,0 +1,348 @@
+{
+ "file": "Tools/validation/port_frequency_domain.py",
+ "hash": "b60dd3ab43e935b5",
+ "role": "Python port of FrequencyDomainAnalyzer (FrequencyDomainAnalysis.swift @ e028039): 4 Hz natural cubic spline resampling, linear detrend, Hann-window Welch PSD (256-sample segments, 50% overlap), single-window fallback, VLF from 1024-sample segments gated on >= 10 min, band integration VLF/LF/HF.",
+ "types": [],
+ "state": [
+  "FS=4.0, VLF=[0.003,0.04), LF=[0.04,0.15), HF=[0.15,0.4], VLF_MIN_DURATION_MIN=10, WELCH_SEG=256, VLF_SEG=1024, OVERLAP=0.5 (lines 16-23)"
+ ],
+ "toplevel": "Constants only; maps vDSP Hann/DFT to numpy (docstring).",
+ "flags": [],
+ "units": [
+  {
+   "key": "def hann_denorm",
+   "hash": "0be0bf75d0df0af8",
+   "does": "Periodic (denormalised) Hann window of length n: 0.5*(1-cos(2*pi*k/n)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def linearly_detrended",
+   "hash": "ce3ac7a51e079054",
+   "does": "Removes the least-squares line (offset and slope) from a segment; length <= 1 returns zeros.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "length <= 1",
+     "effect": "zeros"
+    },
+    {
+     "at": "+10",
+     "cond": "sxx > 0",
+     "effect": "slope = sxy/sxx else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _accumulate",
+   "hash": "5276166d48455f06",
+   "does": "Windows a segment, takes the unscaled FFT and adds the one-sided normalised power (DC and Nyquist once, others doubled) into avg in place.",
+   "entry": null,
+   "calls": [
+    "ext:numpy.fft.fft"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _welch_psd",
+   "hash": "8c0426d847f25faf",
+   "does": "Welch PSD: averages detrended, Hann-windowed segment periodograms over nseg segments with the given step, normalised by fs*seg_len*window power.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def hann_denorm",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended",
+    "Tools/validation/port_frequency_domain.py::def _accumulate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each segment",
+     "effect": "accumulate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def _accumulate": "32b2853c90950223",
+    "Tools/validation/port_frequency_domain.py::def hann_denorm": "646a0ef74e1fa52b",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+   }
+  },
+  {
+   "key": "def _band_powers",
+   "hash": "9c2cdce570246e92",
+   "does": "Integrates PSD bins into VLF [0.003,0.04), LF [0.04,0.15), HF [0.15,0.4] using bin width fs/fft_n.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each bin",
+     "effect": "classify"
+    },
+    {
+     "at": "+6",
+     "cond": "frequency in VLF",
+     "effect": "add to vlf"
+    },
+    {
+     "at": "+8",
+     "cond": "in LF",
+     "effect": "add to lf"
+    },
+    {
+     "at": "+10",
+     "cond": "in HF (closed)",
+     "effect": "add to hf; else ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _metrics",
+   "hash": "91a63d34c56f2f1f",
+   "does": "Builds the metrics dict: lfHfRatio only when hf > 0 (else None), totalPower = (vlf or 0)+lf+hf.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _vlf_power",
+   "hash": "eac9b6126255b33e",
+   "does": "VLF power from a 1024-sample Welch PSD; None when fewer than 1024 samples.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def _welch_psd",
+    "Tools/validation/port_frequency_domain.py::def _band_powers"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fewer than 1024 samples",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
+    "Tools/validation/port_frequency_domain.py::def _welch_psd": "19a2feadb7f92e89"
+   }
+  },
+  {
+   "key": "def _single_window",
+   "hash": "e0317872ec7a1eee",
+   "does": "Single-window fallback: detrend + Hann over the whole signal, zero-pad to next power of two, periodogram normalised by window energy, band powers; VLF reported only when usable minutes (or n/fs/60) >= 10.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def hann_denorm",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended",
+    "Tools/validation/port_frequency_domain.py::def _accumulate",
+    "Tools/validation/port_frequency_domain.py::def _band_powers"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "window energy <= 0",
+     "effect": "returns zero metrics with vlf None"
+    },
+    {
+     "at": "+12",
+     "cond": "usable_min given",
+     "effect": "use it; else n/fs/60"
+    },
+    {
+     "at": "+14",
+     "cond": "usable >= 10 min",
+     "effect": "vlf reported and in totalPower; else None/0"
+    },
+    {
+     "at": "+15",
+     "cond": "hf > 0",
+     "effect": "lfHfRatio; else None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def _accumulate": "32b2853c90950223",
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
+    "Tools/validation/port_frequency_domain.py::def hann_denorm": "646a0ef74e1fa52b",
+    "Tools/validation/port_frequency_domain.py::def linearly_detrended": "fc013a933a38b25a"
+   }
+  },
+  {
+   "key": "def compute_psd",
+   "hash": "39f1677091359504",
+   "does": "computePSD: removes the mean, uses Welch with the largest power-of-two segment <= requested (256) when the signal is at least that long, else the single-window fallback; VLF from _vlf_power only when usable window >= 10 min.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def _single_window",
+    "Tools/validation/port_frequency_domain.py::def _welch_psd",
+    "Tools/validation/port_frequency_domain.py::def _band_powers",
+    "Tools/validation/port_frequency_domain.py::def _vlf_power",
+    "Tools/validation/port_frequency_domain.py::def _metrics"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "segment_length given",
+     "effect": "use it; else 256"
+    },
+    {
+     "at": "+7",
+     "cond": "signal shorter than requested segment or no full segment",
+     "effect": "single-window fallback"
+    },
+    {
+     "at": "+12",
+     "cond": "usable_window_min given",
+     "effect": "use it; else len/fs/60"
+    },
+    {
+     "at": "+13",
+     "cond": "usable >= 10 min",
+     "effect": "compute VLF; else None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def _band_powers": "81cc0278f91fff18",
+    "Tools/validation/port_frequency_domain.py::def _metrics": "ff086f70d939e00a",
+    "Tools/validation/port_frequency_domain.py::def _single_window": "386ee567b98294c2",
+    "Tools/validation/port_frequency_domain.py::def _vlf_power": "c666a92204430f6a",
+    "Tools/validation/port_frequency_domain.py::def _welch_psd": "19a2feadb7f92e89"
+   }
+  },
+  {
+   "key": "def _spline_resample",
+   "hash": "61b35886b5e35ab0",
+   "does": "Natural cubic spline resampling of (t, v) onto count samples at fs from t_start (Thomas algorithm for second derivatives); linear interpolation for 2 points, constant for <2.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 2 points",
+     "effect": "constant v[0] (0 if empty)"
+    },
+    {
+     "at": "+4",
+     "cond": "exactly 2 points",
+     "effect": "linear interpolation"
+    },
+    {
+     "at": "+6",
+     "cond": "for each output sample (2-point path)",
+     "effect": "interpolate"
+    },
+    {
+     "at": "+8",
+     "cond": "t1 > t0",
+     "effect": "fraction else 0"
+    },
+    {
+     "at": "+13",
+     "cond": "for each interval",
+     "effect": "slopes"
+    },
+    {
+     "at": "+15",
+     "cond": "h > 0",
+     "effect": "slope else 0"
+    },
+    {
+     "at": "+22",
+     "cond": "forward sweep",
+     "effect": "tridiagonal elimination"
+    },
+    {
+     "at": "+27",
+     "cond": "back substitution",
+     "effect": "second derivatives"
+    },
+    {
+     "at": "+31",
+     "cond": "for each output sample",
+     "effect": "evaluate"
+    },
+    {
+     "at": "+33",
+     "cond": "next knot before output time",
+     "effect": "advance segment"
+    },
+    {
+     "at": "+36",
+     "cond": "segment width > 0",
+     "effect": "cubic evaluation; else v[s]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def compute_from_clean_pairs",
+   "hash": "38c3fadc17627e42",
+   "does": "computeFromCleanPairs: needs >= 60 pairs and positive duration and >= 64 resampled points; spline-resamples RR (ms) on beat times (s) at 4 Hz and runs compute_psd with usable window = duration in minutes.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_frequency_domain.py::def _spline_resample",
+    "Tools/validation/port_frequency_domain.py::def compute_psd"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 60 pairs",
+     "effect": "None"
+    },
+    {
+     "at": "+6",
+     "cond": "duration <= 0",
+     "effect": "None"
+    },
+    {
+     "at": "+9",
+     "cond": "resampled count < 64",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def _spline_resample": "b453392449545525",
+    "Tools/validation/port_frequency_domain.py::def compute_psd": "c6abdd588a46b1be"
+   }
+  }
+ ],
+ "deps": {}
+}

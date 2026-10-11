@@ -1,0 +1,160 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/PrefabQuestions.swift",
+ "hash": "3bd161f0eef819a2",
+ "role": "Fixed set of ten suggestion-chip questions shown above the chat input: a short localized label and a longer localized prompt sent as the user message.",
+ "types": [
+  "PrefabQuestion: enum String CaseIterable Identifiable — 10 canned questions"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PrefabQuestion.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id = rawValue.",
+   "entry": "Identifiable for ForEach in PrefabQuestionChips",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PrefabQuestion.label",
+   "hash": "245ae2829562ed9e",
+   "does": "Returns the localized short chip label for the case from the app bundle.",
+   "entry": "SwiftUI PrefabQuestionChips label",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .howAmIDoing",
+     "effect": "returns localized 'How am I doing today?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+4",
+     "cond": "case .whyIsScoreThis",
+     "effect": "returns localized 'Why is my score what it is?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+5",
+     "cond": "case .shouldITrainHard",
+     "effect": "returns localized 'Should I train hard today?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+6",
+     "cond": "case .whatChanged",
+     "effect": "returns localized 'What changed from yesterday?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+7",
+     "cond": "case .howVsBaseline",
+     "effect": "returns localized 'How do I compare to my baseline?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+8",
+     "cond": "case .wasSleepGood",
+     "effect": "returns localized 'Was my sleep good?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+9",
+     "cond": "case .isTrainingLoadOK",
+     "effect": "returns localized 'Is my training load okay?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+10",
+     "cond": "case .focusThisWeek",
+     "effect": "returns localized 'What should I focus on this week?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+11",
+     "cond": "case .trendingUpDown",
+     "effect": "returns localized 'Am I trending up or down?' from LanguageManager.appBundle"
+    },
+    {
+     "at": "+12",
+     "cond": "case .whatDoesHRVTellYou",
+     "effect": "returns localized 'What does my HRV tell you?' from LanguageManager.appBundle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PrefabQuestion.prompt",
+   "hash": "7ed5310747617e7e",
+   "does": "Returns the localized expanded question for the case (app bundle), sent as the user message by AssistantViewModel.send(prefab:) (AssistantViewModel.swift:502).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .howAmIDoing",
+     "effect": "returns localized prompt asking for: summary of today's recovery: highlights and things to watch"
+    },
+    {
+     "at": "+4",
+     "cond": "case .whyIsScoreThis",
+     "effect": "returns localized prompt asking for: explain today's recovery score from the factor breakdown and probable causes, with actual numbers"
+    },
+    {
+     "at": "+5",
+     "cond": "case .shouldITrainHard",
+     "effect": "returns localized prompt asking for: train hard / easy / rest today based on recovery and ATL/CTL/TSB, with reasons"
+    },
+    {
+     "at": "+6",
+     "cond": "case .whatChanged",
+     "effect": "returns localized prompt asking for: compare today to yesterday across HRV, sleep, training load, vitals"
+    },
+    {
+     "at": "+7",
+     "cond": "case .howVsBaseline",
+     "effect": "returns localized prompt asking for: compare today's numbers with the rolling personal baseline and call out deviations"
+    },
+    {
+     "at": "+8",
+     "cond": "case .wasSleepGood",
+     "effect": "returns localized prompt asking for: walk through last night's sleep (duration, efficiency, deep, REM, awake) and judge it"
+    },
+    {
+     "at": "+9",
+     "cond": "case .isTrainingLoadOK",
+     "effect": "returns localized prompt asking for: assess the ATL/CTL/TSB zone (good, undertraining, high strain, freshening)"
+    },
+    {
+     "at": "+10",
+     "cond": "case .focusThisWeek",
+     "effect": "returns localized prompt asking for: concrete recovery focus for the week from the 7-day trend"
+    },
+    {
+     "at": "+11",
+     "cond": "case .trendingUpDown",
+     "effect": "returns localized prompt asking for: overall up/down direction from 7- and 30-day trends, per metric"
+    },
+    {
+     "at": "+12",
+     "cond": "case .whatDoesHRVTellYou",
+     "effect": "returns localized prompt asking for: plain-English reading of RMSSD, SDNN, LF/HF and DFA a1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,263 @@
+{
+ "file": "Emuqu/Sources/Storage/Reconciliation.swift",
+ "hash": "0fed0bb242bdd904",
+ "role": "ReconciliationManager: duplicate-collection guard (sessionExists) used by device recording, plus an offline sync queue persisted to Documents/HRVOffline/pending.json that nothing in the app drains.",
+ "types": [
+  "ReconciliationManager: class — duplicate guard + undrained offline queue",
+  "ReconciliationManager.ReconciliationError: enum — sessionAlreadyExists"
+ ],
+ "state": [
+  "file:Documents/HRVOffline/pending.json (or tmp/HRVOffline) — [OfflineSession] with full HRVSession incl. RR series",
+  "mem:ReconciliationManager.pendingSessions (guarded by lock)"
+ ],
+ "toplevel": "Stored properties: fileManager default, pendingSessions [], lock NSLock. Owned by RRCollector (RRCollector.swift:709).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "queueForSync/pending have no production caller (only EmuquTests ReconciliationManagerTests/IntegrationTests); the file comment at 3-6 says so. The only live path is sessionExists, whose pending-list half is always empty in production.",
+   "evidence": [
+    "Emuqu/Sources/Storage/Reconciliation.swift:56",
+    "Emuqu/Sources/Storage/Reconciliation.swift:73",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:46"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ReconciliationManager(archive:)",
+   "hash": "bfb27250d60ccb95",
+   "does": "Stores the archive, picks Documents/HRVOffline (tmp fallback), creates the directory and loads pending.json.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:Documents/HRVOffline/pending.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Documents URL available",
+     "effect": "true: Documents/HRVOffline; false: tmp/HRVOffline and log WARNING"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "fc2191e2b7d8fc89",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func ReconciliationManager.sessionExists(_:)",
+   "hash": "02e4775a4735e5f2",
+   "does": "True when the archive already has the session id or the offline queue holds it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "archive:exists",
+    "mem:ReconciliationManager.pendingSessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "archive.exists(sessionId)",
+     "effect": "true: return true; false: check pendingSessions under lock"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+   }
+  },
+  {
+   "key": "func ReconciliationManager.queueForSync(_:)",
+   "hash": "9f14e825b6406a23",
+   "does": "Under lock, throws sessionAlreadyExists when the session is archived or queued; otherwise appends an OfflineSession and writes pending.json.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()"
+   ],
+   "reads": [
+    "archive:exists",
+    "mem:ReconciliationManager.pendingSessions"
+   ],
+   "writes": [
+    "mem:ReconciliationManager.pendingSessions",
+    "file:Documents/HRVOffline/pending.json"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "not archived AND not already queued",
+     "effect": "false: throw sessionAlreadyExists; true: append and save"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only tests call queueForSync.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Reconciliation.swift:56",
+      "EmuquTests/ReconciliationManagerTests.swift:29"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109"
+   }
+  },
+  {
+   "key": "var ReconciliationManager.pending",
+   "hash": "8118ba8eeaff9022",
+   "does": "Queued sessions with needsSync (syncedAt nil and fewer than 3 attempts), under lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ReconciliationManager.pendingSessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "`pending` is read only by EmuquTests/ReconciliationManagerTests.swift:31,65; no production caller, and nothing drains the queue (file comment 3-6).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Reconciliation.swift:73",
+      "EmuquTests/ReconciliationManagerTests.swift:31"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c"
+   }
+  },
+  {
+   "key": "func ReconciliationManager.createDirectoryIfNeeded()",
+   "hash": "cf1722a99c498c48",
+   "does": "Creates the HRVOffline directory when missing (failure logged by attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Documents/HRVOffline/"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "directory missing",
+     "effect": "true: create; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "var ReconciliationManager.pendingFile",
+   "hash": "bc8f1dd6aaa6b4f8",
+   "does": "URL of HRVOffline/pending.json.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReconciliationManager.loadPendingSessions()",
+   "hash": "158ab4b6a9555daf",
+   "does": "Reads and decodes pending.json into pendingSessions; missing file or any decode error → empty list.",
+   "entry": null,
+   "calls": [
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:Documents/HRVOffline/pending.json"
+   ],
+   "writes": [
+    "mem:ReconciliationManager.pendingSessions"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "error is NSFileReadNoSuchFileError",
+     "effect": "pendingSessions = [] silently"
+    },
+    {
+     "at": "+9",
+     "cond": "any other read/decode error",
+     "effect": "log, pendingSessions = [] (the next save would overwrite the undecodable file)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "8009bef0e99893a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ReconciliationManager.savePendingSessions()",
+   "hash": "586bc8ab29d2606d",
+   "does": "Encodes pendingSessions (pretty, sorted, iso8601) and writes pending.json atomically with until-first-auth protection (not app-layer encrypted).",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Documents/HRVOffline/pending.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "8009bef0e99893a4"
+   }
+  },
+  {
+   "key": "var ReconciliationManager.ReconciliationError.errorDescription",
+   "hash": "f46bfca54396c89d",
+   "does": "Localized description for ReconciliationError.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case sessionAlreadyExists",
+     "effect": "'A session with this ID already exists'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

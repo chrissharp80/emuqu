@@ -1,0 +1,167 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutLifecycle.swift",
+ "hash": "f52025f4b329435a",
+ "role": "@Observable lifecycle state of an active workout (phase, live/finished session, elapsed, target zone, HR source, pause flags, paused-motion ledger, pause timeline, strap notice) plus the PauseTimeline and PausedMotionLedger value types and WorkoutStrapNotice enum.",
+ "types": [
+  "WorkoutLifecycle: class (@Observable, @MainActor) — workout phase/session/timer state",
+  "PauseTimeline: struct — wall-clock length of each pause keyed by elapsed second; maps sample offsets back to wall clock",
+  "PauseTimeline.Span: struct",
+  "PauseTimeline.OpenPause: private struct",
+  "PausedMotionLedger: struct — pedometer/foot-pod distance excluded while paused",
+  "WorkoutStrapNotice: enum — strapNotConnected | strapSilent"
+ ],
+ "state": [
+  "mem:WorkoutLifecycle.phase (.idle)",
+  "mem:WorkoutLifecycle.currentSession",
+  "mem:WorkoutLifecycle.finishedSession",
+  "mem:WorkoutLifecycle.elapsedSeconds",
+  "mem:WorkoutLifecycle.targetZone",
+  "mem:WorkoutLifecycle.activeHRSource (.strap default)",
+  "mem:WorkoutLifecycle.isPaused",
+  "mem:WorkoutLifecycle.autoPaused",
+  "mem:WorkoutLifecycle.pausedMotion",
+  "mem:WorkoutLifecycle.pauseTimeline",
+  "mem:WorkoutLifecycle.strapNotice",
+  "PauseTimeline.spans / openPause",
+  "PausedMotionLedger.pedometerAtPause/footPodAtPause/pedometerExcluded/footPodExcluded"
+ ],
+ "toplevel": "Stored defaults: phase .idle, elapsedSeconds 0, activeHRSource .strap, isPaused/autoPaused false, fresh PausedMotionLedger and PauseTimeline. Instance is WorkoutRecorder.lifecycle (WorkoutRecorder.swift:39). WorkoutStrapNotice is set by HRArbitration per tick.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PauseTimeline.pause(atElapsed:now:)",
+   "hash": "d615e0195927c329",
+   "does": "Records an open pause at the given elapsed second and wall-clock time (overwrites any already-open pause). Called from WorkoutSessionLifecycle.pause (WorkoutRecorder+Start.swift:734).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.pauseTimeline"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PauseTimeline.resume(now:)",
+   "hash": "d3a026db426a42de",
+   "does": "Closes the open pause, appending a Span(atElapsed, max(0, now-startedAt)); no-op when no pause is open. Called from WorkoutSessionLifecycle.resume (WorkoutRecorder+Start.swift:746).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.pauseTimeline"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no open pause",
+     "effect": "returns without change; otherwise appends span and clears openPause"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PauseTimeline.wallClock(forOffset:sessionStart:)",
+   "hash": "3f326a84483ac53a",
+   "does": "Returns sessionStart + offsetSec + sum of span seconds whose atElapsed < offsetSec. A still-open pause is not counted. Used by WorkoutFinalizer.backfillWorkoutHRFromHealthKit (WorkoutRecorder+Lifecycle.swift:556).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.pauseTimeline"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PausedMotionLedger.pause(pedometer:footPod:)",
+   "hash": "bee4edcede531e22",
+   "does": "Records pedometer and foot-pod cumulative distances at pause start. Called from WorkoutSessionLifecycle.pause.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.pausedMotion"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PausedMotionLedger.resume(pedometer:footPod:)",
+   "hash": "333cd61b10ebe74c",
+   "does": "Adds the distance each counter moved since the pause began to its excluded total and clears the at-pause markers. Called from WorkoutSessionLifecycle.resume.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutLifecycle.pausedMotion"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed"
+   }
+  },
+  {
+   "key": "func PausedMotionLedger.pedometerDistance(_:)",
+   "hash": "74ed968bf0365df7",
+   "does": "Returns max(0, raw pedometer distance - excluded - movement in a still-open pause). Read by the ticker and finalize (WorkoutRecorder+Ticker.swift:502,579; WorkoutRecorder+Lifecycle.swift:149).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.pausedMotion"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed"
+   }
+  },
+  {
+   "key": "func PausedMotionLedger.footPodDistance(_:)",
+   "hash": "b00f9eadb4eac878",
+   "does": "Returns max(0, raw foot-pod distance - excluded - movement in a still-open pause).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.pausedMotion"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)": "4f42cb84dc5ce2ed"
+   }
+  },
+  {
+   "key": "func PausedMotionLedger.moved(since:now:)",
+   "hash": "ad73426029692d5e",
+   "does": "Returns max(0, now-start) when start is set, else 0. A counter that resets/goes backwards during a pause therefore excludes 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "start is nil",
+     "effect": "?? fallback 0 (no open pause); otherwise max(0, now - start)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

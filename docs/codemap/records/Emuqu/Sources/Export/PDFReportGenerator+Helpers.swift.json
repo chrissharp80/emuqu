@@ -1,0 +1,490 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift",
+ "hash": "70b636953a08e88f",
+ "role": "Generator drawing helpers (section heading, 4-column metrics grid), report value formatters (missing-value dash, br/min, h/m), and the right-to-left PDF machinery: PDFReadingDirection (page mirroring, alignment pinning) and mirror-safe pdfDraw wrappers on String and NSAttributedString used by every PDF renderer.",
+ "types": [
+  "PDFReportGenerator: extension — drawSectionHeading, drawCompactMetricsGrid",
+  "PDFReadingDirection: enum — RTL detection from LanguageManager.appLocale, page mirroring, text un-mirroring and alignment anchoring",
+  "String: extension — pdfDraw(at:) / pdfDraw(in:) mirror-safe drawing",
+  "NSAttributedString: extension — pdfDraw(in:) / pdfDraw(with:options:context:)"
+ ],
+ "state": [
+  "mem:reportMissingValue (global let \"—\")"
+ ],
+ "toplevel": "Global `let reportMissingValue = \"—\"` used across report renderers for absent values.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+   "hash": "fb81cb4719917095",
+   "does": "Draws a heading (heading font, primary colour) in an 18pt-high box across the content width at yPosition; returns yPosition+20.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawCompactMetricsGrid(_:yPosition:pageRect:)",
+   "hash": "b863a383de17c5f5",
+   "does": "Lays (name,value) metrics out in 4 columns, advancing y by 28pt per new row, drawing each cell; returns y past the last row (y unchanged if empty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawCompactMetricCell(_:col:row:colWidth:rowHeight:contentWidth:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each metric",
+     "effect": "computes col/row and draws a cell"
+    },
+    {
+     "at": "+9",
+     "cond": "col == 0 and row > 0",
+     "effect": "advances y by one row height at the start of each new row"
+    },
+    {
+     "at": "+14",
+     "cond": "totalRows > 0",
+     "effect": "adds one row height to the final y; 0 when no metrics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawCompactMetricCell(_:col:row:colWidth:rowHeight:contentWidth:y:)": "9518bf0a9d0aa0a1"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawCompactMetricCell(_:col:row:colWidth:rowHeight:contentWidth:y:)",
+   "hash": "d6f33d0d43377b16",
+   "does": "Draws one grid cell: name in caption grey at (x,y) and value in mono black at y+10; fills a light stripe behind even rows when drawing column 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "row even and col == 0",
+     "effect": "true: fills the alternating-row background stripe; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func reportBreathsPerMinute(_:)",
+   "hash": "d6b237091ae7c584",
+   "does": "Formats a respiration rate as localized '%.1f br/min'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func reportHoursMinutes(_:)",
+   "hash": "1cc726b1eff59368",
+   "does": "Returns '—' for nil minutes else LocalizedDuration.hoursMinutes (e.g. '1h 23m').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "minutes nil",
+     "effect": "returns reportMissingValue '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "var PDFReadingDirection.isRightToLeft",
+   "hash": "6fd5285b31405a31",
+   "does": "True when LanguageManager.appLocale's character direction is right-to-left.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var PDFReadingDirection.bullet",
+   "hash": "0fc4e492e6e2bae2",
+   "does": "Returns '←' in RTL languages, '→' otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "isRightToLeft",
+     "effect": "'←' when true, '→' when false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft": "b905530068a21b73"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.paragraphStyle()",
+   "hash": "60fb693563c606f8",
+   "does": "Returns a new paragraph style with natural alignment and base writing direction RTL or LTR per the report language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isRightToLeft",
+     "effect": "rightToLeft writing direction when true, leftToRight otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft": "b905530068a21b73",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.alignment(_:mirrored:)": "9e891f93346b3dbc"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.isolated(_:)",
+   "hash": "cc47817343128b48",
+   "does": "Wraps text in Unicode FSI/PDI isolates in RTL languages; returns it unchanged otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isRightToLeft",
+     "effect": "true: wraps in \\u2068...\\u2069; false: unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft": "b905530068a21b73"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.beginPage(_:)",
+   "hash": "95b3e0786b76fa2c",
+   "does": "Begins a new PDF page and, in an RTL language when the context is not already mirrored, mirrors the x axis (translate by minX+maxX, scale -1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRightToLeft and context not mirrored",
+     "effect": "true: applies x mirror; false: returns after beginPage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)": "94864365e9b9028a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isRightToLeft": "b905530068a21b73"
+   }
+  },
+  {
+   "key": "var PDFReadingDirection.isDrawingMirrored",
+   "hash": "701002f1eee6569d",
+   "does": "Whether the current UIGraphics context is x-mirrored; false when there is no current context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "current context exists",
+     "effect": "false: returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)": "94864365e9b9028a"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.isMirrored(_:)",
+   "hash": "cb971803149dc94c",
+   "does": "Returns true when the context CTM determinant a*d - b*c > 0 (UIKit's y-flip makes an unmirrored context negative).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReadingDirection.drawingLeftToRight(minX:width:_:)",
+   "hash": "aa247243ee840aa8",
+   "does": "On a mirrored context, saves state, flips the strip [minX, minX+width] back, runs draw, restores; otherwise just runs draw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "current context exists and is mirrored",
+     "effect": "false: runs draw directly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.isMirrored(_:)": "94864365e9b9028a"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.anchoredAttributes(_:mirrored:)",
+   "hash": "382c5d8e8f9a0914",
+   "does": "Copies attributes (or empty) and sets .paragraphStyle to an anchored copy of the existing style.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredStyle(_:mirrored:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "attributes ?? [:]",
+     "effect": "empty dictionary when attributes is nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredStyle(_:mirrored:)": "01617bf5f94eecd0",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.anchoredText(_:mirrored:)",
+   "hash": "6b810f0a1b059dd0",
+   "does": "Returns a mutable copy of text with every paragraph-style run replaced by its anchored style (runs without a style get a default anchored one).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredStyle(_:mirrored:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredStyle(_:mirrored:)": "01617bf5f94eecd0",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.anchoredStyle(_:mirrored:)",
+   "hash": "e5d6c4795f2dd112",
+   "does": "Mutable copy of the style (or a new default) with alignment resolved by anchoredAlignment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAlignment(_:mirrored:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "style mutableCopy cast ?? new NSMutableParagraphStyle()",
+     "effect": "fresh default style when none or cast fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAlignment(_:mirrored:)": "86b7aef2b11609df",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::func PDFReportGeneratorSmokeTests.alignment(_:mirrored:)": "9e891f93346b3dbc"
+   }
+  },
+  {
+   "key": "func PDFReadingDirection.anchoredAlignment(_:mirrored:)",
+   "hash": "24d9562a984eb22a",
+   "does": "Resolves alignment to page: on a mirrored page left/natural -> right and right -> left; on an unmirrored page natural -> left; centre/justified and others unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "(.left,true) or (.natural,true)",
+     "effect": "returns .right"
+    },
+    {
+     "at": "+3",
+     "cond": "(.right,true)",
+     "effect": "returns .left"
+    },
+    {
+     "at": "+4",
+     "cond": "(.natural,false)",
+     "effect": "returns .left"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "returns alignment unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func String.pdfDraw(at:withAttributes:)",
+   "hash": "793e26b3ad89393b",
+   "does": "String.draw(at:withAttributes:) that, on a mirrored page, flips the text's own width strip back so glyphs read left-to-right.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "page is mirrored",
+     "effect": "false: plain draw; true: draws inside drawingLeftToRight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909"
+   }
+  },
+  {
+   "key": "func String.pdfDraw(in:withAttributes:)",
+   "hash": "dfb597476a313b03",
+   "does": "String.draw(in:withAttributes:) with alignment pinned to the page via anchoredAttributes, un-mirrored on a mirrored page.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "page is mirrored",
+     "effect": "false: plain draw with anchored attrs; true: draw inside drawingLeftToRight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredAttributes(_:mirrored:)": "d4cc343b889b0a9d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909"
+   }
+  },
+  {
+   "key": "func NSAttributedString.pdfDraw(in:)",
+   "hash": "15235651e89aa37b",
+   "does": "NSAttributedString.draw(in:) with paragraph alignment anchored, un-mirrored on a mirrored page.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredText(_:mirrored:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "page is mirrored",
+     "effect": "false: plain draw; true: drawingLeftToRight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredText(_:mirrored:)": "eeb7c3c4d842e281",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909"
+   }
+  },
+  {
+   "key": "func NSAttributedString.pdfDraw(with:options:context:)",
+   "hash": "084e250bc4d54928",
+   "does": "NSAttributedString.draw(with:options:context:) with alignment anchored, un-mirrored on a mirrored page (used by WorkoutPDFReport).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredText(_:mirrored:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "page is mirrored",
+     "effect": "false: plain draw; true: drawingLeftToRight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.anchoredText(_:mirrored:)": "eeb7c3c4d842e281",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.drawingLeftToRight(minX:width:_:)": "630996939f5382bb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.isDrawingMirrored": "1065a556de296909"
+   }
+  }
+ ],
+ "deps": {}
+}

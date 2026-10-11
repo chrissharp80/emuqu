@@ -1,0 +1,808 @@
+{
+ "file": "EmuquTests/AcquisitionPureLogicTests.swift",
+ "hash": "c4ac22aa6fcd3dcc",
+ "role": "XCTest suite for pure acquisition-layer logic: SleepSchedule night-window arithmetic (anchors, ordering, DST, morning cutoff, night key), RoadGeocodingService.normalizeStreetName, and the free bearingDegrees function.",
+ "types": [
+  "AcquisitionPureLogicTests: class — XCTestCase for SleepSchedule windows, street-name normalisation and bearings"
+ ],
+ "state": [
+  "mem:AcquisitionPureLogicTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>) — captured NSTimeZone.default restored in class tearDown"
+ ],
+ "toplevel": "Static savedDefaultTimeZone lock initialised to nil; class-level setUp/tearDown pin process-wide NSTimeZone.default to America/Chicago for the suite.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Class setUp mutates the process-global NSTimeZone.default to America/Chicago while the app host process is live; any host-app code reading Calendar.current during the suite sees the pinned zone (shared state with the app host).",
+   "evidence": [
+    "EmuquTests/AcquisitionPureLogicTests.swift:31",
+    "EmuquTests/AcquisitionPureLogicTests.swift:35"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AcquisitionPureLogicTests.setUp()",
+   "hash": "b9c8288f4f407f8b",
+   "does": "Class-level setUp: saves NSTimeZone.default into savedDefaultTimeZone and sets NSTimeZone.default to America/Chicago so DST tests (8 Mar / 1 Nov 2026) hit real transitions.",
+   "entry": "XCTest: class setUp() before the first test of the suite",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:AcquisitionPureLogicTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "TimeZone(identifier: \"America/Chicago\") is nil",
+     "effect": "falls back to TestTimeZone.utc; the DST tests then run in UTC and no longer exercise any transition while still passing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Fallback to UTC when America/Chicago is unavailable silently turns the spring-forward/fall-back tests into non-DST tests that still pass.",
+     "evidence": [
+      "EmuquTests/AcquisitionPureLogicTests.swift:31",
+      "EmuquTests/AcquisitionPureLogicTests.swift:244",
+      "EmuquTests/AcquisitionPureLogicTests.swift:261"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class-level tearDown: restores the saved NSTimeZone.default and clears the saved value.",
+   "entry": "XCTest: class tearDown() after the last test of the suite",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [
+    "mem:AcquisitionPureLogicTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:AcquisitionPureLogicTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a zone was saved",
+     "effect": "restores NSTimeZone.default to it; when nil (setUp never ran) leaves the default as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AcquisitionPureLogicTests.calendar",
+   "hash": "effca6c85569e6d4",
+   "does": "Returns Calendar.current at access time (after the class setUp pinned the zone).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.date(_:_:_:_:_:)",
+   "hash": "f23928a5858ea9ed",
+   "does": "Builds a Date from y/mo/d/h/mi in Calendar.current.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar.date(from:) returns nil",
+     "effect": "XCTFail with the components and returns Date() (now); otherwise returns the built date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "b77f31f7a41d7d66"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testWakeTimeArithmeticWrapsPastMidnight()",
+   "hash": "673d48105a89cb7c",
+   "does": "Asserts wakeHour/wakeMinute: 22:00+8h → 06:00, 23:30+7.25h → 06:45 (wraps past midnight).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testWakeTimeArithmeticWithoutMidnightCrossing()",
+   "hash": "66af62064dd9d70a",
+   "does": "Asserts 09:00+8h schedule wakes at 17:00 (no midnight crossing).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testPreMidnightAndNextMorningShareAnAnchor()",
+   "hash": "2520230884c1a39e",
+   "does": "Asserts a 23:30 and next-morning 06:30 session get the same overnightWindowStart for a 22:00+8h schedule.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAMBedtimeGroupsTheNightCorrectly()",
+   "hash": "5e661f72f8bb5820",
+   "does": "Asserts for an 02:00 bedtime that 23:00 and 03:00 next day share the overnightWindowStart anchor (18-hour guard).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAnchorIsNeverMoreThanEighteenHoursBack()",
+   "hash": "9c91e242d25cbf3a",
+   "does": "For all 24 bedtimes x 24 session hours on 2026-07-15, asserts session - overnightWindowStart <= 18h+1s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each bedtime hour 0...23",
+     "effect": "builds schedule"
+    },
+    {
+     "at": "+3",
+     "cond": "for each session hour 0...23",
+     "effect": "asserts gap ≤ 18h"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAnchorOvershootIsBoundedBySixHours()",
+   "hash": "8680077d424af4a4",
+   "does": "For all bedtimes at :30 x session hours at :15 on 2026-09-02, asserts the anchor is less than 6h after the session (bounded overshoot).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each bedtime hour",
+     "effect": "builds 7.5h schedule"
+    },
+    {
+     "at": "+3",
+     "cond": "for each session hour",
+     "effect": "asserts overshoot < 6h"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testOvernightWindowIsOrdered()",
+   "hash": "0a8632ae2921d67c",
+   "does": "For each bedtime hour, asserts overnightWindowStart < overnightWindowEnd for a 07:00 session on 2026-11-04.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each bedtime hour 0...23",
+     "effect": "asserts ordered window"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testDaytimeHRWindowIsOrdered()",
+   "hash": "4f2758dcee89998f",
+   "does": "For each bedtime hour, asserts daytimeHRStart < daytimeHREnd for a 12:00 session (regression for inverted HK daytime-HR predicate).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHREnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each bedtime hour 0...23",
+     "effect": "asserts ordered daytime window"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHREnd(relativeTo:)": "b3b133e7eec9ac06",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)": "93566e2a9db1e9f8",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testMorningCutoffSitsBetweenWindowStartAndEnd()",
+   "hash": "e3d04ed83b1329c0",
+   "does": "For 22:30+7.5h and a 06:45 session, asserts start < morningCutoff(forNightStartingAt:) <= end and end - cutoff == 0.5h.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAnchorAfterMidnightWindowHoldsOneNight()",
+   "hash": "be2aad7163aae37e",
+   "does": "For 22:30+8h and anchors 00:00, 00:15, 07:00 on 2 Jun, asserts window 1 Jun 20:30 → 2 Jun 11:00 and cutoff 2 Jun 10:30 (one night only).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 3 after-midnight anchors",
+     "effect": "asserts exact start/end/cutoff"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testEveningAnchorWindowIsUnchanged()",
+   "hash": "9fc6e87de76328d4",
+   "does": "Asserts a 22:45 anchor for 22:30+8h yields window 20:30 → next day 11:00.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAMBedtimeWindowEndsAfterItsStart()",
+   "hash": "ceeee250cb1ccf31",
+   "does": "Asserts 02:00+7h with a 23:00 anchor yields start next day 00:00 and end next day 13:30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testSpringForwardKeepsWindowOrderedAndAnchored()",
+   "hash": "f0fb3fc2aeacf066",
+   "does": "Across the 8 Mar 2026 spring-forward, asserts the morning-after window is ordered and 23:00 night-of and 07:00 morning-after share an anchor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testFallBackKeepsWindowOrderedAndAnchored()",
+   "hash": "bc5e0f377c81a83d",
+   "does": "Across the 1 Nov 2026 fall-back, asserts the morning-after window is ordered and night-of/morning-after share an anchor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testWindowInvariantsHoldEveryDayOfTheYear()",
+   "hash": "1dad117f01945934",
+   "does": "For 365 days from 2026-01-01 06:30 and 4 schedules, asserts start<end, window <24h, start<=session, session-start <= 18h+1s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each of 365 days",
+     "effect": "iterates schedules then advances a day"
+    },
+    {
+     "at": "+9",
+     "cond": "for each of 4 schedules",
+     "effect": "asserts 4 invariants"
+    },
+    {
+     "at": "+20",
+     "cond": "calendar.date(byAdding:.day) returns nil",
+     "effect": "falls back to day+86400s; otherwise next calendar day"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts start <= session ('anchor after session'), an invariant the same file documents as false in general (testAnchorOvershootIsBoundedBySixHours and SleepSchedule's comment); it only holds because every session here is 06:30.",
+     "evidence": [
+      "EmuquTests/AcquisitionPureLogicTests.swift:294",
+      "EmuquTests/AcquisitionPureLogicTests.swift:126",
+      "Emuqu/Sources/Models/SleepSchedule.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123",
+    "EmuquTests/AcquisitionPureLogicTests.swift::var AcquisitionPureLogicTests.calendar": "b77f31f7a41d7d66"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testStreetSuffixesAreStripped()",
+   "hash": "1a634df1da3d8454",
+   "does": "Asserts 'Main Street', 'Main St', 'MAIN STREET' normalise to 'main'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testAbbreviatedAndSpelledOutFormsMatch()",
+   "hash": "8b2b9bbf92daafe8",
+   "does": "Asserts 12 abbreviated/spelled-out street-type pairs normalise identically.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each (short,long) pair",
+     "effect": "asserts equal normalisation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testDirectionalPrefixesAreStripped()",
+   "hash": "9d98c4a5b647e6b2",
+   "does": "Asserts 'N Main St' == 'S Main St' after normalisation and 'NW Broadway' → 'broadway'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testMultiWordNamesSurvive()",
+   "hash": "2b97a207a89e1b9d",
+   "does": "Asserts multi-word names keep all core words ('martin luther king jr', 'old mill').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testNilAndEmptyAreHandled()",
+   "hash": "2ab3c7d1c7ac5723",
+   "does": "Asserts nil, '' and whitespace-only normalise to ''.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testNameOfOnlySuffixWordsNormalisesToEmpty()",
+   "hash": "96be20daa5d40cc9",
+   "does": "Asserts 'Broadway'→'broadway', 'Circle'→'', 'N'→'n', and 'E St' != 'K St'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testIrregularWhitespaceIsCollapsed()",
+   "hash": "413ca779b5289dc4",
+   "does": "Asserts repeated spaces and tabs collapse ('  Main   Street  ', 'Main\\tStreet' → 'main').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "acd2f67dc6660ae7"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.coord(_:_:)",
+   "hash": "7376d4e8fe93c3be",
+   "does": "Builds a CLLocationCoordinate2D from lat/lon.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocationCoordinate2D"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testCardinalBearings()",
+   "hash": "e92c769ff95f7475",
+   "does": "Asserts bearingDegrees N/E/S/W from (40,-105) are 0/90/180/270 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The free bearingDegrees(from:to:) under test has a byte-identical twin RoadAwarenessEngine.bearingDegrees over RoadGraphService.Point; the two are tested separately (here and RoadAwarenessEngineTests) and can drift independently.",
+     "evidence": [
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709",
+      "EmuquTests/RoadAwarenessEngineTests.swift:262"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testDiagonalBearingsLandInTheRightQuadrant()",
+   "hash": "7df9f7bd8c07fa48",
+   "does": "Asserts NE/SE/SW/NW bearings fall in the matching quadrant ranges.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testBearingIsAlwaysNormalised()",
+   "hash": "d89078356cdd7be3",
+   "does": "Over a 9x9 offset grid around London (excluding origin), asserts bearing in [0,360) and not NaN.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each lat offset -2...2 step 0.5",
+     "effect": "inner loop"
+    },
+    {
+     "at": "+3",
+     "cond": "for each lon offset",
+     "effect": "computes bearing"
+    },
+    {
+     "at": "+4",
+     "cond": "both offsets zero",
+     "effect": "continue (skip identical point); else asserts range"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testBearingAcrossTheAntimeridian()",
+   "hash": "fa305e45010cda38",
+   "does": "Asserts 179.5E→179.5W bearing ≈90 and reverse ≈270 (antimeridian).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testBearingBetweenIdenticalPointsIsFinite()",
+   "hash": "b402fee2639b0e18",
+   "does": "Asserts bearing between identical points is finite and in [0,360).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testReverseBearingIsRoughlyOpposite()",
+   "hash": "4466cffbbd87e887",
+   "does": "Asserts reverse bearing differs from forward by ≈180 (±1) over a short hop.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "126b8dab792cff85",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.coord(_:_:)": "5de21e5d99655fdb"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testMorningCutoffRelativeToAfterMidnightIsThisMorning()",
+   "hash": "9f04ba4793c219a5",
+   "does": "Asserts morningCutoff(relativeTo:) for 01:00 2 Jun and 23:00 1 Jun both give 2 Jun 10:30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testIsMorningReadingOnlyInsideItsOwnNight()",
+   "hash": "e649676a7951b017",
+   "does": "Asserts isMorningReading true at 06:30 and 10:30, false at 10:31 and 15:00 for 22:30+8h.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "ed898a2e9f6f85cc",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  },
+  {
+   "key": "func AcquisitionPureLogicTests.testNightKeyGroupsByNightNotCalendarDay()",
+   "hash": "7cfeb0b616637da0",
+   "does": "Asserts nightKey for 23:30 1 Jun and 00:30 2 Jun are equal and equal startOfDay(2 Jun), and differ from 23:30 2 Jun.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/AcquisitionPureLogicTests.swift::func AcquisitionPureLogicTests.date(_:_:_:_:_:)": "b954725903673123"
+   }
+  }
+ ],
+ "deps": {}
+}

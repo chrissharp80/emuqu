@@ -1,0 +1,103 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift",
+ "hash": "46a86b39c7f3c675",
+ "role": "Adapts the cross-provider ToolSpec catalog to Foundation Models' Tool protocol: one generic adapter taking a single JSON-string argument, plus a catalog helper that wraps specs, estimates their token cost and folds the input schema into the description.",
+ "types": [
+  "AppleToolAdapter: struct (Tool, iOS 26) — name/description/handler wrapper",
+  "AppleToolAdapter.Arguments: @Generable struct — single argumentsJSON String",
+  "AppleToolCatalog: enum (iOS 26) — wrap/estimatedTokens/enrichedDescription"
+ ],
+ "state": [],
+ "toplevel": "Whole file is inside #if canImport(FoundationModels) with @available(iOS 26, *); @Generable/@Guide macros synthesize the Arguments generation schema with the guide text \"JSON object with the tool's arguments...\".",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The AppleToolCatalog doc comment says it 'Returns nil when FoundationModels isn't available (iOS < 26)'. No member returns an optional: wrap returns `any Tool` and the whole enum is compiled out without FoundationModels.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift:88",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift:99"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AppleToolAdapter.call(arguments:)",
+   "hash": "8ebb8551bba05541",
+   "does": "Tool.call: forwards the model's argumentsJSON string to the handler and returns its string result.",
+   "entry": "Foundation Models Tool protocol — invoked by LanguageModelSession when the on-device model calls the tool",
+   "calls": [
+    "closure:handler set by AppleToolCatalog.wrap from AppleFoundationProvider.appleTools → AppleToolDispatcher.dispatch (Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:))"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleToolCatalog.wrap(_:handler:)",
+   "hash": "7cd6f5e78f9f486b",
+   "does": "Creates an AppleToolAdapter with the spec's name, enriched description and the given handler.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)": "bf8413cf78399766"
+   }
+  },
+  {
+   "key": "func AppleToolCatalog.estimatedTokens(for:)",
+   "hash": "3d9bbb6e490b2109",
+   "does": "Estimated tokens of name + enriched description + 10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)": "bf8413cf78399766"
+   }
+  },
+  {
+   "key": "func AppleToolCatalog.enrichedDescription(for:)",
+   "hash": "603f904a363e5651",
+   "does": "Appends to the description either a \"takes no arguments — pass {}\" note or an \"argumentsJSON shape:\" block listing each property (sorted) with type, optional marker and description.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "schema has no properties",
+     "effect": "adds no-arguments note and returns"
+    },
+    {
+     "at": "+6",
+     "cond": "for each property sorted by key",
+     "effect": "adds one field line"
+    },
+    {
+     "at": "+8",
+     "cond": "key not in required",
+     "effect": "suffix \" (optional)\"; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

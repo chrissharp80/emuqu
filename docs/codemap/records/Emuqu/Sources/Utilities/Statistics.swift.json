@@ -1,0 +1,272 @@
+{
+ "file": "Emuqu/Sources/Utilities/Statistics.swift",
+ "hash": "72e13dbfade1a2ab",
+ "role": "Pure statistics helpers (mean, sample variance/SD, RMS, CV, OLS linear regression with R²) using Accelerate vDSP, plus [Double] convenience properties.",
+ "types": [
+  "Statistics: enum — namespace",
+  "Statistics.RegressionResult: struct — slope, intercept, r2",
+  "Statistics.RegressionSums: struct (private) — running OLS sums",
+  "[Double]: extension — mean, sampleSD, rms convenience"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func Statistics.mean(_:)",
+   "hash": "87e662719c314483",
+   "does": "Arithmetic mean via vDSP_meanvD; 0 for an empty array.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_meanvD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values is empty",
+     "effect": "returns 0; otherwise computes vDSP mean"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Statistics.sampleStandardDeviation(_:)",
+   "hash": "3bc0d5354240e92a",
+   "does": "Sample standard deviation = sqrt(sampleVariance(values)); 0 for fewer than 2 values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf"
+   }
+  },
+  {
+   "key": "func Statistics.sampleVariance(_:)",
+   "hash": "cf22b470908c0a74",
+   "does": "Sample variance with N-1 denominator: subtracts the mean with vDSP_vsaddD and sums squares with vDSP_dotprD; 0 for fewer than 2 values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)",
+    "ext:Accelerate.vDSP_vsaddD",
+    "ext:Accelerate.vDSP_dotprD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values.count <= 1",
+     "effect": "returns 0; otherwise computes sum of squared deviations / (n-1)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "func Statistics.rootMeanSquare(_:)",
+   "hash": "e76fd261168aaa6c",
+   "does": "Root mean square sqrt(Σx²/n) via vDSP_dotprD; 0 for an empty array.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_dotprD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values is empty",
+     "effect": "returns 0; otherwise RMS"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Statistics.coefficientOfVariation(_:)",
+   "hash": "1f89dfeccdff7a18",
+   "does": "Coefficient of variation = sampleSD / mean; nil when mean is exactly 0 (including the empty array); 0 for a single non-zero value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mean == 0",
+     "effect": "returns nil; otherwise SD/mean (negative when mean is negative)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment says CV 'Returns 0 when the array contains fewer than two elements', but an empty array has mean 0 and returns nil (line 67); only a single non-zero value returns 0.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Statistics.swift:64",
+      "Emuqu/Sources/Utilities/Statistics.swift:67"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+   }
+  },
+  {
+   "key": "func Statistics.linearRegression(x:y:)",
+   "hash": "fd286f6a22c51f15",
+   "does": "Ordinary least-squares fit of y on x returning slope, intercept and R² (clamped 0-1); nil for fewer than 2 points, mismatched lengths, or |denominator| <= 1e-10 (all x equal).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.regressionSums(x:y:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfDetermination(x:y:slope:intercept:sums:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n < 2 or x.count != y.count",
+     "effect": "returns nil; otherwise continues"
+    },
+    {
+     "at": "+6",
+     "cond": "|n·Σx² − (Σx)²| <= 1e-10",
+     "effect": "returns nil (degenerate x); otherwise computes slope/intercept/R²"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "TrendAnalysis.linearRegressionSlope reimplements the OLS slope by hand (mean-centred form) instead of using Statistics.linearRegression, so the two can diverge on degenerate inputs (it returns 0, this returns nil).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Statistics.swift:92",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:393"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfDetermination(x:y:slope:intercept:sums:)": "95cffdc8192b5626",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.regressionSums(x:y:)": "5d907619560afe62"
+   }
+  },
+  {
+   "key": "func Statistics.regressionSums(x:y:)",
+   "hash": "01c775edc743d7eb",
+   "does": "Accumulates Σx, Σy, Σxy, Σx², Σy² over the paired arrays (x.count drives the loop; caller guarantees equal lengths).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each index i in 0..<x.count",
+     "effect": "adds x[i], y[i] products to the running sums; empty range leaves all sums 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Statistics.coefficientOfDetermination(x:y:slope:intercept:sums:)",
+   "hash": "edf7b849b00032cb",
+   "does": "R² = 1 − SSres/SStot, with SStot from the precomputed sums and SSres from residuals of the fitted line; clamped to [0,1]; 0 when SStot <= 0 (constant y).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "ssTotal <= 0 (no y variance)",
+     "effect": "returns 0; otherwise computes residuals"
+    },
+    {
+     "at": "+7",
+     "cond": "for each point",
+     "effect": "adds squared residual y − (intercept + slope·x)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var [Double].mean",
+   "hash": "2f6b05a60c82fef9",
+   "does": "[Double].mean convenience → Statistics.mean(self).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+   }
+  },
+  {
+   "key": "var [Double].sampleSD",
+   "hash": "1efdffef682a7e64",
+   "does": "[Double].sampleSD convenience → Statistics.sampleStandardDeviation(self).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+   }
+  },
+  {
+   "key": "var [Double].rms",
+   "hash": "5f041e7dee3b30df",
+   "does": "[Double].rms convenience → Statistics.rootMeanSquare(self).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The [Double].rms property has no production caller; the only use is EmuquTests/StatisticsTests.swift:140 (other `.rms` hits are VoiceConversationController.rms(of:)).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Statistics.swift:147",
+      "EmuquTests/StatisticsTests.swift:140"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  }
+ ],
+ "deps": {}
+}

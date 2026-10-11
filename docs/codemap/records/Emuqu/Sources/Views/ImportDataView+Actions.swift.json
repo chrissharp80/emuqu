@@ -1,0 +1,1311 @@
+{
+ "file": "Emuqu/Sources/Views/ImportDataView+Actions.swift",
+ "hash": "10f935e719be4fee",
+ "role": "ImportDataView extension holding the import logic: file picking, off-main read/format sniff/parse, single-recording analysis and save, Elite HRV summary batch import, Emuqu multi-session batch import with full re-analysis and HealthKit sleep bounds.",
+ "types": [
+  "ImportDataView: extension — import actions",
+  "ImportDataView.ParsedImportFile: enum — flowHRV / eliteHRV / standardRR parse outcome"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "Only file read/sniff/parse is off the main actor (comment 35-37). ImportDataView is a SwiftUI View (MainActor-isolated; the explicit `nonisolated` on parseFile/readTextContents confirms it), so analyzeImportedData/runAnalysis and the per-session analyzeImportedSession loop run artifact detection, window selection and time/nonlinear/frequency analysis on the main actor; a multi-night Emuqu export blocks the UI between Task.yield() calls for each full-night analysis.",
+   "evidence": [
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:60",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:131",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:213",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:376",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:561",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:571"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "runAnalysis and importedAnalysis are the same window-bounds + time/nonlinear/frequency + assembleResult pipeline, differing only in how failure is surfaced (failAnalysis vs log).",
+   "evidence": [
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:213",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift:463"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No unit tests exercise ImportDataView's import/batch logic (only ImportSleepWindowTests for the helper and snapshot tests rendering the empty screen).",
+   "evidence": [
+    "EmuquTests/ImportSleepWindowTests.swift",
+    "EmuquTests/TabScreenSnapshotTests.swift:60"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ImportDataView.handleFileSelection(_:)",
+   "hash": "8a53946ed30d4512",
+   "does": "Resets all parse/preview state and status, then on success with a URL sets isImporting and starts loadFile in a Task; on picker failure logs and shows the error.",
+   "entry": "fileImporter completion (ImportDataView.swift:47)",
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.loadFile(at:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "picker returned .success(urls)",
+     "effect": "continue to URL guard"
+    },
+    {
+     "at": "+10",
+     "cond": "urls.first is nil",
+     "effect": "return silently with state reset and no error shown; otherwise isImporting=true and loadFile Task launched"
+    },
+    {
+     "at": "+13",
+     "cond": "picker returned .failure(error)",
+     "effect": "log error and set errorMessage to its localizedDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.loadFile(at:)": "56e974047b00d71a",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.loadFile(at:)",
+   "hash": "58fb607ba89d360d",
+   "does": "Sets status 'Opening file', parses the file in a detached userInitiated task, then dispatches: Emuqu export → showFlowHRV, Elite summary → showEliteHRV, otherwise parseStandardRR (which re-reads and parses the file). Any thrown error is logged and shown with status 'Import failed' and isImporting cleared.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseFile(at:importer:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showFlowHRV(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showEliteHRV(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseStandardRR(at:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "parsed is .flowHRV",
+     "effect": "showFlowHRV(result)"
+    },
+    {
+     "at": "+9",
+     "cond": "parsed is .eliteHRV",
+     "effect": "showEliteHRV(result)"
+    },
+    {
+     "at": "+10",
+     "cond": "parsed is .standardRR",
+     "effect": "await parseStandardRR(at:) (may throw into the catch)"
+    },
+    {
+     "at": "+12",
+     "cond": "catch any error from parse/read/import",
+     "effect": "log, set errorMessage=localizedDescription, isImporting=false, status 'Import failed'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "For a plain RR file the content is read and decoded twice: once in readTextContents for sniffing, then again by RRDataImporter.importFile (which re-opens the security scope, re-reads and parses).",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:61",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:119",
+      "Emuqu/Sources/Import/RRDataImporter.swift:185"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseFile(at:importer:)": "268d55898dc7b81a",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.parseStandardRR(at:)": "793dc4e5a8369156",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showEliteHRV(_:)": "f3c5f0826096df57",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.showFlowHRV(_:)": "a5e1f62de30a490a",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.parseFile(at:importer:)",
+   "hash": "3e4d09cf5dc3b50d",
+   "does": "Nonisolated: reads file text, returns .flowHRV(parsed) if the header matches the Emuqu multi-session export, .eliteHRV(parsed) if it matches an Elite HRV summary, else .standardRR. Parse errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.readTextContents(of:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)"
+   ],
+   "reads": [
+    "file:user-picked import file"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "first line has session_date/timestamp_ms/... (isFlowHRVMultiSession)",
+     "effect": "parse as Emuqu multi-session and return .flowHRV; otherwise fall through"
+    },
+    {
+     "at": "+6",
+     "cond": "first line matches Elite HRV summary columns",
+     "effect": "parse as Elite summary and return .eliteHRV; otherwise return .standardRR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isFlowHRVMultiSession(_:)": "96ca398e8619f984",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.readTextContents(of:)": "cf1f4f82d35dc05b"
+   }
+  },
+  {
+   "key": "func ImportDataView.readTextContents(of:)",
+   "hash": "7b925b2550364670",
+   "does": "Nonisolated: opens the security-scoped URL, reads Data, decodes UTF-8 and returns the string; throws fileNotFound if scope access is denied, unreadableFile on read or decode failure (each logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:URL.startAccessingSecurityScopedResource",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "file:user-picked import file"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "startAccessingSecurityScopedResource() returns false",
+     "effect": "log and throw ImportError.fileNotFound; otherwise continue with stopAccessing deferred"
+    },
+    {
+     "at": "+9",
+     "cond": "Data(contentsOf:) throws",
+     "effect": "log and throw ImportError.unreadableFile (original error replaced)"
+    },
+    {
+     "at": "+13",
+     "cond": "data is not valid UTF-8",
+     "effect": "log and throw ImportError.unreadableFile; otherwise log byte count and return the text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Non-UTF-8 exports (e.g. UTF-16 or Latin-1 CSV from Windows tools) are rejected outright as unreadable with no encoding fallback.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:86"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ImportDataView.showFlowHRV(_:)",
+   "hash": "ce920812d52fd224",
+   "does": "Logs the export stats, computes and stores flowNewSessions (archive dedup), stores flowHRVResult, clears isImporting and sets status 'Ready to import N sessions' with N = all sessions in the file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount"
+   ],
+   "reads": [
+    "archive:sessionExists(for:)"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Status line says 'Ready to import <total> sessions' using flowResult.sessions.count while the button imports only flowNewSessions (already-archived ones excluded), so the two numbers disagree when the file overlaps the archive; the @State comment says the button count and the import should agree.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:102",
+      "Emuqu/Sources/Views/ImportDataView+Preview.swift:446",
+      "Emuqu/Sources/Views/ImportDataView.swift:23"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "9f1a41e1a5ac2de1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "0d18477c2e654c52",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.showEliteHRV(_:)",
+   "hash": "e184c9044261ea51",
+   "does": "Logs, filters the Elite summaries to those with no archive entry within 1 h of their date into eliteNewSessions, stores eliteHRVResult, clears isImporting and sets status 'Ready to import <total> sessions'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.sessionExists(for:)"
+   ],
+   "reads": [
+    "archive:sessionExists(for:)"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Import dedup uses SessionArchive.sessionExists(for:), which matches ANY archive entry (any session type, including workouts) whose start is within 1 h, while single-reading save uses holdsCopy (same type + overlapping span). An imported overnight that starts within an hour of an archived workout or nap is hidden as 'already imported' and never offered; a genuine copy starting >1 h apart is offered and then merged/skipped by archiveBatch.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:109",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:542",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:775",
+      "Emuqu/Sources/Storage/Archive+MergeTarget.swift:61"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Status says 'Ready to import <total> sessions' (all sessions) while the button counts only eliteNewSessions.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:112",
+      "Emuqu/Sources/Views/ImportDataView+Preview.swift:300"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.sessionExists(for:)": "20cbf8d7c1c12f32",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.parseStandardRR(at:)",
+   "hash": "2c400655deb401c5",
+   "does": "Sets status 'Parsing RR intervals...', calls RRDataImporter.importFile (re-reads, detects JSON/CSV/Kubios/TXT, validates ≥60 beats and plausible RR), logs, stores importResult, clears isImporting, sets status 'File loaded - N beats'. Throws importer errors to loadFile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importFile(at:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportResult.beatCount",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportResult.durationMinutes"
+   ],
+   "reads": [
+    "file:user-picked import file"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importFile(at:)": "59574f25aabcf193",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportResult.beatCount": "2edb4986c254b59d",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.ImportResult.durationMinutes": "34760bb1f059314b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.analyzeImportedData()",
+   "hash": "3c20b137cc6afca9",
+   "does": "Single-file analysis: builds an HRVSession from importResult, detects artifacts, selects the best window (no sleep bounds), runs time/nonlinear/frequency analysis, attaches window metadata, marks the session complete with recoveryScore nil, then presentResults. Fails with an on-screen message when there is no RR series or not enough clean data.",
+   "entry": "Analyze Data button via startAnalysis (Preview:223)",
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.runAnalysis(series:flags:window:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.attachWindowMetadata(to:window:series:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "importResult is nil",
+     "effect": "return silently; otherwise set isAnalyzing and continue"
+    },
+    {
+     "at": "+6",
+     "cond": "session.rrSeries is nil (for logging)",
+     "effect": "log 0 points"
+    },
+    {
+     "at": "+7",
+     "cond": "session.rrSeries is nil",
+     "effect": "failAnalysis('Analysis failed - no RR data') and return"
+    },
+    {
+     "at": "+14",
+     "cond": "runAnalysis returns nil",
+     "effect": "return (error already surfaced by runAnalysis); otherwise continue"
+    },
+    {
+     "at": "+15",
+     "cond": "a recovery window was found",
+     "effect": "copy window provenance onto the result; otherwise result has no window metadata"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "A plain-text RR file carries no date, so RRDataImporter.createSession dates the session Date() (now). The imported reading is therefore saved as a session starting at import time: it shows as today's reading and feeds the baseline in today's position regardless of when it was recorded.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:136",
+      "Emuqu/Sources/Import/RRDataImporter.swift:268",
+      "Emuqu/Sources/Import/RRDataImporter.swift:233"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)": "533034b3b12c26eb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.attachWindowMetadata(to:window:series:)": "83649991e4feb1d2",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.detectAndLogArtifacts(in:)": "63d4f460653e7fa8",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "a274e2add5fac1eb",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logAnalysisSuccess(result:)": "71366d363f076b4c",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.presentResults(_:)": "0eb8eea3c0bbcc11",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.runAnalysis(series:flags:window:)": "39f65cbaf7f3da52",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.presentResults(_:)",
+   "hash": "c9e920d0c4eb8aa0",
+   "does": "Loads up to MorningResultsView.recentSessionsContextLimit (28) overnight sessions before the imported session's start off-main, then sets importedSession, cachedRecentSessions, clears isAnalyzing, status 'Analysis complete', and shows the results cover.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)"
+   ],
+   "reads": [
+    "archive:entries + retrieveLightweight (prior overnights)"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ImportDataView.failBatch(_:)",
+   "hash": "37a5bd275ae2e116",
+   "does": "MainActor: clears batch spinner/progress, sets errorMessage and status 'Import failed'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ImportDataView.failAnalysis(_:log:)",
+   "hash": "ddc6b05ca416e21c",
+   "does": "Logs the line, sets errorMessage and clears isAnalyzing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Does not reset importStatusMessage, so after a failed analysis the status card keeps the last progress text (e.g. 'Running HRV analysis...') next to the error card.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:178",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:218"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.detectAndLogArtifacts(in:)",
+   "hash": "4a47acf17aeee481",
+   "does": "Runs ArtifactDetector over the series, logs the artifact count/percentage (or 'no beats' when empty) and a warning above 25 %, returns the flags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "artifactPercent returns nil (series has zero beats)",
+     "effect": "log 'none — the series contains no beats' and return flags"
+    },
+    {
+     "at": "+14",
+     "cond": "artifact percentage > 25",
+     "effect": "log a high-artifact warning; otherwise nothing extra"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.runAnalysis(series:flags:window:)",
+   "hash": "9a8a54530b3a600c",
+   "does": "Computes time-domain and nonlinear metrics over the window (or whole series when no window), surfaces 'insufficient clean data' via failAnalysis and returns nil if either is nil, else returns assembleResult with frequency-domain metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.assembleResult(series:flags:windowStart:windowEnd:timeDomain:nonlinear:frequencyDomain:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "window is nil (start)",
+     "effect": "windowStart = 0"
+    },
+    {
+     "at": "+7",
+     "cond": "window is nil (end)",
+     "effect": "windowEnd = series.points.count (whole series)"
+    },
+    {
+     "at": "+12",
+     "cond": "timeDomain or nonlinear is nil",
+     "effect": "fail with 'insufficient clean data', return nil; otherwise build result"
+    },
+    {
+     "at": "+13",
+     "cond": "timeDomain == nil",
+     "effect": "log names 'Time domain', else 'Nonlinear'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.assembleResult(series:flags:windowStart:windowEnd:timeDomain:nonlinear:frequencyDomain:)": "e07fe46f1698da97",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failAnalysis(_:log:)": "a274e2add5fac1eb",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.assembleResult(series:flags:windowStart:windowEnd:timeDomain:nonlinear:frequencyDomain:)",
+   "hash": "09460196ceb19ec2",
+   "does": "Static: collects clean RR (non-artifact) in the window, computes window artifact percentage, and builds HRVAnalysisResult with stress index and respiration rate from clean RR; PNS/SNS/readiness/nocturnal fields nil; analysisDate now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Imported readings are scored by a hand-built result, not the live pipeline the comments promise ('Reuses the same pipeline as live recordings', 'The same analysis pipeline overnight recordings use'): ANSMetrics gets pnsIndex, snsIndex, readinessScore, nocturnalHRDip, daytimeRestingHR and nocturnalMedianHR all nil, while HRVAnalysisPipeline.computeANSMetrics computes them; overnight HR stats (attachOvernightHRStats) are never attached. Imported nights therefore show no PNS/SNS/readiness/nocturnal HR figures that a live night of the same data would have. HRVAnalysisPipeline's own comment says copies of this core 'had drifted'.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:130",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:208",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:258",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:260",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:262",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:78",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:95",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:43",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:147"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements HRVAnalysisPipeline.rangeResult (frequency domain, artifact percentage over the window, clean-beat count, HRVAnalysisResult assembly) and ArtifactDetector.artifactPercentage instead of calling them.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:241",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:75"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func ImportDataView.logAnalysisSuccess(result:)",
+   "hash": "0857925dc8479269",
+   "does": "Logs success, RMSSD and clean-beat count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.saveImportedSession()",
+   "hash": "d04e6be66d8f4a2f",
+   "does": "Saves importedSession through RRCollector.saveImportedSession (rejects unanalysed and duplicate copies, archives, uploads to iCloud, updates baseline, signals archive change); on success closes the cover and dismisses the sheet, on failure shows the mapped error and closes the cover.",
+   "entry": "Done button (ImportDataView.swift:141)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFailureMessage(_:)",
+    "ext:SwiftUI DismissAction"
+   ],
+   "reads": [
+    "archive:holdsCopy"
+   ],
+   "writes": [
+    "archive:archive(session)",
+    "ck:session upload (via SessionImport.save)",
+    "mem:BaselineTracker",
+    "mem:RRCollector.baselineDeviation",
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "importedSession is nil",
+     "effect": "return silently"
+    },
+    {
+     "at": "+8",
+     "cond": "saveImportedSession throws",
+     "effect": "errorMessage = saveFailureMessage(error), close cover (importedSession kept so user can re-open via Analyze)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)": "e6b3b81c616289da",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFailureMessage(_:)": "794d38df7198a936"
+   }
+  },
+  {
+   "key": "func ImportDataView.saveFailureMessage(_:)",
+   "hash": "9fcd829346c29b75",
+   "does": "Maps a save error to text: duplicateImport/importNotAnalyzed show their own description, anything else 'Failed to save: <desc>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is RRCollector.CollectorError",
+     "effect": "switch on it; otherwise generic message"
+    },
+    {
+     "at": "+3",
+     "cond": "case .duplicateImport or .importNotAnalyzed",
+     "effect": "return collectorError.localizedDescription"
+    },
+    {
+     "at": "+4",
+     "cond": "any other CollectorError",
+     "effect": "fall through to generic 'Failed to save' message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ImportDataView.importAllEliteHRVSessions()",
+   "hash": "d9bc34c3ff2406cf",
+   "does": "Elite batch: shows progress, materialises eliteNewSessions into analysed HRVSessions (pre-computed metrics, no re-analysis), saves them with saveImportedSessionsBatch, then reports outcome; on throw shows 'Failed to save sessions'.",
+   "entry": "Elite import button via startEliteImport (Preview:221)",
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.materialiseEliteSessions(_:originalFileName:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:archiveBatch",
+    "mem:BaselineTracker",
+    "ck:performFullSync (when any saved)",
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "eliteHRVResult is nil",
+     "effect": "return silently"
+    },
+    {
+     "at": "+17",
+     "cond": "saveImportedSessionsBatch throws",
+     "effect": "log and failBatch('Failed to save sessions: …')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "471efd127012ae27",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "deb4bf6cf3314058",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.materialiseEliteSessions(_:originalFileName:)": "cfb5ae8417331d87",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "7740d343f819dffe",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.materialiseEliteSessions(_:originalFileName:)",
+   "hash": "7f09df73c8546124",
+   "does": "For each summary updates batchImportProgress, every 50th updates status, and appends importer.createAnalyzedSession(from:originalFileName:). Returns the sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "loop over summaries",
+     "effect": "one session per summary"
+    },
+    {
+     "at": "+8",
+     "cond": "index % 50 == 0",
+     "effect": "update status line with progress; otherwise only progress tuple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.reportBatchOutcome(processed:total:failed:)",
+   "hash": "a0cb236a222d3522",
+   "does": "MainActor: clears batch progress; reports partial success (failed analyses), success (auto-dismiss after 1.5 s), all-unchanged (auto-dismiss after 1.5 s) or 'No valid sessions to import'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "ext:DispatchQueue.main.asyncAfter"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "failed > 0 and processed+unchanged > 0",
+     "effect": "status 'imported or updated P, could not analyze F'; screen stays up"
+    },
+    {
+     "at": "+8",
+     "cond": "processed > 0",
+     "effect": "log, status 'P sessions imported/updated', dismiss after 1.5 s"
+    },
+    {
+     "at": "+11",
+     "cond": "unchanged > 0 (inside success)",
+     "effect": "log note about already-up-to-date sessions"
+    },
+    {
+     "at": "+13",
+     "cond": "processed == 0 and unchanged > 0",
+     "effect": "status 'All N already up to date', dismiss after 1.5 s"
+    },
+    {
+     "at": "+17",
+     "cond": "else (nothing processed or unchanged)",
+     "effect": "errorMessage 'No valid sessions to import', status 'Import failed' — also the outcome when every Emuqu session failed analysis (total 0, failed>0), so the user is not told the failures were analysis failures"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "unchanged = total - processed counts every session archiveBatch did not write or merge, including ones dropped because the existing copy failed to read or re-write (mergeIntoExisting logs and drops), so the screen reports 'All N sessions already up to date' / 'already up to date' and auto-dismisses when sessions were in fact lost.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:355",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:364",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:365",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:874",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:875"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.analyzeImportedSession(_:originalFileName:healthKit:)",
+   "hash": "e329ea0e8344424c",
+   "does": "Per-session Emuqu import: fetches HealthKit sleep bounds, builds the session from raw RR, detects artifacts, picks the best window inside sleep, runs the analysis, attaches window metadata, marks complete with recoveryScore nil. Returns nil (logged) on no series or insufficient clean data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.sleepBounds(for:healthKit:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logWindow(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.importedAnalysis(series:flags:window:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.attachWindowMetadata(to:window:series:)"
+   ],
+   "reads": [
+    "hk:HKCategoryTypeIdentifier.sleepAnalysis (via fetchSleepData)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session.rrSeries is nil",
+     "effect": "log FAILED and return nil"
+    },
+    {
+     "at": "+16",
+     "cond": "importedAnalysis returns nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+19",
+     "cond": "window found",
+     "effect": "attach window metadata; otherwise none"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "No branch on session type: createSessionFromFlowHRVData keeps the exported session_type (.workout, .nap, ...), yet every session is sent through the overnight path, a HealthKit sleep fetch and a WindowSelector recovery window bounded by sleep, so an imported workout gets a sleep-window recovery analysis.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:381",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:389",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:233"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "291366482d5a8191",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.attachWindowMetadata(to:window:series:)": "83649991e4feb1d2",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.importedAnalysis(series:flags:window:)": "2e08ea7bb0ab2070",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logWindow(_:)": "18cb6fecc2c80ac2",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.sleepBounds(for:healthKit:)": "d97f358c250e350c",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.sleepBounds(for:healthKit:)",
+   "hash": "97f8cf328e867974",
+   "does": "Computes the recording end from the RR sum, asks HealthKitManager.fetchSleepData for that span and converts to offsets; on any error logs and returns (nil,nil) (full recording treated as sleep).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)"
+   ],
+   "reads": [
+    "hk:HKCategoryTypeIdentifier.sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "fetchSleepData throws (try? → nil)",
+     "effect": "log 'could not read sleep data', return (nil,nil); the error itself is discarded"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "HealthKit errors (denied auth, locked device) are swallowed by try? and the session is analysed with the whole recording as sleep; only the debug log records it, the user sees no indication.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:415",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:419"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "247d0472c54f578e",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.offsets(of:from:)": "299e7ffb14e18989",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  },
+  {
+   "key": "func ImportDataView.offsets(of:from:)",
+   "hash": "d2b662020e9900c6",
+   "does": "Converts absolute sleep start/end to ms offsets into the recording via ImportSleepWindow.offsets (drops unrepresentable values), logs each found boundary or 'NO SLEEP DATA', returns the pair.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "startMs and sleepStart both non-nil",
+     "effect": "log sleep start and minutes into recording"
+    },
+    {
+     "at": "+13",
+     "cond": "wakeMs and sleepEnd both non-nil",
+     "effect": "log wake time"
+    },
+    {
+     "at": "+16",
+     "cond": "both offsets nil",
+     "effect": "log that the full recording is used as the sleep period"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.logWindow(_:)",
+   "hash": "84430a5873f8a086",
+   "does": "Logs the selected window's reason and relative position, or a warning that none was found.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "window is nil",
+     "effect": "log 'No organized recovery window found' and return"
+    },
+    {
+     "at": "+5",
+     "cond": "relativePosition is nil (??)",
+     "effect": "position logged as 0 %"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "e78e86c416a0c790",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.importedAnalysis(series:flags:window:)",
+   "hash": "deced01c1ef976b1",
+   "does": "Same as runAnalysis but synchronous and only logs on failure: window bounds (whole series fallback), time-domain + nonlinear, nil if either fails, else assembleResult with frequency domain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.assembleResult(series:flags:windowStart:windowEnd:timeDomain:nonlinear:frequencyDomain:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "window nil (start)",
+     "effect": "windowStart = 0"
+    },
+    {
+     "at": "+6",
+     "cond": "window nil (end)",
+     "effect": "windowEnd = series.points.count"
+    },
+    {
+     "at": "+11",
+     "cond": "timeDomain or nonlinear nil",
+     "effect": "log FAILED and return nil"
+    },
+    {
+     "at": "+12",
+     "cond": "timeDomain nil",
+     "effect": "log names 'Time domain', else 'Nonlinear'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Duplicates runAnalysis (A:213) step for step.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:213",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:463"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.assembleResult(series:flags:windowStart:windowEnd:timeDomain:nonlinear:frequencyDomain:)": "e07fe46f1698da97",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.attachWindowMetadata(to:window:series:)",
+   "hash": "710415d55070bef2",
+   "does": "Static: copies window start/end ms, mean HR, HR stability, selection reason, relative position, classification and isOrganizedRecovery onto the analysis result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Never sets result.isConsolidated (the pipeline's copy does, HRVAnalysisPipeline.swift:157), so every imported analysis has isConsolidated == nil; AnalysisSummaryGenerator reads `isConsolidated ?? false`, so every imported night is interpreted as a non-consolidated window, and BaselineTracker stores the nil value for its comparisons.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:489",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:157",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:103",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:156",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:428"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Copy of HRVAnalysisPipeline.attachWindowMetadata (private there), with startMs/endMs recomputed from series points instead of window.startMs/endMs.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:489",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:150"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "e78e86c416a0c790",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func ImportDataView.importAllFlowHRVSessions()",
+   "hash": "79e5bedf7d971b10",
+   "does": "Emuqu batch: logs inventory, recomputes new (non-archived) sessions, reports 'All sessions already imported' if none, else shows progress, analyses each session through the full pipeline and saves the analysed ones.",
+   "entry": "Emuqu import button via startFlowImport (Preview:219)",
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logImportInventory(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeFlowSessions(_:originalFileName:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFlowSessions(_:failedCount:startTime:)"
+   ],
+   "reads": [
+    "archive:sessionExists(for:)"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "flowHRVResult is nil",
+     "effect": "log and return"
+    },
+    {
+     "at": "+7",
+     "cond": "no new sessions after dedup",
+     "effect": "log and set status 'All sessions already imported', return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeFlowSessions(_:originalFileName:)": "00852457ad6e21bc",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.logImportInventory(_:)": "675d64e139170797",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.newFlowSessions(_:)": "0d18477c2e654c52",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.saveFlowSessions(_:failedCount:startTime:)": "bd018718cc09c428",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.logImportInventory(_:)",
+   "hash": "ec8cd46eba19895c",
+   "does": "Logs file session count, each session's date/beat count, and archive entry count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loop over sessions",
+     "effect": "one log line each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter.swift::var RRDataImporter.FlowHRVMultiSessionResult.SessionRRData.beatCount": "9f1a41e1a5ac2de1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.newFlowSessions(_:)",
+   "hash": "b599b0627fa6ceb4",
+   "does": "Returns the export sessions for which the archive has no entry within 1 h of the session date, logging each check.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.sessionExists(for:)"
+   ],
+   "reads": [
+    "archive:sessionExists(for:)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.sessionExists(for:)": "20cbf8d7c1c12f32",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727"
+   }
+  },
+  {
+   "key": "func ImportDataView.analyzeFlowSessions(_:originalFileName:)",
+   "hash": "d5910c29688bb6d5",
+   "does": "Analyses each new session in turn (progress update, analyzeImportedSession using the shared HealthKitManager, Task.yield), counting failures; returns analysed sessions and failure count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedSession(_:originalFileName:healthKit:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "loop over newSessions",
+     "effect": "one analysis per session"
+    },
+    {
+     "at": "+12",
+     "cond": "analyzeImportedSession returned a session",
+     "effect": "append; otherwise failedCount += 1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Reaches for AppDependencies.current.collection.healthKitManager directly instead of the injected collector, a hidden global dependency in a view.",
+     "evidence": [
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:560"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.analyzeImportedSession(_:originalFileName:healthKit:)": "4bba23f105b5fb81",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.saveFlowSessions(_:failedCount:startTime:)",
+   "hash": "64b2cbd54f33fa52",
+   "does": "Saves analysed sessions via saveImportedSessionsBatch, logs timing and counts, reports outcome including failures; on throw shows 'Failed to save sessions'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [
+    "archive:archiveBatch",
+    "mem:BaselineTracker",
+    "ck:performFullSync (when any saved)",
+    "mem:ImportDataView @State (view-local)"
+   ],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "saveImportedSessionsBatch throws",
+     "effect": "log and failBatch('Failed to save sessions: …')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)": "471efd127012ae27",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.failBatch(_:)": "deb4bf6cf3314058",
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.reportBatchOutcome(processed:total:failed:)": "7740d343f819dffe",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "3de843a3d3457727",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "ee8dfd6bcab1f076"
+   }
+  },
+  {
+   "key": "func ImportDataView.formatDate(_:)",
+   "hash": "22d8356d54731ff2",
+   "does": "Formats a date medium date + short time in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

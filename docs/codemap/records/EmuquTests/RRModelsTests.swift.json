@@ -1,0 +1,905 @@
+{
+ "file": "EmuquTests/RRModelsTests.swift",
+ "hash": "f9cd513f2ec0cb26",
+ "role": "XCTest suite for core value models: RRPoint, RRSeries timing/gap helpers, ArtifactFlags, TimeDomainMetrics codable/legacy decoding, FrequencyDomainMetrics normalised units, TrainingContext ACR and snapshot construction, TrainingLoad.daysSinceHardWorkout, SessionDataMigrations.recalibratedContext, SessionType, ReadingTag, DeviceProvenance and OfflineSession.",
+ "types": [
+  "RRModelsTests: class — XCTestCase for RR/HRV model types"
+ ],
+ "state": [
+  "trainingNow: fixed Date(1_700_000_000)",
+  "trainingAnchors: HeartRateAnchors(restingHR 50, maxHR 185)"
+ ],
+ "toplevel": "Two private stored fixtures (trainingNow, trainingAnchors) used by the training tests.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRModelsTests.testRRPointLegacyInit()",
+   "hash": "bbb221260e64eba6",
+   "does": "Asserts RRPoint(t_ms:rr_ms:) stores t/rr and leaves wallClockMs and hr nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointFullInit()",
+   "hash": "71cfc087c7305d83",
+   "does": "Asserts the full RRPoint init stores t, rr, wallClockMs and hr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointEndMs()",
+   "hash": "aa7e112c0a1b0fc7",
+   "does": "Asserts endMs = t_ms + rr_ms (1800).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointMidpointMs()",
+   "hash": "34f07e174fdf651b",
+   "does": "Asserts midpointMs = t_ms + rr_ms/2 (1400).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointClockDrift()",
+   "hash": "7caf272ddaefd4b8",
+   "does": "Asserts clockDriftMs = wallClockMs - t_ms (100) and nil without a wall clock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.clockDriftMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.clockDriftMs": "c7414f22c7f5d2a8"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointPhysiologicallyValid()",
+   "hash": "718930dbbc7af0dd",
+   "does": "Asserts isPhysiologicallyValid true for 800 ms, false for 100 ms and 5000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid": "ed937ab9fca1e0cd"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointCodable()",
+   "hash": "b7ab74cab3fc73bc",
+   "does": "Asserts RRPoint round-trips through JSON encoding equal to the original.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRPointEquatable()",
+   "hash": "6cc55c4c88ab611d",
+   "does": "Asserts RRPoint equality depends on rr_ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesDurationMs()",
+   "hash": "d75efe6277da749d",
+   "does": "Asserts RRSeries.durationMs = last.endMs - first.t_ms (2450).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesDurationMinutes()",
+   "hash": "01206437f914b1e8",
+   "does": "Asserts durationMinutes = 60800/60000 for two points 60 s apart.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes": "67f80c7be07e0044",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesEmptyDuration()",
+   "hash": "9a005d02b6b3ca1e",
+   "does": "Asserts an empty RRSeries has durationMs 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesHasWallClockTimestamps()",
+   "hash": "22244077f15bde0a",
+   "does": "Asserts hasWallClockTimestamps true when points carry wallClockMs, false otherwise.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesAbsoluteTime()",
+   "hash": "085e36ff8ef3fad1",
+   "does": "Asserts absoluteTime(at:) maps index 0 → start, index 1 → start+5 s, and returns nil for -1 and out-of-range 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(at:)": "33ac839e32de2b54",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesRelativeMs()",
+   "hash": "8787872f0a37f255",
+   "does": "Asserts relativeMs(from: start+5 s) == 5000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.relativeMs(from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.relativeMs(from:)": "19e202068f45eef7",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesDetectGaps()",
+   "hash": "4eb525986bfc6412",
+   "does": "Asserts detectGaps(thresholdMs: 2000) finds one gap between indices 1 and 2 when wall clock jumps 5 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)": "dbc678523a560cbc",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)": "787e0af90a710dc3",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesNoGaps()",
+   "hash": "edd3b91dc38cbdf6",
+   "does": "Asserts detectGaps() is empty when wall clock tracks RR time.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.detectGaps(thresholdMs:)": "dbc678523a560cbc",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)": "787e0af90a710dc3",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesEstimatedDataLoss()",
+   "hash": "4b79515d4427c95e",
+   "does": "Asserts estimatedDataLossPercent is non-nil and > 0 when the wall clock runs 10 s for 1.6 s of RR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.estimatedDataLossPercent": "2838c7c9dfe5791e",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs": "d0449d0e5ae38295"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesWallClockDuration()",
+   "hash": "b40d7fe00b353fd8",
+   "does": "Asserts wallClockDurationMs = last - first wallClockMs (5000).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs": "d0449d0e5ae38295"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesCodable()",
+   "hash": "e185b29dd5f221c8",
+   "does": "Asserts RRSeries JSON round-trip preserves points and sessionId.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRRSeriesIndexClosestToWallClock()",
+   "hash": "2a93ce0a08929aca",
+   "does": "Asserts indexClosestToWallClock(start+1 s) returns 1 or 2 for points at wall 0/800/1600/2400 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Accepts index 1 or 2 although 800 ms (index 1) is strictly closer to 1000 ms than 1600 ms; an off-by-one in closestIndex returning 2 would pass.",
+     "evidence": [
+      "EmuquTests/RRModelsTests.swift:208",
+      "Emuqu/Sources/Models/RRModels.swift:191"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)": "2d19e648b472a390",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testArtifactFlagsClean()",
+   "hash": "438953a4b71b5d41",
+   "does": "Asserts ArtifactFlags.clean is not an artifact, type .none, confidence 1.0, not corrected.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRModelsTests.testArtifactFlagsCodable()",
+   "hash": "c6d000242a1eaea6",
+   "does": "Asserts ArtifactFlags round-trips through JSON.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:corrected:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:corrected:)": "4b3ee04adcec4bd3"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testTimeDomainMetricsCodable()",
+   "hash": "5bccce787baaf52c",
+   "does": "Asserts TimeDomainMetrics JSON round-trip keeps meanRR, rmssd, minHR and maxHR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func TimeDomainMetrics.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func TimeDomainMetrics.encode(to:)": "66cfd3984d276c32",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)": "bb2301f3ab16e3bb",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)": "c51dfbe929c95510",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testTimeDomainMetricsLegacyDecoding()",
+   "hash": "9f29a8a9cd308d69",
+   "does": "Asserts decoding legacy TimeDomainMetrics JSON without minHR/maxHR defaults them to meanHR ∓ sdHR (70/80).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)": "bb2301f3ab16e3bb"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testFrequencyDomainNormalizedUnits()",
+   "hash": "c6689cc712088feb",
+   "does": "Asserts lfNu = 30 and hfNu = 70 for lf 300, hf 700.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testFrequencyDomainNormalizedUnitsZeroPower()",
+   "hash": "ffe50a41513c6794",
+   "does": "Asserts lfNu/hfNu are nil when lf + hf = 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testTrainingContextACR()",
+   "hash": "b29dbda99c477d71",
+   "does": "Asserts TrainingContext.acuteChronicRatio = atl/ctl = 1.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testTrainingContextACRZeroCTL()",
+   "hash": "a1d1aab4d2be54e3",
+   "does": "Asserts acuteChronicRatio is nil when ctl = 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff"
+   }
+  },
+  {
+   "key": "func RRModelsTests.workout(daysAgo:minutes:)",
+   "hash": "dd400cf504ae301f",
+   "does": "Test helper: builds a running WorkoutSummary `daysAgo` before trainingNow with the given duration and no HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+   }
+  },
+  {
+   "key": "func RRModelsTests.load(_:metrics:vo2Max:)",
+   "hash": "520e56675c4359ce",
+   "does": "Test helper: builds a HealthKitManager.TrainingLoad with the given workouts, metrics (default .empty) and vo2Max.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testDaysSinceHardWorkoutCountsFromTheMostRecentHardWorkout()",
+   "hash": "55e21f33cef4e416",
+   "does": "Asserts daysSinceHardWorkout over oldest-first workouts (hard 6 days and 1 day ago) returns 1 (most recent hard workout).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)": "262aba9f4d3b35e0"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testDaysSinceHardWorkoutIsNilWithoutAHardWorkout()",
+   "hash": "aec3d01cf3eaf871",
+   "does": "Asserts daysSinceHardWorkout is nil when the only workout (20 min) is not hard.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.isHardWorkout(anchors:)": "be75fd37ce7b2266",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)": "262aba9f4d3b35e0"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testTrainingSnapshotKeepsTheFiveMostRecentWorkouts()",
+   "hash": "9a51515257387d3d",
+   "does": "Builds 8 daily workouts oldest-first, constructs TrainingContext(from:relativeTo:) and asserts recentWorkouts holds the 5 newest dates (TrainingLoad init sorts newest-first).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)": "cc1400fa3c727215",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "0e0b5d75fde12dd2",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)": "a20197b3a02c57e4",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.workout(daysAgo:minutes:)": "262aba9f4d3b35e0"
+   }
+  },
+  {
+   "key": "func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)",
+   "hash": "579ff3c53db85356",
+   "does": "Test helper: builds TrainingMetrics with atl 50, given ctl, tsb ctl-50, dailyTrimp keyed at Calendar.current.startOfDay(trainingNow) minus one day, and todayTrimp (uses Calendar.startOfDay(for:), not the repo Date.startOfDay extension).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "calendar.date(byAdding: -1 day) ?? trainingNow",
+     "effect": "falls back to trainingNow only if Calendar cannot compute yesterday (never for Gregorian); otherwise yesterday's start of day"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRecalibratedContextReadsYesterdayTrimpLikeAcceptance()",
+   "hash": "d7029ab38dc33203",
+   "does": "Asserts recalibratedContext reads yesterday's TRIMP (80) from dailyTrimp like TrainingContext(from:) does, not todayTrimp (5), and agrees on ctl.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "72c0a39e793f43f1",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)": "a20197b3a02c57e4",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRecalibratedContextKeepsTheFrozenVO2Max()",
+   "hash": "706bbcb1bb32c8e0",
+   "does": "Asserts recalibratedContext keeps the frozen context's vo2Max (52) over the load's (44).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "72c0a39e793f43f1",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)": "a20197b3a02c57e4",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.metrics(yesterdayTrimp:todayTrimp:ctl:)": "4e88310896c38939"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testRecalibratedContextIsNilWithoutTraining()",
+   "hash": "e84f9d021605de18",
+   "does": "Asserts recalibratedContext returns nil when load.metrics is .empty (ctl and atl 0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "72c0a39e793f43f1",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "EmuquTests/RRModelsTests.swift::func RRModelsTests.load(_:metrics:vo2Max:)": "a20197b3a02c57e4"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testSessionTypeDisplayNames()",
+   "hash": "d95441d5a90e3b03",
+   "does": "Asserts English displayName for overnight/nap/quick/breathe SessionTypes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts localized English strings (String(localized:bundle: LanguageManager.appBundle)) without pinEnglishLanguage(), unlike RRCollectorTests; result depends on the process language/override left by other suites.",
+     "evidence": [
+      "EmuquTests/RRModelsTests.swift:385",
+      "Emuqu/Sources/Models/SessionMetadata.swift:77"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testSessionTypeIcons()",
+   "hash": "dff47f4857346fa6",
+   "does": "Asserts SessionType icons for four types are non-empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testSystemTagsCount()",
+   "hash": "3f0acf00d04945aa",
+   "does": "Asserts ReadingTag.systemTags has 14 tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testSystemTagsAreMarkedAsSystem()",
+   "hash": "0a3eb4c9a2c0db28",
+   "does": "Asserts every system tag has isSystem true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for tag in systemTags",
+     "effect": "asserts isSystem for each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testSystemTagsHaveUniqueIDs()",
+   "hash": "05909ef1b88126a6",
+   "does": "Asserts system tag ids are unique.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::func ReadingTag.systemTag(suffix:name:colorHex:)": "9bc6e873a0dc638e",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testReadingTagCodable()",
+   "hash": "ed52086fbd5d278b",
+   "does": "Asserts a custom ReadingTag JSON round-trip keeps name, colorHex and isSystem false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "66647711f045f928"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testDeviceProvenanceCodable()",
+   "hash": "bde1708ff542f263",
+   "does": "Asserts DeviceProvenance JSON round-trip keeps deviceId and recordingMode.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRModelsTests.testOfflineSessionNeedsSync()",
+   "hash": "f30446298822e609",
+   "does": "Asserts a new OfflineSession needsSync until syncedAt is set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c"
+   }
+  },
+  {
+   "key": "func RRModelsTests.testOfflineSessionMaxRetries()",
+   "hash": "87b9585d0825531e",
+   "does": "Asserts needsSync is false after 3 sync attempts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c"
+   }
+  }
+ ],
+ "deps": {}
+}

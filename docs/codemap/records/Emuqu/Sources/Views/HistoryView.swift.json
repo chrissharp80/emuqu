@@ -1,0 +1,2133 @@
+{
+ "file": "Emuqu/Sources/Views/HistoryView.swift",
+ "hash": "5b5128862c64cb09",
+ "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView.",
+ "types": [
+  "HistoryView: struct (View) — main screen",
+  "HistoryView extension — tag filter bar",
+  "SessionTypeFilterButton: private struct (View) — chip",
+  "EntryHistoryRow: private struct (View) — row built from SessionArchiveEntry metadata only"
+ ],
+ "state": [
+  "mem:HistoryView.viewModel (@State HistoryViewModel())",
+  "mem:HistoryView.deleteSessionId/showingDeleteAlert/selectedSession/selectedLinkedSegments/cachedRecentSessions/selectionTask (@State)",
+  "static monthYearStyle Date.FormatStyle (.month(.wide).year())",
+  "global private var napBadge/quickBadge/breatheBadge (file-scope computed views)",
+  "accessibility identifiers 'history.search', 'history.entryRow'"
+ ],
+ "toplevel": "`@State private var viewModel = HistoryViewModel()` (line 15) uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel (with an ObservationLoop and an initial debounced recompute Task). #Preview (971-979) builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift:513 (onDelete = MainTabView.deleteSession).",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "low",
+   "text": "HistoryViewModel() default arguments read AppDependencies.current (global) for archive and settings while the view uses @Environment(\\.dependencies) for CloudKit/assistant/settings; an injected environment (previews, snapshot tests at EmuquTests/RemainingScreenSnapshotTests.swift:38) still lists the global archive.",
+   "evidence": [
+    "Emuqu/Sources/Views/HistoryView.swift:15",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift:34",
+    "Emuqu/Sources/Views/HistoryView.swift:6"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "Three copies of the delete sequence (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion): HistoryView.confirmDelete, MainTabView.deleteSession and TrendsV2View.deleteSession; HistoryView's swipe path ignores its own onDelete parameter (which is MainTabView.deleteSession) and re-implements it.",
+   "evidence": [
+    "Emuqu/Sources/Views/HistoryView.swift:328",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift:199",
+    "Emuqu/Sources/Views/TrendsV2View.swift:257"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var HistoryView.visibleEntries",
+   "hash": "10a8bb302eeb47df",
+   "does": "First displayLimit entries of viewModel.filteredEntries.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.displayLimit"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HistoryView.hasMore",
+   "hash": "a6d919ad1aa89d4b",
+   "does": "True when displayLimit is less than the filtered entry count.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.displayLimit"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HistoryView.groupedEntries",
+   "hash": "2e683fd2809a037c",
+   "does": "Groups visibleEntries by sectionKey(displayDate) and sorts groups by sectionsInReadingOrder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionKey(for:now:)": "93d3da093d0850e7",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionsInReadingOrder(_:_:)": "ebc72d9603360dd5",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "d9e6735c79be16fa"
+   }
+  },
+  {
+   "key": "func HistoryView.sectionKey(for:now:)",
+   "hash": "3e4230253e2e7af8",
+   "does": "Static: bucket key for a date: 'Today', 'Yesterday', 'This Week', 'Last Week' (English keys), else localized month-year string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "date is today",
+     "effect": "return 'Today'"
+    },
+    {
+     "at": "+3",
+     "cond": "date is yesterday",
+     "effect": "return 'Yesterday'"
+    },
+    {
+     "at": "+4",
+     "cond": "same weekOfYear as now",
+     "effect": "return 'This Week'"
+    },
+    {
+     "at": "+5",
+     "cond": "weekAgo computable AND date in that week",
+     "effect": "return 'Last Week'; otherwise fall through to month-year (formatted in app locale)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func HistoryView.sectionsInReadingOrder(_:_:)",
+   "hash": "01ad7a9f3a087060",
+   "does": "Static sort comparator: named buckets in fixed order first, then month groups newest-first by their first entry's displayDate, finally by key string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "first.key in named order",
+     "effect": "?? Int.max when it's a month key"
+    },
+    {
+     "at": "+6",
+     "cond": "second.key in named order",
+     "effect": "?? Int.max when it's a month key"
+    },
+    {
+     "at": "+7",
+     "cond": "idx1 != idx2",
+     "effect": "true: order by bucket index (named before months)"
+    },
+    {
+     "at": "+9",
+     "cond": "both groups have a first entry",
+     "effect": "true: newer displayDate first; false: compare keys alphabetically"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Dictionary(grouping:) never produces an empty group, so both `first.value.first` are always non-nil and the `first.key < second.key` fallback never runs.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:77",
+      "Emuqu/Sources/Views/HistoryView.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
+   }
+  },
+  {
+   "key": "func HistoryView.localizedSectionTitle(_:)",
+   "hash": "c5c3959cbe609e4d",
+   "does": "Maps the four English bucket keys to localized titles; month keys pass through.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'Today'",
+     "effect": "localized Today"
+    },
+    {
+     "at": "+3",
+     "cond": "'Yesterday'",
+     "effect": "localized Yesterday"
+    },
+    {
+     "at": "+4",
+     "cond": "'This Week'",
+     "effect": "localized This Week"
+    },
+    {
+     "at": "+5",
+     "cond": "'Last Week'",
+     "effect": "localized Last Week"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "return key unchanged (already localized month-year)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HistoryView.body",
+   "hash": "d3cd8eb2f931d8f9",
+   "does": "Body: historyStack wrapped with delete alert, archive refresh, cancel-on-disappear and session-detail sheet.",
+   "entry": "SwiftUI body; HistoryView is pushed from DashboardV2View.historyDestination",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withHistoryLifecycle(_:)": "81322f44aa6995ef",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyStack": "5fd6670454b117b4"
+   }
+  },
+  {
+   "key": "var HistoryView.historyStack",
+   "hash": "f4af486a93484f1a",
+   "does": "VStack of filterHeader then emptyState when no filtered entries, else historyList; sets background and 'History' title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.emptyState",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyList",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.displayLimit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "viewModel.filteredEntries empty",
+     "effect": "true: emptyState (also shown briefly before the first async recompute lands, since filteredEntries starts []); false: historyList"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.emptyState": "aafac3550a5cc4fd",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader": "26de41ef96c396ab",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyList": "c5b457ce64ea8bd4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var HistoryView.filterHeader",
+   "hash": "d8e7c8c76eb34d15",
+   "does": "VStack of session-type filter bar, tag filter bar, and search bar with paddings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar": "c47500cf41d077af",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar": "5ef534aa57e2b9c1",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar": "bcb3e0dd79127437"
+   }
+  },
+  {
+   "key": "var HistoryView.searchBar",
+   "hash": "5eed29ad52879033",
+   "does": "Search field bound to viewModel.searchText (no autocap/autocorrect, id 'history.search') with a clear button when text is non-empty.",
+   "entry": "TextField edits by user",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearSearchButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.searchText"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.searchText"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "searchText non-empty",
+     "effect": "true: show clear button; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearSearchButton": "4370101c4aaf788b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var HistoryView.clearSearchButton",
+   "hash": "fd8379f2c9be54a9",
+   "does": "Plain button that clears viewModel.searchText.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryViewModel.searchText"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var HistoryView.historyList",
+   "hash": "1b7d42f745fb68ef",
+   "does": "ScrollViewReader around the insetGrouped List; scrolls to top whenever scrollToTopToken changes.",
+   "entry": "onChange(of: scrollToTopToken) fired when DashboardV2View passes a new token",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyEntryList",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.scrollToTop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.scrollToTop(_:)": "930772d3a0aa4171",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyEntryList": "68a45f7c148c6fa6"
+   }
+  },
+  {
+   "key": "func HistoryView.scrollToTop(_:)",
+   "hash": "4581bd81355fe0e5",
+   "does": "Scrolls the list to the first section header's id with animation; no-op if there are no sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "groupedEntries has a first section",
+     "effect": "false: return without scrolling"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "bf1ccde3e3388f6a",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "9cb6f828f1d2a461"
+   }
+  },
+  {
+   "key": "func HistoryView.sectionHeaderID(_:)",
+   "hash": "c09d6f42e8b24bda",
+   "does": "Static: header id string 'history.section.<key>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HistoryView.historyEntryList",
+   "hash": "9be88f12dbc39c66",
+   "does": "List with entry sections and the load-more trigger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.entrySections",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.entrySections": "aaf49cc0306b34b4",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreTrigger": "72ba7f081c547805"
+   }
+  },
+  {
+   "key": "var HistoryView.entrySections",
+   "hash": "53f3d94124a5cf35",
+   "does": "ForEach over groupedEntries (id = key) building entrySection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entrySection(_:entries:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entrySection(_:entries:)": "2994902da508651b",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.groupedEntries": "9cb6f828f1d2a461"
+   }
+  },
+  {
+   "key": "func HistoryView.entrySection(_:entries:)",
+   "hash": "6766ccf74923fc11",
+   "does": "Section with entry rows and a header showing the localized title tagged with the section id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRows(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.localizedSectionTitle(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRows(_:)": "6c202a9e1c528754",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.localizedSectionTitle(_:)": "c5cf806ab321a652",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sectionHeaderID(_:)": "bf1ccde3e3388f6a"
+   }
+  },
+  {
+   "key": "func HistoryView.entryRows(_:)",
+   "hash": "00eb417fc1347c58",
+   "does": "ForEach entries keyed by sessionId producing entryRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRow(_:)": "0a09d2918bf93ca3"
+   }
+  },
+  {
+   "key": "func HistoryView.entryRow(_:)",
+   "hash": "6142632bde819989",
+   "does": "Row content wrapped with swipe/context actions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRowContent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.entryRowContent(_:)": "157beb64aae685d3",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withEntryActions(_:entry:)": "c26bdc4a04d6d21c"
+   }
+  },
+  {
+   "key": "func HistoryView.entryRowContent(_:)",
+   "hash": "27cb2199c29a83bc",
+   "does": "EntryHistoryRow with linked segment count; tap loads and opens the session; identifier 'history.entryRow'.",
+   "entry": "onTapGesture on a row",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.linkedSegmentCounts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "linkedSegmentCounts[sessionId] missing",
+     "effect": "?? 0 → no segment badge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "7bd55f8a5aab53bb"
+   }
+  },
+  {
+   "key": "func HistoryView.withEntryActions(_:entry:)",
+   "hash": "f8624f35e729bd51",
+   "does": "Adds trailing swipe (Delete, no full swipe), leading swipe (Edit Tags) and context menu (Ask Flo).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)": "9d47ebbb1cccebb5",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteEntryButton(_:)": "09a7f8d02fcc41c3",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.editTagsButton(_:)": "d654433ae1ad10f1"
+   }
+  },
+  {
+   "key": "func HistoryView.deleteEntryButton(_:)",
+   "hash": "63b3947d8ab9ae24",
+   "does": "Destructive swipe button: stores entry.sessionId in deleteSessionId and shows the delete alert.",
+   "entry": "Swipe action tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.deleteSessionId",
+    "mem:HistoryView.showingDeleteAlert"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HistoryView.editTagsButton(_:)",
+   "hash": "88421689f2f4c813",
+   "does": "Leading swipe 'Edit Tags' button that just calls loadAndSelect(entry) — identical to tapping the row.",
+   "entry": "Swipe action tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "'Edit Tags' opens the same detail sheet as a tap; for workouts that is FitnessPostSummaryView (no tag editor) and for sessions without analysisResult it is the 'No analysis data available' placeholder, so the action named Edit Tags offers no way to edit tags for those rows.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:241",
+      "Emuqu/Sources/Views/HistoryView.swift:412",
+      "Emuqu/Sources/Views/HistoryView.swift:417"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.loadAndSelect(_:)": "7bd55f8a5aab53bb"
+   }
+  },
+  {
+   "key": "func HistoryView.askFloButton(_:)",
+   "hash": "9f6f90214d68976a",
+   "does": "Context-menu 'Ask Flo about this session' button shown only when settings.enableAIAssistant is on; calls askAssistantAbout.",
+   "entry": "Context menu",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askAssistantAbout(entry:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableAIAssistant"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.enableAIAssistant",
+     "effect": "true: show button; false: no context menu item"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askAssistantAbout(entry:)": "23568f1e54271d20"
+   }
+  },
+  {
+   "key": "var HistoryView.loadMoreTrigger",
+   "hash": "fecc07cf117b5d9f",
+   "does": "Shows loadMoreSection only when hasMore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.hasMore",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hasMore",
+     "effect": "true: render load-more section; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.hasMore": "eb935b20f4443544",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreSection": "3a9b15ae871b5ff6"
+   }
+  },
+  {
+   "key": "var HistoryView.loadMoreSection",
+   "hash": "173e9e46b15179aa",
+   "does": "Section containing loadMoreRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreRow": "eb84b0a1a2141837"
+   }
+  },
+  {
+   "key": "var HistoryView.loadMoreRow",
+   "hash": "333140d0f6dc81b2",
+   "does": "Centered progress row whose onAppear calls viewModel.loadMore() (displayLimit += 10).",
+   "entry": "onAppear when the row scrolls into view",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreProgress",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryViewModel.displayLimit"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "fbeba6075711db1c",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreProgress": "1a7ae443fb2baf48"
+   }
+  },
+  {
+   "key": "var HistoryView.loadMoreProgress",
+   "hash": "8900c5a2c3d37656",
+   "does": "ProgressView plus '<visible> of <total> readings' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.displayLimit"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.visibleEntries": "d9e6735c79be16fa",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func HistoryView.withHistoryLifecycle(_:)",
+   "hash": "bd9e8f42f1cfd058",
+   "does": "Applies delete alert, refreshIfNeeded(archiveSignal.version) on appear and on version change, cancelInFlightWork on disappear, and a sheet presenting sessionDetailSheet for selectedSession.",
+   "entry": "SwiftUI lifecycle modifiers (.onAppear/.onChange/.onDisappear/.sheet)",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version",
+    "mem:HistoryView.selectedSession"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.filteredEntries",
+    "mem:HistoryViewModel.linkedSegmentCounts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()": "24b5c3f9505f1f8b",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "e1b3037d9f6ff8ee",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "8924953178659b81"
+   }
+  },
+  {
+   "key": "func HistoryView.withDeleteAlert(_:)",
+   "hash": "beef93e4026911a6",
+   "does": "Alert 'Delete Reading' bound to showingDeleteAlert with Trash message and deleteAlertActions.",
+   "entry": "SwiftUI alert presentation",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.deleteAlertActions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryView.showingDeleteAlert"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.deleteAlertActions": "695bc3d8b644bffd"
+   }
+  },
+  {
+   "key": "var HistoryView.deleteAlertActions",
+   "hash": "b3516acb5a3cfd56",
+   "does": "Alert buttons: Delete → confirmDelete(); Cancel → deleteSessionId = nil.",
+   "entry": "Alert button taps",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.deleteSessionId"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "c268cda7673824dc"
+   }
+  },
+  {
+   "key": "func HistoryView.confirmDelete()",
+   "hash": "ca0d3ed9b3143230",
+   "does": "Deletes the pending session: SessionArchive.delete (soft delete to Trash), notifyArchiveChanged, then async CloudKit uploadDeletion; on throw only logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:HistoryView.deleteSessionId"
+   ],
+   "writes": [
+    "mem:HistoryView.deleteSessionId",
+    "archive:SessionArchive.delete (index drop + move to Trash)",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:ArchiveSignal.version",
+    "ck:session soft-delete flag (when iCloudSyncEnabled)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deleteSessionId non-nil",
+     "effect": "false: return (nothing to delete)"
+    },
+    {
+     "at": "+8",
+     "cond": "catch: archive.delete throws",
+     "effect": "error swallowed with debugLog('[HistoryView] Failed to delete session') — no alert, row stays, error detail not logged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "A failed delete is only debug-logged (without the error); the user gets no feedback and the row simply stays, unlike the calendar's DaySummarySheet which shows 'Couldn't delete this reading'.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:336",
+      "Emuqu/Sources/Views/HistoryCalendarView.swift:693"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements MainTabView.deleteSession (the onDelete closure this view already receives) and TrendsV2View.deleteSession.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:328",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:199",
+      "Emuqu/Sources/Views/TrendsV2View.swift:257"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HistoryView.cancelInFlightWork()",
+   "hash": "d1f68a04289d23ce",
+   "does": "Cancels and clears selectionTask.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HistoryView.selectionTask"
+   ],
+   "writes": [
+    "mem:HistoryView.selectionTask"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryView.askAssistantAbout(entry:)",
+   "hash": "aeb1d20b3881e209",
+   "does": "Builds a localized question about the entry (date, 0-100 recovery via historyDisplayScore, RMSSD to 1 decimal), stores it in AssistantInbox.pendingDraft and requests the assistant tab to open.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantInbox.pendingDraft",
+    "mem:AssistantInbox.openRequestToken"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entry.recoveryScore non-nil",
+     "effect": "true: add 'recovery score N/100'; false: omitted"
+    },
+    {
+     "at": "+6",
+     "cond": "entry.meanRMSSD non-nil",
+     "effect": "true: add 'RMSSD x.xms'; false: omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "bits empty",
+     "effect": "true: summary ''; false: ' (a, b)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "d8b054bcd9d4203e"
+   }
+  },
+  {
+   "key": "func HistoryView.loadAndSelect(_:)",
+   "hash": "348d1a2a1d3e944e",
+   "does": "Cancels any prior selection task and starts a Task that loads the full session off-main via retrieveFullSessionAsync, then calls select; on nil only logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve (full session with rrSeries)"
+   ],
+   "writes": [
+    "mem:HistoryView.selectionTask"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "retrieveFullSessionAsync returns a session",
+     "effect": "false: debugLog and return — tap silently does nothing; true: await select(session)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "If the session file cannot be read/decoded the row tap does nothing visible (only debugLog), so a corrupt or missing session looks like an unresponsive row.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:382"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.select(_:)": "d5dd9782a82a5a88"
+   }
+  },
+  {
+   "key": "func HistoryView.select(_:)",
+   "hash": "0eb43ec98e54ee00",
+   "does": "Loads up to MorningResultsView.recentSessionsContextLimit overnight sessions before this one, aborts if cancelled, keeps those with state .complete in cachedRecentSessions, loads linked split-night segments and sets selectedSession (presenting the sheet).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve (linked sessions, synchronous)"
+   ],
+   "writes": [
+    "mem:HistoryView.cachedRecentSessions",
+    "mem:HistoryView.selectedLinkedSegments",
+    "mem:HistoryView.selectedSession"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Task.isCancelled after loading prior sessions",
+     "effect": "true: return without presenting; false: continue"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The loadAndSelect doc (369-374) says no synchronous disk I/O on @MainActor, but select runs on the main actor and calls collector.archive.linkedSegments, which synchronously retrieves (reads + decrypts + decodes) every linked session via archive.retrieve (Archive+Internal.swift:414) on the main thread.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:400",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:397",
+      "Emuqu/Sources/Views/HistoryView.swift:369"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "852d48d0e3ec6bcb"
+   }
+  },
+  {
+   "key": "func HistoryView.sessionDetailSheet(for:)",
+   "hash": "f5cf52d0320b5d34",
+   "does": "Sheet content: workouts → FitnessPostSummaryView; other sessions with analysisResult → MorningResultsView; otherwise a 'No analysis data available' placeholder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionType == .workout",
+     "effect": "true: NavigationStack{workoutSummarySheet}"
+    },
+    {
+     "at": "+4",
+     "cond": "analysisResult non-nil",
+     "effect": "true: NavigationStack{MorningResultsView}; false: noAnalysisPlaceholder"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says tapping a session opens MorningResultsView; workouts open FitnessPostSummaryView and sessions without analysisResult get a 'No analysis data available' placeholder.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:845",
+      "Emuqu/Sources/Views/HistoryView.swift:412",
+      "Emuqu/Sources/Views/HistoryView.swift:417"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "47a6bc7cb9d99041",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)": "31eb54af42d3e198",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder": "2ef9a7aadcf0bd85"
+   }
+  },
+  {
+   "key": "func HistoryView.workoutSummarySheet(_:)",
+   "hash": "62b6313152bb8f22",
+   "does": "FitnessPostSummaryView for the session with onDone clearing selectedSession (no onDelete passed, so no delete from this sheet).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.selectedSession"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7"
+   }
+  },
+  {
+   "key": "var HistoryView.noAnalysisPlaceholder",
+   "hash": "c1b1a15c2c5727ab",
+   "does": "Placeholder text 'No analysis data available' and a Close button clearing selectedSession.",
+   "entry": "Close button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.selectedSession"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HistoryView.sessionDetailContent(session:result:)",
+   "hash": "4838e1e1c4a3b003",
+   "does": "Builds MorningResultsView for a past session, wiring discard, delete, reanalyze, tag update, reanalyze-at-position, manual-analysis apply, sleep update/adjust and segment unlink to the collector/parent closures.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.adjustSleep(_:sleepData:)",
+    "closure:onReanalyze = MainTabView.reanalyzeSession via DashboardV2View.onReanalyzeSession",
+    "closure:onUpdateTags = MainTabView.updateTags via DashboardV2View.onUpdateSessionTags",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)"
+   ],
+   "reads": [
+    "mem:HistoryView.cachedRecentSessions",
+    "mem:HistoryView.selectedLinkedSegments"
+   ],
+   "writes": [
+    "mem:HistoryView.selectedSession",
+    "archive:session re-archive (via collector reanalysis/sleep/unlink calls)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "5769cb4022f1481b",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "1c0421a2b011d161",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "df81e8aa6eb05449",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.adjustSleep(_:sleepData:)": "12d941ea483f329a",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "e4cd037b98f0b913",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7"
+   }
+  },
+  {
+   "key": "func HistoryView.deleteAndDismiss(_:)",
+   "hash": "5e20115ca566d407",
+   "does": "Calls the parent onDelete then clears selectedSession (dismissing the sheet) unconditionally.",
+   "entry": null,
+   "calls": [
+    "closure:onDelete = MainTabView.deleteSession (MainTabView.swift:477 → DashboardV2View.onDeleteSession)",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryView.selectedSession",
+    "archive:SessionArchive.delete (via closure)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "onDelete returns Void and MainTabView.deleteSession swallows archive.delete errors with debugLog, so the sheet is dismissed as if the reading were deleted even when it was not.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:463",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:205"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says Delete from History 'Permanently deletes session', but the delete path (MainTabView.deleteSession → archive.delete) moves it to Trash, as HistoryView's own alert text says.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:960",
+      "Emuqu/Sources/Views/HistoryView.swift:314",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:201"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.deleteSession(_:)": "7d092790f5709dc1"
+   }
+  },
+  {
+   "key": "func HistoryView.adjustSleep(_:sleepData:)",
+   "hash": "ef321e7015af2906",
+   "does": "Writes user-adjusted sleep boundaries via collector.updateSessionSleepBoundaries(isUserAdjustment: true), discarding the Bool result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:session sleep boundaries re-archive"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Result of updateSessionSleepBoundaries is discarded (`_ =`); DashboardV2View's equivalent shows sleepEditSaveFailed on false, History shows nothing.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:468",
+      "Emuqu/Sources/Views/DashboardV2View.swift:495"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "ed8abe89df2283be"
+   }
+  },
+  {
+   "key": "var HistoryView.sessionTypeFilterBar",
+   "hash": "9a52ef7c6582f3d2",
+   "does": "Horizontal scroll of five chips: All, Extended, Naps, Quick, Breathe.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton": "6b96bf7534b0c1cd",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton": "67650d6cb4fb0e72",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton": "34507904652d1c6d",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton": "36bb9b53d295fb98",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton": "b724c897aa56c633"
+   }
+  },
+  {
+   "key": "var HistoryView.allFilterButton",
+   "hash": "543d853269ddd579",
+   "does": "'All' chip selected when selectedSessionType is nil; tap sets it to nil.",
+   "entry": "Chip tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var HistoryView.extendedFilterButton",
+   "hash": "5d48cb1c91a21159",
+   "does": "'Extended' chip for .overnight; tap selects overnight.",
+   "entry": "Chip tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var HistoryView.napFilterButton",
+   "hash": "b386df472cb2ee5d",
+   "does": "'Naps' chip for .nap; tap selects nap.",
+   "entry": "Chip tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117"
+   }
+  },
+  {
+   "key": "var HistoryView.quickFilterButton",
+   "hash": "aae65599f2e75199",
+   "does": "'Quick' chip for .quick; tap selects quick.",
+   "entry": "Chip tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117"
+   }
+  },
+  {
+   "key": "var HistoryView.breatheFilterButton",
+   "hash": "369ec4dcf46b731e",
+   "does": "'Breathe' chip for .breathe; tap selects breathe.",
+   "entry": "Chip tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "a3b2195727ddf117",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae"
+   }
+  },
+  {
+   "key": "var HistoryView.emptyState",
+   "hash": "c7e5f97f751edb38",
+   "does": "Empty-state VStack with icon and noReadingsYetSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noReadingsYetSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noReadingsYetSection": "57f844b0a6cf5d89",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HistoryView.noReadingsYetSection",
+   "hash": "03d0aad21e615c62",
+   "does": "'No Readings Yet' copy when the archive index is empty, else 'No Matching Readings' + 'Try adjusting your filters' + Clear Filters button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearFiltersButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "collector.archive.entries empty",
+     "effect": "true: no-readings copy; false: no-match copy with clear button (also shown momentarily before the first recompute when the archive is non-empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.clearFiltersButton": "ef02f212c18fa4ed",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var HistoryView.clearFiltersButton",
+   "hash": "0d4eb4af91367a3f",
+   "does": "Clears selectedTags, searchText and selectedSessionType.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HistoryViewModel.selectedTags",
+    "mem:HistoryViewModel.searchText",
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HistoryView.tagFilterBar",
+   "hash": "d8a39795aa5b67ca",
+   "does": "Horizontal scroll of the 'All' tag button and one button per system tag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allTagsButton": "cf5bd7ab3e0209c4",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagButtons": "0ed69179afc5e2dd"
+   }
+  },
+  {
+   "key": "var HistoryView.tagButtons",
+   "hash": "71f219fbe2e14244",
+   "does": "ForEach over ReadingTag.systemTags producing tagButton.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButton(_:)": "455154d95938364a"
+   }
+  },
+  {
+   "key": "func HistoryView.tagButton(_:)",
+   "hash": "3fc36c06a5c86b1c",
+   "does": "Button toggling the tag, with isSelected trait when selected.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.toggleTag(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButtonLabel(_:)"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "selectedTags contains tag",
+     "effect": "true: .isSelected trait; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.tagButtonLabel(_:)": "5e2cdd67929f47f1",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.toggleTag(_:)": "75caf7dc9866e8a9"
+   }
+  },
+  {
+   "key": "func HistoryView.toggleTag(_:)",
+   "hash": "e09742e99e4160ee",
+   "does": "Removes the tag from selectedTags if present, else inserts it.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selectedTags contains tag",
+     "effect": "true: remove; false: insert"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HistoryView.tagButtonLabel(_:)",
+   "hash": "dbf8fd92fe3cf7e0",
+   "does": "Capsule label with tag name; filled tag color with white text when selected, tinted otherwise; min height 44.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "tag selected",
+     "effect": "true: solid tag.color background; false: 0.15 opacity"
+    },
+    {
+     "at": "+6",
+     "cond": "tag selected",
+     "effect": "true: white text; false: tag.color text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1"
+   }
+  },
+  {
+   "key": "var HistoryView.allTagsButton",
+   "hash": "9cdd08cee8279667",
+   "does": "'All' tag button clearing selectedTags; blue when no tags selected, gray otherwise; isSelected trait when empty.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedTags"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "selectedTags empty",
+     "effect": "true: blue background; false: gray 0.2"
+    },
+    {
+     "at": "+9",
+     "cond": "selectedTags empty",
+     "effect": "true: white text; false: .primary"
+    },
+    {
+     "at": "+14",
+     "cond": "selectedTags empty",
+     "effect": "true: .isSelected trait; false: none"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Hard-coded Color.blue/Color.gray instead of AppTheme colors used by every other chip in the file.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:659"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SessionTypeFilterButton.body",
+   "hash": "31d7d5c5b02fd0c9",
+   "does": "Chip button: icon + title, filled color when selected else tinted; accessibility label '<title> filter' and isSelected trait; tap runs action.",
+   "entry": "SwiftUI body; button tap invokes the action closure from the five filter chips",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "isSelected",
+     "effect": "true: solid color background; false: 0.15 opacity"
+    },
+    {
+     "at": "+11",
+     "cond": "isSelected",
+     "effect": "true: white text; false: color text"
+    },
+    {
+     "at": "+16",
+     "cond": "isSelected",
+     "effect": "true: .isSelected trait; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.sessionTypeColor",
+   "hash": "50b714fd5ab1eb1e",
+   "does": "Color per session type: overnight primary, nap mist, quick sage, breathe sdnnColor, workout terracotta.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".overnight",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+3",
+     "cond": ".nap",
+     "effect": "AppTheme.mist"
+    },
+    {
+     "at": "+4",
+     "cond": ".quick",
+     "effect": "AppTheme.sage"
+    },
+    {
+     "at": "+5",
+     "cond": ".breathe",
+     "effect": "AppTheme.sdnnColor"
+    },
+    {
+     "at": "+6",
+     "cond": ".workout",
+     "effect": "AppTheme.terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.body",
+   "hash": "c98370ce7d582eff",
+   "does": "Row HStack: type icon, time/date/tags, metrics, chevron; combined accessibility element with 'Double tap to view details' hint.",
+   "entry": "SwiftUI body of EntryHistoryRow",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeIcon",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeAndTags",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.rowMetrics",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.rowMetrics": "2fb1d68d6f93c425",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeIcon": "c7daed7a529ceaa2",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeAndTags": "a2e5db5e17156e49",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.sessionTypeIcon",
+   "hash": "dd9e5d4c4c8661c9",
+   "does": "Session type SF symbol tinted with sessionTypeColor, hidden from accessibility.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeColor"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says the row icon is a clock for quick sessions; SessionType.quick.icon is 'bolt.fill'.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:829",
+      "Emuqu/Sources/Models/SessionMetadata.swift:89"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0346265001d4b103",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeColor": "c77abb0db4513b01"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.timeAndTags",
+   "hash": "ca62a7f5eb0cd619",
+   "does": "VStack: timeRow, displayDate as date, tag chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeRow",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChips",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChips": "bc1e4945b6317161",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.timeRow": "0c72a6f48b32a764",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.tagChips",
+   "hash": "f143f4e8449b72b3",
+   "does": "Shows tagChipRow only when the entry has tags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.tags non-empty",
+     "effect": "true: chip row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.tagChipRow": "9fd14a13c1b34b08"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.tagChipRow",
+   "hash": "7105c4d0740cf5f4",
+   "does": "HStack of first three tag chips plus overflow count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.visibleTagChips",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.overflowTagCount"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.overflowTagCount": "b692e0c6c74dcc2f",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.visibleTagChips": "7109cbc6bf333185"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.overflowTagCount",
+   "hash": "10432f76579c7b38",
+   "does": "'+N' text for tags beyond three.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tags.count > 3",
+     "effect": "true: show '+(count-3)'; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.visibleTagChips",
+   "hash": "fb18ae05d3cc219a",
+   "does": "ForEach over the first three tags rendering tinted capsules.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.timeRow",
+   "hash": "5500a74b57888b7f",
+   "does": "HStack: displayDate time, session-type badge, linked segment badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeBadge",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.segmentCountBadge",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says the row time is the analysis-window end for overnights; the row shows displayDate = sleepEnd ?? endDate ?? date, not the analysis window.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:830",
+      "Emuqu/Sources/Views/HistoryView.swift:791",
+      "Emuqu/Sources/Models/SessionMetadata.swift:776"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.segmentCountBadge": "c4066951446ad43c",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.sessionTypeBadge": "f5111ffd4766fc96"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.segmentCountBadge",
+   "hash": "fd4f2079dacda09e",
+   "does": "'<n> segments' link badge when linkedSegmentCount > 1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "linkedSegmentCount > 1",
+     "effect": "true: show badge; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.sessionTypeBadge",
+   "hash": "5f694555586a1222",
+   "does": "Shows Nap/Quick/Breathe badge per session type; overnights and workouts get none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var napBadge",
+    "Emuqu/Sources/Views/HistoryView.swift::var quickBadge",
+    "Emuqu/Sources/Views/HistoryView.swift::var breatheBadge"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionType == .nap",
+     "effect": "napBadge"
+    },
+    {
+     "at": "+4",
+     "cond": "sessionType == .quick",
+     "effect": "quickBadge"
+    },
+    {
+     "at": "+6",
+     "cond": "sessionType == .breathe",
+     "effect": "breatheBadge; else (overnight/workout) nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Views/HistoryView.swift::var breatheBadge": "89653b33f617c2eb",
+    "Emuqu/Sources/Views/HistoryView.swift::var napBadge": "a488434ff4c155ba",
+    "Emuqu/Sources/Views/HistoryView.swift::var quickBadge": "0b921792722d2810"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.rowMetrics",
+   "hash": "742a6a4512ea6032",
+   "does": "Trailing metrics: workout duration layout for workouts, RMSSD/SDNN + recovery layout otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryRowMetrics"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionType == .workout",
+     "effect": "true: workoutRowMetrics; false: recoveryRowMetrics"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.workoutRowMetrics(entry:)": "385bd2005a96b319",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryRowMetrics": "f3d2c4eee7218bf2"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.recoveryRowMetrics",
+   "hash": "7c967b1f6e302f46",
+   "does": "Primary metric readout followed by recovery score readout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.primaryMetricReadout",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryScoreReadout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.primaryMetricReadout": "db05cef8551a62f5",
+    "Emuqu/Sources/Views/HistoryView.swift::var EntryHistoryRow.recoveryScoreReadout": "d739f3b594ba3c50"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.primaryMetricReadout",
+   "hash": "a4faf89d464ce0e0",
+   "does": "Breathe sessions show mean SDNN; others show mean RMSSD in ms; nothing when the relevant value is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessionType == .breathe AND meanSDNN non-nil",
+     "effect": "true: SDNN readout"
+    },
+    {
+     "at": "+11",
+     "cond": "meanRMSSD non-nil",
+     "effect": "true: RMSSD ms readout (also used for breathe sessions lacking SDNN); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var EntryHistoryRow.recoveryScoreReadout",
+   "hash": "81e85c9f2ca91b7e",
+   "does": "When the entry has a recovery score, converts it with historyDisplayScore to 0-100 and shows the verdict row and bar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreRow(composite:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreBar(composite:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.recoveryScore non-nil",
+     "effect": "true: score row + bar; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreBar(composite:)": "216179e09a73f70b",
+    "Emuqu/Sources/Views/HistoryView.swift::func EntryHistoryRow.recoveryScoreRow(composite:)": "cb753331af6327c2",
+    "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "d8b054bcd9d4203e"
+   }
+  },
+  {
+   "key": "func EntryHistoryRow.recoveryScoreBar(composite:)",
+   "hash": "ae80b0335a11a0d1",
+   "does": "64pt progress bar filled to composite/100 (min 2pt) in the ScoreVerdict color.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func EntryHistoryRow.recoveryScoreRow(composite:)",
+   "hash": "b6850a0486edc495",
+   "does": "Verdict glyph, composite number in verdict color, and 'Recovery' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.glyphName": "a6ccfed84ddc0ce9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func EntryHistoryRow.workoutRowMetrics(entry:)",
+   "hash": "36fd6ad05512af5e",
+   "does": "Workout trailing metrics: duration (h m when ≥ 60 min, else minutes) when endDate-date > 0, plus a 'Workout' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entry.endDate non-nil",
+     "effect": "false: duration 0"
+    },
+    {
+     "at": "+6",
+     "cond": "duration > 0",
+     "effect": "true: show figure.run + formatted duration; false: only 'Workout' caption"
+    },
+    {
+     "at": "+13",
+     "cond": "mins >= 60",
+     "effect": "true: hoursMinutes format; false: minutes format"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says workout rows show duration and sport; the row shows duration with a fixed figure.run icon and the literal caption 'Workout' — no sport.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:835",
+      "Emuqu/Sources/Views/HistoryView.swift:925",
+      "Emuqu/Sources/Views/HistoryView.swift:934"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var napBadge",
+   "hash": "e6bbb7070578fd68",
+   "does": "File-scope 'Nap' capsule badge in mist color.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var quickBadge",
+   "hash": "e8766009d5b092c8",
+   "does": "File-scope 'Quick' capsule badge in sage color.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var breatheBadge",
+   "hash": "6dd7daf23bbc60ad",
+   "does": "File-scope 'Breathe' capsule badge in sdnnColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae"
+   }
+  },
+  {
+   "key": "func historyDisplayScore(_:)",
+   "hash": "371ac5cafa865c8e",
+   "does": "Converts a raw recovery score to (readiness 0-10, composite 0-100): raw > 10 is treated as legacy ms-scale and mapped to min(10, raw/5); composite = safeDisplayScore(readiness*10).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rawScore > 10",
+     "effect": "true: readiness = min(10, raw/5) (legacy ms-scale import); false: readiness = raw (NaN passes through and safeDisplayScore maps it to 0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Legacy-scale handling exists only here; HistoryCalendarView's DaySummarySheet converts the same field with plain ×10, so the two surfaces disagree for legacy scores.",
+     "evidence": [
+      "Emuqu/Sources/Views/HistoryView.swift:984",
+      "Emuqu/Sources/Views/HistoryCalendarView.swift:843"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4"
+   }
+  }
+ ],
+ "deps": {}
+}

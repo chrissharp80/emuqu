@@ -1,0 +1,765 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive.swift",
+ "hash": "b5c60ff31655cfc7",
+ "role": "Defines SessionArchive, the lock-guarded facade over the on-disk session archive (index.json, deleted.json, per-session encrypted JSON files in the App Group archive directory): init/boot, orphan adoption, archive/update/retrieve API and read-health counters.",
+ "types": [
+  "SessionArchive: class (@unchecked Sendable) — archive facade; all index/tombstone/counter state guarded by archiveLock",
+  "SessionArchive.Tuning: enum — shared dedupe/import thresholds"
+ ],
+ "state": [
+  "mem:SessionArchive.shared (singleton)",
+  "mem:SessionArchive.Tuning.duplicateContainmentRatio=0.85",
+  "mem:SessionArchive.Tuning.dedupeSafetyWindow=24h",
+  "mem:SessionArchive.Tuning.importDuplicateWindow=3600s",
+  "mem:SessionArchive.index",
+  "mem:SessionArchive.sortedEntriesCache",
+  "mem:SessionArchive.sessionIdLookup",
+  "mem:SessionArchive.deletedSessionIds",
+  "mem:SessionArchive.indexReadFailed",
+  "mem:SessionArchive.totalReadAttempts",
+  "mem:SessionArchive.permissionDeniedReadFailures",
+  "mem:SessionArchive.archiveLock (NSLock)",
+  "file:<AppGroup>/<AppConfig.archiveDirectoryName>/index.json (indexFile)",
+  "file:<archiveDir>/deleted.json (deletedIndexFile)",
+  "mem:SessionArchive.sessionDecoder/lightweightSessionDecoder/sessionEncoder/indexEncoder (static shared coders)",
+  "notif:flowRecoveryArchiveChanged (posted)",
+  "notif:flowRecoveryArchiveSessionsNeedReupload (posted)"
+ ],
+ "toplevel": "static let shared = SessionArchive() builds the production instance lazily with default providers that read AppDependencies.current.app.settingsManager.settingsSnapshot; `let fileManager = FileManager.default`, `let archiveLock = NSLock()`; stored providers sleepScheduleProvider/sessionMergeModeProvider/mergeGapProvider set in init.",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "reservedFileNames omits local_only_sessions.json, which CloudKitSyncState writes into the same archive directory (syncStateURL's parent). Every boot reconcileOrphanFiles tries to decode it as an HRVSession: attempt() logs a .warning ('[Archive.decodeOrphan] failed') — the level the comment in DebugLog says surfaces in Troubleshooting 'Recent Problems' — plus 'skipping undecodable orphan', exactly the forever-warning the reservedFileNames comment says the list exists to prevent.",
+   "evidence": [
+    "Emuqu/Sources/Storage/Archive.swift:347",
+    "Emuqu/Sources/Storage/Archive.swift:371",
+    "Emuqu/Sources/Storage/Archive.swift:379",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift:52",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift:596"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SessionArchive.store",
+   "hash": "78c385d465c72508",
+   "does": "Computed property returning a fresh ArchiveStore(archive: self) on each access; ArchiveStore holds no state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionArchive.hasReadHealthIssue",
+   "hash": "651a6272a3339c3d",
+   "does": "Under archiveLock, returns true when permissionDeniedReadFailures >= 10 and that count divided by max(1,totalReadAttempts) is > 0.5; drives the read-health banner in Settings diagnostics.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.permissionDeniedReadFailures",
+    "mem:SessionArchive.totalReadAttempts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment says the banner shows when failures 'exceed 10' (and SettingsPages+Diagnostics comment says '>10'), but the code fires at exactly 10 (>= 10).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive.swift:96",
+      "Emuqu/Sources/Storage/Archive.swift:106",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:108"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var SessionArchive.readHealthCounters",
+   "hash": "ad0021244af11cde",
+   "does": "Under archiveLock, returns the (totalReadAttempts, permissionDeniedReadFailures) pair as one consistent snapshot for the diagnostics page.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.totalReadAttempts",
+    "mem:SessionArchive.permissionDeniedReadFailures"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchive.resetInMemoryStateAfterPurge()",
+   "hash": "aa5944e4fe123b5a",
+   "does": "After 'Delete All My Data' removed files, clears in-memory index, deletedSessionIds, sortedEntriesCache and sessionIdLookup under archiveLock, then resets the read-health counters. Does not touch disk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()": "591e07ca81320f48"
+   }
+  },
+  {
+   "key": "func SessionArchive.resetReadHealthCounters()",
+   "hash": "4927b05a7b128df9",
+   "does": "Under archiveLock sets totalReadAttempts and permissionDeniedReadFailures to 0. Called by resetInMemoryStateAfterPurge and by the diagnostics page reset button.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.totalReadAttempts",
+    "mem:SessionArchive.permissionDeniedReadFailures"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let SessionArchive.sessionDecoder",
+   "hash": "ef5af2b156f26d2c",
+   "does": "Static shared JSONDecoder with ISO-8601 dates for full session decodes.",
+   "entry": "Swift lazy static initializer, run on first access of SessionArchive.sessionDecoder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let SessionArchive.lightweightSessionDecoder",
+   "hash": "eb7beda8edde0084",
+   "does": "Static shared JSONDecoder with ISO-8601 dates and userInfo[.skipRRSeries]=true so HRVSession decoding skips the rrSeries array (lightweight reads).",
+   "entry": "Swift lazy static initializer on first access of lightweightSessionDecoder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let SessionArchive.sessionEncoder",
+   "hash": "dfcc21eb2bb1ffd9",
+   "does": "Static shared JSONEncoder with ISO-8601 dates and sortedKeys (byte-deterministic so SHA256 file hashes are stable) for session writes.",
+   "entry": "Swift lazy static initializer on first access of sessionEncoder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let SessionArchive.indexEncoder",
+   "hash": "d8bd6005bee8549f",
+   "does": "Static shared JSONEncoder with ISO-8601 dates, prettyPrinted+sortedKeys, used for index.json and (per comment) archiveBatch session files.",
+   "entry": "Swift lazy static initializer on first access of indexEncoder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+   "hash": "5cb99ee28652e6b2",
+   "does": "Stores the three settings providers (defaults read AppDependencies.current.app.settingsManager.settingsSnapshot), picks the archive directory (explicit test dir → App Group container → Documents → tmp), sets index.json/deleted.json URLs, creates the directory, loads index and tombstones synchronously, and logs the loaded count when 0 or >1000. Orphan reconcile is deferred to boot().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.createArchiveDirectoryIfNeeded()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadIndex()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadDeletedIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds",
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/index.json",
+    "file:<archiveDir>/deleted.json"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "mem:SessionArchive.indexReadFailed",
+    "file:<archiveDir> (created)"
+   ],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "an explicit directory was passed (tests)",
+     "effect": "archiveDirectory = that directory; otherwise falls to the App Group check"
+    },
+    {
+     "at": "+21",
+     "cond": "App Group container URL is available",
+     "effect": "archiveDirectory = <container>/<archiveDirectoryName>; otherwise tries Documents"
+    },
+    {
+     "at": "+23",
+     "cond": "Documents directory URL is available",
+     "effect": "archiveDirectory = Documents/<archiveDirectoryName>; otherwise falls back to temporaryDirectory/<archiveDirectoryName> and logs a WARNING (sessions there can be purged by the OS)"
+    },
+    {
+     "at": "+47",
+     "cond": "index.count == 0 or > 1000",
+     "effect": "logs '[Archive] Loaded N sessions'; otherwise no log"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "Last-resort fallback places the whole archive in the temporary directory, which iOS may purge; it only logs a debug warning and the app continues writing sessions there.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive.swift:226",
+      "Emuqu/Sources/Storage/Archive.swift:228",
+      "Emuqu/Sources/Storage/Archive.swift:229"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.createArchiveDirectoryIfNeeded()": "9dd95bda7df11f65",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadDeletedIndex()": "dce1e576d61df6ae",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadIndex()": "99c03e23640602b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func SessionArchive.boot()",
+   "hash": "f957ca9745ad5d94",
+   "does": "Deferred launch work run detached at utility priority from EmuquApp: retries a failed index.json load, adopts orphan session files into the index, and logs the tombstone summary.",
+   "entry": "Called from EmuquApp.swift:707 inside Task.detached after first paint",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retryFailedIndexLoad()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.reconcileOrphanFiles()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.logTombstoneSummary()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.logTombstoneSummary()": "a26a677910ecab4c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.reconcileOrphanFiles()": "a6cb99a365cb9639",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retryFailedIndexLoad()": "6d96882bbadead53"
+   }
+  },
+  {
+   "key": "func SessionArchive.retryFailedIndexLoad()",
+   "hash": "2edf4b4ce6c29874",
+   "does": "Under archiveLock calls mergeIndexThatFailedToLoad (re-reads index.json if the launch read failed) inside attempt(), which logs and swallows any error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()"
+   ],
+   "reads": [
+    "file:<archiveDir>/index.json",
+    "mem:SessionArchive.indexReadFailed"
+   ],
+   "writes": [
+    "mem:SessionArchive.index"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "6045370a6c7dfd20",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SessionArchive.logTombstoneSummary()",
+   "hash": "78a9018ee8bd9731",
+   "does": "Snapshots deletedSessionIds under the lock; if non-empty, logs a .warning when any tombstone's recorded deletion time is within the last 30 days, else an info line with the count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.hasTombstoneNewerThan(_:in:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.deletedSessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no tombstones",
+     "effect": "returns without logging"
+    },
+    {
+     "at": "+5",
+     "cond": "any tombstone deleted within 30 days",
+     "effect": "logs warning-level summary (surfaces in Recent Problems); else logs info '0 recent'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.hasTombstoneNewerThan(_:in:)": "a73360cf29b12a3c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.hasTombstoneNewerThan(_:in:)",
+   "hash": "ecf4bf8a409e3063",
+   "does": "Returns true if any id in the snapshot has a recorded deletion time (UserDefaults archive.deletionTimes via ArchiveStore.deletionTime) later than cutoff.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)"
+   ],
+   "reads": [
+    "ud:archive.deletionTimes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deletionTime ?? false",
+     "effect": "an id with no recorded deletion time counts as not newer (false)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "ea01e6bb195f74f7",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "807b98551832b9ba"
+   }
+  },
+  {
+   "key": "func SessionArchive.reconcileOrphanFiles()",
+   "hash": "a32aab1667e73a6c",
+   "does": "Lists the archive directory (skipping hidden files); snapshots indexed file names and tombstones under the lock; builds entries for decodable non-indexed .json files outside the lock; appends them via adoptOrphans.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.orphanEntry(for:indexedFiles:deleted:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.adoptOrphans(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/*",
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "directory enumeration throws",
+     "effect": "logs and returns; nothing adopted"
+    },
+    {
+     "at": "+19",
+     "cond": "no adoptable orphans",
+     "effect": "returns; else calls adoptOrphans"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.adoptOrphans(_:)": "47d033d57d3344db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.orphanEntry(for:indexedFiles:deleted:)": "7ba4eb94be7ade99",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var SessionArchive.reservedFileNames",
+   "hash": "4029848bf428a550",
+   "does": "Set of archive-directory file names that are never treated as session orphans: index.json, deleted.json, sync_state.json, pending_uploads.json, quarantined_uploads.json.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Missing local_only_sessions.json (written next to sync_state.json by CloudKitSyncState), so the orphan reconciler decodes it and logs warnings on every boot.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive.swift:348",
+      "Emuqu/Sources/Storage/CloudKitSyncState.swift:52"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchive.orphanEntry(for:indexedFiles:deleted:)",
+   "hash": "660783d0c45ca219",
+   "does": "For one directory file: returns nil unless it is a .json that is not reserved, not indexed and not a tombstoned id; reads bytes, decodes via loadAndDecodeSessionFile (decrypting) inside attempt(); returns SessionArchiveEntry.make with SHA256 of the stored bytes, or nil with a log if unreadable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.reservedFileNames",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<name>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "not .json, or reserved name, or already indexed",
+     "effect": "returns nil (skip)"
+    },
+    {
+     "at": "+10",
+     "cond": "file name is a UUID that is in the tombstone set",
+     "effect": "returns nil — intentionally deleted sessions are not resurrected"
+    },
+    {
+     "at": "+11",
+     "cond": "bytes unreadable or decode throws",
+     "effect": "attempt logs a warning, then '[Archive] skipping undecodable orphan' and returns nil; file left on disk"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.loadAndDecodeSessionFile(at:decoder:)": "9fd9fd666aa6ecd9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.reservedFileNames": "3d369a239e234e07",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SessionArchive.adoptOrphans(_:)",
+   "hash": "82cf86c3279ce611",
+   "does": "Under archiveLock, filters out entries whose file is now indexed (concurrent archive), appends the rest to index and saves index.json via attempt (errors logged, swallowed); logs the adopted count after unlocking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDir>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "something left to adopt",
+     "effect": "append + saveIndex; else nothing"
+    },
+    {
+     "at": "+9",
+     "cond": "something was adopted",
+     "effect": "logs count; else silent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SessionArchive.archive(_:)",
+   "hash": "4a67b1276d4acef9",
+   "does": "Public archive entry point: archive(session, skipSameNightMerge: false) (same-night merge allowed, no re-upload request).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e"
+   }
+  },
+  {
+   "key": "func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+   "hash": "58ae888d4f106138",
+   "does": "Optionally stamps modifiedAt (whole seconds), then under archiveLock writes the session via _archive (merge unless skipped, encode, encrypt, hash, index save); posts flowRecoveryArchiveChanged (object = input session id) and, for a user edit of an already-archived (or merged-into) session, posts flowRecoveryArchiveSessionsNeedReupload. Rethrows write errors after unlocking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "requestingReupload",
+     "effect": "session.modifiedAt = stamp() (now, whole seconds); else stamp unchanged"
+    },
+    {
+     "at": "+9",
+     "cond": "_archive throws",
+     "effect": "unlocks and rethrows; no notification"
+    },
+    {
+     "at": "+15",
+     "cond": "requestingReupload AND (session was already in index OR it was merged into a different entry id)",
+     "effect": "posts re-upload request for entry.sessionId; a brand-new session gets none (normal upload path covers it)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d79b04243f39d85b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)": "d104182795b61bbf",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50"
+   }
+  },
+  {
+   "key": "func SessionArchive.update(_:requestingReupload:_:)",
+   "hash": "cba7fd5ae4f05079",
+   "does": "Read-modify-write under one lock: retrieves the full session (hash-verified), applies the closure, optionally stamps modifiedAt, writes it with skipSameNightMerge: true; then posts flowRecoveryArchiveChanged and, if requestingReupload (default true), the re-upload request.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session not found in archive",
+     "effect": "throws ArchiveError.fileNotFound (lock released in catch)"
+    },
+    {
+     "at": "+5",
+     "cond": "requestingReupload",
+     "effect": "stamps modifiedAt = now; else untouched"
+    },
+    {
+     "at": "+7",
+     "cond": "retrieve/closure/write throws",
+     "effect": "unlocks and rethrows"
+    },
+    {
+     "at": "+13",
+     "cond": "requestingReupload false",
+     "effect": "returns after the change notification; true → posts re-upload request"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d79b04243f39d85b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)": "535eece52fad10f8",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)": "d104182795b61bbf",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50"
+   }
+  },
+  {
+   "key": "func SessionArchive.postReuploadRequest(for:)",
+   "hash": "acdc5bd5f6f045e2",
+   "does": "Posts flowRecoveryArchiveSessionsNeedReupload with userInfo sessionIds = {id}; CloudKitSyncManager.observeReuploadSignals marks them for re-upload.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchive.retrieve(_:)",
+   "hash": "496a4a942b6e9457",
+   "does": "Locked full retrieve (decrypt, hash-verify, decode) of a session by id via _retrieve; nil if not indexed, throws on read/verify errors.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)": "535eece52fad10f8"
+   }
+  },
+  {
+   "key": "func SessionArchive.retrieveOrLog(_:caller:)",
+   "hash": "3a5bda777d623692",
+   "does": "Calls retrieve; on throw logs '[SessionArchive] caller: failed to retrieve' and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "retrieve throws",
+     "effect": "error logged at info level and swallowed, nil returned — callers fall back to the copy they held"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+   "hash": "ef812391cdde3187",
+   "does": "Lightweight retrieve (no rrSeries, no hash check); on success increments totalReadAttempts under lock; on failure records the failure (EPERM counters) and logs, returning nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.recordReadFailure(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [
+    "mem:SessionArchive.totalReadAttempts",
+    "mem:SessionArchive.permissionDeniedReadFailures"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "retrieveLightweight throws",
+     "effect": "recordReadFailure + log, returns nil (swallowed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.recordReadFailure(_:)": "aaf46e5dcbea6888",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionArchive.recordReadFailure(_:)",
+   "hash": "71a5067136e9e091",
+   "does": "Under lock increments totalReadAttempts and, when the error is NSCocoaError 257 (no read permission) or wraps POSIX EPERM (1), permissionDeniedReadFailures.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.totalReadAttempts",
+    "mem:SessionArchive.permissionDeniedReadFailures"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "NSCocoaErrorDomain code 257",
+     "effect": "counts a permission-denied failure"
+    },
+    {
+     "at": "+8",
+     "cond": "underlying error is NSPOSIXErrorDomain code 1",
+     "effect": "counts a permission-denied failure; any other error counts only as an attempt"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+   }
+  },
+  {
+   "key": "func SessionArchive.retrieveLightweight(_:)",
+   "hash": "19a97922f19d8892",
+   "does": "Looks up the entry under the lock only, resolves its file URL, then outside the lock checks existence, reads, decrypts/legacy-resolves via ArchiveStore.plaintextBytes and decodes with lightweightSessionDecoder (rrSeries skipped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sessionIdLookup",
+    "file:<archiveDir>/<id>.json"
+   ],
+   "writes": [
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no index entry for id",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+8",
+     "cond": "file missing on disk",
+     "effect": "throws ArchiveError.fileNotFound"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "46c976f3cbac7ee0",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "e0989929d592bde9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.lightweightSessionDecoder": "b3507d359d8aaa16"
+   }
+  }
+ ],
+ "deps": {}
+}

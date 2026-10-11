@@ -1,0 +1,233 @@
+{
+ "file": "EmuquTests/ArtifactDetectionTests.swift",
+ "hash": "671adf03c44fc5fd",
+ "role": "XCTest suite for ArtifactDetector: clean-beat rate on normal variability, ectopic/compensatory and missed-beat classification, technical out-of-range artifacts, artifactPercentage over windows and negative start, and edge beats on uniform data.",
+ "types": [
+  "ArtifactDetectionTests: class — XCTestCase over ArtifactDetector"
+ ],
+ "state": [],
+ "toplevel": "Stored property detector = ArtifactDetector() (default config), fresh per test instance.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArtifactDetectionTests.testCleanBeatsDetection()",
+   "hash": "aa6c7af5f2950c43",
+   "does": "Builds 100 beats at 800±30 ms (random) and asserts more than 95% are flagged clean.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The >95% clean assertion can never fail for this fixture: ±30 ms jitter around 800 ms is far inside the 20% ectopic band, so the test only shows that near-constant beats are clean and does not exercise normal physiological variability near the thresholds.",
+     "evidence": [
+      "EmuquTests/ArtifactDetectionTests.swift:17",
+      "EmuquTests/ArtifactDetectionTests.swift:26",
+      "Emuqu/Sources/Analysis/ArtifactDetection.swift:11"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testEctopicDetection()",
+   "hash": "030dac156d6ef3c6",
+   "does": "Builds 50 beats at 800 ms with a 500 ms + 1100 ms pair at index 25 and asserts the short beat is flagged ectopic/extra and the long one ectopic/missed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for i in 0..<50",
+     "effect": "appends one 800 ms beat, or at i==25 the ectopic pair"
+    },
+    {
+     "at": "+6",
+     "cond": "i == 25",
+     "effect": "appends 500 then 1100 ms; else 800 ms"
+    },
+    {
+     "at": "+25",
+     "cond": "for each flag",
+     "effect": "checks the 500 and 1100 ms beats"
+    },
+    {
+     "at": "+26",
+     "cond": "beat is 500 ms and flagged",
+     "effect": "sets foundShort and asserts type .ectopic or .extra; else nothing"
+    },
+    {
+     "at": "+33",
+     "cond": "beat is 1100 ms and flagged",
+     "effect": "sets foundLong and asserts .ectopic or .missed; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testTechnicalArtifacts()",
+   "hash": "bf61908223478ac4",
+   "does": "Asserts 150 ms and 2500 ms beats are classified .technical (outside HRVConstants.RRInterval 300-2000 ms).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment and assertion message say the technical floor is 200 ms, but HRVConstants.RRInterval.minimum is 300 ms; the 150 ms fixture passes under either, so the 300 ms floor (e.g. a 250 ms beat) is not pinned by this test.",
+     "evidence": [
+      "EmuquTests/ArtifactDetectionTests.swift:89",
+      "EmuquTests/ArtifactDetectionTests.swift:101",
+      "Emuqu/Sources/Utilities/Constants.swift:137"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testMissedBeatDetection()",
+   "hash": "bf3ca023377a88a0",
+   "does": "Builds 20 beats at 800 ms with 1500 ms at index 10 and asserts that beat is flagged .missed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 0..<20",
+     "effect": "appends a beat"
+    },
+    {
+     "at": "+5",
+     "cond": "i == 10",
+     "effect": "appends 1500 ms; else 800 ms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testArtifactPercentage()",
+   "hash": "f168b56c19df673c",
+   "does": "Marks the first 10 of 100 detected flags as ectopic and asserts artifactPercentage(0,100) == 10%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for i in 0..<10",
+     "effect": "overwrites flag i with an ectopic artifact"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testArtifactPercentageWithBounds()",
+   "hash": "1b25972e3490862f",
+   "does": "Marks indices 20-29 of 100 clean flags as artifacts and asserts window 20-30 is 100% and 0-20 is 0%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for i in 20..<30",
+     "effect": "overwrites flag i with an ectopic artifact"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testSearchClampToZero()",
+   "hash": "cde6f7b9b13a481b",
+   "does": "Asserts artifactPercentage with start -10 on 50 clean flags returns 0 without crashing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc"
+   }
+  },
+  {
+   "key": "func ArtifactDetectionTests.testEdgeEffects()",
+   "hash": "818bc0fac944069d",
+   "does": "Asserts first and last flags of 100 uniform 800 ms beats are not artifacts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,39 @@
+{
+ "file": "scripts/check_comment_citations.sh",
+ "hash": "c7759a846e7bb9c1",
+ "role": "CI gate: every `File.swift:NNN`-style citation in Swift comments and in docs/*.md / README.md must name a known Swift basename and a line number within that file's length.",
+ "types": [],
+ "state": [
+  "dir:Emuqu",
+  "dir:EmuquTests",
+  "dir:EmuquUITests",
+  "file:docs/**/*.md",
+  "file:README.md"
+ ],
+ "toplevel": "cd to repo root. Roots = args or Emuqu, EmuquTests, EmuquUITests. Python: lengths[basename]=max line count over roots; CITATION regex accepts `:N`, ` ~N`, `line N`, `#LN`; years 19xx/20xx skipped. comment_lines yields // lines and every line while a /* */ block is open. Unknown basename or line > max length -> broken. Also scans docs/**/*.md and README.md. Prints totals; broken -> stderr list + exit 1, else exit 0. Watch app sources are not in the default roots, so citations of watch files report 'no such file'. Wired: gates.yml, ci.yml, Makefile comment-citations.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Only out-of-range lines are decidable; a citation to an in-range but wrong line, or to a file sharing its basename with a longer file, passes. Current run finds only 3 citations in the tree.",
+   "evidence": [
+    "scripts/check_comment_citations.sh:48",
+    "scripts/check_comment_citations.sh:106"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Scope gaps: EmuquWatch Watch App sources are neither scanned nor in the length index; Markdown is read only from docs/ and README.md (scripts/README.md and other .md files are not); any citation whose line number is 1900-2099 is skipped as a year.",
+   "evidence": [
+    "scripts/check_comment_citations.sh:38",
+    "scripts/check_comment_citations.sh:100",
+    "scripts/check_comment_citations.sh:124"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

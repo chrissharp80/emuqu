@@ -1,0 +1,159 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift",
+ "hash": "96ab30498fe8aaa6",
+ "role": "Builds a fresh AssistantContext (latest/yesterday overnight sessions, 30-day sessions, baselines, trends, live load/workout/HRV) on a background queue for every assistant request; also declares two archive notification names.",
+ "types": [
+  "AssistantContextSource: final class Sendable — context builder singleton",
+  "Notification.Name: extension — flowRecoveryArchiveChanged, flowRecoveryRescoreNeeded"
+ ],
+ "state": [
+  "mem:AssistantContextSource.shared",
+  "mem:AssistantContextSource.queue (DispatchQueue 'com.chrissharp.flowrecovery.assistant.contextsource')",
+  "notif:FlowRecoveryArchiveChanged (Notification.Name.flowRecoveryArchiveChanged)",
+  "notif:FlowRecoveryRescoreNeeded (Notification.Name.flowRecoveryRescoreNeeded)"
+ ],
+ "toplevel": "Declares Notification.Name constants used across Archive, RRCollector, caches and DataPurgeService.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "SettingsManager comments say AssistantContextSource listens for .flowRecoverySettingsChanged to drop a '60 s cache TTL', but AssistantContextSource has no cache and registers no observer. It rebuilds on every request, so those comments describe code that no longer exists.",
+   "evidence": [
+    "Emuqu/Sources/Models/SettingsManager.swift:36",
+    "Emuqu/Sources/Models/SettingsManager.swift:454",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:5",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:51"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "init AssistantContextSource()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op init for singleton.",
+   "entry": "static let shared initializer",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContextSource.currentContext()",
+   "hash": "3b80a9b7f9c69555",
+   "does": "On MainActor reads TrainingLoadRegistry.live() and RRCollector.current?.baselineTracker, then on the private queue builds the context and overlays the live workout and live HRV broker snapshots; resumes the continuation with it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()"
+   ],
+   "reads": [
+    "mem:RRCollector.current",
+    "mem:TrainingLoadRegistry live load",
+    "mem:LiveWorkoutBroker snapshot",
+    "mem:LiveHRVBroker snapshot"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)": "323361ccc78e4b92",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveHRVBroker.currentSnapshot()": "9544923aae2a6add",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "a50b1a67daa97277",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)",
+   "hash": "0606ea05834c6808",
+   "does": "Loads ~30 days of lightweight sessions, picks newest overnight (else newest any) as latest and the previous overnight as yesterday, computes per-night scoring baselines excluding each night, and calls ContextBuilder.build with settings, tags, 7/30-day TrendAnalyzer results and live load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.previousOvernight(after:in:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot",
+    "mem:BaselineTracker.baseline"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "overnightSessions.first ?? recentSessions.first",
+     "effect": "no overnight in 30 days → newest session of any type is the 'today' anchor; none at all → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.previousOvernight(after:in:)": "d1e857779d662d3d",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()": "969883c6e1ada68c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "aac5024f6b848ae2",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func AssistantContextSource.recentLightweightSessions()",
+   "hash": "e1ae480d8398e448",
+   "does": "Returns archive entries from the last 30 days, newest first, mapped to lightweight sessions (failures logged and dropped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweightOrLog"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "date arithmetic returns nil",
+     "effect": "cutoff = distantPast (all sessions); else now−30d"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func AssistantContextSource.previousOvernight(after:in:)",
+   "hash": "a6ab10624680e903",
+   "does": "Returns the first overnight session (list is newest first) whose id differs from latest and starts before it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latest nil",
+     "effect": "return nil; else search overnight list"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

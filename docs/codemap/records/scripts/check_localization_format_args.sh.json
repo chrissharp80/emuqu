@@ -1,0 +1,24 @@
+{
+ "file": "scripts/check_localization_format_args.sh",
+ "hash": "aa73bbb978a8925b",
+ "role": "CI gate: every translation's printf specifiers must read the same argument positions/types as the English form (positional reordering required), and no lone '%'.",
+ "types": [],
+ "state": [
+  "file:Emuqu/Localizable.xcstrings"
+ ],
+ "toplevel": "set -euo pipefail. CATALOGUE=$1 or Emuqu/Localizable.xcstrings (missing -> 2). Python: SPEC regex; kind() maps conversions to object/integer/float/cstring/pointer; arguments() maps positions; units() flattens variations; per non-source locale/label compares with English (or the key itself when no English entry); lone % when English has specifiers; extra position or kind mismatch -> failure; any -> exit 1. Only the default Localizable catalogue is checked in CI.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Integer width is not compared: a translation using %d where English uses %lld (64-bit Int) is classed as the same 'integer' kind and passes.",
+   "evidence": [
+    "scripts/check_localization_format_args.sh:50",
+    "scripts/check_localization_format_args.sh:54"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

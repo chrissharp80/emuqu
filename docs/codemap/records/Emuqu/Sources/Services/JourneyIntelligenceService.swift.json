@@ -1,0 +1,235 @@
+{
+ "file": "Emuqu/Sources/Services/JourneyIntelligenceService.swift",
+ "hash": "5c29835f03d8c239",
+ "role": "Pure analysis of a breadcrumb trail into a journey snapshot: shape (out-and-back/loop/point-to-point), direction relative to origin, path/crow-fly distances, and out-and-back time projections, used by AI location.journey facts and live coaching.",
+ "types": [
+  "JourneyIntelligenceService: enum — static snapshot heuristics",
+  "JourneyIntelligenceService.Shape: enum",
+  "JourneyIntelligenceService.Direction: enum",
+  "JourneyIntelligenceService.Snapshot: struct — result record"
+ ],
+ "state": [],
+ "toplevel": "No top-level code beyond type declarations.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Snapshot.projectedTotalSeconds is documented as set for both .outAndBackReturning and .outAndBackOutbound, but project() returns total nil for .outAndBackOutbound.",
+   "evidence": [
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:82-85",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:160"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references JourneyIntelligenceService; shape thresholds (50 m, 0.75, 2.5, 1.3, 200 m) are unverified.",
+   "evidence": [
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift:211"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func JourneyIntelligenceService.snapshot(for:)",
+   "hash": "782127d83841f2fc",
+   "does": "Builds a Snapshot from a trail with >=3 fixes and an origin: elapsed since origin, crow-fly from last fix, path length, farthest point, direction, shape, projections, origin label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.farthestPoint(in:from:)",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferDirection(trail:originFix:)",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferShape(crowFly:pathLength:maxFromOrigin:direction:)",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.project(shape:elapsed:farthest:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fixes.count >= 3",
+     "effect": "false: return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "origin present",
+     "effect": "false: return nil"
+    },
+    {
+     "at": "+16",
+     "cond": "farthest.elapsed > 0",
+     "effect": "true: elapsedAtFarthestSeconds = it; false: nil (also nil when the origin itself is farthest)"
+    },
+    {
+     "at": "+19",
+     "cond": "trail.label ?? resolvedOriginLabel",
+     "effect": "originLabel falls back to geocoded label, else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Snapshot shape/direction are emitted as Swift rawValues ('outAndBackReturning', 'outAndBackOutbound', 'towardOrigin', 'awayFromOrigin'), but the location.journey tool description and the system prompt rules key on snake_case values ('out_and_back_returning', 'out_and_back_outbound', 'toward_origin'), so the model is told values that never appear and the system-prompt rules for surfacing the return projection and hedging the outbound 'remaining' (which is really 'time back if you turn now') do not match the data.",
+     "evidence": [
+      "Emuqu/Sources/Services/JourneyIntelligenceService.swift:42-60",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:867-868",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:898",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift:447-448"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.farthestPoint(in:from:)": "f34f9d7fe2ffbbfc",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferDirection(trail:originFix:)": "2c5c0e3a47ae2cf4",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.inferShape(crowFly:pathLength:maxFromOrigin:direction:)": "ebdca5ce2d450012",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.project(shape:elapsed:farthest:)": "ad806e7fe67c27cb",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func JourneyIntelligenceService.farthestPoint(in:from:)",
+   "hash": "a4accb08c3bd5cbf",
+   "does": "Scans all fixes for the one farthest (straight line) from origin; returns its distance and seconds since origin (0,0 if none farther than 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each fix",
+     "effect": "compute distance to origin"
+    },
+    {
+     "at": "+8",
+     "cond": "d > maxFromOrigin",
+     "effect": "true: record new max and its elapsed; false: skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func JourneyIntelligenceService.project(shape:elapsed:farthest:)",
+   "hash": "f9a970a1311399cf",
+   "does": "Projects journey time: returning → total = 2×elapsed-at-farthest, remaining = max(0,total−elapsed) (nil,nil if farthest ≤50 m); outbound → (nil, elapsed) as the turn-around-now return time; other shapes → (nil,nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "case .outAndBackReturning",
+     "effect": "go to 50 m guard"
+    },
+    {
+     "at": "+5",
+     "cond": "farthest.meters > 50",
+     "effect": "false: (nil,nil); true: projection"
+    },
+    {
+     "at": "+8",
+     "cond": "case .outAndBackOutbound",
+     "effect": "(nil, elapsed)"
+    },
+    {
+     "at": "+10",
+     "cond": "default (loop, pointToPoint, unknown)",
+     "effect": "(nil, nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func JourneyIntelligenceService.inferDirection(trail:originFix:)",
+   "hash": "6c28a579f32d6d5d",
+   "does": "Compares the net displacement over the last 60 s with the vector to origin (longitude scaled by cos lat): dot>0 → towardOrigin, else awayFromOrigin; stationary when moved <5 m; unknown when <2 recent fixes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trail.fixes.last exists",
+     "effect": "false: .unknown"
+    },
+    {
+     "at": "+8",
+     "cond": "recent window has a first fix and >=2 fixes",
+     "effect": "false: .unknown"
+    },
+    {
+     "at": "+11",
+     "cond": "distance first→last recent >= 5 m",
+     "effect": "false: .stationary"
+    },
+    {
+     "at": "+21",
+     "cond": "dot product > 0",
+     "effect": "true: .towardOrigin; false (incl. exactly 0): .awayFromOrigin"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func JourneyIntelligenceService.inferShape(crowFly:pathLength:maxFromOrigin:direction:)",
+   "hash": "0971097c0421482e",
+   "does": "Classifies shape: unknown if path ≤50 m; outAndBackReturning if crow-fly < 75% of max distance and heading toward origin; loop if path/crow-fly > 2.5 (or crow-fly ≤1 m); pointToPoint if ratio <1.3 and crow-fly >200 m; else outAndBackOutbound.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "pathLength > 50",
+     "effect": "false: .unknown"
+    },
+    {
+     "at": "+8",
+     "cond": "maxFromOrigin > 0 AND crowFly < 0.75·max AND direction == .towardOrigin",
+     "effect": "true: .outAndBackReturning"
+    },
+    {
+     "at": "+14",
+     "cond": "crowFly > 1",
+     "effect": "true: ratio = path/crowFly; false: infinity (forces .loop)"
+    },
+    {
+     "at": "+15",
+     "cond": "ratio > 2.5",
+     "effect": "true: .loop"
+    },
+    {
+     "at": "+18",
+     "cond": "ratio < 1.3 AND crowFly > 200",
+     "effect": "true: .pointToPoint; false: .outAndBackOutbound"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

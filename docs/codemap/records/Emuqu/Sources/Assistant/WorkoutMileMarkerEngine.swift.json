@@ -1,0 +1,598 @@
+{
+ "file": "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift",
+ "hash": "9c7381fb7ca3d580",
+ "role": "Opt-in Tier-2 split-marker announcements: MileMarkerInterval setting enum, per-workout MileMarkerState, a pure evaluator that emits a MileMarkerPayload when a new distance/time marker is crossed, and a formatter that renders it as one localized spoken line. Driven by WorkoutVoiceCoach.tickMileMarker when enableMileMarkerNotifications is on.",
+ "types": [
+  "MileMarkerInterval: enum (String, Codable, CaseIterable) — stored in UserSettings.mileMarkerInterval",
+  "MileMarkerState: struct — lastMarkerIndex and split-start distance/elevation/elapsed",
+  "MileMarkerPayload: struct — one announcement's data",
+  "MileMarkerUnit: enum — resolved marker unit",
+  "WorkoutMileMarkerEngine: enum — pure evaluator",
+  "MileMarkerUnit (private extension) — metersPerMarker",
+  "MileMarkerFormatter: enum — payload → speakable string"
+ ],
+ "state": [
+  "static let WorkoutMileMarkerEngine.cadenceShiftSpm: Double = 5 (line 212)",
+  "UserSettings key mileMarkerInterval (declared in UserSettings+Model.swift:468, type declared here)"
+ ],
+ "toplevel": "MileMarkerState fields default 0; MileMarkerPayload.cadenceShiftSpm is a var.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Formatter header says it caps content at the 4-second target 'by elision (drop optional fields, shorten labels)', but render() has no length check or label shortening; it only omits nil fields.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:245",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:258"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "MileMarkerState starts at index 0 / split start 0 and WorkoutVoiceCoach only runs the evaluator while enableMileMarkerNotifications is on, so turning the toggle on mid-workout makes the first announcement report the whole workout so far as one split (e.g. 'Mile 4 in 34:10', with the average pace), skipping miles 1-3.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:114",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:146",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:143"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "split.markerCompleted in the trigger engine computes the same per-mile/km crossing (with a 60 s guard) as this engine; the rule is .silent and only writes the engine's unread history.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:594",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:134"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MileMarkerInterval.displayName",
+   "hash": "20bd455141961bcd",
+   "does": "Returns the localized settings label for each interval case (used by the Notifications settings picker).",
+   "entry": "SwiftUI: Picker rows in NotificationsSettingsPage.mileMarkerIntervalPicker (Emuqu/Sources/Views/NotificationsSettingsPage.swift:239)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .everyDistanceUnit",
+     "effect": "'Every mile (or km)'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .everyMile",
+     "effect": "'Every mile'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .everyKilometer",
+     "effect": "'Every km'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .everyTwoKilometers",
+     "effect": "'Every 2 km'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .everyFiveKilometers",
+     "effect": "'Every 5 km'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .everyTenMinutes",
+     "effect": "'Every 10 min'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+   "hash": "36d3d8c4f4f83597",
+   "does": "Before 60 s elapsed returns (nil, state). Otherwise resolves the marker unit, computes the current marker index, and if it exceeds state.lastMarkerIndex returns a payload (split duration, split pace, HR zone label, totals, shifted cadence, split climb) plus a new state anchored at the current distance/elevation gain/elapsed; else (nil, state).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "context.elapsedSeconds >= 60",
+     "effect": "false: returns (nil, unchanged state) to avoid a GPS-jitter mile in the first minute; true: continue"
+    },
+    {
+     "at": "+9",
+     "cond": "currentIndex > state.lastMarkerIndex",
+     "effect": "false: returns (nil, state); true: builds payload and next state. If several markers were crossed since last tick only the latest index is announced, its split spanning all of them"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "state.lastMarkerIndex is stored in whatever unit was in force when it was set, but each tick recomputes the index in the CURRENT interval/units (settings.mileMarkerInterval and UnitsPreferenceStore are re-read every tick in WorkoutVoiceCoach.tickMileMarker). Changing the interval mid-workout from km to 5 km at km 7 mutes markers until 40 km (index must exceed 7); changing 5 km to km at 5 km fires immediately with a split spanning the whole workout. Units .auto/metric→imperial flips with .everyDistanceUnit have the same effect.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:143",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:155",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:124",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:128"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+   "hash": "37a02877d37c3795",
+   "does": "Returns elapsed/600 for the ten-minute unit, otherwise floor(distance / metersPerMarker), or 0 if the unit has no metres.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unit is .tenMinutes",
+     "effect": "returns elapsedSeconds / 600; else distance-based"
+    },
+    {
+     "at": "+3",
+     "cond": "metersPerMarker > 0",
+     "effect": "false: returns 0 (only .tenMinutes has 0, already handled above, so unreachable); true: Int(distance / metres)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.splitPace(context:state:)",
+   "hash": "0739c4bb3de756bd",
+   "does": "Computes split pace sec/km from distance and time since split start; nil when the split covered ≤ 100 m.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "split distance > 100 m",
+     "effect": "false: nil (no pace in payload; e.g. a stationary 10-minute block); true: duration / km"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+   "hash": "b02bf9abc3d29456",
+   "does": "Returns elevation gained since split start when ≥ 15 m, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "split elevation gain >= 15 m",
+     "effect": "true: returns gain; false: nil (formatter omits climb)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+   "hash": "a79ca06ee85cebbf",
+   "does": "Maps the configured interval to a concrete marker unit; .everyDistanceUnit becomes mile for imperial users and kilometer otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .everyDistanceUnit / unitsImperial ? .mile : .kilometer",
+     "effect": "imperial: .mile; metric: .kilometer"
+    },
+    {
+     "at": "+6",
+     "cond": "case .everyMile",
+     "effect": ".mile"
+    },
+    {
+     "at": "+7",
+     "cond": "case .everyKilometer",
+     "effect": ".kilometer"
+    },
+    {
+     "at": "+8",
+     "cond": "case .everyTwoKilometers",
+     "effect": ".twoKilometers"
+    },
+    {
+     "at": "+9",
+     "cond": "case .everyFiveKilometers",
+     "effect": ".fiveKilometers"
+    },
+    {
+     "at": "+10",
+     "cond": "case .everyTenMinutes",
+     "effect": ".tenMinutes"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+   "hash": "1cfba611cd70478a",
+   "does": "Returns the localized 'Zone N' label from HRZone.classify for the current HR, nil when HR unknown, max HR ≤ 0, or HR below 50% max.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)",
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.localizedLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "context.heartRate non-nil",
+     "effect": "nil: returns nil; else classify and take localizedLabel (nil when below Z1)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.localizedLabel": "80ad87ebab6d0e9b"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+   "hash": "f940680b628a24ad",
+   "does": "For run/trailRun/treadmill with known cadence and cadence drift of at least 5 spm in magnitude, returns (current spm, drift); otherwise nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMileMarkerEngine.cadenceShiftSpm"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sport is run/trailRun/treadmill AND cadence known AND cadenceDriftSpm known AND |drift| >= 5",
+     "effect": "true: returns (spm, shift); false: nil (cadence omitted from announcement)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART says the mile-marker cadence is emitted 'only if outside 165–190 spm band', but the code emits it when |cadenceDriftSpm| >= 5 relative to the runner's first-quarter cadence; there is no fixed band.",
+     "evidence": [
+      "docs/FLOWCHART.md:1133",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:221",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:224"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+   }
+  },
+  {
+   "key": "var MileMarkerUnit.metersPerMarker",
+   "hash": "f4a6873e5f1d67d1",
+   "does": "Metres per marker for each unit: mile 1609.344, km 1000, 2 km 2000, 5 km 5000, ten-minutes 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .mile",
+     "effect": "1609.344"
+    },
+    {
+     "at": "+3",
+     "cond": "case .kilometer",
+     "effect": "1000"
+    },
+    {
+     "at": "+4",
+     "cond": "case .twoKilometers",
+     "effect": "2000"
+    },
+    {
+     "at": "+5",
+     "cond": "case .fiveKilometers",
+     "effect": "5000"
+    },
+    {
+     "at": "+6",
+     "cond": "case .tenMinutes",
+     "effect": "0 (time-based)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MileMarkerFormatter.render(payload:unitsImperial:)",
+   "hash": "57e29c4e627eab01",
+   "does": "Joins headline, pace label (if split pace), HR zone label (if any), 'total <distance>' (distance intervals only) and optional cadence/climb parts with ', ' and a trailing period.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "payload.splitPaceSecPerKm non-nil",
+     "effect": "appends pace label; nil: omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "payload.hrZoneLabel non-nil",
+     "effect": "appends zone label; nil: omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "markerUnit != .tenMinutes",
+     "effect": "appends 'total <distance>'; ten-minute markers omit total distance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)": "4523debe6f910e85",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)": "2243c3e5586bef71",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)": "bb9b3ba97de42e20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)": "c4fbf20785f22e9c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)",
+   "hash": "2e92a6467d07a3ca",
+   "does": "Builds the skip-when-normal parts: cadence label when cadenceSpm set, and '<climb> of climbing this split' when split gain set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.cadenceLabel(spm:shift:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatElevation(meters:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "payload.cadenceSpm non-nil",
+     "effect": "appends cadence label; else omitted"
+    },
+    {
+     "at": "+4",
+     "cond": "payload.cadenceShiftSpm nil (`?? 0`)",
+     "effect": "uses shift 0 → rendered as 'up 0'; never nil in engine payloads since both are set together"
+    },
+    {
+     "at": "+6",
+     "cond": "payload.splitElevationGainMeters non-nil",
+     "effect": "appends climb phrase; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.cadenceLabel(spm:shift:)": "ceed56eddded6a98",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatElevation(meters:imperial:)": "917338f8f3eaf4cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.cadenceLabel(spm:shift:)",
+   "hash": "64ca259798f702b0",
+   "does": "Renders 'cadence <n>, down|up <delta> from your early-run cadence' (rounded).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "shift < 0",
+     "effect": "'down' phrasing; ≥ 0: 'up' phrasing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.headline(_:)",
+   "hash": "82384c4d8331e820",
+   "does": "Renders the headline: 'Mile N in m:ss', 'Kilometer N in m:ss', '<2N> km in', '<5N> km in', or '<10N> minutes in' with the split duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDuration(seconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .mile",
+     "effect": "'Mile N in <time>'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .kilometer",
+     "effect": "'Kilometer N in <time>'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .twoKilometers",
+     "effect": "'<N*2> km in <time>'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .fiveKilometers",
+     "effect": "'<N*5> km in <time>'"
+    },
+    {
+     "at": "+9",
+     "cond": "case .tenMinutes",
+     "effect": "'<N*10> minutes in <time>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDuration(seconds:)": "fd32d36d0ebed51c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.formatDuration(seconds:)",
+   "hash": "93bd01f2d75785b4",
+   "does": "Formats seconds as m:ss (minutes unbounded).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MileMarkerFormatter.paceLabel(secPerKm:imperial:)",
+   "hash": "ac8c27ca036df786",
+   "does": "Converts sec/km to sec/mi when imperial, rounds, and renders 'pace m:ss min/mi' or 'min/km'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "multiplies by 1.609344; else unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "imperial",
+     "effect": "'min/mi' string; else 'min/km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.formatDistance(meters:imperial:)",
+   "hash": "4dbd4ad88a10dbee",
+   "does": "Formats total distance in wide unit words (miles with 1 dp or kilometres with 2 dp) in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "converts to miles; else kilometres"
+    },
+    {
+     "at": "+5",
+     "cond": "imperial",
+     "effect": "1 fraction digit; else 2"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func MileMarkerFormatter.formatElevation(meters:imperial:)",
+   "hash": "0eb148b9376463f6",
+   "does": "Formats split climb as wide feet or metres with 0 dp in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "feet; else metres"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,44 @@
+{
+ "file": "scripts/check_log_redaction.sh",
+ "hash": "33310112e1f6b8c5",
+ "role": "CI gate: log-call lines (debugLog, logger.*, os_log, NSLog, print, ...) must not interpolate PII/credential names, latitude/longitude, or raw RR/beat series.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources",
+  "dir:EmuquWatch Watch App"
+ ],
+ "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app. tmp via gate_mktemp (|| exit). find|xargs awk writes every line matching LOG_CALL not carrying (or preceded by) `log-redaction-ok` to tmp; errors suppressed (`|| true`). report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN; any -> remediation text + exit 1; else clean with scanned count.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Line-based: an interpolation on a continuation line of a multi-line log call is not seen; RAW_SERIES_PATTERN only matches a bare `\\(rr)`-style identifier, not `\\(self.rrIntervals)` or `\\(session.rr)`. A missing root makes find fail silently and the gate reports clean with fewer sites.",
+   "evidence": [
+    "scripts/check_log_redaction.sh:47",
+    "scripts/check_log_redaction.sh:63",
+    "scripts/check_log_redaction.sh:72"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn report",
+   "hash": "1b72d8814ba21738",
+   "does": "Greps the collected log-call lines in $tmp for an extended regex; on hits prints 'FAIL: <label> interpolated into a log statement' with the lines and sets global violations=1.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:$tmp (gate_mktemp log-redaction)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "Tools/copy_linter/lint.py::": "23a02988758cfb85",
+  "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea"
+ }
+}

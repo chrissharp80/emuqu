@@ -1,0 +1,235 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift",
+ "hash": "598e62121a77edf1",
+ "role": "TrainingLoadNamespace extension implementing the `training.trajectory` fact: rebuilds the Load & Trajectory screen's 90-day series with today's bucket overridden by live load, computes the TrajectoryVerdict, ramp band, form descriptor and Foster monotony/strain.",
+ "types": [
+  "TrainingLoadNamespace: extension — trajectory verdict record builders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says this is 'the trajectory verdict the dashboard chip shows', but the dashboard chip anchors currentCTL on yesterday and week-ago on series[count-9] (DashboardV2View+Chips), while this fact uses today's CTL and series[count-8] (the Load & Trajectory screen's method); the AI and the dashboard chip can report different verdicts.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:28",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:225",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift:259"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrainingLoadNamespace.trajectoryRecord()",
+   "hash": "bc988ce17d7e0847",
+   "does": "Resolves `training.trajectory`: reads TrainingMetricsCache.dailySeries and live load, builds the screen series, computes ramp rate, week-ago CTL (series[count-8]) and TrajectoryVerdict with user settings flags, then returns trajectory fields merged with Foster monotony/strain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.screenSeries(_:live:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.ctlRampPerWeek(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryFields(verdict:rampRate:live:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.fosterFields(_:)",
+    "closure:TrainingLoadNamespace.settings — @Sendable () -> UserSettings injected by AppFactResolver.swift:192"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries",
+    "mem:TrainingLoadRegistry.live",
+    "mem:UserSettings.isComebackModeActive",
+    "mem:UserSettings.isIntentionalOverreachInEffect",
+    "mem:UserSettings.peakingDetectionEnabled"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "liveOrCached returns a load",
+     "effect": "false: missing(.notYetComputed,'not enough training history')"
+    },
+    {
+     "at": "+6",
+     "cond": "series has >= 2 days and a last element",
+     "effect": "false: missing(.notYetComputed,...); true: computes verdict"
+    },
+    {
+     "at": "+10",
+     "cond": "series.count >= 8",
+     "effect": "true: weekAgoCTL = series[count-8].ctl; false: nil passed to verdict"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When dailySeries has no bucket for today (not yet refreshed), screenSeries injects no live value, so the verdict uses the last stored day's CTL while current_ctl/atl/tsb fields report live values — the record can be internally inconsistent.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:59",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:30",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:43"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func TrainingLoadNamespace.liveOrCached()": "dde23a0266529754",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.ctlRampPerWeek(_:)": "fdb91e4f1da91114",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.fosterFields(_:)": "822dcbda6d218972",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.screenSeries(_:live:)": "50fe905b68d82edc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.trajectoryFields(verdict:rampRate:live:)": "e5a3abd394b42c5a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "b9e51bf888ce0384",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.trajectoryFields(verdict:rampRate:live:)",
+   "hash": "d0f2a7dde4c8c37c",
+   "does": "Builds trajectory record fields: trajectory raw/label, ramp rate and RampBand, FormDescriptor raw/word from live TSB, current ctl/atl/tsb.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.word"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)": "eea56a82a52bdb74",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)": "74140b75347b9801",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.word": "a856dde9211d5fd1",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.chipLabel": "f67fc74dabbf06cf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)": "b9e51bf888ce0384",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.screenSeries(_:live:)",
+   "hash": "7be04770df79ce64",
+   "does": "Filters dailySeries to the last 90 days, sorts oldest→newest, and replaces today's bucket's atl/ctl with live values (trimp kept).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "Calendar can compute now-90d",
+     "effect": "nil: falls back to Date() as cutoff (series becomes only today/future)"
+    },
+    {
+     "at": "+10",
+     "cond": "day is today",
+     "effect": "false: day unchanged; true: new DaySample with live atl/ctl"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.ctlRampPerWeek(_:)",
+   "hash": "b3f7bcf55aa6540f",
+   "does": "Returns TrajectoryVerdict.ctlSlopePerWeek over the series' CTL values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.verdict(series:currentCTL:ctlOneWeekAgo:rampRate:tsb:cfg:)",
+   "hash": "e292ffcca181e114",
+   "does": "Builds TrajectoryVerdict.Inputs (current CTL, week-ago CTL, sample count, comeback/overreach flags, peaking = setting && isPeaking, ramp, TSB) and calls TrajectoryVerdict.compute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.isPeaking(_:)"
+   ],
+   "reads": [
+    "mem:UserSettings.peakingDetectionEnabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Peaking heuristic (last 4 days TSB/CTL > 10%) is duplicated three times: isPeaking here, LoadTrajectoryLoader.peakingHeuristic and DashboardV2View peakingDetected.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:90",
+      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:266"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift::func TrainingLoadNamespace.isPeaking(_:)": "c66920844fc29366",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.isPeaking(_:)",
+   "hash": "ae07bc14cb509cab",
+   "does": "True when the last 4 series days all have CTL > 0 and (CTL-ATL)/CTL > 0.10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "at least 4 days in series",
+     "effect": "false: returns false; true: evaluates allSatisfy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadNamespace.fosterFields(_:)",
+   "hash": "c32040eff2e745aa",
+   "does": "Maps dailySeries to date→trimp and returns Foster monotony and strain over the trailing 7 days, or [] when that week's total is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fosterMonotonyStrain returns a value",
+     "effect": "nil (no load in last 7 days or calendar failure): returns empty dict so monotony/strain keys are omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0"
+   }
+  }
+ ],
+ "deps": {}
+}

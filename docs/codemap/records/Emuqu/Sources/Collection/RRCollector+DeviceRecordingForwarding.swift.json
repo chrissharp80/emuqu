@@ -1,0 +1,155 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift",
+ "hash": "0a4edec48979e6fb",
+ "role": "RRCollector forwarders into DeviceRecordingSession (built on demand) so existing call sites keep working.",
+ "types": [
+  "RRCollector: extension — device-recording forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The doc calls `deviceRecording` 'Lazy — a streaming night never builds it', but it is a computed property that constructs a new DeviceRecordingSession value on every access.",
+   "evidence": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift:9",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift:11"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RRCollector.deviceRecording",
+   "hash": "6573f142a8b435b0",
+   "does": "Returns a new DeviceRecordingSession wrapping this collector on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.startSession(sessionType:)",
+   "hash": "bccc0b4c1868990f",
+   "does": "Forwards to DeviceRecordingSession.startSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "6f02e775e89ff1fe",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.stopSession()",
+   "hash": "f07c494d3e12bb37",
+   "does": "Forwards to DeviceRecordingSession.stopSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "4f7ffc19d99f72c5",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.backupRawData(_:sessionId:startDate:)",
+   "hash": "e3128151fb8e8c33",
+   "does": "Forwards to DeviceRecordingSession.backupRawData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.backupRawData(_:sessionId:startDate:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:RawRRBackup"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in app or tests (grep 'backupRawData(' finds only DeviceRecording.swift:125 calling its own method and this forwarder's body).",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift:23",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:125"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.backupRawData(_:sessionId:startDate:)": "f7432c395abfff6b",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.fetchTrainingLoadIfEnabled()",
+   "hash": "e7131cf4e2b7ab1f",
+   "does": "Forwards to DeviceRecordingSession.fetchTrainingLoadIfEnabled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.cachedTrainingLoad"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()": "4ca8fe050a9e82ea",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  },
+  {
+   "key": "func RRCollector.runAnalysis(session:windowResult:flags:)",
+   "hash": "e2e6da63f2f8f487",
+   "does": "Forwards to DeviceRecordingSession.runAnalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.runAnalysis(session:windowResult:flags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller: ImportDataView+Actions.swift:145 and MorningProcessingService+Merging.swift:283 call their own runAnalysis(series:...) overloads, and DeviceRecording.swift:191 calls the DeviceRecordingSession method directly.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift:31",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:145",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:283",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:191"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.runAnalysis(session:windowResult:flags:)": "b1daef1e52ffcf1a",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "92ea62b97877e40e"
+   }
+  }
+ ],
+ "deps": {}
+}

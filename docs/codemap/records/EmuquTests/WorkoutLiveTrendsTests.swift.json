@@ -1,0 +1,2283 @@
+{
+ "file": "EmuquTests/WorkoutLiveTrendsTests.swift",
+ "hash": "209f7fa5e91d828d",
+ "role": "Five XCTest suites for WorkoutLiveTrends.swift: live sample metrics (reverse split, HR drift, aerobic decoupling, recent HR slope, cadence drift), grade-adjusted pace/splits/fade projection, WorkoutZoneBreakdown, TrainingPaceZones/TrainingLoadProjection/RecoveryTimeEstimate, and RaceTimePrediction/WorkoutHistoryBaselines.",
+ "types": [
+  "WorkoutFixture: enum (private, file scope) — shared sample/distance/session fixtures",
+  "WorkoutLiveTrendsSampleMetricsTests: class — half/quartile live metrics",
+  "WorkoutGradeAdjustedPaceTests: class — GAP, per-split GAP, fade projection",
+  "WorkoutZoneBreakdownTests: class — live time-in-zone",
+  "TrainingLoadProjectionTests: class — pace zones, ATL/CTL projection, recovery hours",
+  "RaceAndHistoryBaselineTests: class — Riegel prediction and history baselines"
+ ],
+ "state": [],
+ "toplevel": "File-scope private enum WorkoutFixture holds static fixture builders; no stored state.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Two zone models disagree below 50% of max HR and the tests pin both: WorkoutGeometry.hrMaxZone returns zone 1 for any HR under 60% (HR 40/190 → zone 1) and its comment says threshold zone and displayed zone 'always agree', while WorkoutZoneBreakdown drops time under 50% (dominantZone nil). A zone-1 threshold fires on HR the live breakdown does not count as zone 1.",
+   "evidence": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift:106",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:296",
+    "EmuquTests/WorkoutGeometryTests.swift:100",
+    "EmuquTests/WorkoutLiveTrendsTests.swift:543"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)",
+   "hash": "bf553b8cf8d9cced",
+   "does": "Fixture: builds `count` WorkoutSamples at offsets 0..<count with hr/pace/cadence/distance/altitude produced by optional per-offset closures (nil closure → nil field).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func WorkoutFixture.distanceCurve(_:)",
+   "hash": "ba7feb4b9b7c6a4d",
+   "does": "Fixture: builds a cumulative-distance array from (seconds, m/s) legs and returns its length plus a closure returning the distance at an offset (nil past the end).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each leg",
+     "effect": "iterates the legs"
+    },
+    {
+     "at": "+4",
+     "cond": "for each second in leg",
+     "effect": "appends the running total then adds leg.mps"
+    },
+    {
+     "at": "+11",
+     "cond": "offset < cumulative.count",
+     "effect": "true: cumulative distance; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)",
+   "hash": "95d7de325d544526",
+   "does": "Fixture: complete workout HRVSession starting startedDaysIn days after epoch with given duration and WorkoutMetadata(sport, distance, samples or nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+21",
+     "cond": "samples.isEmpty",
+     "effect": "true: metadata.samples nil; false: the given samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testReverseSplitIsPositiveWhenSlowingDown()",
+   "hash": "33bda40bd071fa04",
+   "does": "Asserts reverse split is +20 s/km when pace goes 300→320 at the 600 s midpoint of a 1201-sample buffer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "offset < 600",
+     "effect": "true: pace 300; false: pace 320"
+    },
+    {
+     "at": "+5",
+     "cond": "result is nil",
+     "effect": "?? 0 fallback makes a nil fail the 20 ±0.001 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testReverseSplitIsNegativeForATrueNegativeSplit()",
+   "hash": "82631b7a350e46d4",
+   "does": "Asserts reverse split is -20 s/km for a 320→300 negative split.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset < 600",
+     "effect": "true: 320; false: 300"
+    },
+    {
+     "at": "+4",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the -20 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testReverseSplitIsSilentBeforeTenMinutes()",
+   "hash": "415be9c4ed879d08",
+   "does": "Asserts nil when last offset is 599 (<600 s floor).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testReverseSplitIsSilentWithoutThirtyPacesPerHalf()",
+   "hash": "2f7f2ad28c688b2b",
+   "does": "Asserts nil when pace is present only every 60 s (fewer than 30 paces per half).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "offset multiple of 60",
+     "effect": "true: pace 300; false: nil pace"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testReverseSplitIsSilentOnAnEmptyBuffer()",
+   "hash": "1d0235333dd66804",
+   "does": "Asserts nil for an empty buffer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testHRDriftIsPositiveWhenHeartRateClimbs()",
+   "hash": "60a034b466e2249f",
+   "does": "Asserts HR drift is +10% when first-quartile HR is 140 and last-quartile 154.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "offset < 300",
+     "effect": "returns 140 (first quartile)"
+    },
+    {
+     "at": "+4",
+     "cond": "offset >= 900",
+     "effect": "returns 154 (last quartile); otherwise 147"
+    },
+    {
+     "at": "+7",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the 10 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testHRDriftIsNegativeWhenHeartRateRecovers()",
+   "hash": "9e42f4342e9206a6",
+   "does": "Asserts HR drift is -10% for 150→135.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset < 300",
+     "effect": "150"
+    },
+    {
+     "at": "+3",
+     "cond": "offset >= 900",
+     "effect": "135; otherwise 142"
+    },
+    {
+     "at": "+6",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the -10 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testHRDriftIsSilentBeforeSevenMinutes()",
+   "hash": "7f90d65abc06f5c4",
+   "does": "Asserts nil when last offset is 419 (<420 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testHRDriftIsSilentWhenTheStrapWasMostlyQuiet()",
+   "hash": "70540415062d1769",
+   "does": "Asserts nil when HR is present only every 60 s (fewer than 30 per quartile).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset multiple of 60",
+     "effect": "true: 140; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testDecouplingIsPositiveWhenEfficiencyDrops()",
+   "hash": "5af01b64c5b9b3f7",
+   "does": "Asserts aerobic decoupling equals (1-140/154)*100 when HR rises 140→154 at constant pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "offset < 600",
+     "effect": "HR 140 else 154"
+    },
+    {
+     "at": "+9",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testDecouplingIsNegativeWhenEfficiencyImproves()",
+   "hash": "eb2f1ea479519a6b",
+   "does": "Asserts decoupling equals (1-140/130)*100 (negative) when HR falls 140→130.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "offset < 600",
+     "effect": "HR 140 else 130"
+    },
+    {
+     "at": "+8",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testDecouplingIsZeroWhenNothingChanges()",
+   "hash": "2d9064cecd062f5f",
+   "does": "Asserts decoupling is 0 with constant HR and pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "result nil",
+     "effect": "?? 99 fallback makes a nil fail the 0 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testDecouplingIsSilentWithoutBothPaceAndHeartRate()",
+   "hash": "9664073629d74434",
+   "does": "Asserts nil decoupling with pace only and with HR only.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.efficiency(in:)": "467a9c51ab2218b6",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testDecouplingIsSilentBeforeTenMinutes()",
+   "hash": "e2e1e3d155eea76e",
+   "does": "Asserts nil decoupling when last offset is 599.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testRecentSlopeIsPositiveWhileHeartRateRises()",
+   "hash": "5711b9323a8abf32",
+   "does": "Asserts recent HR slope is +10 when HR steps 140→150 after offset 90 in a 121-sample buffer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "offset > 90",
+     "effect": "150 else 140"
+    },
+    {
+     "at": "+5",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the 10 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testRecentSlopeIsNegativeWhileHeartRateFalls()",
+   "hash": "c4c86eb871104110",
+   "does": "Asserts slope is -10 when HR steps 140→130.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset > 90",
+     "effect": "130 else 140"
+    },
+    {
+     "at": "+4",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testRecentSlopeIsSilentBeforeNinetySeconds()",
+   "hash": "b605022c7eb269f4",
+   "does": "Asserts nil slope when last offset is 89 (<90 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testRecentSlopeIsSilentWithoutTenReadingsInEachWindow()",
+   "hash": "7fc86211528ca1bc",
+   "does": "Asserts nil slope when HR is present only every 20 s (<10 readings per window).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset multiple of 20",
+     "effect": "140 else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testCadenceDriftIsNegativeWhenStrideBreaksDown()",
+   "hash": "99dff0168b4a9f1e",
+   "does": "Asserts cadence drift is -8 spm for 180 first quartile vs 172 last quartile.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset < 300",
+     "effect": "180"
+    },
+    {
+     "at": "+3",
+     "cond": "offset >= 900",
+     "effect": "172; otherwise 176"
+    },
+    {
+     "at": "+6",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the -8 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testCadenceDriftIsSilentBeforeSevenMinutes()",
+   "hash": "7ecc3812f688dcc9",
+   "does": "Asserts nil cadence drift when last offset is 419.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsSampleMetricsTests.testCadenceDriftIsSilentForABikeWithNoCadencePod()",
+   "hash": "fa4b5aec11338560",
+   "does": "Asserts nil cadence drift when no cadence is recorded.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testGradeAdjustedPaceNeedsARealPace()",
+   "hash": "72b167110fd278bc",
+   "does": "Asserts GAP is nil for nil, zero and negative pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testGradeAdjustedPaceIsAPassThroughWithoutAGrade()",
+   "hash": "992dd904bc6225b7",
+   "does": "Asserts GAP returns the pace unchanged when grade is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testFlatGroundLeavesThePaceAlone()",
+   "hash": "2b943bb65e54784f",
+   "does": "Asserts GAP at 0% grade is the raw pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the 300 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testUphillPaceIsWorthAFasterFlatEquivalent()",
+   "hash": "99a5e7b434a17373",
+   "does": "Asserts GAP at +5% for 300 s/km is under 300 and equals 230.5 ±1 (Minetti cost polynomial).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "result nil",
+     "effect": "?? 0 fallback; 0 < 300 passes the first assertion but fails the 230.5 one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testDownhillPaceIsWorthASlowerFlatEquivalent()",
+   "hash": "d4ab3017524052f0",
+   "does": "Asserts GAP at -5% for 300 s/km is over 300 and equals 393.3 ±1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails both assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testDescentsToThirtyFivePercentCountAsEasierThanTheFlat()",
+   "hash": "be3c1322881176da",
+   "does": "Asserts every descent from -35% to -1% yields GAP > pace, and -20% gives 600 ±1 for 300 s/km.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for grade -35...-1",
+     "effect": "asserts gap > 900 per grade"
+    },
+    {
+     "at": "+4",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails that grade's assertion"
+    },
+    {
+     "at": "+7",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the 600 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testGradeIsClampedAtFortyFivePercent()",
+   "hash": "ec255185bd638553",
+   "does": "Asserts grades of +80/-80 give the same GAP as +45/-45 (clamped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "80% result nil",
+     "effect": "?? 0 vs ?? -1 differing fallbacks make a nil fail"
+    },
+    {
+     "at": "+5",
+     "cond": "45% result nil",
+     "effect": "?? -1 fallback"
+    },
+    {
+     "at": "+9",
+     "cond": "-80% result nil",
+     "effect": "?? 0 fallback"
+    },
+    {
+     "at": "+10",
+     "cond": "-45% result nil",
+     "effect": "?? -1 fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testDescentsSteeperThanFortyPercentCostMoreThanTheFlat()",
+   "hash": "c61737d63a5fb91d",
+   "does": "Asserts GAP at -45% for 300 s/km is 268 ±1 (steep descent costs more than flat).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testSteeperUphillsAdjustMore()",
+   "hash": "c8871279f9329f00",
+   "does": "Asserts GAP at +2% > +5% > +10% for 300 s/km.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "2% nil",
+     "effect": "?? 0"
+    },
+    {
+     "at": "+2",
+     "cond": "5% nil",
+     "effect": "?? 0"
+    },
+    {
+     "at": "+3",
+     "cond": "10% nil",
+     "effect": "?? 0; any nil breaks the ordering assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoSplitsBeforeTheFirstKilometre()",
+   "hash": "ae95308b11f4f167",
+   "does": "Asserts no splits for a 400 m distance curve.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoSplitsFromAnEmptyBuffer()",
+   "hash": "dc07ac1856963b7c",
+   "does": "Asserts no splits for an empty buffer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoSplitsWithoutDistanceReadings()",
+   "hash": "c985fe60ab9faa01",
+   "does": "Asserts no splits when samples carry no distance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testSplitsComeBackMostRecentFirst()",
+   "hash": "d75f35b2b4df3bf4",
+   "does": "Asserts three splits at 5, 4 and 2.5 m/s come back most recent first as 400, 250, 200 s/km (±2).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testOnlyTheLastThreeSplitsAreReturned()",
+   "hash": "0a02e8e0389234e1",
+   "does": "Asserts a 5 km curve returns only 3 splits.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testAClimbingSplitReportsAFasterFlatEquivalent()",
+   "hash": "aecd28fd9370555a",
+   "does": "Asserts a split climbing 5% has a faster flat-equivalent pace than the same split on flat ground (250 s/km).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "flat.first nil",
+     "effect": "?? 0 fallback fails the 250 assertion"
+    },
+    {
+     "at": "+14",
+     "cond": "climbed.first nil",
+     "effect": "?? .infinity fallback fails the less-than assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testAMissingAltitudeAtTheSplitEndCarriesTheLastKnownAltitude()",
+   "hash": "e4092db1b782b0a5",
+   "does": "Asserts altitude known only for the first 100 s (300 m) is carried forward so the split reads 250 s/km, not a steep descent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "offset < 100",
+     "effect": "altitude 300 else nil"
+    },
+    {
+     "at": "+11",
+     "cond": "paces.first nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The test cannot detect removal of the altitude carry-forward it is named for: without carry-forward the split end altitude is nil, splitGrade returns nil and the split is reported at its raw pace, which is the same 250 s/km the test asserts. Only an implementation that read a missing altitude as 0 would fail.",
+     "evidence": [
+      "EmuquTests/WorkoutLiveTrendsTests.swift:405",
+      "EmuquTests/WorkoutLiveTrendsTests.swift:408",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:179",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:208"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testASplitWithNoAltitudeAtAllKeepsItsRawPace()",
+   "hash": "c7946ff71c74832c",
+   "does": "Asserts a split with no altitude at all keeps its raw 250 s/km pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "paces.first nil",
+     "effect": "?? 0 fallback fails the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "11975a3be78ab2d2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "1122afa640f4dade",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "774ebb117d88f0ac",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.distanceCurve(_:)": "e0658b21088e65c2",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoFadeProjectionWithoutMeaningfulDrift()",
+   "hash": "d1575135e1850cf5",
+   "does": "Asserts no fade projection for drift nil, 0, -3 and exactly 1%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoFadeProjectionBeforeFourteenMinutes()",
+   "hash": "331a43d323f1a244",
+   "does": "Asserts no fade projection when last offset is 839 (<840 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testFadeProjectionExtrapolatesTheDriftRate()",
+   "hash": "645a743b3779658c",
+   "does": "Asserts 5% drift after 20 minutes projects 15 minutes to 10%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result nil",
+     "effect": "?? 0 fallback fails the 15 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testFadeProjectionIsZeroOnceDriftPassesTenPercent()",
+   "hash": "e8f15d1d1c8d59f7",
+   "does": "Asserts drift of 12% projects 0 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testNoFadeProjectionWhenTheDriftRateIsBelowTheNoiseFloor()",
+   "hash": "5518d323736de655",
+   "does": "Asserts 2% drift after 60 minutes (0.044 %/min, below the 0.05 floor) gives nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutGradeAdjustedPaceTests.testFadeProjectionNeverReportsLessThanAMinute()",
+   "hash": "897b01c95a7b05c5",
+   "does": "Asserts 9.5% drift at 14 minutes (≈0.55 min projected) is clamped up to 1 minute.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "9a4de8c1e5a626dc",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testZoneBreakdownIsEmptyWithoutSamples()",
+   "hash": "45af22ef2c637f0e",
+   "does": "Asserts zone breakdown of no samples is .empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testZoneBreakdownIsEmptyWithoutAMaxHeartRate()",
+   "hash": "1801a20b173a8e18",
+   "does": "Asserts zone breakdown with userMaxHR 0 is .empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testEachZoneCatchesItsOwnHeartRate()",
+   "hash": "ed76445c201c42ab",
+   "does": "For HR 110/130/150/170/190 at max 200, asserts dominant zone 1..5 and totalSec 100 for 101 samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each (hr, zone) case",
+     "effect": "computes and asserts per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testLiveZonesMatchTheSummaryBands()",
+   "hash": "928e00db38797179",
+   "does": "Asserts HR 165 with max 190 (87%) is dominant zone 4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testTheZoneBoundaryBelongsToTheHigherZone()",
+   "hash": "c0943ee42b43fea5",
+   "does": "Asserts HR exactly 60% of max lands in zone 2 with z1Sec 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testZoneSecondsSplitAcrossZonesAndSumToTheTotal()",
+   "hash": "b5bdc8496ca1d95e",
+   "does": "Asserts 100 s at HR 110 and 100 s at 170 (max 200) give z1Sec 100, z4Sec 100, totalSec 200 and zones summing to total.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offset <= 100",
+     "effect": "HR 110 else 170"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testTimeBelowHalfOfMaxIsNotBinned()",
+   "hash": "48d1173b25a6a8ed",
+   "does": "Asserts HR 90 at max 200 (45%) is not binned: totalSec 0 and dominantZone nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "0e2f0214db8994ad",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdownTests.testGapsInHeartRateAreNotBinned()",
+   "hash": "4a4ac86cbd42aaf3",
+   "does": "Asserts nil HR samples are not binned.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.dominantZone(zoneSecs:zoneTotal:)": "974008587ee9d034",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "4d83f75c70219d1d",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testPaceZonesNeedAPositiveBasis()",
+   "hash": "b7e0865dbd5f48ac",
+   "does": "Asserts from5KPace returns nil for 0 and negative.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testPaceZonesScaleFromTheFiveKBasis()",
+   "hash": "77d09221cbb9a3bd",
+   "does": "Asserts 240 s/km 5K basis gives easy 312, marathon 276, threshold 254.4, interval 240, repetition 223.2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "from5KPace returns nil",
+     "effect": "XCTFail and return; otherwise asserts each zone"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testPaceZonesAreOrderedEasiestToHardest()",
+   "hash": "4099fc49f802b2f3",
+   "does": "Asserts zones are ordered easy > marathon > threshold > interval > repetition (sec/km).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "from5KPace returns nil",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testPaceZonesFromRacePredictionsUseTheFiveKEntry()",
+   "hash": "480493f7a6e93a56",
+   "does": "Asserts from(racePredictions:) with a 1200 s 5K equals from5KPace(240).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "84594852e98bcb56",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from5KPace(secPerKm:)": "183480b28ecc7ec8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testPaceZonesAreNilWithoutAFiveKPrediction()",
+   "hash": "c1a2e47ab6d0e080",
+   "does": "Asserts from(racePredictions:) is nil without a 5K key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "84594852e98bcb56"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testProjectionReturnsOneEntryPerHorizonDay()",
+   "hash": "35695ba3cf2f37e1",
+   "does": "Asserts project with horizon 7 returns 7 days numbered 1...7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testProjectionAlwaysReturnsAtLeastOneDay()",
+   "hash": "1f93a539f12c5812",
+   "does": "Asserts horizon 0 still returns 1 day.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testRestingDecaysBothLoadsTowardZero()",
+   "hash": "ebc0b3c7a463856e",
+   "does": "Asserts day-1 ATL is 80*e^(-1/7) and CTL is 60*e^(-1/42) at zero load and both decrease by day 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testAcuteLoadShedsFasterThanChronicLoad()",
+   "hash": "8f48aa9f64bccf2e",
+   "does": "Asserts with equal starting ATL/CTL and zero load, ATL < CTL and TSB > 0 on every projected day.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var TrainingLoadProjection.Day.tsb"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each projected day",
+     "effect": "asserts atl < ctl and tsb > 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var TrainingLoadProjection.Day.tsb": "689a967fdc2ca26f",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testTsbIsChronicMinusAcute()",
+   "hash": "f63aa4a858e60e70",
+   "does": "Asserts Day.tsb equals ctl - atl.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var TrainingLoadProjection.Day.tsb"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Tautology: Day.tsb is the computed property `ctl - atl`, so asserting tsb == ctl - atl restates the implementation and cannot fail.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:473",
+      "EmuquTests/WorkoutLiveTrendsTests.swift:651"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var TrainingLoadProjection.Day.tsb": "689a967fdc2ca26f",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testASteadyDailyLoadConvergesOnThatLoad()",
+   "hash": "ea0526c12e732cf2",
+   "does": "Asserts 365 days at 60/day bring ATL to 60 ±0.5 and CTL to 60 ±1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "days.last nil",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testAlreadyFreshIsZeroDays()",
+   "hash": "8392e6722ef2d34f",
+   "does": "Asserts daysUntilFresh is 0 when ATL <= CTL.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testDaysUntilFreshCountsForwardToTheTsbCrossing()",
+   "hash": "01b84ca9e55f2ce3",
+   "does": "Asserts ATL 80 / CTL 60 is fresh in 3 days.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testDeeperFatigueTakesLonger()",
+   "hash": "8334902c29ece082",
+   "does": "Asserts ATL 110 takes more days than ATL 70 against CTL 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shallow nil",
+     "effect": "?? 0 fallback"
+    },
+    {
+     "at": "+2",
+     "cond": "deep nil",
+     "effect": "?? 0 fallback (would fail deep > shallow)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testDaysUntilFreshGivesUpPastAMonth()",
+   "hash": "c0b385443b6fa03f",
+   "does": "Asserts ATL 400 / CTL 10 returns nil (beyond the 30-day horizon).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testAlreadyInsideTheGapIsZeroDays()",
+   "hash": "0afd4a17e9577063",
+   "does": "Asserts ATL already within gapTrimp of CTL returns 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testConvergenceIsFoundForASustainableLoad()",
+   "hash": "beaf38c26d103c05",
+   "does": "Asserts ATL 40 / CTL 60 at 50/day converges within 5 units on day 31.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testConvergenceIsNilWhenTheHorizonIsTooShort()",
+   "hash": "58ed3f9df154932f",
+   "does": "Asserts nil when the 5-day horizon is too short to converge.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testAWiderGapConvergesSooner()",
+   "hash": "10888a46f9016c5a",
+   "does": "Asserts gap 3 converges on day 51 and gap 10 on day 11.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testConvergenceIsNilWhenTheGapIsTighterThanTheHorizonAllows()",
+   "hash": "fa6c44126e046caf",
+   "does": "Asserts gap 2 never converges inside the default 60-day horizon (nil).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilATLConverges(currentATL:currentCTL:dailyTrimp:gapTrimp:horizonDays:)": "b5d0ac734c0cff19",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testNoRecoveryHoursWhenAlreadyFresh()",
+   "hash": "7abd18b2e1872814",
+   "does": "Asserts recovery hours are nil when ATL <= CTL.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testNoRecoveryHoursWithoutBothInputs()",
+   "hash": "30919a260e13b0b7",
+   "does": "Asserts recovery hours are nil when ATL or CTL is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testRecoveryHoursAreDaysUntilFreshInHours()",
+   "hash": "f8849d9f94068bf0",
+   "does": "Asserts ATL 80 / CTL 60 yields 72 hours (3 days).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func TrainingLoadProjectionTests.testNoRecoveryHoursWhenFreshnessIsMoreThanAMonthAway()",
+   "hash": "41607bc0cf117729",
+   "does": "Asserts ATL 400 / CTL 10 yields nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RecoveryTimeEstimate.hoursFromTrainingLoad(atl:ctl:)": "df651fcaefde00f4",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.daysUntilFresh(currentATL:currentCTL:)": "4ee276687dff6f4b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingLoadProjection.project(startingATL:startingCTL:dailyTrimp:horizonDays:)": "d4fe1750bac7aed4"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionIsEmptyWithoutAnyComparableEffort()",
+   "hash": "6d55cd0d1c84aaf1",
+   "does": "Asserts predict is empty with no sessions and with only a bike session for sport run.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionIgnoresEffortsUnderThreeKilometres()",
+   "hash": "9d7b24e531bc19cb",
+   "does": "Asserts a 1.2 km effort (<3 km) yields no predictions.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionPrefersAnEffortNearTheTargetDistance()",
+   "hash": "5b3b289dd2239890",
+   "does": "Asserts the half-marathon prediction uses the 21 km run (within ±20%) while the 5K uses the 3 km run (no comparable effort, fastest of the pool).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionPrefersRecentEfforts()",
+   "hash": "51acc6d06007912c",
+   "does": "Asserts a 190-day-old fast 5K is ignored in favour of a recent slower one (5K prediction 1500 s) when now is day 200.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "prediction nil",
+     "effect": "?? 0 fallback fails the 1500 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionCoversEveryStandardDistance()",
+   "hash": "e7b51b2f8f69e6aa",
+   "does": "Asserts predictions cover exactly the standard distances.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionReproducesTheBasisAtItsOwnDistance()",
+   "hash": "d009eff6e7fb8db2",
+   "does": "Asserts the 5K basis predicts exactly 1200 s at 5K.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "prediction nil",
+     "effect": "?? 0 fallback fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRiegelPenalisesLongerDistances()",
+   "hash": "ea8a20ca2c80dfa0",
+   "does": "Asserts 10K = 1200*2^1.06, is over 2400 s, and marathon > half.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "10K nil",
+     "effect": "?? 0 fallback fails"
+    },
+    {
+     "at": "+8",
+     "cond": "10K nil",
+     "effect": "?? 0 fails > 2400"
+    },
+    {
+     "at": "+9",
+     "cond": "marathon/half nil",
+     "effect": "?? 0 fallbacks"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testRacePredictionPicksTheFastestBasisNotTheLongest()",
+   "hash": "77545e9525855a26",
+   "does": "Asserts with a 10K at 6:00/km and 5K at 4:00/km the 5K prediction is 1200 s (fastest basis).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "prediction nil",
+     "effect": "?? 0 fallback fails"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The only assertion is the 5K prediction, but for the 5K target the 10 km effort is outside the +/-20% comparable band, so the comparable filter alone selects the 5K basis. A predictor that picked the longest (or any) basis from the pool would still pass; the fastest-basis rule (min by totalSec) is not exercised.",
+     "evidence": [
+      "EmuquTests/WorkoutLiveTrendsTests.swift:841",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:369",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:375"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "d7cfa004b98291a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predict(from:sport:now:)": "d09a73999868288c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.predictWithBasis(from:sport:now:)": "d13d57cdb2f9db13",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "2f4d51ba26563af9",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinesAreEmptyWithoutMatchingSessions()",
+   "hash": "1df5975e0bee2ce9",
+   "does": "Asserts baselines with no sessions have count 0, nil averages and sport run.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinesIgnoreOtherSports()",
+   "hash": "336d29c1c25f973d",
+   "does": "Asserts a bike session does not count toward run baselines.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinePaceIsDistanceWeightedNotSessionAveraged()",
+   "hash": "9e7499eddfde1e4a",
+   "does": "Asserts baseline pace is total time over total distance: 10 km/50 min + 2 km/12 min = 310 s/km.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "avgPace nil",
+     "effect": "?? 0 fallback fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "73942b93ffb40d6d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "18240302ad36fd28",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselineHeartRateIsSampleWeighted()",
+   "hash": "5207c3e2209211a3",
+   "does": "Asserts baseline HR is sample-weighted: (100×150 + 300×130)/400 = 135.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "avgHR nil",
+     "effect": "?? 0 fallback fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "73942b93ffb40d6d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "18240302ad36fd28",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.samples(count:hr:pace:cadence:distance:altitude:)": "44ad0a5d8ad0ac8e"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinesSkipZeroAndMissingReadings()",
+   "hash": "b25ab0316230e08b",
+   "does": "Asserts nil HR and zero alpha1 samples are excluded so avg HR is 150 and avg alpha1 0.9.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "offset < 50",
+     "effect": "HR 150 else nil"
+    },
+    {
+     "at": "+5",
+     "cond": "offset < 50",
+     "effect": "alpha1 0.9 else 0"
+    },
+    {
+     "at": "+12",
+     "cond": "avgHR nil",
+     "effect": "?? 0 fallback fails"
+    },
+    {
+     "at": "+13",
+     "cond": "avgAlpha1 nil",
+     "effect": "?? 0 fallback fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.mean(_:)": "73942b93ffb40d6d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "18240302ad36fd28",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinesKeepOnlyTheMostRecentSessionsUpToTheLimit()",
+   "hash": "cb7a19a716b7e97b",
+   "does": "Asserts 40 run sessions with limit 30 and limit 5 give sampleCount 30 and 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'keep only the most recent sessions', but all 40 sessions are identical apart from start date and only sampleCount is asserted, so a version that kept the oldest 30 would also pass; the recency sort is not tested.",
+     "evidence": [
+      "EmuquTests/WorkoutLiveTrendsTests.swift:912",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:582"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  },
+  {
+   "key": "func RaceAndHistoryBaselineTests.testBaselinePaceIsNilWhenNoSessionCarriesUsableDistance()",
+   "hash": "8ec5b44611ed8e0f",
+   "does": "Asserts a session whose metadata has no distance counts (sampleCount 1) but yields nil pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The test asserts sampleCount 1 for a session with no distance and no samples. WorkoutHistoryBaselines.sampleCount is documented as the number of matched workouts that contributed any data, but compute returns matches.count; the test pins the code against its own doc comment.",
+     "evidence": [
+      "EmuquTests/WorkoutLiveTrendsTests.swift:934",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:557",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:595"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "cac5a8c99a6940ec",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/WorkoutLiveTrendsTests.swift::func WorkoutFixture.runSession(distanceMeters:durationSec:sport:samples:startedDaysIn:)": "f081d699c7e15010"
+   }
+  }
+ ],
+ "deps": {}
+}

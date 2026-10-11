@@ -1,0 +1,248 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift",
+ "hash": "12984bb1576df574",
+ "role": "Single accessor for 'current' training load (ATL/CTL/TSB/ACWR/today TRIMP/Foster monotony+strain) with provenance, used by dashboards, AI facts/system prompt, reports and workout summary.",
+ "types": [
+  "TrainingLoadRegistry: enum @MainActor — live()/liveRefreshed()",
+  "TrainingLoadRegistry.TrainingLoad: struct — values + provenance + display helpers",
+  "TrainingLoadRegistry.Provenance: enum — single case live(asOf:)"
+ ],
+ "state": [],
+ "toplevel": "Long doc comment including the surface→source table; no top-level code.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says no screen or report draws TrainingLoad.disclosure and the table lists Holistic Daily Report as 'none drawn', but HolisticDailyReport.loadAsOfDisplay returns liveLoadSnapshot?.disclosure and drawLoadAsOf renders it in the report header.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:48",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:70",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift:261",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:49"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Invalidation contract says TrainingMetricsCache invalidates on every .flowRecoveryArchiveChanged; the observer only calls invalidateIfWorkoutsChanged, which invalidates only when the workout fingerprint changed.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:75",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift:142",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift:144"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var TrainingLoadRegistry.TrainingLoad.asOfDisplay",
+   "hash": "560b9be34a00eaf0",
+   "does": "Formats provenance.asOf in the app locale: short time if today, weekday+time within 7 days, else month/day+time. Allocates a DateFormatter per call.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.Provenance.asOf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "asOf is today",
+     "effect": "time only"
+    },
+    {
+     "at": "+7",
+     "cond": "days since asOf < 7",
+     "effect": "'EEEjmm' template; else 'MMMdjmm'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.Provenance.asOf": "a20ff4ab1f5d7a73",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var TrainingLoadRegistry.TrainingLoad.disclosure",
+   "hash": "4453b36b3d235e73",
+   "does": "Returns localized 'Live · updated <asOfDisplay>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.asOfDisplay": "9e47ee844d879943",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingLoadRegistry.Provenance.asOf",
+   "hash": "eab2840f88224cfc",
+   "does": "Returns the asOf date of the only provenance case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .live(asOf)",
+     "effect": "returns asOf"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadRegistry.live()",
+   "hash": "be9d4a3c1d3618b4",
+   "does": "Reads TrainingMetricsCache.snapshot(); when present builds a TrainingLoad from it (todayTrimp nil when 0, Foster monotony/strain from dailyTrimp, asOf = cache.lastUpdated ?? now); otherwise falls back to the daily series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.dailySeriesFallback(cache:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current",
+    "mem:TrainingMetricsCache.lastUpdated"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cache.snapshot() non-nil",
+     "effect": "builds from current metrics; else dailySeriesFallback"
+    },
+    {
+     "at": "+9",
+     "cond": "todayTrimp > 0",
+     "effect": "todayTrimp value; else nil"
+    },
+    {
+     "at": "+10",
+     "cond": "cache.lastUpdated ?? Date()",
+     "effect": "asOf = now when the cache never refreshed, so the disclosure claims 'updated now'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Provenance asOf falls back to Date() when lastUpdated is nil (also after invalidate() clears it while current is kept), so the 'as of' stamp shown to the AI/report reads as just-updated for a value computed earlier.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:180",
+      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:201",
+      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:215"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.dailySeriesFallback(cache:)": "f0edbed3303ce1fc",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadRegistry.dailySeriesFallback(cache:)",
+   "hash": "dc23ee41fdd45a74",
+   "does": "Uses today's daily-series sample, else the newest sample in the last 7 days, to build a TrainingLoad (ACWR = atl/ctl when ctl > 0; todayTrimp only if the sample is today); nil when the series is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries",
+    "mem:TrainingMetricsCache.lastUpdated"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sampleOn(today) exists",
+     "effect": "uses it"
+    },
+    {
+     "at": "+2",
+     "cond": "?? samplesSince(today-7d).first",
+     "effect": "newest sample within 7 days (samplesSince sorts newest first) when today is missing"
+    },
+    {
+     "at": "+4",
+     "cond": "day.ctl > 0",
+     "effect": "acwr = atl/ctl; else nil"
+    },
+    {
+     "at": "+10",
+     "cond": "day.date == today",
+     "effect": "todayTrimp = day.trimp; else nil"
+    },
+    {
+     "at": "+11",
+     "cond": "cache.lastUpdated ?? Date()",
+     "effect": "asOf = now when never refreshed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "An up-to-7-day-old sample is returned as provenance .live with ATL/CTL not decayed to today, and without monotony/strain.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:193",
+      "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:201"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)": "b9050b7f2eb5bf8d",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadRegistry.liveRefreshed()",
+   "hash": "e65b051bc1678b87",
+   "does": "Awaits TrainingMetricsCache.refresh() then returns live().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.live()": "36ee2153414390ef",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "c54dab42e8e86c14",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  }
+ ],
+ "deps": {}
+}

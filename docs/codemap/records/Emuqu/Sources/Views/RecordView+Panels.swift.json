@@ -1,0 +1,1674 @@
+{
+ "file": "Emuqu/Sources/Views/RecordView+Panels.swift",
+ "hash": "ec6430819ec2adbe",
+ "role": "RecordPanels extension holding the Record tab's overnight 'Extended Recording' panel (capture mode picker, status badge/subtitles, paused/streaming/legacy/idle button sets, battery and connection notes), the Continue Recovery card, device-data recovery/discard actions, and the Quick Reading panel; plus three file-private continue-recovery helpers.",
+ "types": [
+  "RecordPanels: extension — panel view builders and recovery actions (RecordPanels struct declared in RecordPanels.swift:16, rebuilt per access by RecordView.panels)",
+  "RecordPanels.QuickReadingButton: struct (View, private) — duration tile button for 2/3/5-minute readings"
+ ],
+ "state": [],
+ "toplevel": "File-scope @MainActor private helpers continueRecoveryHeader/Title/ScoreLine (lines 827-869) used by continueRecoveryCard.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "RecordPanels.applyRecoveryKeepAwake and the device-recovery keep-awake bracket duplicate RecordView.applyKeepAwake and the same bracket in stopInternalRecording/performRetryFetch.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift:605",
+    "Emuqu/Sources/Views/RecordView+Actions.swift:161",
+    "Emuqu/Sources/Views/RecordView+Actions.swift:119"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecordPanels.overnightRecordingSection",
+   "hash": "58b3ea4e1976a585",
+   "does": "Extended Recording card: header, capture-mode picker (only when not actively recording and no fetch in progress), streaming status, device-recording status, fetch progress, action buttons and hint text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHeader",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedCaptureModePicker",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightStreamingStatus",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.deviceRecordingStatus",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.fetchProgressSection",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightActionButtons",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHintText"
+   ],
+   "reads": [
+    "mem:DeviceStatus.fetchProgress"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "!isActivelyRecording && fetchProgress == nil",
+     "effect": "true: capture-mode picker shown; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.deviceRecordingStatus": "2a07d435a1a49ae9",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedCaptureModePicker": "6c582dd6fa292029",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.fetchProgressSection": "aa83c7957f7b349f",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightActionButtons": "ae470068c7528841",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHeader": "de0446855833337f",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHintText": "9d540e56efe015ac",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightStreamingStatus": "5892075378055ee0"
+   }
+  },
+  {
+   "key": "var RecordPanels.overnightHintText",
+   "hash": "2f1990388bdf1236",
+   "does": "Two hint lines ('Start before bed…', 'Analysis uses the strongest recovery window…') when idle: not recording on device, not overnight streaming, recordingState .idle, no fetch progress.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:DeviceStatus.recordingState",
+    "mem:DeviceStatus.fetchProgress"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "all idle conditions",
+     "effect": "true: hints; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.fetchProgressSection",
+   "hash": "21210f80cff80d85",
+   "does": "FetchProgressCard with device name and a Cancel that cancels the Polar transfer, whenever fetchProgress is set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()"
+   ],
+   "reads": [
+    "mem:DeviceStatus.fetchProgress",
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [
+    "ble:H10 transfer cancel"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fetchProgress != nil",
+     "effect": "true: card; false: nothing"
+    },
+    {
+     "at": "+5",
+     "cond": "connectedDeviceType?.displayName ?? 'device'",
+     "effect": "generic 'device' when type unknown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch()": "7744e4f6bfe88f81",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.deviceRecordingStatus",
+   "hash": "21a028483750e727",
+   "does": "DeviceRecordingStatus with persisted recording start time when recording on device, not overnight streaming and no fetch in progress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()"
+   ],
+   "reads": [
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:DeviceStatus.fetchProgress",
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRecordingOnDevice && !overnightStreaming && fetchProgress == nil",
+     "effect": "true: status view (start time nil if no persisted state); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.fetchProgress": "9fbf2a3a7a28c5c5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16"
+   }
+  },
+  {
+   "key": "var RecordPanels.overnightStreamingStatus",
+   "hash": "8a1fc88831bd85f7",
+   "does": "OvernightStreamingStatus (lifecycle, PolarManager, strap backup state) while overnight streaming.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBackupState"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isOvernightStreaming",
+     "effect": "true: status view; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBackupState": "e70250fda627c0a6"
+   }
+  },
+  {
+   "key": "var RecordPanels.strapBackupState",
+   "hash": "efffc85771759a41",
+   "does": "Strap backup state for the status card: .notRequested when the backup is off or a Verity Sense is connected, else .recording once the H10 backup is active, else .starting.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RRCollector.useDeviceBackupForOvernight",
+    "mem:RRCollector.overnightDeviceBackupActive",
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "useDeviceBackupForOvernight && device != veritySense",
+     "effect": "false: .notRequested; true: line 87"
+    },
+    {
+     "at": "+2",
+     "cond": "overnightDeviceBackupActive",
+     "effect": "true: .recording; false: .starting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+   }
+  },
+  {
+   "key": "var RecordPanels.overnightHeader",
+   "hash": "60ba6eef48a6311a",
+   "does": "Header: 'Extended Recording' title, mode subtitle and status badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedRecordingSubtitle",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingStatusBadge"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedRecordingSubtitle": "5cd6d6681020ea16",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingStatusBadge": "3c8e3aae71afd515",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.availableCaptureModes",
+   "hash": "8d2364bd7f5f6d40",
+   "does": "Capture modes for the picker: [streaming, internalCapture] for a Verity Sense, all three otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectedDeviceType == .veritySense",
+     "effect": "true: drops .both; false: allCases"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+   }
+  },
+  {
+   "key": "var RecordPanels.extendedCaptureModePicker",
+   "hash": "10a69c226b5ad252",
+   "does": "Capture mode block: title row with Make Default, segmented picker, and help text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.captureModeSection",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.captureModePicker",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedCaptureModeHelpText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.captureModePicker": "d4ba9e665ce077a4",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.captureModeSection": "fe3e93f0887dbe71",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedCaptureModeHelpText": "88d408249c45d150",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.captureModePicker",
+   "hash": "e062d89e915ae0c9",
+   "does": "Segmented Picker bound to extendedCaptureMode over availableCaptureModes, labelled by mode.title.",
+   "entry": "User picker selection.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.availableCaptureModes",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.title"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.extendedCaptureMode (binding)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.availableCaptureModes": "4092d39a143b54b7",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.title": "5773e5d09a66a03f"
+   }
+  },
+  {
+   "key": "var RecordPanels.captureModeSection",
+   "hash": "d2b207347150efd7",
+   "does": "'Capture Mode' label with the Make Default button on the right.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.makeDefaultSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.makeDefaultSection": "f685edc0f6fab4af"
+   }
+  },
+  {
+   "key": "var RecordPanels.makeDefaultSection",
+   "hash": "719dcdad2e8bf83d",
+   "does": "When the current mode differs from settings.defaultCaptureMode, shows 'Make Default' which stores the mode's rawValue as the default (saved to user_settings.json by SettingsManager).",
+   "entry": "Button action.",
+   "calls": [],
+   "reads": [
+    "file:user_settings.json (defaultCaptureMode)"
+   ],
+   "writes": [
+    "file:user_settings.json (defaultCaptureMode)",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mode.rawValue != settings.defaultCaptureMode",
+     "effect": "true: button shown; false: hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.recordingStatusBadge",
+   "hash": "2a05cc0af685ff39",
+   "does": "Capsule badge with a red dot while overnight streaming, recording on device or recordingState .recording, plus recordingStatusText; accessibility label 'Status: …'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingStatusText"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:DeviceStatus.recordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnightStreaming || recordingOnDevice || state == .recording",
+     "effect": "true: red dot; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingStatusText": "2d19dccedfdb96a4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecordPanels.recordingStatusText",
+   "hash": "f797fdb5884688b6",
+   "does": "Status text: 'Streaming overnight' when streaming, else per recordingState.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:DeviceStatus.recordingState",
+    "mem:DeviceStatus.isRecordingOnDevice"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isOvernightStreaming",
+     "effect": "true: 'Streaming overnight'; false: switch"
+    },
+    {
+     "at": "+7",
+     "cond": "case .idle",
+     "effect": "'Recording' if isRecordingOnDevice else 'Ready'"
+    },
+    {
+     "at": "+8",
+     "cond": "isRecordingOnDevice ? … : …",
+     "effect": "device recording while idle state → 'Recording'"
+    },
+    {
+     "at": "+11",
+     "cond": "case .starting",
+     "effect": "'Starting...'"
+    },
+    {
+     "at": "+12",
+     "cond": "case .recording",
+     "effect": "'Recording'"
+    },
+    {
+     "at": "+13",
+     "cond": "case .stopping",
+     "effect": "'Stopping...'"
+    },
+    {
+     "at": "+14",
+     "cond": "case .fetching",
+     "effect": "'Fetching Data...'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.extendedRecordingSubtitle",
+   "hash": "f8cd00cf78982897",
+   "does": "Subtitle: live-stream text while streaming, device-memory text while recording on device, else a description of the selected capture mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:DeviceStatus.isRecordingOnDevice"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isOvernightStreaming",
+     "effect": "'Live Bluetooth stream with automatic analysis'"
+    },
+    {
+     "at": "+4",
+     "cond": "isRecordingOnDevice",
+     "effect": "'Recording on device memory'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .streaming",
+     "effect": "'Live Bluetooth stream only'"
+    },
+    {
+     "at": "+10",
+     "cond": "case .internalCapture",
+     "effect": "'Record directly on device memory (no live stream)'"
+    },
+    {
+     "at": "+12",
+     "cond": "case .both",
+     "effect": "'Live stream + strap internal backup'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.extendedCaptureModeHelpText",
+   "hash": "1f7f7e8d66a91a31",
+   "does": "Help text for the selected capture mode, with a Verity-specific streaming text.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .streaming",
+     "effect": "Verity → 'cannot run internal at same time'; otherwise 'skips strap memory fetch'"
+    },
+    {
+     "at": "+4",
+     "cond": "isVerity",
+     "effect": "true: Verity text; false: H10 streaming text"
+    },
+    {
+     "at": "+8",
+     "cond": "case .internalCapture",
+     "effect": "battery-efficient device-only text"
+    },
+    {
+     "at": "+10",
+     "cond": "case .both",
+     "effect": "'Maximum recovery reliability' text (never shown for Verity since .both is coerced away)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.overnightActionButtons",
+   "hash": "e8b44bbf9aade67c",
+   "does": "Chooses the action button set: paused, overnight streaming (no morning status), device/legacy recording, or idle; plus a spinner while an action is in flight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedStateButtons",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingStateButtons",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.legacyRecordingButtons",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateButtons",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:MorningCoordination.morningStatus",
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:DeviceStatus.recordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "isPaused",
+     "effect": "pausedStateButtons"
+    },
+    {
+     "at": "+5",
+     "cond": "isOvernightStreaming && morningStatus == nil",
+     "effect": "true: streamingStateButtons. The morningStatus == nil half is always true when this renders: the panel is reached only through activeSessionSection, which requires morningStatus == nil (RecordView+Sections.swift:121)"
+    },
+    {
+     "at": "+7",
+     "cond": "isRecordingOnDevice || recordingState == .recording",
+     "effect": "true: legacyRecordingButtons; false: idleStateButtons. Not shown during morning processing: the whole panel is hidden then (RecordView+Sections.swift:121)"
+    },
+    {
+     "at": "+13",
+     "cond": "isActionDisabled",
+     "effect": "true: ProgressView; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateButtons": "a115684d1fc6c525",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "9fe460b22f37db6b",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.legacyRecordingButtons": "b8de3733463855f5",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedStateButtons": "4d0abed6a2fae83b",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingStateButtons": "43aa3ba58c1ff7bf"
+   }
+  },
+  {
+   "key": "var RecordPanels.pausedStateButtons",
+   "hash": "4338f8596f350a0f",
+   "does": "Paused set: paused score preview, Resume button, 'Reconnect device to resume' when not connected, and Done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedScorePreview",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.resumeButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.finishFromPauseButton"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "connectionState != .connected",
+     "effect": "true: reconnect hint; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.finishFromPauseButton": "9a20585fea4043a8",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedScorePreview": "600da5139eff5238",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.resumeButton": "855c5297b781afb8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.finishFromPauseButton",
+   "hash": "67acc71b842c692c",
+   "does": "'Done' button finishing the paused session via the finalizeFromPause closure.",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.finalizeFromPause set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.finalizeFromPause",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()": "9057dde9cd1325ab",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var RecordPanels.resumeButton",
+   "hash": "751cb6daa6adb3d1",
+   "does": "'Resume Recording' button (disabled unless connected) calling the resumeRecording closure.",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.resumeRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.resumeRecording",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "431c8fa3fc122774",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecordPanels.streamingStateButtons",
+   "hash": "1513ddc4688887a8",
+   "does": "Overnight-streaming set: connection/battery warning, I'm Up, and 'Pause & Resume Later' (pauseRecording closure, disabled while busy).",
+   "entry": "Button action for pause.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
+    "closure:RecordPanels.pauseRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.pauseRecording",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "871eb03aebc061bc",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning": "a648d6afbdfc9aad",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton": "1a610868c2b0c5d7",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "9fe460b22f37db6b"
+   }
+  },
+  {
+   "key": "var RecordPanels.imUpButton",
+   "hash": "220750bb3666d5df",
+   "does": "'I'm Up' button calling stopAndFetch (disabled while busy).",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopAndFetch",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "31335a34952ba702",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "9fe460b22f37db6b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var RecordPanels.connectionLostWarning",
+   "hash": "7306a7c8942ee9b5",
+   "does": "Connection-lost banner when PolarManager reports a stalled feed or the device is disconnected, else stale-battery banner when the battery reading is stale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostBanner",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.staleBatteryBanner"
+   ],
+   "reads": [
+    "mem:PolarManager.feedStatus",
+    "mem:DeviceStatus.connectionState",
+    "mem:PolarManager.isBatteryReadingStale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionHealthWarning || connectionState == .disconnected",
+     "effect": "true: connectionLostBanner"
+    },
+    {
+     "at": "+4",
+     "cond": "isBatteryReadingStale",
+     "effect": "true: staleBatteryBanner; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.connectionHealthWarning": "ce99aae80ced5580",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostBanner": "abd3f2c822d2ec45",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.staleBatteryBanner": "8adead57d43ef67b"
+   }
+  },
+  {
+   "key": "var RecordPanels.connectionLostBanner",
+   "hash": "53d6c224b8f1f86f",
+   "does": "Red banner 'Device connection lost' saying data up to the disconnect is saved and to tap I'm Up.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.staleBatteryBanner",
+   "hash": "ebb240e040412af7",
+   "does": "Warning banner 'Battery reading may be outdated'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.legacyRecordingButtons",
+   "hash": "7abca2ac0a46dc9b",
+   "does": "'Wake Up - Get Results' button for device/internal recording calling stopAndFetch.",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopAndFetch",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "31335a34952ba702",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "9fe460b22f37db6b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var RecordPanels.idleStateButtons",
+   "hash": "c5b88fac3a4083ae",
+   "does": "'Start Extended Recording' button (disabled while busy, when not connected or battery <10%) calling startOvernightRecording, followed by the idle note.",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.startOvernightRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startOvernightRecording",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateNote"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "665505c809197927",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateNote": "b095d2409c7f9b4d",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "9fe460b22f37db6b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecordPanels.idleStateNote",
+   "hash": "0015641c8fd13f29",
+   "does": "Single most-urgent note under Start: connect prompt, critical battery, strap-may-refuse, low battery, or unrecovered data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectDevicePrompt",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryCriticalNote",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapMayRefuseToRecord",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBatteryRefusalNote",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryLowNote",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.unrecoveredDataNote"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState",
+    "mem:PolarManager.hasStoredExercise/storedExerciseDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connectionState != .connected",
+     "effect": "connectDevicePrompt"
+    },
+    {
+     "at": "+4",
+     "cond": "isBatteryCritical (<10%)",
+     "effect": "batteryCriticalNote"
+    },
+    {
+     "at": "+6",
+     "cond": "strapMayRefuseToRecord",
+     "effect": "strapBatteryRefusalNote"
+    },
+    {
+     "at": "+8",
+     "cond": "isBatteryLow (10–19%)",
+     "effect": "batteryLowNote"
+    },
+    {
+     "at": "+10",
+     "cond": "collector.hasUnrecoveredData",
+     "effect": "unrecoveredDataNote; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryCriticalNote": "3b6f8f4b87892252",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryLowNote": "6bb59d104318b658",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectDevicePrompt": "27cea443ce810207",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBatteryRefusalNote": "901b79567799c749",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapMayRefuseToRecord": "bf5f772e30d53f0e",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.unrecoveredDataNote": "9ff3cf38ace81cd6"
+   }
+  },
+  {
+   "key": "var RecordPanels.connectDevicePrompt",
+   "hash": "40c32feee22f76a5",
+   "does": "Caption 'Connect to Polar device first'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.batteryCriticalNote",
+   "hash": "7e1492a0ae52e6e2",
+   "does": "Red 'Battery too low to record' with 'Charge your device above 10% before starting'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.strapMayRefuseToRecord",
+   "hash": "eb8d7e85a769ba82",
+   "does": "True when the mode arms the strap's own memory (not .streaming) and StrapRecordingPolicy says the H10 battery (≤20%) may refuse to record.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)"
+   ],
+   "reads": [
+    "mem:DeviceStatus.batteryLevel",
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.strapMayRefuseToRecord(batteryLevel:deviceType:)": "057d29d2220bf7a3"
+   }
+  },
+  {
+   "key": "var RecordPanels.strapBatteryRefusalNote",
+   "hash": "d3d0e866721b180b",
+   "does": "Warning that the strap at N% may refuse to record to its memory and to replace the CR2025.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.batteryLevel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "batteryLevel ?? 0",
+     "effect": "0 shown if level nil; unreachable in practice since strapMayRefuseToRecord requires a non-nil level"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.batteryLowNote",
+   "hash": "3024b6e7fd403734",
+   "does": "Warning 'Battery is low (N%) — recording may not last all night'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.batteryLevel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "batteryLevel ?? 0",
+     "effect": "0% shown when nil (isBatteryLow requires non-nil, so not reached)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.unrecoveredDataNote",
+   "hash": "381a5db453c6cd95",
+   "does": "Orange 'Unrecovered data on device' note asking to recover or discard first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.pausedScorePreview",
+   "hash": "31a12cba1b40a0cd",
+   "does": "Bordered card: paused header, metric cards from the paused session, and 'Your data is saved'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedHeader",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedMetricCards",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.dataSavedNote"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.dataSavedNote": "57bf45b6f80a255c",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedHeader": "9d522bdebf25ef54",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedMetricCards": "45956dbb5caff2e2",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecordPanels.dataSavedNote",
+   "hash": "57aaa9a2a6db2033",
+   "does": "Green shield 'Your data is saved' row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+   }
+  },
+  {
+   "key": "var RecordPanels.pausedMetricCards",
+   "hash": "6bbc6d95fdd182a8",
+   "does": "Metric preview cards for the paused session's analysis result if both exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.pausedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pausedSession and its analysisResult exist",
+     "effect": "true: metrics; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "e17017dac9fa1a60"
+   }
+  },
+  {
+   "key": "var RecordPanels.pausedHeader",
+   "hash": "f0368c2c8b595b1f",
+   "does": "Pause icon with paused header text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedHeaderText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedHeaderText": "91cac88d27190467"
+   }
+  },
+  {
+   "key": "var RecordPanels.pausedHeaderText",
+   "hash": "86af5232c5a87fbf",
+   "does": "'Recording Paused' plus 'Paused <relative> ago' when pausedDate is known.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.pausedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "pausedSession?.pausedDate != nil",
+     "effect": "true: relative time line; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "d1c7a9cf6bfb0ffc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RecordPanels.continueRecoveryCard(session:)",
+   "hash": "328fbfe8550d332a",
+   "does": "Continue Recovery card: header, recovery-so-far line, Continue Recording button, and 'Connect device to resume' when disconnected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryHeader(session:)",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryScoreLine(session:)",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.continueRecoveryButton(session:)"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "connectionState != .connected",
+     "effect": "true: hint; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.continueRecoveryButton(session:)": "41783c1cc4870a7e",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryHeader(session:)": "315d7b8fedeeac4a",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryScoreLine(session:)": "190764ea2da572ea",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecordPanels.continueRecoveryButton(session:)",
+   "hash": "6fb8c352b3878c47",
+   "does": "'Continue Recording' button (disabled unless connected) calling startLinkedRecording(session).",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.startLinkedRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startLinkedRecording(linkedTo:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)"
+   ],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)": "57e2b3869e14b8aa",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecordPanels.isActionDisabled",
+   "hash": "ce39e5b9343f13fc",
+   "does": "True while recordingState is starting/stopping/fetching.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.recordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .starting/.stopping/.fetching",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "case .idle/.recording",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
+   }
+  },
+  {
+   "key": "func RecordPanels.recoverStoredData()",
+   "hash": "0b9e1e8a7829415a",
+   "does": "Starts a Task running performDeviceRecovery.",
+   "entry": "RecoverableDataCard onRecover via RecordView.recoverStoredData (RecordView+PanelForwarding.swift:40).",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.performDeviceRecovery()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.performDeviceRecovery()": "cb1ca22cb44b4695"
+   }
+  },
+  {
+   "key": "func RecordPanels.performDeviceRecovery()",
+   "hash": "b30cb9985c8e4b39",
+   "does": "Optionally disables the idle timer (only if keep-screen-on is enabled), calls collector.recoverFromDevice, and on error sets fetchFailed=true (shows RetryFetchCard); restores the idle timer afterwards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.applyRecoveryKeepAwake(_:disabled:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()"
+   ],
+   "reads": [
+    "file:user_settings.json (keepScreenOnDuringRecording)"
+   ],
+   "writes": [
+    "ble:H10 stored exercise download",
+    "archive:recovered session",
+    "mem:RecordView.fetchFailed (binding)",
+    "mem:UIApplication.isIdleTimerDisabled"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "catch on recoverFromDevice",
+     "effect": "error discarded here; fetchFailed=true, RetryFetchCard shows lastError if the collector set one"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "A failed Recover sets fetchFailed=true, which hides RecoverableDataCard (!fetchFailed) while the RetryFetchCard lives inside activeSessionSection, shown only when selectedSessionType != nil. The recoverable-data card shows regardless of type, and type is nil after Change, Save, Discard or a finished quick reading, so a failed recovery from that state leaves no Recover or Retry control on screen until the user picks a session type.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Panels.swift:600",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:108",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:121",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:139",
+      "Emuqu/Sources/Views/RecordView+Sections.swift:454",
+      "Emuqu/Sources/Views/RecordView+Results.swift:142"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.applyRecoveryKeepAwake(_:disabled:)": "e8e7e706da7b51f8"
+   }
+  },
+  {
+   "key": "func RecordPanels.applyRecoveryKeepAwake(_:disabled:)",
+   "hash": "39cc66196c9d05e7",
+   "does": "Sets UIApplication.isIdleTimerDisabled only when keepAwake is true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:UIApplication.isIdleTimerDisabled"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "keepAwake",
+     "effect": "false: no-op; true: set idle timer flag"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical to RecordView.applyKeepAwake.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Panels.swift:605",
+      "Emuqu/Sources/Views/RecordView+Actions.swift:161"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecordPanels.discardAndStartFresh()",
+   "hash": "49007cbccd7e2032",
+   "does": "Task: deletes stored exercises on the strap; failure is logged and assigned to sessionState.lastError (alert).",
+   "entry": "RecoverableDataCard onDiscard via RecordView.discardAndStartFresh (RecordView+PanelForwarding.swift:42).",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:H10 stored exercises (delete)",
+    "mem:SessionState.lastError"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch",
+     "effect": "logs and sets lastError so the error alert shows; success gives no UI feedback beyond the strap state refreshing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()": "47f56be8deab82d0",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingSection",
+   "hash": "ac156992a0510fcc",
+   "does": "Quick Reading card: header, then live streaming progress during quick streaming, or the duration options when idle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingHeader",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingProgressPanel",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingOptions"
+   ],
+   "reads": [
+    "mem:DeviceStatus.isStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:MorningCoordination.morningStatus",
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:DeviceStatus.recordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isStreaming && !overnightStreaming && morningStatus == nil",
+     "effect": "streamingProgressPanel"
+    },
+    {
+     "at": "+6",
+     "cond": "!recordingOnDevice && state .idle && !overnightStreaming",
+     "effect": "quickReadingOptions; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "ee98ca364404b3d4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingHeader": "723f29722e4b1b51",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingOptions": "2404591e28cfaea3",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingProgressPanel": "d0a3724b632d66c0"
+   }
+  },
+  {
+   "key": "var RecordPanels.streamingProgressPanel",
+   "hash": "260c8e01411ab5a1",
+   "does": "StreamingProgressPanel with collector, lifecycle, PolarManager, breathing audio and stopStreaming closure.",
+   "entry": null,
+   "calls": [
+    "closure:RecordPanels.stopStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopStreaming",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "79daecd031f8caa7"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingOptions",
+   "hash": "4bc6f1eb2fa43a0d",
+   "does": "Explanatory caption plus buttons or battery warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingButtonsOrWarning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingButtonsOrWarning": "195108e96b5c8a21",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingButtonsOrWarning",
+   "hash": "cffd7dbb537d3f13",
+   "does": "Battery-too-low note when critical, else the duration choices.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryTooLowNote",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingChoices"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBatteryCritical",
+     "effect": "true: batteryTooLowNote; false: quickReadingChoices"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryTooLowNote": "d8be327c9be621fb",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingChoices": "70536e6ea6d5ff49"
+   }
+  },
+  {
+   "key": "var RecordPanels.batteryTooLowNote",
+   "hash": "2fae2636489fc86d",
+   "does": "Red 'Battery too low — charge above 10%'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingChoices",
+   "hash": "193544a95fdf5f42",
+   "does": "Button row plus optional low-battery warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingButtonRow",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryLowWarning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.batteryLowWarning": "e94b1cad2e45a1ef",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingButtonRow": "d503242c36a3a1f6"
+   }
+  },
+  {
+   "key": "var RecordPanels.batteryLowWarning",
+   "hash": "4dadc8ba9a6b3cc2",
+   "does": "'Battery is low (N%)' when isBatteryLow.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.batteryLevel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBatteryLow",
+     "effect": "true: warning; false: nothing"
+    },
+    {
+     "at": "+6",
+     "cond": "batteryLevel ?? 0",
+     "effect": "0 when nil (unreached: isBatteryLow needs a level)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingButtonRow",
+   "hash": "f78e680ffd66e915",
+   "does": "HStack of 2, 3, 5 minute buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.twoMinuteButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.threeMinuteButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.fiveMinuteButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.fiveMinuteButton": "9bcfcf7767fcf348",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.threeMinuteButton": "7765bf6ffb1246c4",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.twoMinuteButton": "e826005331d56aa9"
+   }
+  },
+  {
+   "key": "var RecordPanels.fiveMinuteButton",
+   "hash": "f48febfbaf77f5ce",
+   "does": "5 min 'Full' button → startStreaming(300).",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "19e2ad280415bd15",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecordPanels.threeMinuteButton",
+   "hash": "f8a0f54b1b24a95e",
+   "does": "3 min 'Standard' button → startStreaming(180).",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "19e2ad280415bd15"
+   }
+  },
+  {
+   "key": "var RecordPanels.twoMinuteButton",
+   "hash": "0acea94df9fca2ad",
+   "does": "2 min 'Basic' button → startStreaming(120).",
+   "entry": "Button action.",
+   "calls": [
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "19e2ad280415bd15"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingHeader",
+   "hash": "477352bef6c57aec",
+   "does": "Header row: title text and Live badge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingHeaderText",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.liveBadge"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.liveBadge": "338d193a135555bc",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingHeaderText": "3a62f9a1d3730bac"
+   }
+  },
+  {
+   "key": "var RecordPanels.quickReadingHeaderText",
+   "hash": "1eca40c81a0d5643",
+   "does": "'Quick Reading' title with 'Spot check - keep app open during recording'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordPanels.liveBadge",
+   "hash": "5c8df3bd5e0023cb",
+   "does": "Green 'Live' capsule while streaming.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isStreaming"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isStreaming",
+     "effect": "true: badge; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecordPanels.QuickReadingButton.body",
+   "hash": "44c89cc6684a5bab",
+   "does": "Plain button running the action closure with combined accessibility label '<duration> quick reading'.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.QuickReadingButton.buttonTile",
+    "closure:QuickReadingButton.action set by fiveMinuteButton/threeMinuteButton/twoMinuteButton → RecordView.startStreaming(seconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.QuickReadingButton.buttonTile": "5edf762027eb9ffb"
+   }
+  },
+  {
+   "key": "var RecordPanels.QuickReadingButton.buttonTile",
+   "hash": "8e06a07c30ec3b32",
+   "does": "Tile with icon, duration and description, bordered in the button colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func continueRecoveryHeader(session:)",
+   "hash": "bbc32448d4759b87",
+   "does": "Header row for the continue-recovery card: rotate icon plus title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryTitle(session:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func continueRecoveryTitle(session:)": "c87e15dc6ec304f4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func continueRecoveryTitle(session:)",
+   "hash": "363d4b96b7eaa2ab",
+   "does": "'Continue Recovery' plus 'Last segment ended <relative> ago' when endDate is set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session.endDate != nil",
+     "effect": "true: relative line; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func continueRecoveryScoreLine(session:)",
+   "hash": "da2dccb4517eaf80",
+   "does": "When the paused session has a recoveryScore (0–10), shows 'Recovery so far: N' (score×10, clamped/rounded 0–100) coloured by recovery band, with a re-score note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.recoveryScore != nil",
+     "effect": "true: line; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)": "114dbf2b7e22b710",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1011 @@
+{
+ "file": "docs/REFACTOR_SPEC.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Standing coding standard: refactor principles, process, structure rules, safety protocol and a hard-gate completion checklist that every change is measured against.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only. Four checklist items (≤20-line functions, nesting ≤2, no commented-out code, no empty catches) are measured by scripts/check_refactor_spec_conformance.sh against .ci/spec_* budgets; the rest are judgement calls with no gate.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Code Refactor Specification",
+   "hash": "330fc0786b607aa2",
+   "does": "No behavioural claim: title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Purpose",
+   "hash": "949c60084c3d708d",
+   "does": "No behavioural claim: states purpose (principles, not features) and links MAINTAINERS.md, README, USERS_MANUAL, ARCHITECTURE, FLOWCHART, VOICE_AND_TOOL_USE, API_REFERENCE (all exist).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Core Philosophy",
+   "hash": "db446ceed7cec574",
+   "does": "No behavioural claim: four core-philosophy bullets.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Vocabulary Contract (Framework-Agnostic)",
+   "hash": "2c48bfa9fb8748b9",
+   "does": "No behavioural claim: vocabulary definitions (module boundary, public API, side-effect boundary, explicit wiring, typed errors, structured logging, test doubles).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles",
+   "hash": "4c84ad2d22a0033f",
+   "does": "No behavioural claim: header for the seven non-negotiable principles.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 1) Pure Functions First",
+   "hash": "71b77934df2a8391",
+   "does": "Rule: every function that can be pure must be pure; side effects isolated at the boundary. Not mechanically enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 2) Immutable Data Flow",
+   "hash": "877c2677e7035098",
+   "does": "Rule: one-directional data flow, no shared mutable state, value semantics. The repo keeps shared mutable singletons (e.g. TrainingMetricsCache.shared, FeatureFlags.shared) reached through AppDependencies; not enforced by a gate.",
+   "entry": null,
+   "calls": [
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 3) Single Responsibility — For Real",
+   "hash": "2d8144b886cb6df6",
+   "does": "Rule: one responsibility per function/module. Not mechanically enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 4) Small Functions, Meaningful Names",
+   "hash": "d23c147af13bd2c3",
+   "does": "Rule: functions 5-15 lines target, 20 yellow, 30+ broken up; assertion-style boolean names. Enforced at ≤20 lines by check_refactor_spec_conformance.sh with .ci/spec_long_functions_budget.txt = 0 and 7 justified waivers (.ci/spec_justified_long_budget.txt).",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The '<=20 lines (rare, justified exceptions only)' rule is gated by check_refactor_spec_conformance.sh, whose header says the waiver budget 'is zero'; .ci/spec_justified_long_budget.txt is 7, so seven waived long functions pass the gate while its documentation claims none can.",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:392",
+      "scripts/check_refactor_spec_conformance.sh:43",
+      "scripts/check_refactor_spec_conformance.sh:491",
+      ".ci/spec_justified_long_budget.txt:1"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 5) Composition Over Inheritance",
+   "hash": "c3afad92ec8743ac",
+   "does": "Rule: composition over inheritance; protocols only when they reduce coupling/duplication. MAINTAINERS §5.7 records three single-conformer protocols removed for this reason.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 6) Explicit Error Handling",
+   "hash": "c1b22f6af5dac992",
+   "does": "Rule: no swallowed errors, no empty catch blocks, visible failure modes. Gate: check_refactor_spec_conformance.sh hard-zero on empty catches; try? capped by .ci/try_optional_budget.txt (170) via enforce_tech_debt_budgets.sh.",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Spec says 'No empty catch blocks' without exception; the repo sanctions a `swallow-ok:` waiver marker for empty catches (documented in MAINTAINERS §10) and uses it in production code, and keeps 170 permitted silent try? sites.",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:92",
+      "docs/MAINTAINERS.md:1012",
+      "Emuqu/Sources/Services/MorningProcessingService.swift:87",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:353",
+      ".ci/try_optional_budget.txt:1"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Non-Negotiable Principles > 7) Zero Tolerance for Magic",
+   "hash": "601d4b0e2a1f5f3d",
+   "does": "Rule: no implicit dependencies, global mutable state, hidden side effects or stringly-typed APIs. .shared reads are confined to the composition root by check_no_shared_outside_root.sh; global singletons still exist behind AppDependencies.",
+   "entry": null,
+   "calls": [
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    "Makefile::target debt-budget",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process",
+   "hash": "72c930f2af39d6d1",
+   "does": "No behavioural claim: header for the refactoring process.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 1: Audit",
+   "hash": "96201c38d83dd5c6",
+   "does": "Process: audit a module (purpose, inputs/outputs, state, side effects, implicit deps, deletion impact) before changing it. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 2: Extract Pure Logic",
+   "hash": "26f50ec8e5a3c2d6",
+   "does": "Process: extract pure logic out of side-effecting code. No code counterpart (MAINTAINERS §5.2 lists types lifted this way).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 3: Establish Data Flow",
+   "hash": "83e882441b8f9e3d",
+   "does": "Process: refactor toward Input → Validate → Transform → Process → Format → Output with side effects at the edges. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 4: Name Everything",
+   "hash": "dda57fe4ffecc907",
+   "does": "Process: rename until identifiers read as documentation. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 5: Enforce Module Boundaries",
+   "hash": "c2d8d9a3a5c1a233",
+   "does": "Process: clean public API, private internals, one-way dependencies. No code counterpart or gate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactoring Process > Step 6: Handle Every Edge Case",
+   "hash": "db515f2f81d8b115",
+   "does": "Process: account for empty/invalid input, partial failure, timeouts, cleanup, concurrency; no default that hides a broken state. No code counterpart.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
+    "Makefile::target spec-conformance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets",
+    "Makefile::target debt-budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard",
+    "Makefile::target empty-range-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "a6d3111d8d9e2535",
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
+    "Makefile::target spec-conformance": "060f9ad7c55731da"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Code Structure Standards",
+   "hash": "a844d5e7c6792f62",
+   "does": "No behavioural claim: header for structure standards.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Code Structure Standards > File Organization",
+   "hash": "f95e8a042745b026",
+   "does": "Rule: one concern per module, group by feature/domain not generic technical layer names, keep helpers close, delete unused exports.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files",
+    "Makefile::target orphan-swift-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Spec says to group by feature/domain, not by generic technical layer names; the app source is grouped exactly by technical layer (Views/, ViewModels/, Services/, Utilities/, Models/, Protocols/), which MAINTAINERS §2 presents as the intended structure.",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:163",
+      "docs/MAINTAINERS.md:146",
+      "docs/MAINTAINERS.md:168"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "a024421bbc294c8c",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Code Structure Standards > Function Ordering Within a File",
+   "hash": "813935bc12704d00",
+   "does": "Rule: order members public API → pure core → side-effect adapters → private helpers. Not enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Code Structure Standards > Explicit Dependency Wiring (No Hidden Instantiation)",
+   "hash": "af2b139bec68b7fd",
+   "does": "Rule: dependencies created only in the wiring layer and passed in. Implemented by AppDependencies + RRCollector.makeDefault (per MAINTAINERS §9.4); production code still defaults init parameters to AppDependencies.current (e.g. TrainingLoadPrecedence.stored ftp default reads AppDependencies.current at TrainingLoadPrecedence.swift:85).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "c45a4875dda79b61",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "9923e6c35385c5ed"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Functional Patterns to Apply",
+   "hash": "2c4f4047d2a8e455",
+   "does": "No behavioural claim: header for functional patterns.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Functional Patterns to Apply > Pipeline / Compose",
+   "hash": "7a9ce45a8e26e0aa",
+   "does": "Guidance: turn do-everything functions into pipelines of small steps. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Functional Patterns to Apply > Map / Filter / Reduce Over Manual Loops",
+   "hash": "bea2e7b1f8a66151",
+   "does": "Guidance: prefer map/filter/reduce unless a loop is clearer. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Functional Patterns to Apply > Closures for Configuration",
+   "hash": "d31c66bc86f53057",
+   "does": "Guidance: bind configuration with closures. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Functional Patterns to Apply > Option/Result Shapes Over Null Checks",
+   "hash": "d072e88170c7c735",
+   "does": "Guidance: prefer Optional/Result shapes over sentinel values. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > What NOT to Do",
+   "hash": "a1096f7d236c095a",
+   "does": "Rule list: no sweeping rewrites, while-I'm-here changes, style-only refactors, net-new abstractions, metaprogramming cleanups, new global/hidden state. Not enforced.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets",
+    "Makefile::target debt-budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard",
+    "Makefile::target sendable-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target sendable-guard": "16583da771b94003",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight",
+   "hash": "b1bdf8dd929e23db",
+   "does": "No behavioural claim: header for bloat/duplication/dead-weight rules.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files",
+    "Makefile::target orphan-swift-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size",
+    "Makefile::target aggregate-type-size",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)",
+    "Makefile::target sbom-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "5ccee4bede8d012d",
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "a024421bbc294c8c",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "615c037990bc9a52",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "aa07b7efdb5828f5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Dead Code Removal",
+   "hash": "ac8a32e78b1b3766",
+   "does": "Rule: delete unused code; prove use or quarantine then delete. Gate: scripts/check_no_orphan_swift.sh (ci.yml:379) checks only that Swift files are in the project, not unused symbols.",
+   "entry": null,
+   "calls": [
+    "scripts/check_no_orphan_swift.sh::fn is_synced"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_orphan_swift.sh::fn is_synced": "858518fd5f060177"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Duplication Elimination (DRY — But Smart)",
+   "hash": "9b9121e5bd088d4b",
+   "does": "Rule: remove duplication of the same concept only. Not enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Bloat Reduction",
+   "hash": "7f2f30140b58b6a2",
+   "does": "Rule: fewer files/types/layers/knobs. Not enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Dependency Audit",
+   "hash": "c5849bc8e003b835",
+   "does": "Rule: every dependency must earn its place. SBOM drift is checked (generate_sbom.py --check, ci.yml:171); no gate measures necessity.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)",
+    "Makefile::target sbom-guard",
+    "Makefile::target sbom-check",
+    "scripts/generate_sbom.py::def main",
+    ".github/workflows/security.yml::job dependency-review",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "615c037990bc9a52",
+    ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "aa07b7efdb5828f5",
+    ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "2ad042b1c466a046",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
+    "scripts/generate_sbom.py::def main": "9f1f3c45d4110b37"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Size Benchmarks",
+   "hash": "006c58ceec1826b7",
+   "does": "Guidance: files readable in one sitting. Gate: .ci/large_swift_files_1500_budget.txt = 0 via enforce_tech_debt_budgets.sh.",
+   "entry": null,
+   "calls": [
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Concurrency Safety",
+   "hash": "51f53c6f2bfedf99",
+   "does": "Rule: explicit, guarded concurrency with owned background work. Enforced by Swift 6 strict concurrency (check_strict_concurrency_enabled.sh, ci.yml job strict-concurrency) and the @unchecked Sendable budget (14).",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::job strict-concurrency",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::job strict-concurrency": "973e976fafe9cc2c",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Testability Contract",
+   "hash": "d2a17cb5c6fdca9c",
+   "does": "Rule: every refactored module ships test scaffolding, tests for each pure function, test doubles for injected deps, parity tests. Coverage floors in .ci/min_coverage*.txt (44 / 45 / 43.5) are the only mechanical check.",
+   "entry": null,
+   "calls": [
+    "Makefile::target test-coverage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target test-coverage": "06ed85ce10572ea0"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Migration Safety",
+   "hash": "f6bafb5f26f92da2",
+   "does": "Rule: parity tests, preserved formats and side effects, round-trip validation, recorded fixtures. Not enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Logging and Observability",
+   "hash": "4bcddff161301d08",
+   "does": "Rule: structured logging at every side-effect boundary with correlation IDs, consistent levels, no sensitive data. Redaction is gated by scripts/check_log_redaction.sh (ci.yml:324); correlation IDs are not checked.",
+   "entry": null,
+   "calls": [
+    "scripts/check_log_redaction.sh::fn report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Performance-Sensitive Paths",
+   "hash": "07ace37c87f1a588",
+   "does": "Rule: identify hot paths and measure after refactor. performance.yml (manual) runs AnalysisPerformanceTests.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/performance.yml::job performance-tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/performance.yml::job performance-tests": "ea47f6c01763284e"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Data Model Versioning",
+   "hash": "3db20d2d6d3f8339",
+   "does": "Rule: persisted structures versioned/migratable. SessionArchiveEntry.currentSchemaVersion = 1 (SessionMetadata.swift:711) and Archive deferred migrations exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > API Contract Stability",
+   "hash": "cb6971075d599ea4",
+   "does": "Rule: no public API change in refactors without a compatibility layer. Forwarder files (e.g. HealthKitManager+SleepQueryForwarding.swift, RRCollector+*Forwarding.swift) are the repo's compatibility layers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Graceful Degradation and Recovery",
+   "hash": "a3046d10a4641d70",
+   "does": "Rule: degrade with explicit signals, no silent fallbacks, bounded observable retries, deterministic recovery. Not enforced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Safety Protocol",
+   "hash": "78b87879cafc772f",
+   "does": "No behavioural claim: header for the refactor safety protocol.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci-local",
+    "Makefile::target ci"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target ci-local": "2f301710427d57ea"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Safety Protocol > Before Touching Anything",
+   "hash": "485bd72eecee0360",
+   "does": "Process: build and run first, map entry points, snapshot behaviour, mark side effects. No code counterpart.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci-local",
+    "Makefile::target ci"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target ci-local": "2f301710427d57ea"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Safety Protocol > During the Refactor",
+   "hash": "95b2a60cbd5b4b30",
+   "does": "Process: one change at a time, keep it working, never mix refactor and behaviour change, preserve edge cases, no new surface. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Safety Protocol > After the Refactor",
+   "hash": "948b372bbe6188ac",
+   "does": "Process: run full verification suite, manually verify, read whole diff, remove temporary dual paths. `make ci` is the full suite.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Safety Protocol > The Cardinal Rule",
+   "hash": "fe983da700625ed0",
+   "does": "Rule: a refactor that cannot be proven behaviour-identical is not complete. No code counterpart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate)",
+   "hash": "a908094c38bad9ab",
+   "does": "No behavioural claim: header for the hard-gate checklist; only four items are measured (see check_refactor_spec_conformance.sh header).",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Correctness & Parity",
+   "hash": "8bc8a0785881b12c",
+   "does": "Checklist: parity verified, edge cases preserved, full suite passes with zero new warnings. Warnings are capped at 81 by .ci/swiftlint_warning_budget.txt (enforce_swiftlint_budget.sh), not zero-new.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget",
+    "Makefile::target lint-budget",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage",
+    ".github/workflows/ci.yml::step tests/Release configuration compiles",
+    "Makefile::target ci-local"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "doc's hard gate requires the suite to pass with zero new warnings; the SwiftLint gate only fails when total violations exceed the fixed budget of 81 and, unlike other budgets, reports no slack, so new lint warnings pass silently whenever the count is below 81",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:376",
+      "scripts/enforce_swiftlint_budget.sh:44",
+      ".ci/swiftlint_warning_budget.txt:1"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint": "9b9312f3d243ac5e",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "47bc283c67a4a75a",
+    ".github/workflows/ci.yml::step tests/Release configuration compiles": "2c70c8bd2c942079",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target lint-budget": "1a28f599153715e4"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Purity, State, and Flow",
+   "hash": "e523d51179e8888b",
+   "does": "Checklist: purity, no shared mutable state, one-directional flow. Not measured.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on",
+    "Makefile::target strict-concurrency-enabled",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer",
+    "Makefile::target thread-sanitizer",
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard",
+    "Makefile::target sendable-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "7dd78ff65eb72412",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "4b3a2a343a755ae0",
+    "Makefile::target sendable-guard": "16583da771b94003",
+    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
+    "Makefile::target thread-sanitizer": "5a3ae899b4053a7b"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Boundaries & Dependencies",
+   "hash": "3508659818af61de",
+   "does": "Checklist: side effects at boundaries, explicit wiring, no cycles. .shared confinement measured by check_no_shared_outside_root.sh.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Clarity & Complexity",
+   "hash": "2afebfbb2c2bea8d",
+   "does": "Checklist: nesting ≤2 and functions ≤20 lines (measured by check_refactor_spec_conformance.sh, budgets 0 plus 7 justified-long waivers), no zero-value wrappers, no single-implementation interfaces. The repo keeps many one-line forwarders (e.g. RRCollector.gatherOvernightData, HealthKitManager.estimateSleepFromHR) deliberately as call-site compatibility shims.",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "0de5a6f27d744502",
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Errors & Observability",
+   "hash": "d91cf47c5be61582",
+   "does": "Checklist: explicit error handling, taxonomy, logging with correlation IDs, no sensitive data in logs. Empty catches and log redaction are gated; the rest is not.",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
+    "scripts/check_log_redaction.sh::fn report"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_log_redaction.sh::fn report": "87c3cb677447e5ea",
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Data, Config, and Magic",
+   "hash": "659bdeb1a9b52d3f",
+   "does": "Checklist: no magic numbers/strings in logic, constants centralized and named; explicit config; compatible persisted models. No gate measures the magic-number item: check_refactor_spec_conformance.sh delegates it to SwiftLint, and neither .swiftlint.yml nor .swiftlint-strict.yml enables a magic-number rule (no 'magic' entry in either).",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The hard-gate item 'No magic numbers in logic' is claimed covered by SwiftLint in the conformance gate's header, but no SwiftLint config enables a magic-number rule, so the item is unmeasured and inline thresholds persist in scoring/selection code.",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:403",
+      "scripts/check_refactor_spec_conformance.sh:24",
+      ".swiftlint.yml:1",
+      "Emuqu/Sources/Collection/DataSourceSelector.swift:213",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:218"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Hygiene & Footprint",
+   "hash": "5b57bfe60ad8fd6f",
+   "does": "Checklist: dead/commented code removed (commented code budget 0), duplication reduced, line count not increased, dependencies audited.",
+   "entry": null,
+   "calls": [
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Refactor Completion Checklist (Hard Gate) > Performance & Reliability",
+   "hash": "ff08045d6332f7ee",
+   "does": "Checklist: hot paths measured, graceful degradation, bounded retries. Not measured.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/performance.yml::job performance-tests",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "doc lists 'performance measured post-refactor' under a Hard Gate; the only harness is a workflow_dispatch-only workflow running one measure() test with no committed .xcbaseline, so a performance regression never fails any CI run",
+     "evidence": [
+      "docs/REFACTOR_SPEC.md:414",
+      ".github/workflows/performance.yml:3",
+      "EmuquTests/AnalysisPerformanceTests.swift:49"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/performance.yml::job performance-tests": "ea47f6c01763284e",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "1990c882a1546ea1"
+   }
+  },
+  {
+   "key": "§ Code Refactor Specification > Final Standard (Definition of Done)",
+   "hash": "35975031ade1f258",
+   "does": "Definition of done: obvious responsibility, pure core, swappable deps, explicit errors, no silent failure, dead code removed, tests, parity, no new global/hidden state or magic. Not measured as a whole.",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)",
+    "Makefile::target spec-conformance",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "af93a701edc65875",
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299",
+    "Makefile::target spec-conformance": "060f9ad7c55731da"
+   }
+  }
+ ],
+ "deps": {}
+}

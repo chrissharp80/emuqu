@@ -1,0 +1,456 @@
+{
+ "file": "Emuqu/Sources/Analysis/FTPAutoEstimator.swift",
+ "hash": "2c3e675feb0a6308",
+ "role": "Auto-estimates running FTP as 0.95 × best rolling 20-minute mean power from running-family archived workouts in the last 90 days, cached in UserDefaults and used as the fallback when the user has not set running FTP.",
+ "types": [
+  "FTPAutoEstimator: enum — scanning, scoring and UserDefaults cache",
+  "FTPAutoEstimator.Effort: struct — meanPowerWatts + sessionId",
+  "FTPAutoEstimator.RollingPower: struct (private) — running sum/count over the window"
+ ],
+ "state": [
+  "ud:FlowRecovery.ftpAutoEstimate.runningFTP (cachedFTPKey, Int watts)",
+  "ud:FlowRecovery.ftpAutoEstimate.computedAt (cachedAsOfKey, Date)",
+  "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId (cachedSourceSessionKey, UUID string)",
+  "ud:FlowRecovery.ftpAutoEstimate.sourceNP (cachedSourcePowerKey, Double; name says NP but stores 20-min mean power)",
+  "static lookbackDays=90, effortWindowSeconds=1200, minimumPowerCoverage=0.9, twentyMinuteToFTPFactor=0.95"
+ ],
+ "toplevel": "Static constants only.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "UserDefaults key name 'sourceNP' stores the 20-minute mean power, not normalized power.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:40",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:194"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var FTPAutoEstimator.cachedRunningFTP",
+   "hash": "ee448cb1a7888a34",
+   "does": "Returns the cached auto-FTP from UserDefaults, or nil when 0/missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stored integer > 0",
+     "effect": "returns it; else nil (integer(forKey:) gives 0 for a missing key)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FTPAutoEstimator.lastComputedAt",
+   "hash": "80b1d31c68efd873",
+   "does": "Returns the last scan timestamp from UserDefaults or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FTPAutoEstimator.sourceSessionId",
+   "hash": "8f77a850df63ee6d",
+   "does": "Returns the UUID of the session that anchored the estimate, from UserDefaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a string is stored",
+     "effect": "false: nil; true: UUID(uuidString:) (nil if malformed)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No reader anywhere in the repo (grep of Swift sources and tests finds only its declaration); it is written by persist() but never read, despite the 'Diagnostic' doc.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:73"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var FTPAutoEstimator.sourceMeanPower",
+   "hash": "5e07e551295061a0",
+   "does": "Returns the stored 20-minute mean power (0 when absent).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.sourceNP"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No reader anywhere in the repo (grep of Swift sources and tests finds only its declaration); it is written by persist() but never read, despite the 'Diagnostic' doc.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.recomputeIfNeeded(archive:force:now:)",
+   "hash": "2d3387a6c63cc27f",
+   "does": "Unless forced, returns when the last scan is under 7 days old; otherwise starts a detached utility-priority Task that runs recompute(archive:now:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "!force and lastComputedAt exists and now - last < 7 days",
+     "effect": "returns without scanning; else launches Task.detached recompute"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Throttled only by time: a newly recorded hard run within 7 days of the last scan does not update the FTP (and so power-TSS) until the week passes; the only caller passes force=false.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:86",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:490"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "recomputeIfNeeded returns immediately after launching a detached task, and the launch housekeeping then awaits trainingMetricsCache.refresh() at once, so on a launch that recomputes the FTP the training-load refresh reads the previous cachedRunningFTP; the next refresh rebuilds only because LoadSettings.ftp changed.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:89",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:489",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:492",
+      "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift:22"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Type doc says the estimate is cleared when the anchoring workout was deleted, but nothing reacts to deletion: the only caller is the throttled launch housekeeping, so a deleted anchor keeps scaling power-TSS for up to 7 days.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:28",
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:86",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:490"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "976dc961cc0d3ba3",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.lastComputedAt": "07775f853b5eb37f"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.recompute(archive:now:)",
+   "hash": "18e4ee8b8ef7557e",
+   "does": "Synchronously selects recent running-family workouts, finds the best qualifying 20-min effort and persists (or clears) the estimate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries/retrieveLightweight"
+   ],
+   "writes": [
+    "ud:FlowRecovery.ftpAutoEstimate.*"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "6966d0f5ca0e5a0d",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "57e340be182f8d0c",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "317a4d0fc13005bd"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.ftp(for:)",
+   "hash": "b41f1e5bff1ee72b",
+   "does": "Returns round(meanPowerWatts × 0.95) as Int.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.bestEffort(in:)",
+   "hash": "f916874a4d8f00d7",
+   "does": "For each session with workout samples computes the best 20-minute mean power and returns the Effort with the highest mean, or nil if none qualify.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session has workoutMetadata.samples and a qualifying 20-min window",
+     "effect": "false: session skipped; true: Effort(mean, session.id)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)": "c6f512c8a305819e"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.bestTwentyMinuteMeanPower(_:)",
+   "hash": "22e967800d7238e1",
+   "does": "Builds a per-second power array and slides a 1200-s window over it, returning the highest mean of power readings among windows where >= 1080 seconds carry a reading; nil if the series is shorter than 1200 s or no window qualifies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "perSecond.count >= 1200",
+     "effect": "false: nil; true: scans"
+    },
+    {
+     "at": "+7",
+     "cond": "for each second",
+     "effect": "adds the reading to the rolling window"
+    },
+    {
+     "at": "+9",
+     "cond": "second >= window",
+     "effect": "removes the reading leaving the window; else window still filling"
+    },
+    {
+     "at": "+10",
+     "cond": "window full (second >= 1199) and readings >= 1080",
+     "effect": "false: continue; true: best = max(best ?? 0, mean)"
+    },
+    {
+     "at": "+11",
+     "cond": "best ?? 0",
+     "effect": "0 used as the seed when no window has qualified yet"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.add(_:)": "5cd28b3328c5acce",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.RollingPower.remove(_:)": "c402751b2f9ac913",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.perSecondPower(_:)": "3a514f81762fb1e6",
+    "EmuquTests/TrendVerdictTests.swift::func TrendVerdictTests.readings(_:)": "120b5a16e7256a04"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.perSecondPower(_:)",
+   "hash": "2e79d4f3c9188894",
+   "does": "Maps samples with 0 <= offsetSec < 86400 into an array indexed by second holding positive powerWatts, nil elsewhere; [] when no valid sample. Duplicate offsets: last sample wins.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "any valid offset exists",
+     "effect": "false: []; true: allocates last+1 slots"
+    },
+    {
+     "at": "+4",
+     "cond": "for each valid sample",
+     "effect": "fills its second"
+    },
+    {
+     "at": "+5",
+     "cond": "powerWatts present and > 0",
+     "effect": "stores watts; else slot stays nil (zero-watt seconds count as missing, not as 0 W)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "var FTPAutoEstimator.RollingPower.mean",
+   "hash": "b09f6a7db359ec96",
+   "does": "Mean of readings in the window, 0 when no readings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+0",
+     "cond": "readings > 0",
+     "effect": "sum/readings; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.RollingPower.add(_:)",
+   "hash": "a4a8657316bf5ac8",
+   "does": "Adds a non-nil reading to sum and count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "watts is nil",
+     "effect": "returns without change; else accumulates"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.RollingPower.remove(_:)",
+   "hash": "16f313b944262715",
+   "does": "Removes a non-nil reading from sum and count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "watts is nil",
+     "effect": "returns without change; else subtracts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.recentRunningWorkouts(archive:now:)",
+   "hash": "98a0445d8b682689",
+   "does": "Archive entries of type workout dated within [now-90 d, now], decoded via retrieveLightweightOrLog, filtered to running-family sports.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)": "2999eff7c8a09f5b",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.isRunningFamily(_:)",
+   "hash": "22cd19c8538d7a28",
+   "does": "True for run, trailRun, walk, hike, treadmill; false for nil and every other sport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sport is nil",
+     "effect": "returns false"
+    },
+    {
+     "at": "+3",
+     "cond": "case .run/.trailRun/.walk/.hike/.treadmill",
+     "effect": "returns true"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FTPAutoEstimator.persist(_:at:)",
+   "hash": "e65c5002232f4301",
+   "does": "Stamps computedAt; with an effort stores FTP, source mean power and source session id and logs; without one removes the three estimate keys and logs that the estimate was cleared.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:FlowRecovery.ftpAutoEstimate.computedAt",
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceNP"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "effort is nil",
+     "effect": "removes cached FTP/source keys, logs, returns (FTP fallback disappears, so power TSS for users without manual FTP stops)"
+    },
+    {
+     "at": "+4",
+     "cond": "for each of the three keys",
+     "effect": "removeObject"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "178e97421afdd645",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

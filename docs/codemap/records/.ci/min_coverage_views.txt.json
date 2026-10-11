@@ -1,0 +1,27 @@
+{
+ "file": ".ci/min_coverage_views.txt",
+ "hash": "457a963a813c0963",
+ "role": "Committed CI floor file (43.5, non-integer so check_budget_monotonicity.sh skips it) read by scripts/check_coverage.sh:43. Unlike the other two coverage floors it is enforced on TEST_SCOPE=unit runs too (check_coverage.sh:134-139).",
+ "types": [],
+ "state": [
+  "file:.ci/min_coverage_views.txt = 43.5"
+ ],
+ "toplevel": "Single line `43.5`. Read by scripts/check_coverage.sh line 43 (MIN_VIEWS_COVERAGE_FILE). Every .ci/*.txt with an integer value is also compared against a baseline commit by scripts/check_budget_monotonicity.sh (ceilings may only fall, min_* floors may only rise, unless a `budget-raise-ok: .ci/min_coverage_views.txt` commit trailer is present in the compared range). Changes are owned by @chrissharp80 per CODEOWNERS.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": ".ci/min_coverage_views.txt holds 43.5, a non-integer; check_budget_monotonicity.sh read_int() rejects anything not ^[0-9]+$ and the loop `continue`s, so the views coverage floor is never compared and can be lowered with no budget-raise-ok trailer while the ratchet prints clean. Its header lists only three floors (min_coverage, min_coverage_logic, min_localization_coverage).",
+   "evidence": [
+    ".ci/min_coverage_views.txt:1",
+    "scripts/check_budget_monotonicity.sh:24-25",
+    "scripts/check_budget_monotonicity.sh:129-135",
+    "scripts/check_budget_monotonicity.sh:143",
+    "scripts/check_coverage.sh:43"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

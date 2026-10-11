@@ -1,0 +1,39 @@
+{
+ "file": "scripts/check_gates_wired.sh",
+ "hash": "7462b04447615193",
+ "role": "Meta-gate: every scripts/check_*.sh and enforce_*.sh must be named somewhere in .github/workflows/ci.yml, except check_coverage.sh.",
+ "types": [],
+ "state": [
+  "file:.github/workflows/ci.yml",
+  "env:GATES_WORKFLOW_FILE"
+ ],
+ "toplevel": "set -euo pipefail; no cd. WORKFLOW env GATES_WORKFLOW_FILE or .github/workflows/ci.yml; missing -> exit 2. Python: plain substring test `gate.name in workflow`. Unwired -> exit 1; else clean. Wired: gates.yml, ci.yml, Makefile gates-wired-guard.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Header says the gate proves each gate runs 'on a push', but it only checks ci.yml, which is workflow_dispatch/workflow_call only. The push workflow gates.yml omits coremotion-isolation-guard, hr-feed-link-guard and check_privacy_manifest_vocabulary.sh, and this gate passes.",
+   "evidence": [
+    "scripts/check_gates_wired.sh:5",
+    "scripts/check_gates_wired.sh:17",
+    ".github/workflows/ci.yml:3",
+    ".github/workflows/gates.yml:60",
+    ".github/workflows/gates.yml:63"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "A substring match counts mentions in YAML comments or in jobs skipped by `if:` as wired. Its comment says check_gate_preflight.sh and verify_gates_fail.sh are listed in NOT_A_STEP, but the map holds only check_coverage.sh.",
+   "evidence": [
+    "scripts/check_gates_wired.sh:48",
+    "scripts/check_gates_wired.sh:31",
+    "scripts/check_gates_wired.sh:35"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

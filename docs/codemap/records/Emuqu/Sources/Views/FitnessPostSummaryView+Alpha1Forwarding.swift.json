@@ -1,0 +1,65 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift",
+ "hash": "a54b64d91a15e3c2",
+ "role": "FitnessPostSummaryView extension forwarding the α1 report card builders to Alpha1ReportCards and re-exporting Alpha1Stats as a typealias.",
+ "types": [
+  "FitnessPostSummaryView: extension — α1 forwarders"
+ ],
+ "state": [],
+ "toplevel": "typealias Alpha1Stats = Alpha1ReportCards.Alpha1Stats (:12).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessPostSummaryView.alpha1Report",
+   "hash": "f8396687ff0179fb",
+   "does": "Constructs a fresh Alpha1ReportCards(session:) for the rendered session on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.alpha1ReportCard",
+   "hash": "b3eba4d741e5f6bc",
+   "does": "Returns Alpha1ReportCards.alpha1ReportCard for the session.",
+   "entry": "Used in FitnessPostSummaryView body composition (FitnessPostSummaryView.swift:246).",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1Report",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1ReportCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1ReportCard": "c56277b51e71656b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1Report": "b493d7af8271aa33"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.alpha1RouteColoredCard(track:)",
+   "hash": "27239d6784be9de1",
+   "does": "Returns Alpha1ReportCards.alpha1RouteColoredCard(track:) for the session.",
+   "entry": "Used in FitnessPostSummaryView when the track is non-empty (FitnessPostSummaryView.swift:248).",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1Report",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteColoredCard(track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteColoredCard(track:)": "53b798bd9dd1a306",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1Report": "b493d7af8271aa33",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
+   }
+  }
+ ],
+ "deps": {}
+}

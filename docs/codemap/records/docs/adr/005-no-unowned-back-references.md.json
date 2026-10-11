@@ -1,0 +1,101 @@
+{
+ "file": "docs/adr/005-no-unowned-back-references.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "ADR 005: records the August-September 2026 crash from unowned back-pointers in 28 split-out helpers and the decision that helpers are structs holding owners strongly, with a gate banning unowned.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned",
+   "hash": "395f0452b8f23115",
+   "does": "no behavioural claim: ADR title.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Context",
+   "hash": "1dcfe18c4a52735d",
+   "does": "Historical context: 28 helpers held unowned let back-pointers, which trapped when a Task/continuation outlived the owner (2026-09-02/03). Matches the history in scripts/check_no_unowned.sh:5-20; no unowned let/var remains in Emuqu/Sources or the watch app (only comments mention it).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Decision",
+   "hash": "f8cedb4e408ae4ab",
+   "does": "Claims helpers are structs built on demand by owners (collector.control, manager.writes, recorder.ticker), stored callbacks capture owner weakly, fire-and-forget tasks capture strongly, and check_no_unowned.sh fails on any unowned with verify_gates_fail.sh proving it. Verified: RRCollector.control (RRCollector.swift:139), HealthKitManager.writes (HealthKitManager.swift:42), WorkoutRecorder.ticker (WorkoutRecorder+TickerForwarding.swift:11) are computed builders; check_no_unowned.sh:26 greps 'unowned(unsafe)? let|var' in Emuqu/Sources and EmuquWatch Watch App; verify_gates_fail.sh:478-482 plants one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker",
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references",
+    "scripts/verify_gates_fail.sh::fn check"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "ADR says 'unowned is not used in app source' and the gate fails 'on any occurrence', but the gate regex only matches 'unowned let/var' declarations; an unowned capture list entry ([unowned self]) is not detected.",
+     "evidence": [
+      "docs/adr/005-no-unowned-back-references.md:39",
+      "scripts/check_no_unowned.sh:26"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "818a60b78cdaaace",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "1e0830bcc1eaab16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc"
+   }
+  },
+  {
+   "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Consequences",
+   "hash": "df138a3c304012cc",
+   "does": "Claims helpers are stateless values and weak remains for optional back-references, citing WorkoutVoiceCoach, BeatConsistencyPriorsCache, TrainingMetricsCache. Verified: WorkoutVoiceCoach.swift:39/44 weak watchBridge/conversation, BeatConsistencyPriorsCache.swift:172 weak boundArchive, TrainingMetricsCache.swift:266 weak healthKit.",
+   "entry": null,
+   "calls": [
+    "Makefile::target no-unowned-guard",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards",
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.configure(healthKit:)",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "818a60b78cdaaace",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "35e8a427fb74b719",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)": "37a3d035a35511fb",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.configure(healthKit:)": "c6b2433b06590c1a",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:)": "3ebcff9501435fc9",
+    "Makefile::target no-unowned-guard": "8738ed86bce7f699"
+   }
+  }
+ ],
+ "deps": {}
+}

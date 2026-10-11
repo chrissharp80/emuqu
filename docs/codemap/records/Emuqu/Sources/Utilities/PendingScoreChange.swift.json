@@ -1,0 +1,112 @@
+{
+ "file": "Emuqu/Sources/Utilities/PendingScoreChange.swift",
+ "hash": "52d2e4f5867cdbd8",
+ "role": "Single-slot UserDefaults record of the most recent meaningful auto-rescore delta (prior/new score) so the dashboard can show a 'score changed' banner; posts a notification when written.",
+ "types": [
+  "PendingScoreChange: enum — namespace for write/read/clear",
+  "PendingScoreChange.Entry: struct Codable — sessionId, priorScore, newScore (0-10 scale), reason, timestamp",
+  "Notification.Name: extension — adds pendingScoreChangeWritten"
+ ],
+ "state": [
+  "ud:PendingScoreChange.v1 (standard suite, JSON-encoded Entry)",
+  "notif:pendingScoreChangeWritten (raw name 'FlowRecoveryPendingScoreChangeWritten', object = Entry)"
+ ],
+ "toplevel": "Entry gets synthesized Codable used by write/read. Notification.Name extension declares pendingScoreChangeWritten.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PendingScoreChange.write(_:)",
+   "hash": "482c3c06ae149c90",
+   "does": "JSON-encodes the Entry into UserDefaults key PendingScoreChange.v1 (overwriting any previous entry) and always posts .pendingScoreChangeWritten with the entry as object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONEncoder.encode",
+    "ext:UserDefaults.set",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PendingScoreChange.v1",
+    "notif:pendingScoreChangeWritten"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encoding succeeded",
+     "effect": "stores data; on encode failure attempt() logs a warning and nothing is stored, but the notification is still posted so an on-screen dashboard shows the banner while a later read() returns the old/no entry"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Notification is posted even when encoding failed, so the live banner (DashboardV2View observer) and the persisted slot can disagree; banner would vanish on next onAppear read.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:27",
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:30",
+      "Emuqu/Sources/Views/DashboardV2View.swift:264"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func PendingScoreChange.read()",
+   "hash": "0ab52a042d6c9b29",
+   "does": "Reads and decodes the Entry from UserDefaults key PendingScoreChange.v1; returns nil if absent or undecodable.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.data",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "ud:PendingScoreChange.v1"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no data stored under the key",
+     "effect": "returns nil; otherwise decodes with try? — a decode failure is swallowed to nil (no log)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Entry.sessionId and Entry.timestamp are written but never read anywhere: read() has no age or session check and the dashboard shows the banner whenever any entry exists (DashboardV2View.swift:275, :356), so a 'score updated 67 → 74' notice for an old session persists across days/sessions until the user taps dismiss.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:33",
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:17",
+      "Emuqu/Sources/Utilities/PendingScoreChange.swift:21",
+      "Emuqu/Sources/Views/DashboardV2View.swift:275",
+      "Emuqu/Sources/Views/DashboardV2View.swift:356"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PendingScoreChange.clear()",
+   "hash": "c6fb1bf52bd8739e",
+   "does": "Removes UserDefaults key PendingScoreChange.v1 (called when the dashboard banner is dismissed).",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.removeObject"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PendingScoreChange.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

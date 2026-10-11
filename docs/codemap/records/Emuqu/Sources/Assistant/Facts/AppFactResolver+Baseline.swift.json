@@ -1,0 +1,534 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift",
+ "hash": "5d2b88d0a81707de",
+ "role": "Declares BaselineNamespace (`baseline.*` facts): rolling 7-/30-day RMSSD geometric means and overnight-HR means plus today-vs-baseline deviations, reconstructed from overnight sessions in the archive rather than from BaselineTracker's stored points.",
+ "types": [
+  "BaselineNamespace: struct (FactNamespaceResolver) — baseline.* facts over SessionArchive",
+  "BaselineNamespace.Sample: struct (private) — date/rmssd/hr per overnight session"
+ ],
+ "state": [
+  "let namespace = 'baseline'",
+  "let archive: SessionArchive (injected by AppFactResolverFactory.registerHealthNamespaces, AppFactResolver.swift:196)"
+ ],
+ "toplevel": "Struct conformance only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BaselineNamespace.lastNightSample(now:)",
+   "hash": "53ee9af183cb526b",
+   "does": "Returns the newest overnight sample only when its session start is within 36 h of now; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a newest sample exists and is ≤36 h old",
+     "effect": "returns it; else nil (callers report 'no overnight session from last night')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "6ed6def33f9ce553"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.samples()",
+   "hash": "f782094882513346",
+   "does": "Filters archive entries to overnight + isReliableForHRVAggregates, sorts oldest→newest, loads each session lightweight and returns Samples (session.startDate, timeDomain.rmssd, timeDomain.meanHR) for sessions with analysis and rmssd > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "session loads, has analysisResult.timeDomain and rmssd > 0",
+     "effect": "included; otherwise skipped (load errors are logged by retrieveLightweightOrLog and dropped)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "samples() loads every reliable overnight session from disk (retrieveLightweightOrLog per entry) on each call, and several entries call it 2x per resolve (lastNightSample + recentSamples); cost grows linearly with archive size on the resolver's main-actor path.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:51",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:128",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:131",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:240",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:252"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.entries": "91f160c6e5e1272d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.recentSamples(days:)",
+   "hash": "ed83d0b57c8891c9",
+   "does": "Returns samples whose date is on/after now minus `days` calendar days (default 7).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()",
+    "ext:Calendar.date(byAdding:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Calendar can compute the cutoff",
+     "effect": "filters samples; else returns [] (not reachable for Gregorian day arithmetic)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "6ed6def33f9ce553"
+   }
+  },
+  {
+   "key": "func BaselineNamespace.geometricMean(_:)",
+   "hash": "ab4bf20cb6cf3c11",
+   "does": "Geometric mean exp(mean(ln x)) of the positive values; nil when none are positive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "at least one positive value",
+     "effect": "returns the geometric mean; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Third geometric-mean helper: BaselineTracker.geometricMeanRMSSD and AnalysisSummaryGenerator.geometricMean compute the same exp(mean(ln x)).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:70",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:646",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:237"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func BaselineNamespace.baselineAvailability()",
+   "hash": "75be888300581158",
+   "does": "Availability for every baseline entry: unavailable when the archive has no overnight entries; otherwise hasData with validRange earliest...latest overnight entry date and lastUpdated = latest.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnight entries exist with min/max dates",
+     "effect": "returns Availability(hasData:true, range); else .unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.entries": "91f160c6e5e1272d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.entries",
+   "hash": "f91812dd189c4fb3",
+   "does": "Returns the 9 baseline entries (rmssd mean 7d/30d, deviation today vs 7d/30d, hr mean 7d/30d, hr deviation vs 30d, days_of_history, is_established).",
+   "entry": "FactNamespaceResolver protocol requirement; read by FactNamespaceResolver.resolve/resolveAsync",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean7dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean7dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineDaysOfHistoryEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineIsEstablishedEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineDaysOfHistoryEntry": "b875de2e29f212d1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry": "ad0ad664c602bd36",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean30dEntry": "327f9b644b1592d6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineHrMean7dEntry": "a43706a1752c9ed7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineIsEstablishedEntry": "a09862c1f0af78e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayEntry": "84988312ddc91841",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry": "8973ec5d7e7ec445",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean30dEntry": "94ff5e9dfcbe6f2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::var BaselineNamespace.baselineRmssdMean7dEntry": "7b8c6dc73718dffe"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdMean7dEntry",
+   "hash": "7cb425395688d87f",
+   "does": "Fixed fact `baseline.rmssd.mean_7d`: geometric mean RMSSD of overnight samples in the trailing 7 days (including last night); .missing(notYetComputed) when none.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "geometric mean computable (≥1 sample)",
+     "effect": "returns .double(gm); else missing notYetComputed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdDeviationPctTodayEntry",
+   "hash": "b9bc56751e6eec32",
+   "does": "Fixed fact `baseline.rmssd.deviation_pct_today`: (last-night RMSSD − geometric mean of earlier samples in the 7-day window)/baseline ×100.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "a sample from within the last 36 h exists",
+     "effect": "continues; else missing notRecorded 'no overnight session from last night'"
+    },
+    {
+     "at": "+11",
+     "cond": "prior samples give a positive geometric mean",
+     "effect": "returns pct; else missing notYetComputed 'no prior 7-day data'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "samples() loads every reliable overnight session from disk (retrieveLightweightOrLog per entry) on each call, and several entries call it 2x per resolve (lastNightSample + recentSamples); cost grows linearly with archive size on the resolver's main-actor path.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:51",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:128",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:131",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:240",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:252"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)": "5d723ed1b348a09a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrMean7dEntry",
+   "hash": "2cf2ca9402a90941",
+   "does": "Fixed fact `baseline.hr.mean_7d`: arithmetic mean of per-session timeDomain.meanHR over the trailing 7 days.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "at least one sample in 7 days",
+     "effect": "returns mean; else missing notYetComputed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdMean30dEntry",
+   "hash": "a8681b9adc36b4db",
+   "does": "Fixed fact `baseline.rmssd.mean_30d`: geometric mean RMSSD of overnight samples in the trailing 30 days.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "geometric mean computable",
+     "effect": "returns .double(gm); else missing notYetComputed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineRmssdDeviationPctTodayVs30dEntry",
+   "hash": "1a33655a7f59a9c7",
+   "does": "Fixed fact `baseline.rmssd.deviation_pct_today_vs_30d`: last-night RMSSD % deviation from geometric mean of earlier samples in the 30-day window.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "a sample within 36 h exists",
+     "effect": "continues; else missing notRecorded"
+    },
+    {
+     "at": "+11",
+     "cond": "prior 30-day geometric mean > 0",
+     "effect": "returns pct; else missing notYetComputed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Body is identical to baselineRmssdDeviationPctTodayEntry except the window (7 vs 30) and detail text; same for the hr 7d/30d mean pair — one helper parameterized by days would replace four closures.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:121",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:174",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:141",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:194"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.geometricMean(_:)": "96a33e7daf319d2c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)": "5d723ed1b348a09a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrMean30dEntry",
+   "hash": "bfa3290095bf05b9",
+   "does": "Fixed fact `baseline.hr.mean_30d`: arithmetic mean of per-session meanHR over the trailing 30 days.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "at least one sample in 30 days",
+     "effect": "returns mean; else missing notYetComputed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineHrDeviationPctTodayVs30dEntry",
+   "hash": "0f27884fcfb64c58",
+   "does": "Fixed fact `baseline.hr.deviation_pct_today_vs_30d`: (last-night meanHR − arithmetic mean of earlier 30-day samples)/baseline ×100.",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "a sample within 36 h exists",
+     "effect": "continues; else missing notRecorded"
+    },
+    {
+     "at": "+11",
+     "cond": "prior 30-day samples exist",
+     "effect": "continues; else missing notYetComputed"
+    },
+    {
+     "at": "+15",
+     "cond": "baseline mean > 0",
+     "effect": "returns pct; else .missing(.notYetComputed) with no detail (only when every prior meanHR is ≤0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.lastNightSample(now:)": "5d723ed1b348a09a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.recentSamples(days:)": "1b353d3a66fcc2da",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineDaysOfHistoryEntry",
+   "hash": "45f1805357ebcd38",
+   "does": "Fixed fact `baseline.days_of_history`: min(count of reliable overnight archive samples, 60).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Description says this is the number of nights the recovery score's baseline draws on, but it counts reliable overnight sessions in the archive, whereas the score uses BaselineTracker.historicalData (one stored point per accepted night, BaselineTracker.swift:185-213). Multiple overnight sessions on one night, or nights the tracker rejected/never stored, make the reported count differ from the score's real baseline size.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:236",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:240",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:185",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:211"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "6ed6def33f9ce553",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  },
+  {
+   "key": "var BaselineNamespace.baselineIsEstablishedEntry",
+   "hash": "00e0251913136448",
+   "does": "Fixed fact `baseline.is_established`: true when reliable overnight archive samples ≥ BaselineTracker.RecoveryBaselineStats.minimumDays (3).",
+   "entry": "invoked by FactResolverRegistry when the namespace entries list is built (FactNamespaceResolver.resolve/resolveAsync walking entries) for tool dispatch / key resolution",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (overnight, isReliableForHRVAggregates)",
+    "archive:SessionArchive.retrieveLightweight (analysisResult.timeDomain)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Claims to use 'the app's rule' but counts archive sessions instead of BaselineTracker stored points, so it can report established while recoveryBaselineStats is still nil (e.g. 3 sessions from 2 nights).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift:252",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:212"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.baselineAvailability()": "82ecada3b47e226b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Baseline.swift::func BaselineNamespace.samples()": "6ed6def33f9ce553",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46"
+   }
+  }
+ ],
+ "deps": {}
+}

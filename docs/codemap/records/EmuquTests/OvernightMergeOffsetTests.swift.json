@@ -1,0 +1,128 @@
+{
+ "file": "EmuquTests/OvernightMergeOffsetTests.swift",
+ "hash": "1c33914fdbd8d2e5",
+ "role": "XCTest suite for MillisecondOffset.between(_:and:): nil for NaN or beyond-century dates instead of trapping, and exact rounded millisecond offsets (positive, zero, negative, 8 h, sub-second).",
+ "types": [
+  "OvernightMergeOffsetTests: class — @MainActor XCTestCase over MillisecondOffset"
+ ],
+ "state": [
+  "mem:OvernightMergeOffsetTests.parent (Date 1_622_534_400)"
+ ],
+ "toplevel": "parent stored-property initializer.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func OvernightMergeOffsetTests.testNonFiniteDateYieldsNoOffset()",
+   "hash": "664da45a4d5c2f55",
+   "does": "Asserts a NaN date on either side returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testAbsurdlyDistantDateYieldsNoOffset()",
+   "hash": "72c9a10aa3793daf",
+   "does": "Asserts distantFuture/distantPast vs parent return nil (beyond the 100-year limit).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testChildAfterParentIsPositiveMilliseconds()",
+   "hash": "9f605aaf058c619c",
+   "does": "Asserts child 90 min after parent gives 5_400_000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testIdenticalStartsGiveZero()",
+   "hash": "4e092cb2a4c29284",
+   "does": "Asserts identical dates give 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testChildBeforeParentIsNegative()",
+   "hash": "e0be3e099ff64d27",
+   "does": "Asserts child 600 s before parent gives -600_000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testAFullNightOffsetIsRepresentable()",
+   "hash": "13ed744f65df7ff2",
+   "does": "Asserts an 8 h offset gives 28_800_000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  },
+  {
+   "key": "func OvernightMergeOffsetTests.testSubSecondOffsetsSurvive()",
+   "hash": "793f41a3d842af6e",
+   "does": "Asserts a 1.234 s offset gives 1234 ms (sub-second precision kept).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "5ba3ca6486738e50"
+   }
+  }
+ ],
+ "deps": {}
+}

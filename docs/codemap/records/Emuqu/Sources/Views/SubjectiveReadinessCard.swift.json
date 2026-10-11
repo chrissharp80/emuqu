@@ -1,0 +1,437 @@
+{
+ "file": "Emuqu/Sources/Views/SubjectiveReadinessCard.swift",
+ "hash": "4adfaa22b8d91f05",
+ "role": "Card with a 0-10 slider asking 'How Do You Feel?' when HRV quality is preSleep/insufficient; writes value/10 into the bound perceivedReadiness, which MorningResultsView routes to MorningResultsViewModel.updatePerceivedReadiness (blended 70/30 into the HRV factor by RecoveryScoreCalculator).",
+ "types": [
+  "SubjectiveReadinessCard: struct (View) — subjective readiness slider card"
+ ],
+ "state": [
+  "mem:SubjectiveReadinessCard.sliderValue (@State, default 5.0)",
+  "mem:SubjectiveReadinessCard.hasSubmitted (@State)",
+  "binding:perceivedReadiness (Double?, 0...1)"
+ ],
+ "toplevel": "Doc comment lines 3-5 claim 30% weight in HRV factor; matches ScoringWeights.PerceivedReadiness.subjective = 0.30 (Constants.swift:445) and RecoveryScoreCalculator.swift:548-549.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SubjectiveReadinessCard.qualityMessage",
+   "hash": "5fda934887242b44",
+   "does": "Explanatory text by quality: preSleep → strap disconnected message; insufficient → not enough HRV message; good → empty string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "quality .preSleep",
+     "effect": "strap-disconnected prompt"
+    },
+    {
+     "at": "+4",
+     "cond": "quality .insufficient",
+     "effect": "insufficient-data prompt"
+    },
+    {
+     "at": "+6",
+     "cond": "quality .good",
+     "effect": "empty string (card body shows a blank caption)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "MorningResultsView.unreadableFallbackCard shows the card for any hrvDataQuality, including .good, so the .good arm is reachable and the card shows an empty caption with no explanation; docs say it appears only for .preSleep/.insufficient.",
+     "evidence": [
+      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:20",
+      "Emuqu/Sources/Views/MorningResultsView.swift:654",
+      "Emuqu/Sources/Views/MorningResultsView.swift:678",
+      "docs/API_REFERENCE.md:2153"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.emoji",
+   "hash": "a3c0f4a28175fb89",
+   "does": "Maps the rounded slider value to an emoji.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rounded value 0...1",
+     "effect": "weary emoji"
+    },
+    {
+     "at": "+3",
+     "cond": "2...3",
+     "effect": "pensive"
+    },
+    {
+     "at": "+4",
+     "cond": "4...5",
+     "effect": "neutral"
+    },
+    {
+     "at": "+5",
+     "cond": "6...7",
+     "effect": "smiling"
+    },
+    {
+     "at": "+6",
+     "cond": "8...9",
+     "effect": "flexed bicep"
+    },
+    {
+     "at": "+7",
+     "cond": "10",
+     "effect": "fire"
+    },
+    {
+     "at": "+8",
+     "cond": "default (outside 0...10, not reachable from the 0...10 slider unless restored binding is out of range)",
+     "effect": "neutral emoji"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SubjectiveReadinessCard.label",
+   "hash": "53135400a5ceaebc",
+   "does": "Maps the rounded slider value to a localized word: Terrible/Poor/OK/Good/Great/Peak.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "0...1",
+     "effect": "Terrible"
+    },
+    {
+     "at": "+3",
+     "cond": "2...3",
+     "effect": "Poor"
+    },
+    {
+     "at": "+4",
+     "cond": "4...5",
+     "effect": "OK"
+    },
+    {
+     "at": "+5",
+     "cond": "6...7",
+     "effect": "Good"
+    },
+    {
+     "at": "+6",
+     "cond": "8...9",
+     "effect": "Great"
+    },
+    {
+     "at": "+7",
+     "cond": "10",
+     "effect": "Peak"
+    },
+    {
+     "at": "+8",
+     "cond": "default (out of range)",
+     "effect": "OK"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.body",
+   "hash": "6eea5c0da484dea7",
+   "does": "Card body: header, quality message, slider row and submit button on cardBackground; onAppear restores an existing rating.",
+   "entry": "SwiftUI body; .onAppear",
+   "calls": [
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.header",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.qualityMessage",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderRow",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.submitButton",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::func SubjectiveReadinessCard.restoreExistingRating()",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md says the card is shown on the dashboard; the only instantiations are in MorningResultsView.",
+     "evidence": [
+      "docs/API_REFERENCE.md:1538",
+      "Emuqu/Sources/Views/MorningResultsView.swift:275",
+      "Emuqu/Sources/Views/MorningResultsView.swift:679"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::func SubjectiveReadinessCard.restoreExistingRating()": "1d98d43633291fd9",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.header": "db50bb7ab29cfb88",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.qualityMessage": "8900d0b9dfd815d2",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderRow": "353bccdb25e81240",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.submitButton": "cb3203ded7c91948",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.header",
+   "hash": "97b4868813847fe5",
+   "does": "Header row: hand.raised glyph in AppTheme.accent and 'How Do You Feel?' title.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.sliderRow",
+   "hash": "bb518cce7fa94896",
+   "does": "Emoji, 0-10 step-1 Slider bound to sliderValue tinted sliderColor with VoiceOver label/value ('N of 10, word'), and the word label in labelColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.emoji",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderColor",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.label",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.labelColor",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.emoji": "bb7f3ac21e427575",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.label": "a9c717afef14c74c",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.labelColor": "e50c341bb9715d51",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.sliderColor": "966aba914325abfb"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.submitButton",
+   "hash": "bf705136a690e581",
+   "does": "Button whose action calls submit() and label is bodyLabel.",
+   "entry": "Button tap action",
+   "calls": [
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::func SubjectiveReadinessCard.submit()",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.bodyLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::func SubjectiveReadinessCard.submit()": "6db19e1d7fc84efb",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.bodyLabel": "f4a19cdcecf45b05",
+    "Emuqu/Sources/Views/SubjectiveReadinessCard.swift::var SubjectiveReadinessCard.label": "a9c717afef14c74c"
+   }
+  },
+  {
+   "key": "func SubjectiveReadinessCard.submit()",
+   "hash": "bab2e4bcc4ea8b17",
+   "does": "Writes sliderValue/10 into the perceivedReadiness binding and marks hasSubmitted.",
+   "entry": null,
+   "calls": [
+    "closure:perceivedReadiness Binding set by MorningResultsView (MorningResultsView.swift:276-281, 680-683) → Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:85",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.updatePerceivedReadiness(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MorningResultsViewModel displaySession.perceivedReadiness (via binding)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.updatePerceivedReadiness(_:)": "c5754ad85f2ca01f"
+   }
+  },
+  {
+   "key": "func SubjectiveReadinessCard.restoreExistingRating()",
+   "hash": "13a583208af37cd6",
+   "does": "If the binding already holds a value, sets sliderValue = value*10 and hasSubmitted = true.",
+   "entry": ".onAppear of body",
+   "calls": [
+    "closure:perceivedReadiness Binding get → vm.displaySession.perceivedReadiness"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel displaySession.perceivedReadiness (via binding)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "perceivedReadiness non-nil",
+     "effect": "restore slider and submitted state; nil → slider stays 5.0, not submitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SubjectiveReadinessCard.bodyLabel",
+   "hash": "4dd8bbe6ac0d1dfe",
+   "does": "Button label: checkmark when submitted, text 'Update' when submitted else 'Apply', accent-tinted pill.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hasSubmitted",
+     "effect": "show green checkmark; else none"
+    },
+    {
+     "at": "+6",
+     "cond": "hasSubmitted ? Update : Apply",
+     "effect": "'Update' after submit/restore, otherwise 'Apply'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.labelColor",
+   "hash": "19dda77211af073f",
+   "does": "Word colour: 0-2 terracottaText, 3-4 wongAttentionText, 7-8 sageText, 9-10 terracottaText (accent=terracotta), else (5-6 and out-of-range) softGoldText.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "0...2",
+     "effect": "terracottaText"
+    },
+    {
+     "at": "+3",
+     "cond": "3...4",
+     "effect": "wongAttentionText"
+    },
+    {
+     "at": "+4",
+     "cond": "7...8",
+     "effect": "sageText"
+    },
+    {
+     "at": "+5",
+     "cond": "9...10",
+     "effect": "terracottaText (same as 0-2, since AppTheme.accent = terracotta)"
+    },
+    {
+     "at": "+6",
+     "cond": "default (5...6)",
+     "effect": "softGoldText"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The best ratings (9-10, 'Great'/'Peak') render in the same terracotta text colour as the worst (0-2, 'Terrible'), because the slider's top band uses AppTheme.accent which is terracotta; colour alone cannot distinguish best from worst.",
+     "evidence": [
+      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:140",
+      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:143",
+      "Emuqu/Sources/Views/SubjectiveReadinessCard.swift:154",
+      "Emuqu/Sources/Views/Theme.swift:227"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText": "bf5f36a9592e827c"
+   }
+  },
+  {
+   "key": "var SubjectiveReadinessCard.sliderColor",
+   "hash": "bf3de4eaaac7dd1f",
+   "does": "Slider tint: 0-2 red, 3-4 orange, 5-6 yellow, 7-8 green, 9-10 AppTheme.accent (terracotta), default yellow.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "0...2",
+     "effect": "red"
+    },
+    {
+     "at": "+3",
+     "cond": "3...4",
+     "effect": "orange"
+    },
+    {
+     "at": "+4",
+     "cond": "5...6",
+     "effect": "yellow"
+    },
+    {
+     "at": "+5",
+     "cond": "7...8",
+     "effect": "green"
+    },
+    {
+     "at": "+6",
+     "cond": "9...10",
+     "effect": "AppTheme.accent (terracotta coral-red)"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "yellow"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

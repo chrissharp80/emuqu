@@ -1,0 +1,730 @@
+{
+ "file": "EmuquTests/FakeStrapRadio.swift",
+ "hash": "9df5f2176f56b52b",
+ "role": "Test double for the StrapRadio protocol (Polar SDK surface): scripted strap that records every call in order, serves queued HR samples, H10 exercises and Verity offline PPI recordings, and can refuse N times or hang specific calls, so strap arming/fetch/night sequences run in unit tests.",
+ "types": [
+  "FakeStrapRadio: class (StrapRadio, @unchecked Sendable) — scripted fake strap",
+  "FakeStrapRadio.Call: enum — one recorded app→strap call (16 cases)",
+  "FakeStrapRadio.OfflineRow: struct — Sendable listing row (path, date)",
+  "FakeStrapRadio.State: struct — all scripted state (calls, recording flags, exercises, offline entries/data, HR/PPI queues, refusals, hanging calls)"
+ ],
+ "state": [
+  "mem:FakeStrapRadio.state (NSLock)",
+  "mem:FakeStrapRadio.value (State, guarded by lock)",
+  "mem:FakeStrapRadio.refusalError (NOT lock-guarded)"
+ ],
+ "toplevel": "Imports PolarBleSdk unconditionally (the production protocol is inside #if canImport(PolarBleSdk)); State defaults: no calls, no recording, empty queues.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Doc comment says every stored property is behind one lock, but refusalError (line 123) is written in refuse() and read inside refusalIfDue's locked closure without its own protection, so a refuse() racing with a strap call is an unsynchronised access in an @unchecked Sendable type.",
+   "evidence": [
+    "EmuquTests/FakeStrapRadio.swift:13",
+    "EmuquTests/FakeStrapRadio.swift:120",
+    "EmuquTests/FakeStrapRadio.swift:123"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says the fake answers 'the sixteen calls' while StrapRadio's doc says seventeen calls; searchForDevice is implemented but never recorded in Call, so a test cannot assert a scan happened.",
+   "evidence": [
+    "EmuquTests/FakeStrapRadio.swift:7",
+    "Emuqu/Sources/Collection/StrapRadio.swift:18",
+    "EmuquTests/FakeStrapRadio.swift:151"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "State.ppiSamples is never filled by any scripting method, so startPpiStreaming always yields an open, empty stream; Verity live-PPI streaming cannot be exercised with this fake.",
+   "evidence": [
+    "EmuquTests/FakeStrapRadio.swift:55",
+    "EmuquTests/FakeStrapRadio.swift:174"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func FakeStrapRadio.withState(_:)",
+   "hash": "5e7ff070af8d0cdf",
+   "does": "Runs body with exclusive access to the State under the NSLock and returns its result.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FakeStrapRadio.calls",
+   "hash": "a231ebb7665ad7c7",
+   "does": "Returns a snapshot of the recorded call list.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "var FakeStrapRadio.hrPeripheralIds",
+   "hash": "7cf06b1979cd19e6",
+   "does": "Returns the peripheral ids passed to each startHrStreaming call.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.setRecording(ongoing:entryId:)",
+   "hash": "09eb14ee26ef00b4",
+   "does": "Scripts the H10 recording status (ongoing flag and entry id).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+   "hash": "8a5165bae62b3d2f",
+   "does": "Adds an H10 exercise entry (path/date/entryId) and its RR data (interval 1, samples rrMs).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.addOfflineRecording(path:date:ppiMs:)",
+   "hash": "f7d88614054aba35",
+   "does": "Adds a Verity offline listing row and PPI offline data at path, one sample per ppiMs value (hr 60, skin contact on).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.setOfflineRecordingOngoing(_:feature:)",
+   "hash": "82edf302b7ccf07b",
+   "does": "Sets the offline-recording ongoing flag for a feature (default .ppi).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "setOfflineRecordingOngoing has no caller: grep -rn setOfflineRecordingOngoing over the repo finds only its declaration; no test scripts an already-running Verity offline recording.",
+     "evidence": [
+      "EmuquTests/FakeStrapRadio.swift:106"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.queueHeartRate(bpm:rrsMs:)",
+   "hash": "57e0114cdcd0eec3",
+   "does": "Queues one HR sample batch (bpm, rrsMs, rrAvailable = rrs non-empty) to be yielded by startHrStreaming.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.refuse(_:times:with:)",
+   "hash": "c0e2d89ee16114b2",
+   "does": "Makes the named call fail `times` times with error (default PolarErrors.notificationNotEnabled); the error is shared by all refusals.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.hang(_:)",
+   "hash": "3b70a0bbe41cb38d",
+   "does": "Marks the named call as hanging forever.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.hangIfDue(_:)",
+   "hash": "e2b3bf384069a03c",
+   "does": "If call is marked hanging, suspends forever on a never-resumed UnsafeContinuation (ignores cancellation); otherwise returns.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "call is in hanging set",
+     "effect": "true: never returns; false: returns immediately"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "A hanging call never resumes even on task cancellation, leaking the continuation and task for the rest of the test process; intended to model a stale link but any test that does not time out leaves a suspended task behind.",
+     "evidence": [
+      "EmuquTests/FakeStrapRadio.swift:133"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.refusalIfDue(_:)",
+   "hash": "91501790d921ef70",
+   "does": "Returns the scripted refusal error and decrements the remaining count when refusals remain for call; else nil.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusalsLeft[call] exists and > 0",
+     "effect": "true: decrements and returns refusalError; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.record(_:)",
+   "hash": "afb3453d5e0f409c",
+   "does": "Appends a Call to the recorded list.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.connectToDevice(_:)",
+   "hash": "806733542ccc009c",
+   "does": "Records .connect(identifier); never throws.",
+   "entry": "StrapRadio.connectToDevice protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.disconnectFromDevice(_:)",
+   "hash": "904a360547985a62",
+   "does": "Records .disconnect(identifier); never throws.",
+   "entry": "StrapRadio.disconnectFromDevice protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.searchForDevice()",
+   "hash": "212bbd879943254f",
+   "does": "Returns an immediately finished empty device-search stream (not recorded).",
+   "entry": "StrapRadio.searchForDevice protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FakeStrapRadio.startHrStreaming(_:peripheralId:)",
+   "hash": "3e67a4f4f118c5a1",
+   "does": "Records .startHrStreaming and the peripheralId; returns a stream that throws the refusal error if one is due, else yields all queued HR batches and stays open.",
+   "entry": "StrapRadio.startHrStreaming protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "refusal due",
+     "effect": "true: stream finishes throwing the error; false: yields queued samples, never finishes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.hrPeripheralIds": "3db0d8d5284df068"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.startPpiStreaming(_:)",
+   "hash": "2caa6a0232845382",
+   "does": "Records .startPpiStreaming; returns a throwing stream on refusal, else yields queued PPI samples (always empty) and stays open.",
+   "entry": "StrapRadio.startPpiStreaming protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusal due",
+     "effect": "true: finishes throwing; false: yields ppiSamples and never finishes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.startRecording(_:exerciseId:interval:sampleType:)",
+   "hash": "8159376c0443a960",
+   "does": "Records .startRecording(exerciseId); throws a due refusal, throws deviceError 'recording already running' if a recording is ongoing, else marks recording ongoing with that entry id.",
+   "entry": "StrapRadio.startRecording protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "refusal due",
+     "effect": "throws refusal error"
+    },
+    {
+     "at": "+7",
+     "cond": "recording already ongoing",
+     "effect": "throws PolarErrors.deviceError; false: starts recording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.stopRecording(_:)",
+   "hash": "29fb3916d3bcaee6",
+   "does": "Records .stopRecording, hangs if scripted, throws a due refusal, else clears recordingOngoing.",
+   "entry": "StrapRadio.stopRecording protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "refusal due",
+     "effect": "throws; false: recording stopped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.requestRecordingStatus(_:)",
+   "hash": "081a42114f693390",
+   "does": "Records .requestRecordingStatus, hangs if scripted, throws a due refusal, else returns (ongoing, entryId).",
+   "entry": "StrapRadio.requestRecordingStatus protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "refusal due",
+     "effect": "throws; false: returns status"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.listExercises(_:)",
+   "hash": "15a62e7a8d250a73",
+   "does": "Records .listExercises; on refusal returns a throwing stream; else yields every exercise except the one currently being recorded, then finishes.",
+   "entry": "StrapRadio.listExercises protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusal due",
+     "effect": "stream finishes throwing; false: yields filtered entries and finishes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.fetchExercise(_:entry:)",
+   "hash": "3d25e3fc5c270cc5",
+   "does": "Records .fetchExercise(entryId), hangs if scripted, throws a due refusal, returns stored data or throws deviceError 'no such exercise'.",
+   "entry": "StrapRadio.fetchExercise protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "refusal due",
+     "effect": "throws"
+    },
+    {
+     "at": "+4",
+     "cond": "data stored for entryId",
+     "effect": "false: throws deviceError; true: returns data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.removeExercise(_:entry:)",
+   "hash": "380308ec56b427be",
+   "does": "Records .removeExercise(entryId) and deletes the exercise and its data; never refuses.",
+   "entry": "StrapRadio.removeExercise protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.startOfflineRecording(_:feature:settings:secret:)",
+   "hash": "4a2afedfdeb995dd",
+   "does": "Records .startOfflineRecording; throws a due refusal, else marks the feature ongoing.",
+   "entry": "StrapRadio.startOfflineRecording protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "refusal due",
+     "effect": "throws; false: feature ongoing = true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.stopOfflineRecording(_:feature:)",
+   "hash": "cf7f4c1cda071710",
+   "does": "Records .stopOfflineRecording; throws a due refusal, else marks the feature not ongoing.",
+   "entry": "StrapRadio.stopOfflineRecording protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusal due",
+     "effect": "throws; false: feature ongoing = false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.getOfflineRecordingStatus(_:)",
+   "hash": "97631e21fe05c9be",
+   "does": "Records .offlineRecordingStatus; throws a due refusal, else returns the ongoing-per-feature map.",
+   "entry": "StrapRadio.getOfflineRecordingStatus protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusal due",
+     "effect": "throws; false: returns map"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.listOfflineRecordings(_:)",
+   "hash": "83e58156fd780053",
+   "does": "Records .listOfflineRecordings; on refusal returns a throwing stream; else yields one PolarOfflineRecordingEntry (size 1024, type .ppi) per row and finishes.",
+   "entry": "StrapRadio.listOfflineRecordings protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "refusal due",
+     "effect": "stream finishes throwing"
+    },
+    {
+     "at": "+7",
+     "cond": "for each row",
+     "effect": "yields an entry"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.getOfflineRecord(_:entry:secret:)",
+   "hash": "c85404d780b09917",
+   "does": "Records .getOfflineRecord(path); throws a due refusal; returns stored data or throws deviceError 'no such recording'.",
+   "entry": "StrapRadio.getOfflineRecord protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "refusal due",
+     "effect": "throws"
+    },
+    {
+     "at": "+5",
+     "cond": "data stored at path",
+     "effect": "false: throws deviceError; true: returns data"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  },
+  {
+   "key": "func FakeStrapRadio.removeOfflineRecord(_:entry:)",
+   "hash": "52b3bc937f7e16d6",
+   "does": "Records .removeOfflineRecord(path); if any listing row shares the path's recording key, removes every row with that key (whole recording directory); otherwise does nothing. Data map entries are not removed.",
+   "entry": "StrapRadio.removeOfflineRecord protocol witness: invoked by the app's strap coordinators (PolarManager/strap arming, transfer, night and recovery flows) when a test injects FakeStrapRadio; used by StrapArmingTests, StrapTransferTests, StrapNightTests, StrapRecoveryFlowTests, StrapConnectionBadgeTests",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)",
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "a row with the same recording key exists",
+     "effect": "true: removes all rows of that recording; false: returns without change"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The comment says a second removal for the same recording \"finds nothing — the real failure behind the duplicated-download bug\", but the fake then just returns (guard ... else { return }) without throwing, and offlineData is never cleared, so getOfflineRecord after removal still succeeds. A regression that removes once per sub-file again (PolarManager+Recording.swift:304 loop) passes against this fake; no test counts removeOfflineRecord calls (grep EmuquTests).",
+     "evidence": [
+      "EmuquTests/FakeStrapRadio.swift:291",
+      "EmuquTests/FakeStrapRadio.swift:297",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:304"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+   }
+  }
+ ],
+ "deps": {}
+}

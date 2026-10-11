@@ -1,0 +1,221 @@
+{
+ "file": "EmuquTests/HelpLocalizationTests.swift",
+ "hash": "a21876dd0433cb45",
+ "role": "XCTest suite holding the Help.xcstrings table to the Help Center content: records every English key HelpContent looks up (via HelpLocalization's recorder) across age variants, then checks every shipped language translates every key, holds no stale keys, and keeps {token} placeholders; can export the key list via HELP_KEYS_OUT.",
+ "types": [
+  "HelpLocalizationTests: class — @MainActor XCTestCase over HelpLocalization and the compiled Help.strings tables in Bundle.main"
+ ],
+ "state": [
+  "mem:HelpLocalizationTests.ages (static [nil,15,25,35,45,55,65,75])",
+  "env:HELP_KEYS_OUT (key-export path)"
+ ],
+ "toplevel": "static let ages lists one age per RMSSD band plus nil.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HelpLocalizationTests.everyHelpKey()",
+   "hash": "e6f74dbcace05fb6",
+   "does": "Fixture: turns on HelpLocalization's key recorder, builds HelpContent.categories(forAge:) for every age in ages (localizing every string), and returns the recorded English keys.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized"
+   ],
+   "reads": [
+    "mem:HelpLocalization.recorder"
+   ],
+   "writes": [
+    "mem:HelpLocalization.recorder"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 8 ages",
+     "effect": "builds the localized categories so each personalised HRV variant is looked up"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Relies on the process-global HelpLocalization.recorder (an OSAllocatedUnfairLock static); any Help rendering elsewhere in the host between start and stop adds keys, and stopRecording resets it to nil for every caller.",
+     "evidence": [
+      "Emuqu/Sources/Views/HelpLocalization.swift:43",
+      "Emuqu/Sources/Views/HelpLocalization.swift:45",
+      "Emuqu/Sources/Views/HelpLocalization.swift:49"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "1e8352913895189b",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "fa6d8626eb19f40e",
+    "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "fa9b822c2a1d3fe8",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.format(_:_:)": "a1b3ba8dcf2bda33",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.startRecording()": "072aca18ef3f9cae",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.stopRecording()": "b5952a580dffdc0f",
+    "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "f15cd7bae82ff838",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var ArticleSection.localized": "a9c0361da38a04ab",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "e651e04da0d378ed",
+    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpCategory.localized": "d95e816a8421e98f"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.exportKeysIfRequested(_:)",
+   "hash": "a52624d250421420",
+   "does": "Fixture: when env HELP_KEYS_OUT is set and non-empty, writes the sorted key list as pretty JSON to that path; otherwise returns.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:$HELP_KEYS_OUT"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HELP_KEYS_OUT unset or empty",
+     "effect": "returns without writing; when set, JSON is written (throws on write failure)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.compiledTable(for:)",
+   "hash": "04d7b87b0ba279f7",
+   "does": "Fixture: loads the compiled Help.strings table for a language from Bundle.main into [String:String]; XCTUnwrap fails the test if missing or unreadable.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:<lang>.lproj/Help.strings in Bundle.main"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HelpLocalizationTests.shippedLanguages",
+   "hash": "3444a4151a68e26f",
+   "does": "Computed fixture: Bundle.main.localizations minus 'en' and 'Base', sorted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HelpLocalizationTests.testTheContentLooksUpAKnownNumberOfStrings()",
+   "hash": "f7d37ee0fd225523",
+   "does": "Records every Help key, exports if requested, and asserts more than 300 keys and none containing the U+2060 formatted-mark.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.exportKeysIfRequested(_:)": "f1b7966a7e6adb7d"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.testEveryHelpStringIsTranslatedInEveryLanguage()",
+   "hash": "44f8da8c7f65b865",
+   "does": "Asserts at least 16 shipped languages and that each language's compiled Help table contains every recorded key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each shipped language",
+     "effect": "asserts no recorded key is missing from that table"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.testTheHelpTableHoldsNothingTheHelpCenterNoLongerShows()",
+   "hash": "a5b1a07e2f89bb5d",
+   "does": "Asserts no shipped language's Help table holds a key the Help Center no longer looks up.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each shipped language",
+     "effect": "asserts table keys minus recorded keys is empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.everyHelpKey()": "5fab2bb501e0bf36",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+   }
+  },
+  {
+   "key": "func HelpLocalizationTests.testTranslationsKeepEveryPlaceholderToken()",
+   "hash": "f44676c715f6847f",
+   "does": "For every shipped language and every table entry, asserts the set of {lowercase} tokens in the translation equals the set in the English key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each shipped language",
+     "effect": "loads its table"
+    },
+    {
+     "at": "+3",
+     "cond": "for each (key, value) entry",
+     "effect": "compares placeholder token sets"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
+    "EmuquTests/HelpLocalizationTests.swift::func HelpLocalizationTests.compiledTable(for:)": "aebd8a489dbb50e3",
+    "EmuquTests/HelpLocalizationTests.swift::var HelpLocalizationTests.shippedLanguages": "586da01d2cae353f"
+   }
+  }
+ ],
+ "deps": {}
+}

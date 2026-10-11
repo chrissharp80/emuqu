@@ -1,0 +1,562 @@
+{
+ "file": "EmuquTests/HealthKitWorkoutExportTests.swift",
+ "hash": "04512161b11a2973",
+ "role": "XCTest suite for HealthKitWorkoutExport's sample builders (per-tick HR, delta distance, METs-based active energy) and its SampleOptions gating (settings switch, Apple-Health-sourced sessions, Apple Watch HR not written back).",
+ "types": [
+  "HealthKitWorkoutExportTests: class — @MainActor XCTestCase over HealthKitWorkoutExport static helpers"
+ ],
+ "state": [
+  "mem:HealthKitWorkoutExportTests.start (fixed Date 1_622_534_400)"
+ ],
+ "toplevel": "Stored property start = Date(timeIntervalSince1970: 1_622_534_400) used as every workout's start.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+   "hash": "c1b822fbb8b24642",
+   "does": "Test helper: builds a WorkoutSample(offsetSec:heartRate:distanceMeters:mets:) with optional fields defaulting to nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testHeartRateSamplesAreEmittedPerReading()",
+   "hash": "b195c4535bff8dcf",
+   "does": "Asserts three ticks each with HR produce 3 heart-rate HKQuantitySamples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testTicksWithoutAHeartRateAreSkipped()",
+   "hash": "d07ee65e076c98d0",
+   "does": "Asserts a tick with nil heartRate is skipped (3 ticks, one without HR → 2 samples).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testHeartRateSampleCarriesTheRightValueAndTime()",
+   "hash": "641e23f53dc5d9fd",
+   "does": "Asserts a single tick at offset 60 with HR 152 yields a sample of 152 count/min starting at start+60s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Uses `try? XCTUnwrap(out.first)` in a non-throwing test, so an empty result does not fail at the unwrap; it only fails later via the nil-vs-value XCTAssertEqual, losing the unwrap's message.",
+     "evidence": [
+      "EmuquTests/HealthKitWorkoutExportTests.swift:36"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testNoSamplesProducesNothing()",
+   "hash": "f4914dfdd0a2c28c",
+   "does": "Asserts heartRateSamples(from: []) is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testRowsFilledFromAppleHealthAreNotWrittenBack()",
+   "hash": "9feca390b2da3296",
+   "does": "Asserts heartRateSamples skipping offset 10 (HR read from Apple Health) only emits samples at start and start+20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testWorkoutHeartRateFollowsTheExportSettings()",
+   "hash": "440864042838e3eb",
+   "does": "Asserts writesHeartRate(with:) is true only when both settings.enableHealthKitExport and settings.exportHeartRate are true (checks off/on, on/on, on/off).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testWorkoutRebuiltFromAppleHealthWritesNoSampleSeries()",
+   "hash": "f91b6eff074689d4",
+   "does": "Builds an ImportedWorkoutTrack (walk, 2 HR samples, no GPS), rebuilds it via ImportedWorkoutBuilder.buildSession(source: .appleHealthSamples), asserts healthKitExportedAt is nil and that sampleOptions(writesHeartRate:true) has writesHeartRate=false and writesDistanceAndEnergy=false (session counts as HealthKit-sourced).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples": "79d71a3530cf9efe",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testAppleWatchWorkoutWritesDistanceAndEnergyButNotHeartRate()",
+   "hash": "8cb6530023a42784",
+   "does": "Asserts a recorded workout with deviceId CloudSessionPayload.appleWatchDeviceId ('apple-watch') gets writesHeartRate=false but writesDistanceAndEnergy=true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "4d8e8841365948c4"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testStrapWorkoutWritesEverySeriesTheSettingsAllow()",
+   "hash": "7a9731b2d3c833e9",
+   "does": "Asserts a 'polar-h10' strap workout writes HR and distance/energy when allowed, and writesHeartRate=false when the caller passes writesHeartRate:false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "7062cbca5e024e60",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)": "4d8e8841365948c4"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.recordedWorkout(deviceId:)",
+   "hash": "604eb846963012fa",
+   "does": "Test helper: builds a complete 600 s HRVSession of type .workout with DeviceProvenance(deviceId:…, streaming) and WorkoutMetadata(sport: .run).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testDistanceIsWrittenAsPerTickDeltas()",
+   "hash": "8696f22beb0c3cdc",
+   "does": "Asserts cumulative distances 0,100,250 become delta samples [100,150] metres (the 0 reading emits nothing).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testNonAdvancingDistanceIsSkipped()",
+   "hash": "31e8e8e544734653",
+   "does": "Asserts readings 100,100,90 emit exactly one 100 m sample (first reading counts as travel from 0; non-advancing/decreasing ticks skipped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testTotalDistanceMatchesTheFinalCumulativeReading()",
+   "hash": "79c386122160fdaf",
+   "does": "Asserts 20 ticks at 45 m increments yield delta samples summing to 19*45 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testRowingWritesNoDistance()",
+   "hash": "68400776cef29041",
+   "does": "Asserts sport .row produces no distance samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testCyclingUsesTheCyclingDistanceType()",
+   "hash": "a069d57122dd32a1",
+   "does": "Asserts .bike uses HKQuantityType distanceCycling and .run uses distanceWalkingRunning for the first sample.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testOutOfOrderTicksStillWriteForwardSpans()",
+   "hash": "c74f732404ab997c",
+   "does": "Feeds ticks out of order (20,0,10) with distance and 8 METs; asserts distance deltas [100,150], 3 energy samples, and every sample's endDate >= startDate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts energy.count == 3, which pins that the first tick (no previous tick) emits a zero-length energy sample charged as a 1-second interval (HealthKitWorkoutExport.swift:280-281 prevOffset = s.offsetSec, durationSec = max(1, 0)); the extra kcal for time that did not elapse is enshrined rather than questioned.",
+     "evidence": [
+      "EmuquTests/HealthKitWorkoutExportTests.swift:168",
+      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:280",
+      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:281"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testNonFiniteDistanceIsRejected()",
+   "hash": "6f865c5a9170b9f8",
+   "does": "Asserts a tick with infinite cumulative distance makes the whole result empty (first reading 0 emits nothing; delta=inf rejected by isFinite).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "90e62ad4b343ffed",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testEnergyIsEmittedForTicksWithMETs()",
+   "hash": "fb2efe22a0952998",
+   "does": "Asserts three 8-MET ticks a minute apart produce a non-empty list of positive-kcal samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testTicksWithoutMETsAreSkipped()",
+   "hash": "49f39a9ee9cb07df",
+   "does": "Asserts ticks without mets produce no energy samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testHeavierAthleteBurnsMoreForTheSameEffort()",
+   "hash": "28bcbb1025eb83e0",
+   "does": "Asserts total kcal for the same 8-MET ticks is larger at 100 kg than at 60 kg.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testHarderEffortBurnsMore()",
+   "hash": "377719f6ad9aafd4",
+   "does": "Asserts total kcal at 12 METs exceeds total kcal at 4 METs for the same ticks and 75 kg.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testNonFiniteMETsAreRejected()",
+   "hash": "8cc2ef33f987cb64",
+   "does": "Asserts NaN and +infinity METs produce no energy samples (guard mets > 0 && isFinite).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExportTests.testNegativeMETsAreRejected()",
+   "hash": "a656a77d22f27b65",
+   "does": "Asserts negative METs produce no energy samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "56c3d624e161b75f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "EmuquTests/HealthKitWorkoutExportTests.swift::func HealthKitWorkoutExportTests.sample(_:hr:distance:mets:)": "ef9e5b99095059d6"
+   }
+  }
+ ],
+ "deps": {}
+}

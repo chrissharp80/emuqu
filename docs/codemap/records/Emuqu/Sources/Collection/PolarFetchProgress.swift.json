@@ -1,0 +1,41 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarFetchProgress.swift",
+ "hash": "39bafd95844f9ab8",
+ "role": "Value type for strap-memory download progress (stage, 0–1 progress, attempt/maxAttempts, English status message) shown by the record screen; aliased as PolarManager.FetchProgress (PolarManager.swift:336).",
+ "types": [
+  "StrapFetchProgress: struct (Equatable) — download progress",
+  "StrapFetchProgress.Stage: enum String — stopping/finalizing/listingExercises/fetchingData/reconnecting/retrying/complete/failed with English log text raw values"
+ ],
+ "state": [
+  "static StrapFetchProgress.idle = (stage .stopping, progress 0, attempt 0, maxAttempts 3, message \"\")"
+ ],
+ "toplevel": "Global constant `idle` uses maxAttempts 3 while PolarManager.updateProgress defaults maxAttempts to 5 (PolarManager+Discovery.swift:24); only display text differs.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "StrapFetchProgress.idle is never referenced anywhere in the repo (incl. tests), and statusMessage is never read (only DeviceRecoveryView reads stage/progress/attempt/maxAttempts).",
+   "evidence": [
+    "Emuqu/Sources/Collection/PolarFetchProgress.swift:31",
+    "Emuqu/Sources/Collection/PolarFetchProgress.swift:29",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:112"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "unreachable-branch",
+   "sev": "low",
+   "text": "Stages .listingExercises, .retrying and .failed are never assigned by production code (every updateProgress call in StrapRecordingCoordinator+Transfer.swift uses .complete/.stopping/.finalizing/.reconnecting/.fetchingData), so DeviceRecoveryView's 'Data is safe on <device>' row for .retrying/.failed never shows.",
+   "evidence": [
+    "Emuqu/Sources/Collection/PolarFetchProgress.swift:17",
+    "Emuqu/Sources/Collection/PolarFetchProgress.swift:20",
+    "Emuqu/Sources/Collection/PolarFetchProgress.swift:22",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:173",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:428"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

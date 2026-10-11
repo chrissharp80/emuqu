@@ -1,0 +1,1364 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsView.swift",
+ "hash": "72c8f6af203403ad",
+ "role": "The Settings hub (grouped NavigationLinks to every settings sub-page, search over SettingsSearchIndex, Restore Purchases, troubleshooting badge, support/legal/version rows) plus PermissionsSettingsPage, which shows and re-requests HealthKit-write, notification, location and Bluetooth permissions.",
+ "types": [
+  "SettingsView: struct (View) — settings hub with search",
+  "SettingsView.SearchResultRoute: struct (private, Hashable) — UUID-identified wrapper of a tapped SettingsSearchEntry for navigationDestination",
+  "PermissionsSettingsPage: struct (View) — permission status/re-prompt screen",
+  "PermissionsSettingsPage.PermState: enum (fileprivate) — allowed/denied/notSet/unavailable",
+  "PermissionsSettingsPage.PermState: extension (private) — label and color"
+ ],
+ "state": [
+  "ud:debugModeEnabled (@AppStorage, standard suite; shared with TroubleshootingPage/DiagnosticActions)",
+  "mem:SettingsView.searchQuery/navigatingTo/cachedSearchEntries/restoreNotice (@State)",
+  "mem:SettingsView.scrollToTopToken (input from MoreMenuView)",
+  "mem:PermissionsSettingsPage.healthWrites/notifStatus/locationStatus/bluetoothStatus (@State)",
+  "mem:PermissionsSettingsPage.locationManager (@State CLLocationManager, no delegate)",
+  "net:mailto:chrissharp80@gmail.com (support link literal)"
+ ],
+ "toplevel": "#Preview builds SettingsView with AppDependencies.current settingsManager (490-495). Comment 497-502 explains PermissionsSettingsPage lives here because Views/ uses explicit pbxproj membership. SearchResultRoute.id is a fresh UUID per instance.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var SettingsView.logger",
+   "hash": "934f3dd21e87febb",
+   "does": "Returns dependencies.app.debugLogger (override or DebugLogger.shared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger"
+   ],
+   "reads": [
+    "mem:DebugLogger.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd"
+   }
+  },
+  {
+   "key": "func SettingsView.SearchResultRoute.==(lhs:rhs:)",
+   "hash": "19c32c0eb58ff8a4",
+   "does": "Equality of two routes compares only their per-instance UUIDs.",
+   "entry": "Hashable/Equatable witness used by SwiftUI navigationDestination(item:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsView.SearchResultRoute.hash(into:)",
+   "hash": "553bb673d6cbd918",
+   "does": "Hashes only the route's UUID.",
+   "entry": "Hashable witness used by SwiftUI navigationDestination(item:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SettingsView.filteredSearchResults",
+   "hash": "3d4b073e4fd2e71b",
+   "does": "Filters cachedSearchEntries to those whose haystack contains every space-separated token of searchQuery.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchEntry.matches(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchEntry.matches(_:)": "845c20e8de9591a8"
+   }
+  },
+  {
+   "key": "var SettingsView.body",
+   "hash": "4e7989aab21e2af1",
+   "does": "Settings hub root: ScrollViewReader around the list, scroll-to-top when scrollToTopToken changes, title, always-visible search field bound to searchQuery, builds the search catalogue on appear and rebuilds it on language change, and pushes the tapped search entry's destination view.",
+   "entry": "SwiftUI body; SettingsView created in MoreMenuView.swift:100 (and #Preview); onAppear/onChange/navigationDestination are SwiftUI triggers",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsList(_:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.scrollToTop(_:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.buildSearchCatalogueIfNeeded()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision",
+    "closure:SettingsSearchEntry.destination — AnyView factory set per entry in SettingsSearchIndex.swift (e.g. :85 ProfileSettingsPage, :154 SleepSettingsPage, :228 PermissionsSettingsPage, :380 TermsOfUseView), invoked by navigationDestination at SettingsView.swift:73"
+   ],
+   "reads": [
+    "mem:LanguageManager.revision"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "72da7c6a2bcd9a6b",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.buildSearchCatalogueIfNeeded()": "94872afdff5f70e8",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.scrollToTop(_:)": "e849b7e3272ece9e",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsList(_:)": "c1d0e8febfeb7340",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "func SettingsView.scrollToTop(_:)",
+   "hash": "fbafa8f318800985",
+   "does": "Animated scroll to the zero-height 'settingsTop' anchor.",
+   "entry": "SwiftUI .onChange(of: scrollToTopToken) (line 61)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SettingsView.settingsList(_:)",
+   "hash": "82d5503ab31366fd",
+   "does": "List starting with an invisible 'settingsTop' anchor row followed by listContent.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.listContent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.listContent(_:)": "b48e090be11f8b92"
+   }
+  },
+  {
+   "key": "func SettingsView.listContent(_:)",
+   "hash": "f9188a0914458ea7",
+   "does": "Chooses list content: grouped settings when the query is empty; 'no results' section when the query matches nothing; otherwise the results section.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsBody(scrollProxy:)",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.filteredSearchResults",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.noSearchResultsSection",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.resultsSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "searchQuery is empty",
+     "effect": "renders settingsBody"
+    },
+    {
+     "at": "+4",
+     "cond": "filteredSearchResults is empty (non-empty query)",
+     "effect": "renders noSearchResultsSection; else resultsSection"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "A whitespace-only query is non-empty here, but SettingsSearchEntry.matches returns false for a query that trims to empty, so typing a space replaces the whole settings list with 'No settings match \" \"'.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView.swift:93",
+      "Emuqu/Sources/Views/SettingsSearchIndex.swift:47"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.settingsBody(scrollProxy:)": "976b2226e1a356a8",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.filteredSearchResults": "99c1a66c5a9aa717",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.noSearchResultsSection": "55aef58543c85443",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.resultsSection": "129d931effe05592"
+   }
+  },
+  {
+   "key": "var SettingsView.noSearchResultsSection",
+   "hash": "0dc7fdb53adb103e",
+   "does": "Section showing a magnifier icon, 'No settings match \"query\"' and 'Try a different keyword.'",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SettingsView.buildSearchCatalogueIfNeeded()",
+   "hash": "918c384846cd8ac3",
+   "does": "Builds cachedSearchEntries from SettingsSearchIndex.entries once (skips when already populated).",
+   "entry": "SwiftUI .onAppear (line 66) and .onChange(of: languageManager.revision) after clearing the cache (69-72)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.entries(scrollToTopToken:settingsManager:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cachedSearchEntries is not empty",
+     "effect": "returns without rebuilding; empty → builds the catalogue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.entries(scrollToTopToken:settingsManager:)": "af830f136fe22016"
+   }
+  },
+  {
+   "key": "func SettingsView.searchResultRow(_:)",
+   "hash": "7ce911db0fd428e4",
+   "does": "Plain button that sets navigatingTo to a new SearchResultRoute for the entry (pushes its destination).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultLabel(_:)": "5f9d2bb612d7f7bd",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "var SettingsView.resultsSection",
+   "hash": "f0affe42f68d618c",
+   "does": "'Results' section listing a row per filtered search entry.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.filteredSearchResults",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultRow(_:)": "99978794751f78e5",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.filteredSearchResults": "99c1a66c5a9aa717"
+   }
+  },
+  {
+   "key": "func SettingsView.searchResultLabel(_:)",
+   "hash": "83ee462dc40649df",
+   "does": "Row label: entry icon, title/subtitle text, trailing chevron.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.searchResultText(_:)": "96def8ab72af5723",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SettingsView.searchResultText(_:)",
+   "hash": "27f44b7ae3f3697a",
+   "does": "Title and, when present, subtitle of a search entry.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry.subtitle is non-empty",
+     "effect": "renders subtitle caption; empty → title only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func SettingsView.settingsBody(scrollProxy:)",
+   "hash": "05b7dec1565d12a9",
+   "does": "Group of the eight settings sections in order: identity, data sources, recovery & training, Flo, notifications, appearance (+purchase rows), advanced, about.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.identitySection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.dataSourcesSection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.recoveryTrainingSection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.floSection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.notificationsSection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.appearanceSection(scrollProxy:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.advancedSection()",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.aboutSection()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.aboutSection()": "827c4faeeab5eb3a",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.advancedSection()": "6bb659103b0eb906",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.appearanceSection(scrollProxy:)": "5b704fca4fde1255",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.dataSourcesSection()": "15cf388816a44611",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.floSection()": "c7155b9ada66abca",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.identitySection()": "f2fe7a0dc98bda32",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.notificationsSection()": "3865a4b4091d33d5",
+    "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.recoveryTrainingSection()": "f01942eae34f28d7"
+   }
+  },
+  {
+   "key": "func SettingsView.identitySection()",
+   "hash": "f0468703f47dd049",
+   "does": "'Identity & Profile' section with NavigationLinks to ProfileSettingsPage and BiometricsSettingsPage (identifiers settings.profile/settings.biometrics).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.body": "b78ca5c83c82ee18",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body": "ec765facf367f62f",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "func SettingsView.dataSourcesSection()",
+   "hash": "8af0a207e6374f27",
+   "does": "'Data & Sources' section linking Wearables, iCloud & Data (DataSettingsPage) and Reports (ReportsSettingsPage with settingsManager).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.body",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.body",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ReportsSettingsPage.swift::var ReportsSettingsPage.body": "8932046a50d77690",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.body": "1244b787a78c4362",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.body": "fd0db6b248b9c0d5"
+   }
+  },
+  {
+   "key": "func SettingsView.recoveryTrainingSection()",
+   "hash": "b2e558c1e2e1e807",
+   "does": "'Recovery & Training' section linking Sleep, Training, Modes pages plus Tags and My Routes.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.body",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.tagsAndRoutesLinks"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.body": "895513f4d8cefb3d",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.body": "2f8651198c2c315b",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.tagsAndRoutesLinks": "57d9e65954ed9183",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "d682cf1396e78539"
+   }
+  },
+  {
+   "key": "var SettingsView.tagsAndRoutesLinks",
+   "hash": "0a49568869a8e9ec",
+   "does": "NavigationLinks to CustomTagsPage and SavedRoutesPage.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.body",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body": "58a2293418b9354e",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var CustomTagsPage.body": "75d0715b50f4ed88",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "func SettingsView.floSection()",
+   "hash": "4eda4c6a89fcfe52",
+   "does": "'Flo' section with a link to AIAssistantSettingsPage.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "c670446f7d3203ee",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "func SettingsView.notificationsSection()",
+   "hash": "e80aca63e0c0cdc1",
+   "does": "'Notifications' section linking NotificationsSettingsPage and PermissionsSettingsPage.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.body": "1b69909cb8084fd8",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.body": "c24bd3d6fd5f6a42"
+   }
+  },
+  {
+   "key": "func SettingsView.appearanceSection(scrollProxy:)",
+   "hash": "1b782df484a97e56",
+   "does": "'Appearance' section linking AppearancePage, PerformanceSettingsPage and LanguagePage (row shows current language), followed by PurchaseStatusView and the Restore Purchases section.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.body",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.languageRowLabel",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.body": "99a4c381db527bad",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.body": "3198c3f131069887",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.body": "7be32b7c9a8e95bd",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.languageRowLabel": "4d4be4b621aab2cc",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesSection": "46c7a441417075cc"
+   }
+  },
+  {
+   "key": "var SettingsView.languageRowLabel",
+   "hash": "9600a20b0a2301d7",
+   "does": "Language row label with AppLanguage.current.displayName trailing.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "7323b3822357366e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SettingsView.restorePurchasesSection",
+   "hash": "b0453677e13b6f34",
+   "does": "Section with the Restore Purchases button and footer, only when StoreKitManager.paywallEnabled.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "StoreKitManager.paywallEnabled (static let true, StoreKitManager.swift:138)",
+     "effect": "renders the Restore section; false → nothing (currently unreachable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesButton": "35447d1f4fd79fac"
+   }
+  },
+  {
+   "key": "var SettingsView.restorePurchasesButton",
+   "hash": "f969e6fea21e4321",
+   "does": "Button that awaits StoreKitManager.restore() (AppStore.sync + refreshStatus) and stores the returned message in restoreNotice; disabled while isPurchasing; shows an alert with the message, OK clears it.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap, alert dismissal",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesLabel",
+    "ext:StoreKit AppStore.sync",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing"
+   ],
+   "writes": [
+    "mem:SettingsView.restoreNotice",
+    "mem:StoreKitManager.isPurchasing (set true/false around restore, StoreKitManager.swift:387-388)",
+    "mem:StoreKitManager.isPurchased (via refreshStatus)"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "alert binding set to false",
+     "effect": "clears restoreNotice; set true is ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()": "c5c666c132945459",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager": "4be01038d1a2e60a",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.restorePurchasesLabel": "8b65e9a2a3d70cb3"
+   }
+  },
+  {
+   "key": "var SettingsView.restorePurchasesLabel",
+   "hash": "1b32c5da166d1825",
+   "does": "Restore label with a trailing spinner while isPurchasing.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKitManager.isPurchasing",
+     "effect": "label + ProgressView; else plain label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.storeKitManager": "4be01038d1a2e60a"
+   }
+  },
+  {
+   "key": "func SettingsView.advancedSection()",
+   "hash": "a998863c31589bc0",
+   "does": "'Advanced' section linking AdvancedDataControlsPage and TroubleshootingPage (badged label), footer about erase confirmation.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.troubleshootingRowLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.body": "2b0eff3da41e8b50",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "44bc1195e604c1ba",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.troubleshootingRowLabel": "fb9d93ab851edb65"
+   }
+  },
+  {
+   "key": "var SettingsView.troubleshootingRowLabel",
+   "hash": "f5c12c01b26a222f",
+   "does": "Troubleshooting row label with a red capsule badge showing troubleshootingBadgeCount when > 0.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.troubleshootingBadgeCount"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "troubleshootingBadgeCount > 0",
+     "effect": "shows the count badge; else no badge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.troubleshootingBadgeCount": "7b70b36a22916d60"
+   }
+  },
+  {
+   "key": "var SettingsView.troubleshootingBadgeCount",
+   "hash": "1c7765803e9a0880",
+   "does": "Badge count = 1 if CrashLogManager has a previous crash file + DebugLogger.errorCatalog.count when Advanced Diagnostics (debugModeEnabled) is on.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.logger",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager"
+   ],
+   "reads": [
+    "ud:debugModeEnabled",
+    "file:<AppGroup> previous crash log (CrashLogManager.previousCrashURL)",
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "crashLogManager.hasPreviousCrash",
+     "effect": "contributes 1; else 0"
+    },
+    {
+     "at": "+2",
+     "cond": "debugModeEnabled",
+     "effect": "adds errorCatalog.count; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "9a2b5d78578e55cc",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.logger": "6c3877dec38aaf39"
+   }
+  },
+  {
+   "key": "func SettingsView.aboutSection()",
+   "hash": "a072d855bd5d6367",
+   "does": "'About & Help' section: Help & Learn, Metric Guide, methodology links, support link, legal links, version row.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.body",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.legalLinks",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.versionRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "b289c4ded5db282b",
+    "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.body": "6f53898c6a2f3bfe",
+    "Emuqu/Sources/Views/RecoveryMethodologyView.swift::var RecoveryMethodologyView.body": "9d902bfc2800dd9d",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.body": "745b6df4fedf9111",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.legalLinks": "a57ba20c1efde91b",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.supportLink": "59b48f31b1642abf",
+    "Emuqu/Sources/Views/SettingsView.swift::var SettingsView.versionRow": "1de29b29d476a45c"
+   }
+  },
+  {
+   "key": "var SettingsView.supportLink",
+   "hash": "85bcf236d29237a3",
+   "does": "Contact Support Link to mailto:chrissharp80@gmail.com?subject=Emuqu%20Support; falls back to plain text of the address if the URL fails to parse.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "ext:SwiftUI Link (mailto)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "URL(string: mailto literal) parses",
+     "effect": "renders the mail Link; else renders the address as text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The mailto literal is a constant valid URL, so the else branch rendering plain text never runs.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView.swift:448",
+      "Emuqu/Sources/Views/SettingsView.swift:454"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SettingsView.legalLinks",
+   "hash": "a6d4f201959169d0",
+   "does": "NavigationLinks to TermsOfUseView, PrivacyPolicyView, HealthDisclaimerView and AcknowledgementsView.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.body": "a69b71e03dc2a3cf",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body": "81f718095cd5fa32",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "5f196c1466c5c7b8",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "d4ae309fd1691a30"
+   }
+  },
+  {
+   "key": "var SettingsView.versionRow",
+   "hash": "500b1e3087d3898f",
+   "does": "'Version' row showing Bundle.main.appVersionString (\"version (build)\").",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString": "8d61b000dcf8cde9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.anyHealthDenied",
+   "hash": "5bee1d8f434efbac",
+   "does": "True if any HealthKit write permission is .sharingDenied.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PermissionsSettingsPage.anyHealthUnset",
+   "hash": "ef79bb1bae08ed8e",
+   "does": "True if any HealthKit write permission is .notDetermined. Never referenced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "anyHealthUnset is declared but not used anywhere in the repo (grep finds only its declaration).",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView.swift:529"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var PermissionsSettingsPage.body",
+   "hash": "e6004b1d8d381125",
+   "does": "Permissions form: intro text, Apple Health write, notifications, location, Bluetooth sections; loads statuses on .task and reloads when the scene returns to active.",
+   "entry": "SwiftUI body; pushed from SettingsView.notificationsSection and SettingsSearchIndex; .task and .onChange(of: scenePhase) are SwiftUI triggers",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markAppleHealthWriteSection40",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markNotificationsSection",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markLocationSection",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markBluetoothSection",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reloadOnReturn(_:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reloadOnReturn(_:)": "70256a185b6c56b2",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markAppleHealthWriteSection40": "c98192c40b53af26",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markBluetoothSection": "dfa342f93d5871d9",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markLocationSection": "e11b58e23420b8ee",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.markNotificationsSection": "8f3f480876452742",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func PermissionsSettingsPage.reloadOnReturn(_:)",
+   "hash": "7315070ff73af79d",
+   "does": "Reloads permission statuses when the scene phase becomes .active.",
+   "entry": "SwiftUI .onChange(of: scenePhase) (line 548)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "phase != .active",
+     "effect": "returns; active → launches Task { await reload() }"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.markAppleHealthWriteSection40",
+   "hash": "b61e4e104f7da49d",
+   "does": "Apple Health section: a row per HealthKit write type with its state, the Re-request button, and Open iOS Settings when any write is denied; footer explains read status is hidden by iOS.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: HKAuthorizationStatus)",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.reRequestHealthAccessButton",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.anyHealthDenied"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "anyHealthDenied",
+     "effect": "shows Open iOS Settings button; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)": "dea1ba0f241a0390",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: HKAuthorizationStatus)": "f513700c3019386a",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.anyHealthDenied": "c50f413a86b6177a",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton": "88d9d991439d9658",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.reRequestHealthAccessButton": "7eb1456723c43930"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.reRequestHealthAccessButton",
+   "hash": "d57eb4ac1bfe7a45",
+   "does": "Button: awaits HealthKitManager.forceReauthorize (clears healthAccessSkipped default, re-runs coalesced authorization prompt) then reloads statuses.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.forceReauthorize()",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.healthAccessSkipped (removed)",
+    "hk:authorization request"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.forceReauthorize()": "3f4950f4d5e04529",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.markNotificationsSection",
+   "hash": "be838fe9d7a57ccd",
+   "does": "Notifications section: status row and, depending on status, an Allow button (notDetermined) or Open Settings (denied).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: UNAuthorizationStatus)",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowNotificationsButton",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "notifStatus == .notDetermined",
+     "effect": "shows Allow notifications button"
+    },
+    {
+     "at": "+7",
+     "cond": "notifStatus == .denied",
+     "effect": "shows Open iOS Settings"
+    },
+    {
+     "at": "+9",
+     "cond": "any other status (authorized/provisional/ephemeral/unknown)",
+     "effect": "EmptyView"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)": "dea1ba0f241a0390",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: UNAuthorizationStatus)": "4270ab0a98365c4e",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowNotificationsButton": "288bbac614a71c9c",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton": "88d9d991439d9658"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.allowNotificationsButton",
+   "hash": "639c8406daab99b0",
+   "does": "Button: requests UNUserNotificationCenter authorization for alert/sound/badge (error discarded via try?) then reloads.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "ext:UNUserNotificationCenter.requestAuthorization",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Allow notifications calls UNUserNotificationCenter.requestAuthorization directly and only reloads the status rows; it never calls MorningNotificationScheduler.requestAuthorizationIfNeeded/rescheduleIfNeeded as NotificationsSettingsPage does. The same holds when the user returns from 'Open iOS Settings' (reloadOnReturn only reloads). A user who enabled the daily report while notifications were denied and fixes it here sees 'Allowed' but gets no morning push until the next cold launch runs scheduleLaunchHousekeeping, though the footer says this permission is 'Needed for the morning recovery push'.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView.swift:606",
+      "Emuqu/Sources/Views/SettingsView.swift:608",
+      "Emuqu/Sources/Views/SettingsView.swift:551",
+      "Emuqu/Sources/Views/SettingsView.swift:599",
+      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:60",
+      "Emuqu/Sources/Views/NotificationsSettingsPage.swift:63",
+      "Emuqu/Sources/Services/MorningNotificationScheduler.swift:94",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:412",
+      "Emuqu/Sources/Services/AppLaunchTasks.swift:609"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.reload()": "f7e1815edf37a676",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.locationPermissionAction",
+   "hash": "222d611c139fb91c",
+   "does": "Location action: Allow button when notDetermined, Open Settings when denied/restricted, nothing otherwise.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowLocationButton",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "locationStatus .notDetermined",
+     "effect": "allowLocationButton"
+    },
+    {
+     "at": "+4",
+     "cond": "locationStatus .denied or .restricted",
+     "effect": "openSettingsButton"
+    },
+    {
+     "at": "+5",
+     "cond": "default (authorized)",
+     "effect": "EmptyView"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.allowLocationButton": "085713ec1130e31b",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton": "88d9d991439d9658"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.allowLocationButton",
+   "hash": "92d8b155d69489a9",
+   "does": "Button calling CLLocationManager.requestWhenInUseAuthorization on the page's own manager (no delegate; status refresh relies on scene-phase reload).",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "ext:CLLocationManager.requestWhenInUseAuthorization"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.markLocationSection",
+   "hash": "e3508918e63ba0cc",
+   "does": "Location section: status row, location action, footer about GPS route mapping.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: CLAuthorizationStatus)",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.locationPermissionAction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)": "dea1ba0f241a0390",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: CLAuthorizationStatus)": "a39cd06c7882f7ab",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.locationPermissionAction": "eee35e89d9c99082"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.markBluetoothSection",
+   "hash": "88bc44ac8e32ae1d",
+   "does": "Bluetooth section: status row and Open Settings when denied/restricted; footer says the Polar strap needs it.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: CBManagerAuthorization)",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "bluetoothStatus is .denied or .restricted",
+     "effect": "shows Open iOS Settings; else nothing (no in-app prompt for notDetermined)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.permRow(title:state:)": "dea1ba0f241a0390",
+    "Emuqu/Sources/Views/SettingsView.swift::func PermissionsSettingsPage.state(for: CBManagerAuthorization)": "9124e2e6b4ec6407",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.openSettingsButton": "88d9d991439d9658"
+   }
+  },
+  {
+   "key": "func PermissionsSettingsPage.permRow(title:state:)",
+   "hash": "83331afc975305db",
+   "does": "Row with a title and the PermState label coloured by state.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.color",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.color": "02b1c78fecfccd00",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.openSettingsButton",
+   "hash": "10fd637ada662676",
+   "does": "Button opening UIApplication.openSettingsURLString via openURL.",
+   "entry": "SwiftUI evaluates this view-builder member while rendering the parent; button tap",
+   "calls": [
+    "ext:openURL(UIApplication.openSettingsURLString)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings URL parses",
+     "effect": "opens it; else tap does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView.swift::var PermissionsSettingsPage.PermState.label": "85bca1cadfed3afd"
+   }
+  },
+  {
+   "key": "func PermissionsSettingsPage.reload()",
+   "hash": "d4e198e352317454",
+   "does": "Refreshes state: HealthKit write summary, UN notification authorizationStatus, CLLocationManager.authorizationStatus, CBCentralManager.authorization.",
+   "entry": "Called from .task (547), reloadOnReturn, and after permission buttons",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writePermissionSummary()",
+    "ext:UNUserNotificationCenter.notificationSettings",
+    "ext:CLLocationManager.authorizationStatus",
+    "ext:CBCentralManager.authorization",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager"
+   ],
+   "reads": [
+    "hk:write authorization status (workout, HRV, HR, RHR, sleepAnalysis, activeEnergy)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writePermissionSummary()": "201536a4c525d6b0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2"
+   }
+  },
+  {
+   "key": "func PermissionsSettingsPage.state(for: HKAuthorizationStatus)",
+   "hash": "9f509019b1834abb",
+   "does": "Maps HKAuthorizationStatus to PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".sharingAuthorized",
+     "effect": ".allowed"
+    },
+    {
+     "at": "+3",
+     "cond": ".sharingDenied",
+     "effect": ".denied"
+    },
+    {
+     "at": "+4",
+     "cond": ".notDetermined",
+     "effect": ".notSet"
+    },
+    {
+     "at": "+5",
+     "cond": "@unknown default",
+     "effect": ".unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PermissionsSettingsPage.state(for: UNAuthorizationStatus)",
+   "hash": "7f743741b5078d07",
+   "does": "Maps UNAuthorizationStatus to PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".authorized/.provisional/.ephemeral",
+     "effect": ".allowed"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied",
+     "effect": ".denied"
+    },
+    {
+     "at": "+4",
+     "cond": ".notDetermined",
+     "effect": ".notSet"
+    },
+    {
+     "at": "+5",
+     "cond": "@unknown default",
+     "effect": ".unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PermissionsSettingsPage.state(for: CLAuthorizationStatus)",
+   "hash": "3e2cd4b838110a03",
+   "does": "Maps CLAuthorizationStatus to PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".authorizedAlways/.authorizedWhenInUse",
+     "effect": ".allowed"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied/.restricted",
+     "effect": ".denied"
+    },
+    {
+     "at": "+4",
+     "cond": ".notDetermined",
+     "effect": ".notSet"
+    },
+    {
+     "at": "+5",
+     "cond": "@unknown default",
+     "effect": ".unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PermissionsSettingsPage.state(for: CBManagerAuthorization)",
+   "hash": "3aeb0c9cd1f10371",
+   "does": "Maps CBManagerAuthorization to PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".allowedAlways",
+     "effect": ".allowed"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied/.restricted",
+     "effect": ".denied"
+    },
+    {
+     "at": "+4",
+     "cond": ".notDetermined",
+     "effect": ".notSet"
+    },
+    {
+     "at": "+5",
+     "cond": "@unknown default",
+     "effect": ".unavailable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PermissionsSettingsPage.PermState.label",
+   "hash": "871278e719597fde",
+   "does": "Localized label for PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".allowed",
+     "effect": "'Allowed'"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied",
+     "effect": "'Denied'"
+    },
+    {
+     "at": "+4",
+     "cond": ".notSet",
+     "effect": "'Not set'"
+    },
+    {
+     "at": "+5",
+     "cond": ".unavailable",
+     "effect": "'Unavailable'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PermissionsSettingsPage.PermState.color",
+   "hash": "7dc0d701b4a310cd",
+   "does": "Theme colour for PermState.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".allowed",
+     "effect": "AppTheme.sageText"
+    },
+    {
+     "at": "+3",
+     "cond": ".denied",
+     "effect": "AppTheme.terracottaText"
+    },
+    {
+     "at": "+4",
+     "cond": ".notSet",
+     "effect": "AppTheme.wongCautionText"
+    },
+    {
+     "at": "+5",
+     "cond": ".unavailable",
+     "effect": "AppTheme.textTertiary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512"
+   }
+  }
+ ],
+ "deps": {}
+}

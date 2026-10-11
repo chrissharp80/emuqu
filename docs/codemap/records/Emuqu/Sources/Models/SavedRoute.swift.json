@@ -1,0 +1,693 @@
+{
+ "file": "Emuqu/Sources/Models/SavedRoute.swift",
+ "hash": "799e6807425094e0",
+ "role": "SavedRoute (user-named library route with encoded polyline and cached totals/enriched climbs), SavedRouteStore (@Observable MainActor JSON-file store in the App Group with locked-file recovery, migration, and reverse-geocode enrichment), and LatestWinsFileWriter (serial newest-wins JSON writer shared with EmailContactStore).",
+ "types": [
+  "SavedRoute: struct Codable/Identifiable/Hashable — library entry",
+  "SavedRouteStore: final class @Observable @MainActor — route library store",
+  "LatestWinsFileWriter<Value>: final class Sendable — coalescing serial file writer"
+ ],
+ "state": [
+  "SavedRouteStore.shared singleton",
+  "mem:SavedRouteStore.routes",
+  "SavedRouteStore.loadFailed",
+  "SavedRouteStore.protectedDataObserver",
+  "file:<AppGroup>/saved_routes.json",
+  "file:<ApplicationSupport>/saved_routes.json (legacy, migrated)",
+  "notif:UIApplication.protectedDataDidBecomeAvailableNotification (observed)",
+  "DispatchQueue com.emuqu.<label>.write",
+  "LatestWinsFileWriter.pending (OSAllocatedUnfairLock)"
+ ],
+ "toplevel": "SavedRoute uses synthesized Codable; enrichedClimbs optional so old files decode. SavedRouteStore.shared is created lazily on first access via AppDependencies.location.savedRouteStore.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "ARCHITECTURE.md says 'the polyline + climbs + cumulative distances are cached into a JSON file'; SavedRoute persists only the encoded polyline, totals, climbCount and optional enrichedClimbs, and climbs/cumulative distances are re-derived by toRoute() on each use.",
+   "evidence": [
+    "docs/ARCHITECTURE.md:1325",
+    "Emuqu/Sources/Models/SavedRoute.swift:31",
+    "Emuqu/Sources/Models/SavedRoute.swift:39",
+    "Emuqu/Sources/Models/SavedRoute.swift:56"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SavedRoute.toRoute()",
+   "hash": "7e199c659ae6d411",
+   "does": "Decodes the polyline (with altitudes) into a track, builds a Route via fromGPX, and substitutes enrichedClimbs for the detected climbs when present and non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "enrichedClimbs non-nil and non-empty",
+     "effect": "return Route with enriched climbs; otherwise detected-climb Route"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68"
+   }
+  },
+  {
+   "key": "func SavedRoute.from(session:name:)",
+   "hash": "d95823b558845756",
+   "does": "Builds a SavedRoute from a session's workout metadata polyline (decoded track must have >=2 points), with Date() createdAt, metadata sport, and totals/climb count from Route.fromGPX; nil when metadata or polyline missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session has workoutMetadata",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+2",
+     "cond": "metadata has gpsPolyline",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+4",
+     "cond": "decoded track >= 2 points",
+     "effect": "build; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.forgetAfterPurge()",
+   "hash": "fe7b7bdc8bf05f16",
+   "does": "Delete All My Data hook: clears in-memory routes, clears loadFailed, and discards pending writes and the file.",
+   "entry": "Called by DataPurgeService.swift:591.",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes",
+    "file:saved_routes.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "6de390026b40d26d",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65"
+   }
+  },
+  {
+   "key": "init SavedRouteStore()",
+   "hash": "14c1670fea0be722",
+   "does": "Migrates the legacy Application Support file into the App Group if needed, sets up the writer, loads the library, and installs an unlock observer when the load failed.",
+   "entry": "Lazy static SavedRouteStore.shared initialisation on first access.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()"
+   ],
+   "reads": [
+    "file:<AppGroup>/saved_routes.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "loadFailed after load",
+     "effect": "install protected-data observer to retry; otherwise none"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "If the file is unreadable for a reason other than file protection (corrupt/undecodable) or the device is already unlocked, the protected-data notification never arrives, loadFailed stays true for the session and every add/rename/remove/enrichment is kept only in memory and lost on relaunch, with only a debugLog line.",
+     "evidence": [
+      "Emuqu/Sources/Models/SavedRoute.swift:144",
+      "Emuqu/Sources/Models/SavedRoute.swift:313",
+      "Emuqu/Sources/Models/SavedRoute.swift:325"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()": "6ce910e8f17befc2",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "ae4426a71850f17d",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)": "85956c22f06ba260",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ee7815cbe4a936ef",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.installProtectedDataObserver()",
+   "hash": "0a5d765220ce2875",
+   "does": "Registers (once) a main-queue NotificationCenter observer for protectedDataDidBecomeAvailable that schedules retryLoadAfterUnlock on MainActor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.retryLoadAfterUnlock()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no observer installed yet",
+     "effect": "install; otherwise return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.retryLoadAfterUnlock()": "b5cd7e563c760db2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.retryLoadAfterUnlock()",
+   "hash": "53eed34d1f164cb6",
+   "does": "After unlock: if the earlier load failed, reloads the file; on success merges routes added in memory while locked (by id), saves if any were added, and removes the observer.",
+   "entry": "NotificationCenter observer for UIApplication.protectedDataDidBecomeAvailableNotification.",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()",
+    "ext:NotificationCenter.removeObserver"
+   ],
+   "reads": [
+    "file:<AppGroup>/saved_routes.json"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadFailed",
+     "effect": "retry; otherwise return"
+    },
+    {
+     "at": "+4",
+     "cond": "reload succeeded",
+     "effect": "merge; otherwise return keeping observer for next unlock"
+    },
+    {
+     "at": "+7",
+     "cond": "routes were added while locked",
+     "effect": "save merged library; otherwise no write"
+    },
+    {
+     "at": "+8",
+     "cond": "observer exists",
+     "effect": "remove it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "ae4426a71850f17d",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "2214e42b4e0312f2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)",
+   "hash": "739bfb5d0abf7a91",
+   "does": "If no App Group file exists and the legacy Application Support saved_routes.json does, copies it into the App Group; errors are logged only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.copyItem"
+   ],
+   "reads": [
+    "file:<ApplicationSupport>/saved_routes.json"
+   ],
+   "writes": [
+    "file:<AppGroup>/saved_routes.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "App Group file absent and Application Support dir resolvable",
+     "effect": "continue; otherwise return"
+    },
+    {
+     "at": "+8",
+     "cond": "legacy file exists",
+     "effect": "copy; otherwise return"
+    },
+    {
+     "at": "+12",
+     "cond": "copy throws",
+     "effect": "log 'Migration copy failed' and continue with no library migrated"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.add(_:)",
+   "hash": "213e8b7f5b5a2e7e",
+   "does": "Appends a route and saves.",
+   "entry": "Called from FitnessPostSummaryView+Cards.swift:508, DiscoverTrailsView.swift:548, AppFactResolver+RoutesAndDevices.swift:190.",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "2214e42b4e0312f2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.rename(id:to:)",
+   "hash": "6db450b3266279ec",
+   "does": "Renames the route with `id` and saves; no-op when not found.",
+   "entry": "App-code callers: SavedRoutesPage.swift:50 (rename alert) and AppFactResolver+RoutesAndDevices.swift:151 (assistant rename).",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "route with id exists",
+     "effect": "rename and save; otherwise return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "2214e42b4e0312f2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.remove(id:)",
+   "hash": "db5e0403e2bde7b1",
+   "does": "Removes all routes with `id` and saves (saves even when nothing matched).",
+   "entry": "Called from SavedRoutesPage.swift:104 and SettingsView+Pages.swift:420.",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "2214e42b4e0312f2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.enrichWithRoadNames(routeID:)",
+   "hash": "65b7ea37ede3b72a",
+   "does": "Fire-and-forget MainActor Task: for a route without enrichedClimbs whose Route has climbs, geocodes each climb start to a road name and stores the enriched climbs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.climbsWithRoadNames(on:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.applyEnrichedClimbs(_:to:)"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "store still alive",
+     "effect": "continue; otherwise return"
+    },
+    {
+     "at": "+3",
+     "cond": "route with id exists",
+     "effect": "continue; otherwise return"
+    },
+    {
+     "at": "+4",
+     "cond": "already enriched",
+     "effect": "return (idempotent)"
+    },
+    {
+     "at": "+6",
+     "cond": "route has climbs",
+     "effect": "geocode; otherwise return without marking enriched (re-run each call)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.applyEnrichedClimbs(_:to:)": "257402a558ffce94",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.climbsWithRoadNames(on:)": "49078c0f12b482a7",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.climbsWithRoadNames(on:)",
+   "hash": "3adc74c331ca8543",
+   "does": "For each climb, finds the start coordinate, reverse-geocodes its thoroughfare, appends a copy with roadName, and sleeps 600 ms between lookups.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.roadName(at:)",
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loop over climbs",
+     "effect": "geocode each serially"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "76d979bdb467aea7",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "4a802fec73c2d328",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.roadName(at:)": "65675e50a61245bb",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.roadName(at:)",
+   "hash": "e5a3d30475220e24",
+   "does": "Reverse-geocodes a coordinate via RoadGeocodingService.reverseGeocodeQueued on MainActor and returns the thoroughfare; nil for nil coordinate or no placemark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService",
+    "ext:CLGeocoder (via RoadGeocodingService)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [
+    "net:Apple CLGeocoder"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "coordinate non-nil",
+     "effect": "geocode; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "4a802fec73c2d328",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "1f10f2d613cc85f5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.applyEnrichedClimbs(_:to:)",
+   "hash": "e91c40caa10f7eb1",
+   "does": "Sets enrichedClimbs on the current copy of the route (preserving a concurrent rename) and saves; no-op if the route was removed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "route still present",
+     "effect": "update and save; otherwise drop the enrichment"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "2214e42b4e0312f2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.coordinate(atDistanceMeters:on:)",
+   "hash": "6c00b50a10397c65",
+   "does": "Returns the coordinate of the trackpoint whose cumulative distance is closest to `target`; nil when trackpoints empty or arrays mismatched.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trackpoints non-empty and counts match",
+     "effect": "search; otherwise nil"
+    },
+    {
+     "at": "+6",
+     "cond": "loop over cumulative distances",
+     "effect": "track closest"
+    },
+    {
+     "at": "+8",
+     "cond": "delta < bestDelta",
+     "effect": "take this index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.routes(for:)",
+   "hash": "ef249e83c16fb049",
+   "does": "Returns routes for a sport sorted newest createdAt first.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SavedRouteStore.load()",
+   "hash": "6a814fd61ecff24c",
+   "does": "Loads saved_routes.json: absent file clears loadFailed; unreadable or undecodable file sets loadFailed (keeping in-memory routes); success replaces routes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "file:<AppGroup>/saved_routes.json"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file exists",
+     "effect": "read; otherwise loadFailed=false and return with routes unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "read succeeds",
+     "effect": "decode; otherwise loadFailed=true (error swallowed, no log)"
+    },
+    {
+     "at": "+9",
+     "cond": "decode succeeds",
+     "effect": "loadFailed=false, routes=decoded; otherwise loadFailed=true and debugLog"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No tests construct SavedRouteStore or LatestWinsFileWriter (grep EmuquTests: none), so the loadFailed save-blocking, the unlock retry/merge and the newest-wins writer ordering are unverified.",
+     "evidence": [
+      "Emuqu/Sources/Models/SavedRoute.swift:304",
+      "Emuqu/Sources/Models/SavedRoute.swift:160",
+      "Emuqu/Sources/Models/SavedRoute.swift:358"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.save()",
+   "hash": "e4ae2c318f2b7a10",
+   "does": "Enqueues the current routes for an off-main atomic write unless the last load failed, in which case it logs and skips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/saved_routes.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "loadFailed",
+     "effect": "skip the write and log (changes stay in memory only); otherwise enqueue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "ee33d1b89059305a",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "init LatestWinsFileWriter(url:options:label:)",
+   "hash": "d88f05ae3d832dcd",
+   "does": "Stores url/options/label and creates a utility-QoS serial queue named com.emuqu.<label>.write.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LatestWinsFileWriter.enqueue(_:)",
+   "hash": "0a6cd9bc8b3bd3a8",
+   "does": "Replaces the pending snapshot under the lock and schedules a drain on the serial queue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "e3864abe2dd718ba"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.discard()",
+   "hash": "7a72b69a4ebc3e9a",
+   "does": "Clears the pending snapshot, waits for any in-flight write with queue.sync, then deletes the file if present (failure logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<label file>"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "file exists",
+     "effect": "remove it; otherwise nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "queue.sync from the MainActor caller blocks the main thread for the duration of any in-progress encode+write.",
+     "evidence": [
+      "Emuqu/Sources/Models/SavedRoute.swift:367"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.drain()",
+   "hash": "8efa7a57d8e9217b",
+   "does": "Takes and clears the pending snapshot; if present, JSON-encodes and writes it with the configured options; errors logged via attempt.",
+   "entry": "Runs on the private serial DispatchQueue from enqueue.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<label file>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a snapshot is pending",
+     "effect": "write it; otherwise return (coalesced)"
+    },
+    {
+     "at": "+5",
+     "cond": "encode succeeded",
+     "effect": "write; otherwise return with error logged only"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Encode/write failures are only logged; the store's in-memory state diverges from disk with no user signal.",
+     "evidence": [
+      "Emuqu/Sources/Models/SavedRoute.swift:379",
+      "Emuqu/Sources/Models/SavedRoute.swift:380"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

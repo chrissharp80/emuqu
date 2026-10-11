@@ -1,0 +1,99 @@
+{
+ "file": "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift",
+ "hash": "946ee7e4dba2f29f",
+ "role": "Pure decision functions extracted from VoiceConversationController's audio pipeline: whether a queued assistant stream started / a spoken response finished (by stream generation), whether a recogniser error is restartable, and whether a proactive workout trigger must wait because the user or assistant is mid-turn.",
+ "types": [
+  "VoiceTurnPolicy: enum — namespace of static turn-taking predicates",
+  "VoiceTurnPolicy.StreamEdge: struct — (isStreaming, generation) snapshot of AssistantViewModel's stream"
+ ],
+ "state": [
+  "static let VoiceTurnPolicy.restartableRecognitionErrors: Set<String> = [\"kAFAssistantErrorDomain:1110\", \"kLSRErrorDomain:301\"] (line 59)"
+ ],
+ "toplevel": "restartableRecognitionErrors static set initialised with two 'domain:code' strings; StreamEdge is Equatable/Sendable synthesised.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)",
+   "hash": "d4390ea85c5b168f",
+   "does": "Returns true when the observed stream edge `now` is streaming and its generation differs from the generation captured at wiring time; used to detect that a queued send started even when isStreaming collapsed true→false→true into one delivery.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTurnPolicy.spokenResponseFinished(wiredTo:now:)",
+   "hash": "d04782a3cdb27255",
+   "does": "Returns true when the stream stopped (`!now.isStreaming`) or a different stream generation replaced the wired one; tells the voice loop the spoken response is over so the remainder drains and the mic reopens.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)",
+   "hash": "69b579375dc5dd06",
+   "does": "Builds the key \"<domain>:<code>\" and returns true only if it is in restartableRecognitionErrors AND the conversation state is .listening.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceTurnPolicy.restartableRecognitionErrors"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "domain:code key is in restartableRecognitionErrors (1110 / LSR 301)",
+     "effect": "true: falls through to return state == .listening; false: returns false (error not retried)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)",
+   "hash": "224336044af5c9ec",
+   "does": "Decides whether a proactive trigger must wait: in .triggerSpeaking only an in-flight LLM task or synthesizer audio blocks; otherwise an LLM task or streaming response, synthesizer speaking in .speaking, a non-empty partial transcript in .listening, or .thinking state each block; else not busy.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "state == .triggerSpeaking",
+     "effect": "true: returns hasInFlightLLMTask || synthesizerIsSpeaking (ignores streaming flag and partial transcript); false: continues to next check"
+    },
+    {
+     "at": "+11",
+     "cond": "hasInFlightLLMTask || isStreamingResponse",
+     "effect": "true: returns true (busy); false: continue"
+    },
+    {
+     "at": "+12",
+     "cond": "synthesizerIsSpeaking && state == .speaking",
+     "effect": "true: busy; false: continue (synth speaking in other states, e.g. .listening, does not block)"
+    },
+    {
+     "at": "+14",
+     "cond": "state == .listening && hasPartialTranscript",
+     "effect": "true: busy (protects in-progress dictation from being wiped); false: continue"
+    },
+    {
+     "at": "+15",
+     "cond": "state == .thinking",
+     "effect": "true: busy; false: falls to return false (trigger may play now)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

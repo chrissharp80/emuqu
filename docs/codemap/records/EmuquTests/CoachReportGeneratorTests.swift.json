@@ -1,0 +1,264 @@
+{
+ "file": "EmuquTests/CoachReportGeneratorTests.swift",
+ "hash": "1841446fa26a048e",
+ "role": "Tests for CoachReportGenerator.renderConversationalSummary (the auto Coach Report email body): unit preference changes the distance unit, output is prose without Markdown headings, a session without workout metadata returns the 'nothing to report on' text, and identical input gives identical output. Pins NSTimeZone.default to UTC for the class.",
+ "types": [
+  "CoachReportGeneratorTests: class — XCTestCase for the conversational coach report"
+ ],
+ "state": [
+  "savedDefaultTimeZone: static OSAllocatedUnfairLock<TimeZone?> holding the pre-suite default time zone",
+  "start: static fixture Date 1_700_000_000"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "No pinEnglishLanguage() call, yet testConversationalSummaryWithoutMetadataStillReturnsSomething asserts the English substring 'nothing to report on' from a String(localized:bundle: LanguageManager.appBundle) lookup; on a host whose app language is not English the test fails without a defect.",
+   "evidence": [
+    "EmuquTests/CoachReportGeneratorTests.swift:74",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:67"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CoachReportGeneratorTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class-level setUp: saves NSTimeZone.default into the lock and sets the process default time zone to UTC.",
+   "entry": "XCTest class setUp (once before the class's tests)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:CoachReportGeneratorTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class-level tearDown: restores the saved default time zone if one was saved, clears the lock, calls super.",
+   "entry": "XCTest class tearDown (once after the class's tests)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "true: restores NSTimeZone.default to it; false: leaves the current default (UTC) in place"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CoachReportGeneratorTests.testUnitsPreferenceSwitchesTheDistanceUnit()",
+   "hash": "5d548208d5a5d6dd",
+   "does": "Renders the summary for the same 10 km run in metric and imperial; asserts metric contains 'km' and not ' mi,', imperial contains 'mi', and the two differ.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "`imperial.contains(\"mi\")` matches any 'mi' substring (e.g. 'min', 'minutes', 'mile', 'aMIng'), so it does not prove the imperial report quotes miles; combined with only checking that the two strings differ, a report that still printed kilometres under imperial but changed any other text would pass.",
+     "evidence": [
+      "EmuquTests/CoachReportGeneratorTests.swift:42",
+      "EmuquTests/CoachReportGeneratorTests.swift:43"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "b85ede29ccef3fa7",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "519221ea1f6a8226",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "734cd0c003875cc4",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "b1e24f20e5137617",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.testConversationalSummaryIsProseNotMarkdownHeadings()",
+   "hash": "d26bcd3c9c17b321",
+   "does": "Renders the summary for a run with metadata and asserts it is non-empty and contains neither '## ' nor '# Coach Report'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The production summary's first paragraph is summaryHeadline, which returns \"# <Sport> — <full date>\" (a Markdown H1) plus **bold** markers, and that string becomes the plain email body; the test only rejects '## ' and '# Coach Report', so it passes while the 'prose, no headings' contract it names is violated in every workout email.",
+     "evidence": [
+      "EmuquTests/CoachReportGeneratorTests.swift:58",
+      "EmuquTests/CoachReportGeneratorTests.swift:59",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:70",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:111",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:397"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "b85ede29ccef3fa7",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "519221ea1f6a8226",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "734cd0c003875cc4",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "b1e24f20e5137617",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.testConversationalSummaryWithoutMetadataStillReturnsSomething()",
+   "hash": "bb883ff2cf6cfb32",
+   "does": "Renders the summary for an overnight session with nil workoutMetadata and asserts it contains 'nothing to report on'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.testSummaryIsDeterministicForTheSameInput()",
+   "hash": "b9c5554bbea0c626",
+   "does": "Renders the summary twice for the same run with one past run three days earlier and asserts the two strings are equal.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "b85ede29ccef3fa7",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "519221ea1f6a8226",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "734cd0c003875cc4",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "b1e24f20e5137617",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.summary(_:past:units:)",
+   "hash": "70a00f1bbe151efb",
+   "does": "Calls renderConversationalSummary(session:pastWorkouts:units:userMaxHR 185:userRestingHR 48).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.makeSession(offsetDays:)",
+   "hash": "454d83dceefc60c8",
+   "does": "Builds a 1-hour run workout session starting offsetDays from the fixed start, with time-domain and nonlinear analysis, 10 km distance, 180 m gain, Lucia TRIMP 137.5 and 12 synthetic samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.sample(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.sample(at:)": "fb8f3a00a7b5302a"
+   }
+  },
+  {
+   "key": "func CoachReportGeneratorTests.sample(at:)",
+   "hash": "b0f739f04559e519",
+   "does": "Builds one WorkoutSample at i*300 s with HR 140+i, distance i*850 m, pace 300+i, cadence 172, altitude 250+4i, alpha1 0.75, 9.5 METs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  }
+ ],
+ "deps": {}
+}

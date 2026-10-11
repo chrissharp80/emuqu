@@ -1,0 +1,555 @@
+{
+ "file": "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift",
+ "hash": "a9b37f5e9c1783af",
+ "role": "Elite HRV summary CSV import (old and new header layouts): resolves columns, parses each row into a SessionSummary with bounded numbers, and builds an analysed quick-reading HRVSession whose time-domain/nonlinear/ANS metrics are estimated from RMSSD.",
+ "types": [
+  "RRDataImporter.EliteHRVColumnIndices: struct — resolved column indices",
+  "RRDataImporter.EliteHRVEstimates: enum — named empirical multipliers (SDNN = 1.8xRMSSD, pNN50 slope 1.5 over 10 ms floor capped 50, stress 1000/(RMSSD+10))",
+  "RRDataImporter: extension — Elite HRV parsing"
+ ],
+ "state": [
+  "mem:RRDataImporter.eliteRRRange (private static 200...3000 ms)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+   "hash": "59d80387185f3088",
+   "does": "Parses an Elite HRV summary file: requires >=2 non-empty lines, lowercases and comma-splits the header, requires an RMSSD column, parses rows into SessionSummaries and throws noRRData when none survive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRows(_:indices:rmssdIdx:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "at least 2 lines",
+     "effect": "continue; otherwise throw noRRData"
+    },
+    {
+     "at": "+10",
+     "cond": "an RMSSD column was resolved",
+     "effect": "continue; otherwise throw invalidFormat listing the found headers"
+    },
+    {
+     "at": "+15",
+     "cond": "at least one row parsed",
+     "effect": "return result; otherwise throw noRRData"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The header line is split on raw commas (no quote handling) while data rows go through quote-aware parseCSVLine; a quoted header name keeps its quote characters and no longer equals 'rmssd'/'hr'/'type', and a quoted comma in a header shifts every index relative to the rows.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:33",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:53"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Rows are produced by splitting the file on newlines before CSV parsing, so a quoted Notes/Tags field containing a newline in the new Elite format splits one record into two invalid rows that are skipped.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:27",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:53"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRows(_:indices:rmssdIdx:)": "73094e187d787a40",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)": "ef3f87dc6ad989d8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.parseEliteHRVRows(_:indices:rmssdIdx:)",
+   "hash": "74830f781ddf761f",
+   "does": "Parses each row (quote-aware) and logs how many rows were skipped for lacking a usable date or RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fewer sessions than rows",
+     "effect": "log skipped count; otherwise no log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSVLine(_:)": "888862e486b322ea",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)": "f1853acc04a9be5b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRDataImporter.resolveEliteHRVColumns(headers:)",
+   "hash": "cbd8e2f13911adba",
+   "does": "Maps each header to an EliteHRVColumnIndices field via eliteField; later duplicates overwrite earlier ones.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each header",
+     "effect": "classify"
+    },
+    {
+     "at": "+4",
+     "cond": "eliteField returns a key path",
+     "effect": "store index; otherwise ignore header"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)": "732ff278ed3f004a"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteField(for:)",
+   "hash": "b55e45f206e87533",
+   "does": "Classifies one lowercased header name into a column field (first match wins) or nil for unused columns.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "contains datetime / == date / == 'date time start'",
+     "effect": "\\.date"
+    },
+    {
+     "at": "+2",
+     "cond": "== rmssd or contains rmssd_clean",
+     "effect": "\\.rmssd"
+    },
+    {
+     "at": "+3",
+     "cond": "contains rmssd_raw",
+     "effect": "\\.rmssdRaw"
+    },
+    {
+     "at": "+4",
+     "cond": "contains removed / artifact / pct",
+     "effect": "\\.artifactPct"
+    },
+    {
+     "at": "+5",
+     "cond": "contains n_rr / beats / count",
+     "effect": "\\.beatCount"
+    },
+    {
+     "at": "+6",
+     "cond": "contains rr_min / min_rr",
+     "effect": "\\.rrMin"
+    },
+    {
+     "at": "+7",
+     "cond": "contains rr_max / max_rr",
+     "effect": "\\.rrMax"
+    },
+    {
+     "at": "+8",
+     "cond": "== file or contains filename",
+     "effect": "\\.fileName"
+    },
+    {
+     "at": "+9",
+     "cond": "== duration",
+     "effect": "\\.duration"
+    },
+    {
+     "at": "+10",
+     "cond": "== hr",
+     "effect": "\\.hr"
+    },
+    {
+     "at": "+11",
+     "cond": "== type",
+     "effect": "\\.type; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)",
+   "hash": "de8a1675e539a65c",
+   "does": "Builds a SessionSummary from one row: RMSSD in 0.1-1000 required, date required, raw RMSSD defaulting to clean, artifact %, beat count, RR bounds and file label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteDate(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRawRMSSD(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteArtifactPercent(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteBeatCount(columns:indices:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteFileName(columns:indices:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "row has the RMSSD column",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+7",
+     "cond": "RMSSD parses within 0.1...1000",
+     "effect": "continue; otherwise nil (row skipped)"
+    },
+    {
+     "at": "+10",
+     "cond": "row date parses",
+     "effect": "continue; otherwise nil (not dated now)"
+    },
+    {
+     "at": "+15",
+     "cond": "raw RMSSD missing/invalid",
+     "effect": "?? clean RMSSD used as raw"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteArtifactPercent(columns:indices:)": "238cb93ad830f901",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteBeatCount(columns:indices:)": "2afbcf88403b182d",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteDate(columns:indices:)": "d76f4e5efd78f65a",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteFileName(columns:indices:)": "c7d1c9c8159fc2d0",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)": "e772fba36e23dbec",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRawRMSSD(columns:indices:)": "dc3905e8e0220f26"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteNumber(_:in:)",
+   "hash": "d98689865d2af055",
+   "does": "Parses text as a finite Double inside the range, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "parses, finite, in range",
+     "effect": "value; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.eliteRawRMSSD(columns:indices:)",
+   "hash": "030c79d6d773597d",
+   "does": "Raw (pre-correction) RMSSD from the rmssd_raw column, bounded 0.1-1000, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rmssdRaw column exists within row",
+     "effect": "parse; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteDate(columns:indices:)",
+   "hash": "32fa5a8bbcc53c29",
+   "does": "Row date from the date column via parseDate, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date column exists within row",
+     "effect": "parse; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseDate(_:)": "2d46efaec872b9a8"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteBeatCount(columns:indices:)",
+   "hash": "37c8f5109a2f9e45",
+   "does": "Beat count: stated n_rr (1-250000) when present, else duration(s) x HR / 60 (min 1), else the constant 100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "beat-count column present and valid",
+     "effect": "Int(beats)"
+    },
+    {
+     "at": "+5",
+     "cond": "duration (0-86400) and HR (20-250) columns present and valid",
+     "effect": "max(1, duration*hr/60); otherwise return 100"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "When neither a beat count nor duration+HR is readable the row gets a fabricated 100 beats, which then sets the session's cleanBeatCount, windowEnd and endDate (100 x meanRR ms) in createAnalyzedSession/importedSession.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:150",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:232",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:323"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteRRBounds(columns:indices:)",
+   "hash": "6f0c1beab248f836",
+   "does": "RR min/max: defaults 600/1000 ms; rrMin from file (200-3000) else ±15% of 60000/HR for both; rrMax from file overrides.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "rr_min column present and valid",
+     "effect": "rrMin = stated"
+    },
+    {
+     "at": "+8",
+     "cond": "else HR column present and valid (20-250)",
+     "effect": "rrMin/rrMax = meanRR x 0.85 / 1.15; otherwise defaults 600/1000 kept"
+    },
+    {
+     "at": "+14",
+     "cond": "rr_max column present and valid",
+     "effect": "rrMax = stated"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Mixed sources are not reconciled: a stated rr_min suppresses the HR-derived rr_max (else-if), leaving the 1000 ms default, so a stated rr_min above 1000 gives rrMin > rrMax and minHR > maxHR in estimatedTimeDomain.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:160",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:163",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:269"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "hack",
+     "sev": "med",
+     "text": "When a row has no readable rr_min, rr_max or HR column, the bounds silently default to 600/1000 ms; createAnalyzedSession then stores meanRR 800 ms, meanHR 75 bpm, minHR 60 and maxHR 100 in the session's timeDomain as if measured.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:158",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:159",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:229",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:255",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:269",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:270"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteArtifactPercent(columns:indices:)",
+   "hash": "77ddb3a04c264f69",
+   "does": "Artifact percentage from the file (0-100), else 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "artifact column present and valid",
+     "effect": "value; otherwise 0.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteNumber(_:in:)": "e31cd7dbd8bf0c81"
+   }
+  },
+  {
+   "key": "func RRDataImporter.eliteFileName(columns:indices:)",
+   "hash": "92706a0b86a2041e",
+   "does": "File label from the file column, else the type column, else ''.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file column within row",
+     "effect": "return it"
+    },
+    {
+     "at": "+4",
+     "cond": "type column within row",
+     "effect": "return it; otherwise ''"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+   "hash": "cf22ac3bcf9a5f78",
+   "does": "Builds an HRVSession from a SessionSummary with an HRVAnalysisResult whose metrics are estimated from RMSSD (no frequency domain), meanRR = (rrMin+rrMax)/2, cleanBeatCount = beats x (1 - artifact%).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedTimeDomain(from:meanRR:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedNonlinear(rmssd:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedANS(rmssd:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.importedSession(from:originalFileName:meanRR:analysisResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "med",
+     "text": "SDNN, pNN50, SDSD, sdHR, SD1/SD2 and stress index are fabricated from RMSSD by fixed multipliers and stored in the ordinary analysisResult with no estimated marker (comment 205-206 concedes there is no isEstimated flag), so every view and trend reading analysisResult.timeDomain.sdnn shows Elite imports' SDNN = 1.8 x RMSSD as if measured.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:233",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:256",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:205"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "createAnalyzedSession (and the estimate helpers it calls) has no test: grep of EmuquTests finds no reference to createAnalyzedSession, estimatedTimeDomain, estimatedNonlinear or estimatedANS.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:228",
+      "Emuqu/Sources/Views/ImportDataView+Actions.swift:343"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedANS(rmssd:)": "7133b59f53f222dd",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedNonlinear(rmssd:)": "e6b373151a070875",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.estimatedTimeDomain(from:meanRR:)": "2ee87914136682f3",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.importedSession(from:originalFileName:meanRR:analysisResult:)": "379ced70a90498c0"
+   }
+  },
+  {
+   "key": "func RRDataImporter.estimatedTimeDomain(from:meanRR:)",
+   "hash": "5f50f2fe65d2b5ed",
+   "does": "Estimated TimeDomainMetrics: meanRR given, SDNN = 1.8 x RMSSD, pNN50 = clamp((RMSSD-10) x 1.5, 0, 50), SDSD = RMSSD, meanHR = 60000/meanRR, sdHR = SDNN x meanHR / meanRR / 2, min/max HR from rrMax/rrMin.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)": "c51dfbe929c95510"
+   }
+  },
+  {
+   "key": "func RRDataImporter.estimatedNonlinear(rmssd:)",
+   "hash": "c8518b44b00106b9",
+   "does": "Estimated NonlinearMetrics: SD1 = RMSSD/sqrt2, SD2 = sqrt(2 SDNN^2 - SD1^2) floored at SD1, ratio, entropy and DFA nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.estimatedANS(rmssd:)",
+   "hash": "9065af46a5076a6e",
+   "does": "Estimated ANSMetrics: stressIndex = 1000/(RMSSD+10); all other fields nil (no readiness score).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.importedSession(from:originalFileName:meanRR:analysisResult:)",
+   "hash": "fcc0ebc445d6c6e0",
+   "does": "Assembles a complete .quick HRVSession dated at the row date with a single placeholder RR point (meanRR), [clean] artifact flags, endDate = beats x meanRR, an import note, and ImportedMetrics (RMSSD, raw, artifact %, source 'Elite HRV').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

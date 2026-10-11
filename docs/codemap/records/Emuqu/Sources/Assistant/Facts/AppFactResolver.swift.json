@@ -1,0 +1,904 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift",
+ "hash": "a3fc54b3ebf27710",
+ "role": "Composition root for the assistant's fact system: the shared PeriodParser vocabulary, AppFactResolverFactory.build (registers every fact namespace on a FactResolverRegistry), the user.* profile/settings namespace (incl. score.* meta facts), and the small app.capabilities/app.version namespace.",
+ "types": [
+  "PeriodParser: enum — parses period tokens (7d, last_week, this_week, all_time...) into a cutoff Date or DateInterval",
+  "AppFactResolverFactory: enum — builds the FactResolverRegistry with all namespaces",
+  "UserProfileNamespace: struct (FactNamespaceResolver) — user.profile.*, user.settings.*, score.algorithm.version, score.history.recomputed_under_v2",
+  "AppCapabilitiesNamespace: struct (FactNamespaceResolver) — app.capabilities.has_barometer, app.version.schema.workout_metadata"
+ ],
+ "state": [
+  "mem:PeriodParser.namedDayWindows (static let token→days table)",
+  "mem:UserProfileNamespace.namespace = \"user\"",
+  "mem:UserProfileNamespace.settings (closure returning UserSettings)",
+  "mem:AppCapabilitiesNamespace.namespace = \"app\""
+ ],
+ "toplevel": "Imports CoreMotion under #if canImport(CoreMotion). Header comment states the concurrency contract (fact resolution runs on MainActor; assumeIsolated relies on it). No global code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PeriodParser.cutoff(for:now:)",
+   "hash": "f57a000f6d11c678",
+   "does": "Lowercases/trims a period token and returns its start Date: numeric N-day windows (Nd, last_Nd, N_days) via numericDayWindow, today = start of day, yesterday = start of yesterday, this_week = start of the locale week, all_time/all = distantPast, else the namedDayWindows rolling window; unknown → nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "numericDayWindow parses 1-365 days",
+     "effect": "returns now - N days"
+    },
+    {
+     "at": "+7",
+     "cond": "case today",
+     "effect": "start of today"
+    },
+    {
+     "at": "+8",
+     "cond": "case yesterday",
+     "effect": "start of yesterday"
+    },
+    {
+     "at": "+9",
+     "cond": "case this_week",
+     "effect": "start of current weekOfYear interval (nil if Calendar fails)"
+    },
+    {
+     "at": "+10",
+     "cond": "case all_time / all",
+     "effect": "Date.distantPast"
+    },
+    {
+     "at": "+11",
+     "cond": "default",
+     "effect": "looked up in namedDayWindows"
+    },
+    {
+     "at": "+12",
+     "cond": "token not in namedDayWindows",
+     "effect": "returns nil (caller treats as unknown period); else now - days"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the leading 'last_' is optional for the whole vocabulary, but 'week' (bare form of last_week) is not in namedDayWindows nor numeric, so it returns nil; month/quarter/year bare forms are present.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:69",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:108",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:109"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)": "bf32db0a6694f020",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func PeriodParser.interval(for:now:)",
+   "hash": "fbdd48eafde68e96",
+   "does": "Returns the DateInterval for a period: yesterday = [start of yesterday, start of today), last_week = previous calendar week, everything else = [cutoff(for:), now].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "case yesterday",
+     "effect": "interval yesterday-start..today-start"
+    },
+    {
+     "at": "+6",
+     "cond": "Calendar could not compute yesterday",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "case last_week",
+     "effect": "previous calendar week interval"
+    },
+    {
+     "at": "+9",
+     "cond": "current week interval or minus-one-week date unavailable",
+     "effect": "nil"
+    },
+    {
+     "at": "+13",
+     "cond": "default",
+     "effect": "uses cutoff(for:)"
+    },
+    {
+     "at": "+14",
+     "cond": "cutoff nil or after now",
+     "effect": "nil; else [start, now]"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "An unrecognized period token (e.g. 'week', '6_weeks', '2w', 'last_2_months') makes interval(for:) return nil, and the period callers map nil to an empty entry list instead of an invalidParameter error, so workout.count($period) answers 0 and list facts answer 'no workouts in <period>' for a period that has workouts. The header comment (AppFactResolver.swift:62-67) says funnelling through PeriodParser closed exactly this silent-empty gap.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:136",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:54",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:197",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:102",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:381",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:65"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)": "4fe47cf964eece10",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func PeriodParser.numericDayWindow(_:)",
+   "hash": "8ba771123d331516",
+   "does": "Strips 'last_' and normalizes '_days'/'_day' to 'd', then returns N when any candidate ends with 'd' and its prefix parses to an Int in 1...365.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each candidate ending in 'd'",
+     "effect": "tries to parse the prefix"
+    },
+    {
+     "at": "+7",
+     "cond": "prefix is an Int in 1...365",
+     "effect": "returns it; otherwise continues; nil after all candidates"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppFactResolverFactory.build(archive:settings:)",
+   "hash": "2b4c7c207537efa9",
+   "does": "Creates a FactResolverRegistry, registers health namespaces, then app namespaces, then CompositesNamespace last (composites read children through the registry), and returns it. Called by AssistantViewModel.factRegistryAndTools (cached per view model) and tests.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerHealthNamespaces(on:archive:settings:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerAppNamespaces(on:archive:settings:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerAppNamespaces(on:archive:settings:)": "1c49016c073f660d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerHealthNamespaces(on:archive:settings:)": "ef5f6eb7910928f6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+   }
+  },
+  {
+   "key": "func AppFactResolverFactory.registerHealthNamespaces(on:archive:settings:)",
+   "hash": "18a251c4d01a2842",
+   "does": "Registers 16 data namespaces in order: UserProfile, Session, Walks, TrainingLoad, HeatAcclimation, Sleep, HRV, Vitals, Recovery, Baseline, Workout, WorkoutLive, WorkoutLiveCoaching, HRVLive, HRR, Tags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+   }
+  },
+  {
+   "key": "func AppFactResolverFactory.registerAppNamespaces(on:archive:settings:)",
+   "hash": "b5bcc2d130367d7f",
+   "does": "Registers 9 app namespaces in order: AppCapabilities, RoutesLibrary, AppNow, AppDevices, AppSettings, AppHealthKit, AssistantMemory, WebSearch, Breadcrumb.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.entries",
+   "hash": "458b4b21a0824fb5",
+   "does": "FactNamespaceResolver.entries witness for user.*: concatenation of userProfileEntries, userSettingsEntries and userProfileEntries2.",
+   "entry": "FactNamespaceResolver protocol witness, read by the registry's resolve/catalog walks",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsEntries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries": "edfc610d21ddf44b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries2": "a38cb9a8e602f682",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsEntries": "8294626bb7783688"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileEntries",
+   "hash": "d03f79ff83f1eb38",
+   "does": "Returns the eight profile entries: max_hr, resting_hr, lthr, max_hr_is_user_set, lthr_is_user_set, weight_kg, biological_sex, age.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry": "c196dd4609b3a509",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "94598e17b3f8129b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "9164e4bae343297a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry": "e263cb63fffb6441",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "90b20f7e0a58296a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry": "ba7c332fad4b4ae7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry": "09555e303d086e10",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "298cb0d9b7adaf18"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsEntries",
+   "hash": "8a9be9b15d501001",
+   "does": "Returns settings entries: units, typical_sleep_hours, on_training_break, comeback_mode_active, comeback_mode_day_in_window, score.algorithm.version, score.history.recomputed_under_v2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsUnitsEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsTypicalSleepHoursEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsOnTrainingBreakEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeActiveEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry": "bac2f99cc0dbbe90",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeActiveEntry": "5c69d7e1798ff220",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry": "5cd270fc367039a0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsOnTrainingBreakEntry": "0491e990fbf932c2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsTypicalSleepHoursEntry": "c24ef2e1886f181c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsUnitsEntry": "ffe2a3385affac7d"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileEntries2",
+   "hash": "e601d4eadf5673d6",
+   "does": "Returns VO2max entries: vo2_max, vo2_max_is_override, uses_healthkit_vo2max, vo2_max_trend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxTrendEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry": "4b21a491918c895b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry": "f8bf865884e02bb2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry": "e8ac26abfaa490b3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxTrendEntry": "5334e385319f28d7"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileMaxHrEntry",
+   "hash": "add784991a2760d5",
+   "does": "Fixed fact user.profile.max_hr (Int) = settings().effectiveMaxHR (override ≥80, else Tanaka from birthday, else 180).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileRestingHrEntry",
+   "hash": "ba126408539d527f",
+   "does": "Fixed fact user.profile.resting_hr (Int) = settings().effectiveRestingHR (override ≥30, else HRV baseline HR >30, else 60).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileLthrEntry",
+   "hash": "da2709851f3cc182",
+   "does": "Fixed fact user.profile.lthr (Int) = settings().effectiveLTHR (override ≥80, else max(120, 0.88 × effectiveMaxHR)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Description says LTHR falls back to '0.88 × max HR heuristic' but effectiveLTHR also floors it at 120 bpm.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:290",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:121"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileMaxHrIsUserSetEntry",
+   "hash": "255ebceae6d9ea18",
+   "does": "Fixed fact user.profile.max_hr_is_user_set (Bool): settings().maxHR (nil→0) >= MaxHeartRate.minimumUserEntered (80).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "maxHR nil (?? fallback)",
+     "effect": "treated as 0 → false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileLthrIsUserSetEntry",
+   "hash": "7992254465dbe4f6",
+   "does": "Fixed fact user.profile.lthr_is_user_set (Bool): lactateThresholdHR (nil→0) >= 80.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lactateThresholdHR nil (?? fallback)",
+     "effect": "treated as 0 → false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileWeightKgEntry",
+   "hash": "e6b6d3022b71d837",
+   "does": "Async fixed fact user.profile.weight_kg: Settings bodyWeightKg override, else HealthKit biometric profile body weight (3 s timeout), else missing(notRecorded) noting the 75 kg estimate default.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
+    "hk:bodyMass (via fetchBiometricProfile)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "settings bodyWeightKg set",
+     "effect": "returns it"
+    },
+    {
+     "at": "+6",
+     "cond": "HealthKit available AND profile fetched within 3 s AND bodyWeightKg present",
+     "effect": "returns HK weight; timeout/unavailable/nil → missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileBiologicalSexEntry",
+   "hash": "32e64334303cb481",
+   "does": "Async fixed fact user.profile.biological_sex: Settings biologicalSex rawValue, else HealthKit profile appBiologicalSex (3 s timeout), else missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
+    "hk:biologicalSex (via fetchBiometricProfile)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings biologicalSex set",
+     "effect": "returns its rawValue"
+    },
+    {
+     "at": "+3",
+     "cond": "HealthKit available, fetched in time, appBiologicalSex present",
+     "effect": "returns HK value; else missing('not set in Settings or Apple Health')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileAgeEntry",
+   "hash": "6db195a65d08186a",
+   "does": "Async fixed fact user.profile.age: whole years from Settings birthday to now, else from HealthKit dateOfBirth (3 s timeout), else missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
+    "hk:dateOfBirth (via fetchBiometricProfile)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings birthday set",
+     "effect": "returns year difference via FactValue.from(Int?)"
+    },
+    {
+     "at": "+5",
+     "cond": "HealthKit available, fetched in time, dateOfBirth present",
+     "effect": "returns HK-derived age; else missing('no birthday in Settings or Apple Health')"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "weight_kg, biological_sex and age each call fetchBiometricProfile separately with their own 3 s timeout; get_user(field='profile') resolves them sequentially (CompactToolRouter+Resolvers.swift:487-491), so a user without Settings values triggers three identical HealthKit fetches and up to 9 s of waiting.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:315",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:327",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:341",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:489"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsUnitsEntry",
+   "hash": "de605d375faa6663",
+   "does": "Fixed fact user.settings.units: 'imperial' when UnitsPreferenceStore.current.resolved == .imperial, else 'metric'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (SharedUserDefaults.appGroup, legacy fallback .standard)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved preference is imperial (ternary)",
+     "effect": "'imperial'; otherwise 'metric'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsTypicalSleepHoursEntry",
+   "hash": "cfe8638be0386563",
+   "does": "Fixed fact user.settings.typical_sleep_hours = settings().typicalSleepHours.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsOnTrainingBreakEntry",
+   "hash": "7dab4240a9f879a4",
+   "does": "Fixed fact user.settings.on_training_break = settings().isOnTrainingBreak.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsComebackModeActiveEntry",
+   "hash": "9d9c5f7c5e046ba3",
+   "does": "Fixed fact user.settings.comeback_mode_active = settings().isComebackModeActive (start date within 21 days).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry",
+   "hash": "0198c990ab1675c2",
+   "does": "Fixed fact user.settings.comeback_mode_day_in_window: whole days from comebackModeStartDate's start-of-day to today when comeback mode is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "comeback not active or start date nil",
+     "effect": "missing('comeback mode not active')"
+    },
+    {
+     "at": "+8",
+     "cond": "Calendar returned a day component",
+     "effect": "returns it; otherwise missing('could not compute day-in-window')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.scoreAlgorithmVersionEntry",
+   "hash": "62a760df232d2899",
+   "does": "Fixed fact score.algorithm.version = ScoringVersion.current ('v3.1.oct2026'); lives in the user namespace and is reached via the registry's cross-namespace fallback scan.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The description hard-codes the version string 'v3.1.oct2026' and its weights while the value comes from ScoringVersion.current, which was introduced precisely to stop duplicating that string; a version bump leaves the description stale.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:393",
+      "Emuqu/Sources/Analysis/ScoringVersion.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry",
+   "hash": "081dfd0a902370e7",
+   "does": "Fixed fact score.history.recomputed_under_v2 = settings().hasRunScoreHistoryRecompute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Description tells the model 'true means the whole archive was reanalyzed under HRV/Sleep/Vitals', but the flag is also set true when the user declined the recompute and on every fresh onboarding, so the assistant can assert history was recomputed when it was not.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:403",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:571",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:575",
+      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:104"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileVo2MaxEntry",
+   "hash": "5aae03ba4f9615ac",
+   "does": "Fixed fact user.profile.vo2_max: settings vo2MaxOverride if set, else when useHealthKitVO2Max the TrainingMetricsCache snapshot's vo2MaxLatest (read on main actor), else missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)",
+    "mem:TrainingMetricsCache.current (vo2MaxLatest)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "vo2MaxOverride non-nil",
+     "effect": "returns it"
+    },
+    {
+     "at": "+11",
+     "cond": "useHealthKitVO2Max and cache snapshot has vo2MaxLatest",
+     "effect": "returns HK value; else missing('no VO2max override and HealthKit estimate unavailable')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry",
+   "hash": "3b2130016e22886a",
+   "does": "Fixed fact user.profile.vo2_max_is_override: vo2MaxOverride (nil→0) > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vo2MaxOverride nil (?? fallback)",
+     "effect": "treated as 0 → false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "vo2_max returns any non-nil override (if let) while vo2_max_is_override requires > 0, so a stored override of 0 makes vo2_max report 0 ml/kg/min with is_override false; only the Settings page clamp (BiometricsSettingsPage.swift:80) prevents it.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:417",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift:430",
+      "Emuqu/Sources/Views/BiometricsSettingsPage.swift:80"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry",
+   "hash": "9f8bf7d88cb586ee",
+   "does": "Fixed fact user.profile.uses_healthkit_vo2max = settings().useHealthKitVO2Max.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
+   ],
+   "reads": [
+    "mem:UserSettings (settings closure → SettingsManager.settingsSnapshot)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var UserProfileNamespace.userProfileVo2MaxTrendEntry",
+   "hash": "e3b3a099e87cdc71",
+   "does": "Declares fixed fact user.profile.vo2_max_trend (Record) resolved by resolveUserProfileVo2MaxTrend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func UserProfileNamespace.resolveUserProfileVo2MaxTrend()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func UserProfileNamespace.resolveUserProfileVo2MaxTrend()": "7525520f29afdb15",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "func UserProfileNamespace.resolveUserProfileVo2MaxTrend()",
+   "hash": "8b1a924962d2fff3",
+   "does": "Reads TrainingMetricsCache.snapshot() on the main actor and returns {latest, sample_count_30_days, change_30_days?}; ignores the useHealthKitVO2Max opt-in and the manual override.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current (vo2MaxLatest, vo2MaxSampleCount30Days, vo2MaxChange30Days)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cache snapshot nil or vo2MaxLatest nil",
+     "effect": "missing('no HealthKit VO2max samples')"
+    },
+    {
+     "at": "+10",
+     "cond": "vo2MaxChange30Days present",
+     "effect": "adds change_30_days; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var AppCapabilitiesNamespace.entries",
+   "hash": "478321cee11c0b61",
+   "does": "FactNamespaceResolver.entries witness for the 'app' namespace: app.capabilities.has_barometer = CMAltimeterIsAvailable(), app.version.schema.workout_metadata = WorkoutMetadata.currentSchemaVersion.",
+   "entry": "FactNamespaceResolver protocol witness, read by the registry",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()": "9122772812a6a063",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  }
+ ],
+ "deps": {}
+}

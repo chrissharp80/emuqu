@@ -1,0 +1,264 @@
+{
+ "file": "EmuquTests/WristHRMarkerTests.swift",
+ "hash": "fde3ba697b76189f",
+ "role": "Hosted unit tests that Apple Watch wrist-HR row markers (healthKitHROffsets) survive live HR arbitration, sample-buffer capping, finalize, the crash backup (WorkoutTrackBackup), recovery rebuild and trim carry-forward.",
+ "types": [
+  "WristHRMarkerTests: class — XCTestCase (@MainActor)"
+ ],
+ "state": [],
+ "toplevel": "typealias Arbitration = WorkoutRecorder.HRArbitration (= WorkoutTicker.HRArbitration via WorkoutRecorder+TickerForwarding.swift:25).",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Crash-backup tests use WorkoutTrackBackup(), whose init writes into the app's real App Group WorkoutBackup directory, so they share on-disk state with the host app (cleaned only by `defer discard`, which a crash mid-test skips)",
+   "evidence": [
+    "EmuquTests/WristHRMarkerTests.swift:60",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift:156"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WristHRMarkerTests.testWristHRCopiedToTheDisplayMarksTheDisplayAsWrist()",
+   "hash": "a9bf31b5efac7c4f",
+   "does": "Strap mode, strap stalled 30s, no watch-routed feed, latest watch HR 131: asserts decide() copies 131 to the display and displayIsWrist(wasWrist:false) is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testHealthyStrapLeavesTheMarkAsTheStrapPathsSetIt()",
+   "hash": "9035c1b988665ffa",
+   "does": "Strap live (silent 0s): asserts no display update and displayIsWrist returns the previous flag unchanged (false→false, true→true).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.decide(_:)": "7c9684eb141bcb05",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayHRUpdate(_:)": "37b2130bf9aca330",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testClearedDisplayIsNotWrist()",
+   "hash": "4a17f59c238f2700",
+   "does": "A Decision with clearDisplayHR=true and no update: asserts displayIsWrist(wasWrist:true) is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.HRArbitration.displayIsWrist(_:wasWrist:)": "52b229cc1df41e15"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testCappingTheSampleBufferDropsMarkersOfDroppedRows()",
+   "hash": "1c47d9ca9aecab7c",
+   "does": "Asserts WorkoutTicker.offsets keeps offsets >= the first kept row offset ([2,5,9] from 5 → [5,9]) and keeps all when firstOffset is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.offsets(_:keptFrom:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.offsets(_:keptFrom:)": "653d631d99ea76fe"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testFinalizeListsLiveWristRowsWithBackfilledRows()",
+   "hash": "28b8d4d86cf34b8e",
+   "does": "Strap source, 4 samples, backfilled [3,1,2]: asserts WorkoutFinalizer.healthKitHROffsets returns [1,2,3] (dedup + sort).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc says finalize lists live wrist rows with backfilled rows, but the test concatenates the two lists itself ([3] + [1,2]); the real merge happens in the caller (backfillResult.filledOffsets + recorder.wristHROffsets) which is not exercised",
+     "evidence": [
+      "EmuquTests/WristHRMarkerTests.swift:52",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:256"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "02b6b4c231ca2c24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testCrashBackupKeepsTheMarkersWithTheSamples()",
+   "hash": "96fba0e48c68206e",
+   "does": "Appends 2 then 3 samples with markers [1] then [1,2] to a crash backup and asserts retrieve gives 3 samples and markers [1,2]; discards the backup in defer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "writes": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "d737d5807e3cf1e8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testCrashBackupKeepsWritingAfterTheOldestSamplesAreTrimmed()",
+   "hash": "436bf5d0b2f057db",
+   "does": "Appends samples 1-4 (markers [2,4]), then a same-count window 3-6 (markers [4,6]) simulating head trimming; asserts the second append wrote, samples 1-6 and markers [2,4,6] are recovered.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "writes": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "d737d5807e3cf1e8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testCrashBackupIgnoresAnOlderSnapshotArrivingLate()",
+   "hash": "abb40585ab9d89b9",
+   "does": "Appends 5 samples then a stale 3-sample snapshot; asserts the stale append returns false and the backup still has 5 samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "writes": [
+    "file:<AppGroup>/WorkoutBackup/<uuid>_workout_* (real shared container, WorkoutTrackBackup.swift:156)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3a9d2551dc931833",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "d737d5807e3cf1e8",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "7c151482a58659e2",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "7138f95e665a43ec"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testFirstIndexAfterAKeyFindsTheUnwrittenTail()",
+   "hash": "32c0b3c6b852a16e",
+   "does": "Asserts WorkoutTrackBackup.firstIndex(in:[3,4,5,6], after:) returns 2 for 4, 4 for 6 and 0 for 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)": "0f633b2fdcd951b7"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testRebuildKeepsOnlyMarkersOfRowsItKept()",
+   "hash": "6364723858060757",
+   "does": "Asserts WorkoutRecoveryService.healthKitHROffsets keeps only markers of kept rows sorted ([4,2,0] over rows 0-2 → [0,2]) and returns nil for no surviving or empty markers.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "a76b51d9108acf5f"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testTrimCarriesMarkersOfTheSamplesItKeeps()",
+   "hash": "c2a707253a557e76",
+   "does": "Builds an archived session with 10 samples and markers [1,3,8] and a 5-second trimmed session; asserts carryForward copies 6 samples (offsets 0-5) and markers [1,3].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "fe9cf4d8a1a8bdb5"
+   }
+  }
+ ],
+ "deps": {}
+}

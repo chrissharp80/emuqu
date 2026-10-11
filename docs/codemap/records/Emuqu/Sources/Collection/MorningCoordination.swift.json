@@ -1,0 +1,40 @@
+{
+ "file": "Emuqu/Sources/Collection/MorningCoordination.swift",
+ "hash": "22adba8b83533e98",
+ "role": "@MainActor @Observable holder of morning-processing UI state split out of RRCollector: morning pipeline status, device-fetch flag, recovered-workout review, and HealthKit sleep/vitals change counters.",
+ "types": [
+  "MorningCoordination: class (@MainActor @Observable final) — morning/results coordination state",
+  "MorningCoordination.RecoveredWorkoutReview: struct — crash-recovered workout awaiting review (sessionId, sport, durationSec, distanceMeters, avgHR)"
+ ],
+ "state": [
+  "mem:MorningCoordination.morningStatus",
+  "mem:MorningCoordination.isDeviceFetchInProgress",
+  "mem:MorningCoordination.recoveredWorkoutReview",
+  "mem:MorningCoordination.sleepDataVersion",
+  "mem:MorningCoordination.vitalsDataVersion"
+ ],
+ "toplevel": "Stored-property defaults only: morningStatus nil, isDeviceFetchInProgress false, recoveredWorkoutReview nil, sleepDataVersion 0, vitalsDataVersion 0. No units.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "med",
+   "text": "vitalsDataVersion is written (RRCollector+Bindings.swift:195) but no code reads MorningCoordination.vitalsDataVersion; its doc says views observe it to re-fetch vitals and re-archive the snapshot so SleepDetailView is not blank, and the named reader RecoveryDashboardView no longer exists, so that refresh trigger does nothing.",
+   "evidence": [
+    "Emuqu/Sources/Collection/MorningCoordination.swift:42-48",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift:191-195"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc lists RecoveryDashboardView as a reader; no such view exists in Emuqu/Sources/Views.",
+   "evidence": [
+    "Emuqu/Sources/Collection/MorningCoordination.swift:11"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

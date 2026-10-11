@@ -1,0 +1,983 @@
+{
+ "file": "docs/VOICE_AND_TOOL_USE.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Design and field-notes document for the Flo assistant's routing (Quick/Auto/Deep/Manual), tool-use pipeline, fact catalog contents, voice conversation mechanics (audio session, barge-in, timeouts), prompt rules and known failure modes.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Voice Conversation & Tool Use",
+   "hash": "0730fcbafb7f2d63",
+   "does": "Claims the chat tab is Flo, the mid-workout voice is Coach ('Coach here.'), the email is a Flo Report, sharing model picker and history. Verified: AssistantSubsystem.voiceAnnouncement returns 'Flo here.' for .coach/.voiceConversation, 'Coach here.' for .workoutVoiceCoach, 'Flo Report.' for .coachReport (AIProvider.swift:144-151).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "ce20410284e62cc7"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual)",
+   "hash": "282ff72790986284",
+   "does": "Claims routing acts only when Apple Intelligence is selected (TurnRouter.preTierDecision returns the user's pick otherwise, and the picker is disabled); Quick keeps typed turns on Apple; Auto uses the capability classifier and maps to consented Grok then DeepSeek, else Apple; Deep uses the same mid-tier cloud; Manual uses the picker; voice and action turns go to the first consented cloud. Verified: preTierDecision (TurnRouter.swift:155-160), TierProviderMapper.midTierProvider iterates [.grok, .deepseek] with consent (TierProviderMapper.swift:167-190), routingModePicker .disabled when non-Apple (AIAssistantSettingsPage+Sections.swift:175-184).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc describes Quick/Auto/Deep routing of typed turns (classifier, action-intent override for typed 'email'/'directions' requests) while Apple is selected, but with Apple selected the chat has no text composer (only prefab chips), so free-typed turns cannot occur on the only configuration where routing runs.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:39",
+      "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:125",
+      "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift:478"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the routing picker is disabled when a non-Apple model is selected; the settings-page picker is, but the second routing picker in CoachHomeV2View is never disabled.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:35",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:443"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)": "cec78cb02486aed7",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)": "797c5532948ab602",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.routingModePicker": "34951f4d91951498"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Capability-axis classifier",
+   "hash": "c48893872a9fe4c2",
+   "does": "Claims four binary axes (needsTools, needsWeb, needsHistoricalDepth, needsSpeculation), each firing only when a keyword marker AND embedding cosine >= 0.55 agree; 0 flags → .quick, 1 → .auto, >=2 → .deep; CapabilityClassifierTests has 19 cases. Verified axisThreshold 0.55 (CapabilityClassifier.swift:60) and the AND gate (CapabilityClassifier.swift:138-145).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says an axis fires only when BOTH keyword and embedding agree, but for input the language recognizer judges non-English the keyword gate is opened (.allAxes) and the embedding alone decides.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:82",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:131"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says CapabilityClassifierTests has 19 cases; the file has 21 test functions.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:85",
+      "EmuquTests/CapabilityClassifierTests.swift"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "b6c76a8b4046cb8c"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Voice-mode bypass",
+   "hash": "87882af4a2b1bcce",
+   "does": "Claims voice turns bypass SmartProviderRouter: with Apple selected (any mode but Manual), TurnRouter.appleVoiceBypass sends voice to the first consented cloud in registry order on its default model; key entry is not consent; no consented cloud → Apple; any other pick answers voice itself. Verified TurnRouter.swift:155-197.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Stickiness rules (typed turns, Auto mode)",
+   "hash": "d2e8816b6dbb7502",
+   "does": "Claims sticky tiering: upgrades always adopted; within settling window (turns 1-3) take proposal; post-settle downgrade only when classifier returns Requirement.none and proposal is .quick; else keep higher tier. Verified SmartProviderRouter.stickyTier (SmartProviderRouter.swift:84-95, settlingTurns = 3, turnCount < 3).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Action-intent override",
+   "hash": "f4ebc83ce1cc5bec",
+   "does": "Claims providerSupportsTools is false for Apple, so a turn resolved to Apple whose text messageRequiresTools flags goes to the first consented cloud in registry order; none consented → stays on Apple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "be5aa3e059590e1a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)": "3da30af5513ca277",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Embedding fallback chain",
+   "hash": "6e7423751c41297e",
+   "does": "Claims embedding chain NLContextualEmbedding → NLEmbedding.wordEmbedding → keyword-only, with the ~50 MB asset download kicked off once on first launch via Task.detached { try? await requestAssets() }. Code kicks the download lazily the first time the contextual embedder is touched (first classification), not at launch (SmartProviderRouter.swift:103-125), and repeats the request on each launch until assets exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.contextualEmbedder",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.loadContextualEmbedder()",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the ~50 MB asset download 'runs once on first launch'. The code requests assets lazily the first time the contextual embedder is touched (first classification of an Auto-mode turn), degrades to word vectors for the rest of that launch, and re-requests on every later launch until hasAvailableAssets is true.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:131",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:103",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:121",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:124"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "084fda77aeca56c8",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.loadContextualEmbedder()": "1ba938a3c504ddfb",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.contextualEmbedder": "4743d11884ab4aeb",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::let SmartProviderRouter.wordEmbedder": "7d849944de31d4f6"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Adversarial-spend cap",
+   "hash": "2dd7d6fc7c371552",
+   "does": "Claims a daily Tier-3 ceiling of 50 turns (dailyTier3Cap) counted in memory per local date; once exceeded, further Deep proposals downgrade to Auto for the day. Verified dailyTier3Cap = 50 (SmartProviderRouter.swift:49), recordTier3UsageAndCheck (215-220) and the downgrade in TurnRouter.tierDecision (202-212).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The cap is described as preventing runaway spend, but routing only runs with Apple selected, where TierProviderMapper maps both .auto and .deep to the same consented mid-tier cloud (deepMapping's userChosenMapping is nil because the active provider is Apple). Downgrading Deep to Auto therefore sends the turn to the same paid provider and model; the cap changes only the tier label.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:138",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:80",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:92",
+      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:149"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The counter lives only in memory (tier3CountByDay), so relaunching the app resets the daily cap.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:139",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:195"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "570eea800f58e83b",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "0241aba5ad7acbb6",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Deterministic intent shortcut",
+   "hash": "23d756e0c294ff04",
+   "does": "Claims DeterministicIntent.tryMatch runs before any LLM call with a 14-pattern catalog (lists the ids), first match wins, no confidence gate, falling through when data is missing. Verified 14 ids at DeterministicIntent.swift:113-384 and tryMatch (410-421) called from AssistantViewModel.swift:458.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "b1c043197a492fd5",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Tier indicator on chat bubbles",
+   "hash": "94cfd5044f58025b",
+   "does": "Claims each assistant turn carries routedTierRaw and ChatBubble renders a 6-pt dot green=Quick, blue=Auto, purple=Deep; Manual and voice-bypass turns have nil tier. Code renders a 6x6 Circle plus a 'Quick/Auto/Deep tier' text label, coloured AppTheme.sage/primary/dustyRose (ChatBubble.swift:22-37, 303-313).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.tierIndicatorDot",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc names the tier dot colours green/blue/purple; code uses AppTheme.sage, AppTheme.primary and AppTheme.dustyRose and also shows a text label.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:167",
+      "Emuqu/Sources/Assistant/Views/ChatBubble.swift:23"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.tierIndicatorDot": "16a6723eae97ebdc"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > AFM prewarm",
+   "hash": "8c7153085787683e",
+   "does": "Claims AppleFoundationProvider.prewarm() (idempotent, detached, .utility) runs on the first send when routing might land on Apple: Quick/Auto, or Manual with Apple selected. Code calls it on every send when mode != .deep and (mode != .manual or active is Apple) (AssistantViewModel.swift:480-489).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The prewarm condition still assumes Quick/Auto may land on Apple with any provider selected, but routing is inert unless Apple is selected; with a cloud model selected in Quick/Auto the on-device model is prewarmed for nothing, and with Apple selected in Deep (which falls back to Apple when no cloud is consented) it is not prewarmed.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:174",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:486",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:155"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "889410db7635f17e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "8c62009b2ebea89e"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Voice preamble names the model",
+   "hash": "2c12faba15147e4a",
+   "does": "Claims the voice-session earcon names the model ('Flo here. Sonnet.'), via VoiceConversationController.currentModelDisplayName. Verified announced() (Speech.swift:88-97) and currentModelDisplayName (114-124) using the responding turn's provider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.currentModelDisplayName()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "ce20410284e62cc7",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.currentModelDisplayName()": "a683c472aed227ab"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Cache health telemetry",
+   "hash": "23fc36c632acbfb2",
+   "does": "Claims LLMCacheTelemetry.shared records per-provider cache hits on usage events and Settings → Troubleshooting → AI cache health shows cumulative + last-10-turn ratios with reset, on-device only. Verified: record (LLMCacheTelemetry.swift:81) fed from AssistantViewModel+Tools.swift:317; recentHitRatio(turns: 10); card in SettingsPages+Diagnostics.swift:151-205; counters are in-memory 'since app launch'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()": "88bb6c6496ef3fde",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)": "5be1d23804d6795a",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "985f1c3e8c95f8e0",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "f332977010dbd513"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > How the assistant fetches data",
+   "hash": "53f918484eb718c9",
+   "does": "Claims every provider including Apple uses tool use; Apple gets a compacted instruction prefix for its 4K window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)": "de0124d3e2ed2723",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "f62a55f4264ee6bf"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > Tool-use path (all providers)",
+   "hash": "4f98cd4a284a123d",
+   "does": "Claims the model is given a compact meta-schema (CompactToolRouter: get_* tools + lookup_fact) over a 200+ entry catalog; tool_use blocks resolve via CompactToolRouter.resolveTool → FactResolverRegistry; hard cap 8 tool calls per turn (maxToolCallsPerTurn), with the 9th returning a synthetic missing envelope and one more model pass. Verified maxToolCallsPerTurn = 8 on AssistantToolRunner (AssistantViewModel+Tools.swift:30).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the 9th call gets the synthetic over-budget result; code computes overBudget per round as (total + thisRound.count) > 8 and then refuses EVERY call in that round, so a round of 3 calls after 6 refuses all three instead of running two. The envelope is FactValue.missing(.rateLimited, 'tool budget exceeded for this turn'), not the literal {\"status\":\"missing\",…} shown.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:234",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:410",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:446"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > Apple Intelligence — tool wiring + verbatim compaction",
+   "hash": "3a3a57a4f5d5fd26",
+   "does": "Claims Apple tools are wrapped by AppleToolCatalog.wrap (21 read + up to 18 action tools), dispatched via AppleToolDispatcher.shared with setRegistry before each Apple send, returning FactValue.toToolResultJSON; AppleContextCompactor enforces 4,096-token window compacting at 70%; SessionCache reuses a session, rotating after 20 turns or when the token estimate would overflow; replies capped at 512 tokens. Verified contextWindow 4096 and compactionThreshold 0.70 (AppleContextCompactor.swift:43-48), maxTurnsPerSession = 20 (AppleFoundationProvider.swift:117), maximumResponseTokens = responseReserve (446), setRegistry at AssistantViewModel+Routing.swift:563, 18 allowedActionNames.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "c15febfcdfc53400",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "fbf5b10083bbede1",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "3fa99c5054ae2269",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "e0818b10778c2fb8",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "5c979037fab6e074",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "7235a36d374e5f20",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7fe971dbead49f86"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > What's in the catalog",
+   "hash": "873ae2d9d2f5c2ad",
+   "does": "Claims the catalog has 21 top-level namespaces and ~240 entries, plus specific namespaces/keys: location.* with 5-minute cache / 5 s cold fetch, directions.* (arrived within 25 m), breadcrumb.* (recent = newest 10), score.algorithm.version 'v3.1.oct2026', comeback mode HRV 80/Sleep 20/Vitals 0 vs 60/25/15 for 21 days, vitals.hr_now 10-minute gate, workout.live.* keys, route_topology climbs capped at 5, weather 30-min TTL from MET Norway, workout.power.*, app.*, assistant.memory.*, road context refreshed every ~15 m or ~60 s, web.* with curated research/manufacturer domain lists and exclusions, routes.library.* reads and rename/save_workout actions. Verified: 238 distinct keys/patterns across exactly 21 prefixes; ActiveRouteSession arrival 25 m (ActiveRouteSession.swift:193); breadcrumb prefix(10); RecoveryScoreCalculator.swift:7-15 weights; WeatherService.cacheTTL 30*60; RoadGeocodingService movementThresholdMeters 15 / timeThresholdSec 60; WebSearchService domain lists match the doc.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()": "449c3f41863de85c",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "17ab71f76b164165",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "038a17eb5d28f40f"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > Mutation tools (`[ACTION]`)",
+   "hash": "8c2939f8d27abfe0",
+   "does": "Claims mutation tools carry an [ACTION] description prefix, may only be called on explicit instruction, return old/new values for read-back, surface invalidParameter disambiguation, and never self-undo; lists CompactToolRouter.allowedActionNames as route rename/save_workout/engage, contacts add/remove, email compose, memory add/remove/clear, web search, location current/detailed/situation, set address, directions routeTo/clear; no monthly/year-over-year aggregation facts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc's enumeration of allowedActionNames omits assistant_artifacts_add and assistant_artifacts_update_status, which are in the set (18 entries) and do change app state.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:537",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:420"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "2ca04b95b7f6356a"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Voice conversation flow",
+   "hash": "de80935c3286d79f",
+   "does": "no behavioural claim beyond: the top-left mic toggles a continuous voice conversation distinct from the dictation mic next to the text field.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Audio session",
+   "hash": "da14afbbeca69971",
+   "does": "Claims voice uses .playAndRecord with mode .measurement through AudioSessionCoordinator (single owner of setCategory; voice's category wins over BackgroundAudioManager's .workoutCue claim); recogniser errors 1110 / kLSRErrorDomain 301 auto-restart with a 1.5 s cooldown; a system interruption tears the session down with no auto-resume. Verified: AudioSessionCoordinator.apply uses .measurement when a record claim exists (AudioSessionCoordinator.swift:141); recognitionRestartCooldownSec = 1.5 (VoiceConversationController.swift:191); handleAudioInterruption (Audio.swift:73-99).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "bfe992ea5b255b2c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "5ea693db349960eb",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)": "3d3c8acb5214ba65",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)": "761bcd095bdbfc99",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)": "bc8c367823460d1e",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Barge-in (interrupting the AI)",
+   "hash": "97d1a903dd635d17",
+   "does": "Claims four gates all required for barge-in: 600 ms grace, RMS above threshold sustained 300 ms, >= 2 new recognized words, Jaccard echo rejection; plus a Send now push-to-talk button. Verified checkForBargeIn (Speech.swift:524-537) with bargeInGracePeriodSec 0.6, bargeInSustainedSec 0.3, bargeInMinNewWords 2 and VoiceEchoHeuristics.isEchoOfInFlightResponse; it additionally requires state == .speaking and synthesizer.isSpeaking.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.isLikelyEchoOfCurrentResponse(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()": "edd1e2225b0aa2ea",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.isLikelyEchoOfCurrentResponse(_:)": "3cb41c65f70415dc",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Stop-button behavior",
+   "hash": "e8b502fb577c6eac",
+   "does": "Claims Stop and the mic toggle cancel the LLM stream, stop the synthesizer immediately, drop pending TTS and block late tool chunks via Task.checkCancellation between events and tool rounds. Verified checkCancellation in resolveToolCalls (AssistantViewModel+Tools.swift:409-414).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()": "87daed6dbd5e55c1",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Turn timeouts",
+   "hash": "59e693df04daffa6",
+   "does": "Claims 30 s max turn, 3 s no-growth commit when >= 4 chars captured, 1.2 s end-of-turn silence. Verified maxTurnDurationSec 30, stalledTranscriptCommitSec 3.0, stalledTranscriptMinChars 4, endOfTurnSilenceSec 1.2 (VoiceConversationController.swift:334-348).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.silenceTimerTick()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.commitTurnIfSettled()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.commitTurnIfSettled()": "0c21b7bd7b561604",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()": "9cafd6c68dafdefc",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.silenceTimerTick()": "50b664d2b36f96c8"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do",
+   "hash": "2c51e29ccc5a2ca5",
+   "does": "no behavioural claim: section heading for prompt rules.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Data honesty",
+   "hash": "2114890bfdc5c5a9",
+   "does": "Claims system prompt forbids fabrication: only numbers from tool results/context, stop on missing, never deny user-reported claims, state missing capability once. Verified rules in AIProvider+SystemPromptText.swift:71, :90 and the tool overlay's prescribed refusal (:466-471).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc quotes a system-prompt rule 'When a tool returns `status: missing`, respond with a brief acknowledgment and stop'; no tool result carries a status field any more: the envelope uses `missingReason`, and the source notes the envelope 'replaces the earlier \"if status is missing, stop\" prose rule'. The stop-on-missing behaviour now lives in the tool overlay's prescribed-refusal rule, so the quoted text is stale.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:657",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:358",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:466"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "ec3ef6cdbe2c72e5",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "9172792d4d8e2d62"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Sports-science framing rules",
+   "hash": "376f9be43247d5ec",
+   "does": "Claims prompt rules: translate jargon, score is HRV 60 / Sleep 25 / Vitals 15 with training load excluded, no risk-prediction framings. Prompt text at AIProvider+SystemPromptText.swift:111-120 and :723-724 also states the 70/30 and comeback 80/20 variants.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc states the score as fixed 'HRV (60%) + Sleep (25%) + Vitals (15%)'. That is only Tier 3; Tier 2 is HRV 70 / Sleep 30 and Tier 1 is HRV-only, plus a flat -10 SpO2 penalty outside the weights.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:677",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:8",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:9",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:24"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Voice-mode brevity",
+   "hash": "a5cf171c7bcd8b3f",
+   "does": "Claims a voice overlay appends '1–3 sentences, no markdown…' for voice sends. Verified VOICE MODE block (AIProvider+SystemPromptText.swift:755) appended after base (AIProvider+SystemPrompt.swift:130).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Always-on brevity (2026-04-29)",
+   "hash": "05a5ac17b60412bd",
+   "does": "Claims a BREVITY block applies to all sends (lead with number, 1-3 sentences, never emit <data> blocks) and that the tool overlay's '<data>' quoting instruction was replaced by 'Extract silently, then answer'. Verified BREVITY (SystemPromptText.swift:21-28) and rule 2 (:458-464).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the <data>-tag instruction was replaced, but the same tool overlay's rule 5 still tells the model to confirm each number 'appears verbatim in a <data> block from THIS turn', contradicting rule 2 which forbids <data> blocks; the model is given conflicting instructions.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:714",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:482",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:461"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "9172792d4d8e2d62"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes",
+   "hash": "94286d9b815012a2",
+   "does": "no behavioural claim: heading for known failure modes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Barge-in misses",
+   "hash": "1d88be7a0079c671",
+   "does": "Claims speech below about -35 dBFS (bargeInRMSThreshold) won't pass gate 2 and single words don't interrupt. bargeInRMSThreshold = 0.018 linear ≈ -34.9 dBFS (VoiceConversationController.swift:405); bargeInMinNewWords = 2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()": "edd1e2225b0aa2ea"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Barge-in false positives",
+   "hash": "1ac0804e60239da9",
+   "does": "no behavioural claim: field observation that speakerphone echo can defeat the Jaccard gate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Tool-use accuracy",
+   "hash": "19404074eeff5695",
+   "does": "no behavioural claim: field observations on provider tool-call accuracy and ISO-date retries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Provider pinning",
+   "hash": "ef3307015ea717bf",
+   "does": "no behavioural claim: provider model-ID pinning notes (not verified against ProviderRegistry model lists).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Apple on-device limitations",
+   "hash": "f5b604d0352a1eb8",
+   "does": "Claims Apple has tool use, AppleContextCompactor drops oldest turns verbatim at 70% of budget, multi-week trends push the classifier to .auto/.deep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Known failure modes > Hallucinations we've actually observed",
+   "hash": "62d7bcb07767686c",
+   "does": "no behavioural claim: anecdotes of observed hallucinations (sleep efficiency 9592% unit bug fixed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Files that matter",
+   "hash": "44422e16a967cc00",
+   "does": "Table of files that matter. All linked files exist. Places dispatch loop + voice bypass + budget in AssistantViewModel.swift and system-prompt overlays in AIProvider.swift.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.TurnRecord.hitRatio",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.factRegistryAndTools()",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The file map points to AssistantViewModel.swift for the voice bypass and tool budget and to AIProvider.swift for system-prompt overlays, but the voice bypass is in TurnRouter.swift, the budget in AssistantViewModel+Tools.swift (AssistantToolRunner), and the overlays in AIProvider+SystemPrompt.swift / AIProvider+SystemPromptText.swift.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:806",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:181",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:30"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The 'Audio session + gates + PTT + earcon' row links to `VoiceConversationController.swift` with a bare relative href; from docs/ that resolves to docs/VoiceConversationController.swift, which does not exist (the file is Emuqu/Sources/Assistant/VoiceConversationController.swift). Every other row uses ../Emuqu/Sources/...",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:807",
+      "Emuqu/Sources/Assistant/VoiceConversationController.swift:151"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.TurnRecord.hitRatio": "25bed2eb08f1d8e4",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "ec3ef6cdbe2c72e5",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "889410db7635f17e",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "5c979037fab6e074",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3291746dee017ce6",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "5d45cd0a0c7df49b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.factRegistryAndTools()": "c5250b7047ede8b2",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "8c08834f652e4360"
+   }
+  },
+  {
+   "key": "§ Voice Conversation & Tool Use > Status",
+   "hash": "0ba2e55f56aeb6b4",
+   "does": "Status list: classifier 4 axes >=0.55; routing only with Apple; voice bypass; Apple tool wiring; 70%-of-4K compaction; 14 deterministic patterns; earcon; cache telemetry; <live_state> in last user tail; Anthropic cache breakpoints; sorted-keys JSON; 4-gate barge-in; 8-call budget; 30 s / 3 s timeouts; 1110/301 restart; 5 s first-partial watchdog; 45 s long-idle restart; per-turn engine restart; FactResolverRegistry rate limiter on 3rd consecutive missing, 80 KB output cap, 2 s resolver budget with 0.5 s warning; 8 catalog-validation tests; 5 composites; 2026-08 additions; deferred items. Verified firstPartialTimeoutSec 5.0, longIdleRestartSec 45.0, outputSizeCapBytes 80_000, defaultResolveBudgetSec 2.0, resolveWarnBudgetSec 0.5, <live_state> appended in Anthropic/Gemini/OpenAI-compatible providers, FactCatalogValidationTests has 8 test functions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testNoDuplicateToolNames()",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testCompositeDependenciesResolveToRealAtomics()",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Doc says sleep.latest / vitals.latest fall back to a LIVE HealthKit read with a 5 s timeout. Those resolvers wait up to 5 s (withTimeout(seconds: 5)), but FactResolverRegistry.resolveTool times every read entry and budgetOverrun replaces any value that took longer than 2 s with .missing(.internalError). A live HealthKit answer arriving between 2 and 5 s is computed and then thrown away, so the model reports the night's sleep/vitals as missing. The same applies to vitals.hr_now (5 s) and other read resolvers with 3 s or 8 s waits.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:936",
+      "docs/VOICE_AND_TOOL_USE.md:879",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:234",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:554",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:626",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:804",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:365",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:414"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says resolver timeouts return .internalError on a >2 s overshoot; that applies only to read entries. Action entries (location_current, web_search, directions_routeTo, ...) only log the overrun and return their value.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:879",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:332"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepRecordAsync(for:userAge:typicalSleepHours:)": "611312921f81aec3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func VitalsNamespace.vitalsRecordAsync(for:)": "9082aef24d664268",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)": "40f9e06a4cd740b9",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)": "a7adcd082afdd54f",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "e7f4d2cc6fabf52d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testCompositeDependenciesResolveToRealAtomics()": "e686888409ffa0fe",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testNoDuplicateToolNames()": "598fa0dc695a66ca",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()": "a592b9f480a701b5"
+   }
+  }
+ ],
+ "deps": {}
+}

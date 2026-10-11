@@ -1,0 +1,576 @@
+{
+ "file": "Emuqu/Sources/Analysis/GPXImporter.swift",
+ "hash": "8c1f0c81ec77cb2e",
+ "role": "Parses GPX files (XMLParser, external entities off) into ImportedWorkoutTrack (track, HR and cadence samples, sport from <type>) for planned routes (parse, stamps now when no times) and recorded workouts (parseWorkout, refuses no-time files), validates numeric fields, and hands workout reconstruction to ImportedWorkoutBuilder.",
+ "types": [
+  "GPXImporter: enum (@MainActor) — GPX import API and validators",
+  "GPXImporter.ImportError: enum — invalidXML/noTrackpoints/noTimestamps",
+  "GPXParserDelegate: class (private, NSObject, XMLParserDelegate) — streaming element collector",
+  "GPXParserDelegate.Point: struct — one parsed trkpt"
+ ],
+ "state": [
+  "mem:GPXParserDelegate.isoFractional / iso (static ISO8601FormatStyle)"
+ ],
+ "toplevel": "File header says only lat/lon/ele/time/hr/cad are extracted and HRV is omitted; the delegate also captures any <type> element text as trkType and <metadata><time>. GPXImporter is @MainActor so XML parsing runs on the main actor.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The 'type' tag is matched anywhere in the document, so a later <type> (e.g. a <link><type>text/html</type> or a second track) overwrites the track's sport type.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift:302",
+    "Emuqu/Sources/Analysis/GPXImporter.swift:303"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var GPXImporter.ImportError.errorDescription",
+   "hash": "bbc32e9249d152ca",
+   "does": "Localized message for each ImportError case.",
+   "entry": "LocalizedError.errorDescription read by SwiftUI/alerts via error.localizedDescription",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".noTimestamps",
+     "effect": "'no timestamps' message"
+    },
+    {
+     "at": "+4",
+     "cond": ".invalidXML",
+     "effect": "'isn't valid GPX' message"
+    },
+    {
+     "at": "+6",
+     "cond": ".noTrackpoints",
+     "effect": "'no trackpoints' message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func GPXImporter.parse(data:defaultSport:)",
+   "hash": "7152b19d92a5c0cc",
+   "does": "Parses GPX as a route: runs the XML parse and builds the track, stamping every point with now when the file has no times.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "73d28df374761893",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d"
+   }
+  },
+  {
+   "key": "func GPXImporter.parseWorkout(data:defaultSport:)",
+   "hash": "12065a52cec444b5",
+   "does": "Parses GPX as a recorded workout; throws .noTimestamps when the file carries no time anywhere.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolvedTimes nil",
+     "effect": "throws ImportError.noTimestamps; else builds track"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parsedPoints(from:)": "f189e3ea2ad7d619",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.resolvedTimes(_:)": "73d28df374761893",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.track(from:times:defaultSport:)": "0b52d35a89891d5d"
+   }
+  },
+  {
+   "key": "func GPXImporter.track(from:times:defaultSport:)",
+   "hash": "f94d87fdde6597b9",
+   "does": "Builds ImportedWorkoutTrack: start/end from first/last resolved time, CLLocations, (time,hr) and (time,cad) pairs from points with their own time, sport from <type> or the default.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "times nil",
+     "effect": "every point stamped Date() (now)"
+    },
+    {
+     "at": "+6",
+     "cond": "pointTimes empty",
+     "effect": "start = now"
+    },
+    {
+     "at": "+9",
+     "cond": "pointTimes empty",
+     "effect": "end = start"
+    },
+    {
+     "at": "+12",
+     "cond": "point has own time and hr",
+     "effect": "included; else skipped (points with inherited time lose their HR)"
+    },
+    {
+     "at": "+16",
+     "cond": "point has own time and cad",
+     "effect": "included; else skipped"
+    },
+    {
+     "at": "+21",
+     "cond": "sportFromType nil",
+     "effect": "defaultSport"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "endDate is simply the last point's time; files with out-of-order timestamps yield endDate before startDate (no sort or check).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/GPXImporter.swift:68",
+      "Emuqu/Sources/Analysis/GPXImporter.swift:71"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.locations(from:times:)": "677151bc51edbf0c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.sportFromType(_:)": "e08e0acfd6166078"
+   }
+  },
+  {
+   "key": "func GPXImporter.resolvedTimes(_:)",
+   "hash": "caf45021b64d2f8e",
+   "does": "Per-point times: own time, else previous point's, else the first timed point's time (or metadata time); nil if no time anywhere.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no point time and no metadata time",
+     "effect": "returns nil; anchor prefers first point time over metadata time"
+    },
+    {
+     "at": "+4",
+     "cond": "point has time",
+     "effect": "updates carry-forward; else reuses last"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.parsedPoints(from:)",
+   "hash": "c7689b915d735bd9",
+   "does": "Runs XMLParser with namespaces off and external entities disabled; throws .invalidXML on parse failure, .noTrackpoints when no valid trkpt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "parser.parse() false",
+     "effect": "throws invalidXML"
+    },
+    {
+     "at": "+7",
+     "cond": "no points",
+     "effect": "throws noTrackpoints; else returns delegate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Only <trkpt> starts a point; GPX routes exported as <rte><rtept> (common for planner routes, which parse() is documented to accept) fail with noTrackpoints.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/GPXImporter.swift:46",
+      "Emuqu/Sources/Analysis/GPXImporter.swift:239"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.locations(from:times:)",
+   "hash": "e6564a47df3001f2",
+   "does": "Zips points with times into CLLocations (altitude ele or 0, accuracy 5 m).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "ele nil",
+     "effect": "altitude 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.buildSession(from:)",
+   "hash": "1c96cf3b642d8dbb",
+   "does": "Builds an HRVSession from an ImportedWorkoutTrack via ImportedWorkoutBuilder with source .gpxFile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e"
+   }
+  },
+  {
+   "key": "func GPXImporter.sportFromType(_:)",
+   "hash": "4b7e01689bc791a6",
+   "does": "Maps a lowercased <type> string to Sport by substring: trail→trailRun, run→run, walk→walk, hik→hike, crossfit→crossFit, air_bike/airbike→airBike, bike/biking/cycl/ride/riding→bike; else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "contains 'trail'",
+     "effect": "trailRun"
+    },
+    {
+     "at": "+6",
+     "cond": "contains 'run'",
+     "effect": "run"
+    },
+    {
+     "at": "+7",
+     "cond": "contains 'walk'",
+     "effect": "walk"
+    },
+    {
+     "at": "+10",
+     "cond": "contains 'hik'",
+     "effect": "hike"
+    },
+    {
+     "at": "+14",
+     "cond": "crossfit/cross_fit",
+     "effect": "crossFit"
+    },
+    {
+     "at": "+15",
+     "cond": "air_bike/airbike",
+     "effect": "airBike"
+    },
+    {
+     "at": "+16",
+     "cond": "bike/biking/cycl/ride/riding",
+     "effect": "bike; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Substring matching misclassifies: 'Treadmill Running' → .run (not .treadmill), 'Indoor Cycling' → .bike, 'Rowing'/'row' → nil; 'ride' also matches unrelated words.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/GPXImporter.swift:143",
+      "Emuqu/Sources/Analysis/GPXImporter.swift:153"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.isValidLatitude(_:)",
+   "hash": "4e4582845d88e068",
+   "does": "True when latitude is finite and within [-90, 90].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.isValidLongitude(_:)",
+   "hash": "253df8aa9bff055b",
+   "does": "True when longitude is finite and within [-180, 180].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.validCadence(_:)",
+   "hash": "bc8eb3a84894ecd5",
+   "does": "Returns cadence when finite and within 0…300, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finite and in range",
+     "effect": "value; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.isValidElevation(_:)",
+   "hash": "0439f34b5f2adff7",
+   "does": "True when elevation is finite and within -500…10000 m.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXImporter.validHeartRate(_:)",
+   "hash": "087f487e186215d2",
+   "does": "Returns heart rate when within 25…250, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "in 25...250",
+     "effect": "value; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXParserDelegate.parseTimestamp(_:)",
+   "hash": "476fb802d65c8314",
+   "does": "Parses an ISO 8601 timestamp, trying fractional seconds first then plain; nil if neither parses.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each style",
+     "effect": "tries both"
+    },
+    {
+     "at": "+2",
+     "cond": "parse throws",
+     "effect": "continue to next style (error swallowed)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXParserDelegate.parser(_:didStartElement:namespaceURI:qualifiedName:attributes:)",
+   "hash": "8829591758b611a1",
+   "does": "didStartElement: records the lowercased element name, resets text, marks metadata entry, and for <trkpt> starts a Point only when lat/lon parse and validate (else current=nil so the point is skipped).",
+   "entry": "XMLParserDelegate callback from XMLParser.parse() in parsedPoints",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "element is metadata",
+     "effect": "inMetadata = true"
+    },
+    {
+     "at": "+10",
+     "cond": "element is not trkpt",
+     "effect": "return"
+    },
+    {
+     "at": "+15",
+     "cond": "lat/lon missing, unparseable or out of range",
+     "effect": "current = nil (point dropped silently); else new Point"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+   }
+  },
+  {
+   "key": "func GPXParserDelegate.parser(_:foundCharacters:)",
+   "hash": "e2649a4760766014",
+   "does": "foundCharacters: appends text to the buffer.",
+   "entry": "XMLParserDelegate callback",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GPXParserDelegate.parser(_:didEndElement:namespaceURI:qualifiedName:)",
+   "hash": "cf20607526d104d5",
+   "does": "didEndElement: clears metadata flag on </metadata>, applies trimmed text to the current point/metadata, appends a finished trkpt, resets the buffer.",
+   "entry": "XMLParserDelegate callback",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.apply(tag:text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "tag is metadata",
+     "effect": "inMetadata = false"
+    },
+    {
+     "at": "+9",
+     "cond": "tag is trkpt and current non-nil",
+     "effect": "append point; else nothing (invalid trkpt dropped)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.apply(tag:text:)": "ed3bc896c78b36df"
+   }
+  },
+  {
+   "key": "func GPXParserDelegate.applyTime(_:)",
+   "hash": "bf84e90078b758fa",
+   "does": "Sets the current point's time, or the metadata time when inside <metadata> and not in a point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parseTimestamp(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "current point exists",
+     "effect": "sets point time (nil if unparseable)"
+    },
+    {
+     "at": "+3",
+     "cond": "inMetadata",
+     "effect": "sets metadataTime; else ignored (e.g. <wpt><time>)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.parseTimestamp(_:)": "d7df97d86765938e"
+   }
+  },
+  {
+   "key": "func GPXParserDelegate.apply(tag:text:)",
+   "hash": "f6be771d9015f3cd",
+   "does": "Routes a closed element's text: ele (validated) → point elevation; time → applyTime; *:hr/hr/heartrate → validated Int HR; *:cad/cad/cadence → validated cadence; type → trkType.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.applyTime(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validHeartRate(_:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validCadence(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tag ele",
+     "effect": "sets ele or nil when invalid"
+    },
+    {
+     "at": "+7",
+     "cond": "Double parse fails or out of range",
+     "effect": "ele = nil (point kept)"
+    },
+    {
+     "at": "+8",
+     "cond": "tag time",
+     "effect": "applyTime"
+    },
+    {
+     "at": "+10",
+     "cond": "default",
+     "effect": "other tags"
+    },
+    {
+     "at": "+11",
+     "cond": "hr tag",
+     "effect": "HR = Int(text) validated; decimal text like '145.0' → nil"
+    },
+    {
+     "at": "+13",
+     "cond": "cad tag",
+     "effect": "cadence validated"
+    },
+    {
+     "at": "+15",
+     "cond": "tag type",
+     "effect": "trkType = text; else ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validCadence(_:)": "157640488b0ac227",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.validHeartRate(_:)": "261a0cfaa153cb5c",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXParserDelegate.applyTime(_:)": "3ca73eaf458de7fd"
+   }
+  }
+ ],
+ "deps": {}
+}

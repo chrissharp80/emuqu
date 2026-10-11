@@ -1,0 +1,220 @@
+{
+ "file": "Emuqu/Sources/Views/HRZone.swift",
+ "hash": "c2102ca7ca2ffa06",
+ "role": "Five-zone heart-rate model keyed to % of the user's effective max HR (50/60/70/80/90%), with English and localized labels and per-zone colours; used by the live recording view, mile-marker speech and AI workout context.",
+ "types": [
+  "HRZone: enum (Int, CaseIterable, Identifiable) — z1…z5"
+ ],
+ "state": [],
+ "toplevel": "Header comment documents max-HR resolution (override → Tanaka 208−0.7×age → 180), which matches UserSettings.effectiveMaxHR (UserSettings+Model.swift:285-295).",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The same 50/60/70/80/90 % of max-HR binning is re-implemented in at least two other places instead of calling HRZone.classify.",
+   "evidence": [
+    "Emuqu/Sources/Views/HRZone.swift:40",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift:457"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var HRZone.id",
+   "hash": "86401e7676ec760d",
+   "does": "id = rawValue (1–5).",
+   "entry": "Identifiable conformance (no ForEach over HRZone found in the repo)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "HRZone's Identifiable `id` (and CaseIterable) are never used: no ForEach over HRZone, no HRZone.allCases anywhere in the repo including tests (grep).",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:22",
+      "Emuqu/Sources/Views/HRZone.swift:29"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRZone.classify(hr:userMaxHR:)",
+   "hash": "7a4b11bbb2ca8680",
+   "does": "Classifies hr against userMaxHR: nil if either ≤0 or HR <50 % of max; z1 50–60 %, z2 60–70 %, z3 70–80 %, z4 80–90 %, z5 ≥90 % (open-ended).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userMaxHR > 0 and hr > 0",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+4",
+     "cond": "0.50 ≤ frac < 0.60",
+     "effect": "→ .z1"
+    },
+    {
+     "at": "+5",
+     "cond": "0.60 ≤ frac < 0.70",
+     "effect": "→ .z2"
+    },
+    {
+     "at": "+6",
+     "cond": "0.70 ≤ frac < 0.80",
+     "effect": "→ .z3"
+    },
+    {
+     "at": "+7",
+     "cond": "0.80 ≤ frac < 0.90",
+     "effect": "→ .z4"
+    },
+    {
+     "at": "+10",
+     "cond": "frac ≥ 0.90",
+     "effect": "→ .z5 (also above max)"
+    },
+    {
+     "at": "+11",
+     "cond": "default (frac < 0.50)",
+     "effect": "→ nil (no zone, neutral colour)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "HRZone.classify (the live zone pill and mile-marker zone) has no direct test; EmuquTests only bucket zones through WorkoutAnalysisSnapshotBuilder, which uses its own binning.",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:37",
+      "EmuquTests/WorkoutAnalysisSnapshotBuilderTests.swift:235"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Header comment says the zone fractions match 'the Edwards TRIMP / Lucia layout'; Lucia TRIMP is a 3-zone ventilatory-threshold model, only Edwards uses 50-60/…/90+ %HRmax.",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:20",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:75",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:78"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var HRZone.label",
+   "hash": "31a4e79692754ecd",
+   "does": "English label 'Zone N' (used in AI context, WorkoutAIContext.swift:482).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HRZone.localizedLabel",
+   "hash": "d2d5b81022e09e20",
+   "does": "Localized 'Zone N' in the app bundle (used by FitnessRecordingView and WorkoutMileMarkerEngine).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var HRZone.shortLabel",
+   "hash": "e37ec8ac30c6ee8f",
+   "does": "Returns 'ZN'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "HRZone.shortLabel has no callers anywhere in the repo, tests included (the other shortLabel hits are WindowClassification and the Watch's ZoneOption).",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:62",
+      "EmuquWatch Watch App/WatchLiveView.swift:110",
+      "Emuqu/Sources/Analysis/WindowSelection.swift:97"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var HRZone.color",
+   "hash": "0821ae807816abde",
+   "does": "Fixed RGB colour per zone: blue, sage green, amber, orange, red.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "z1",
+     "effect": "cool blue (0.40,0.60,0.90)"
+    },
+    {
+     "at": "+3",
+     "cond": "z2",
+     "effect": "sage green (0.40,0.80,0.55)"
+    },
+    {
+     "at": "+4",
+     "cond": "z3",
+     "effect": "amber (0.95,0.80,0.30)"
+    },
+    {
+     "at": "+5",
+     "cond": "z4",
+     "effect": "orange (0.95,0.55,0.25)"
+    },
+    {
+     "at": "+6",
+     "cond": "z5",
+     "effect": "red (0.90,0.30,0.30)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "WorkoutStatsCards.hrZones hard-codes a second zone palette that disagrees with HRZone.color (its zone 1 uses HRZone's z2 green 0.40/0.80/0.55 and zone 2 another green), so the post-workout HR chart bands and the live zone pill colour the same zone differently.",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:66",
+      "Emuqu/Sources/Views/HRZone.swift:67",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:211",
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:212"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,392 @@
+{
+ "file": "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift",
+ "hash": "39f4549601bc499e",
+ "role": "Estimates a workout's TRIMP from the user's prior runs of the same saved route when the strap dropped (recorded TRIMP missing or < 70 % of the route's prior TRIMP/metre). Used by the live finalize path, crash recovery and the load backfill.",
+ "types": [
+  "RouteTRIMPEstimator: enum @MainActor — estimation functions",
+  "RouteTRIMPEstimator.Estimate: struct — estimatedTRIMP, confidence, routeName, priorDominant",
+  "RouteTRIMPEstimator.PriorRoute: struct (private) — savedRoute, sport, store"
+ ],
+ "state": [],
+ "toplevel": "No top-level code.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc calls the recorded value 'Banister TRIMP' (lines 12, 74) but every caller passes and every prior uses WorkoutMetadata.luciaTRIMP.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:74",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:129",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:323"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)",
+   "hash": "8d0088b51fa580f6",
+   "does": "Matches the track to a saved route, collects prior same-route sessions' TRIMP/metre (outliers removed), compares to today's TRIMP/metre and returns nil when today's ratio >= 70 % of the prior average; otherwise returns the blended/prior/today-scaled estimate scaled to the target distance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorTRIMPPerMetre(archive:route:before:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries/retrieveLightweight",
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "track matches a saved route and track has a first timestamp",
+     "effect": "false: nil (no estimate)"
+    },
+    {
+     "at": "+13",
+     "cond": "ratios empty",
+     "effect": "priorAvgRatio = nil; else arithmetic mean"
+    },
+    {
+     "at": "+16",
+     "cond": "prior average and recorded ratio exist and recorded >= 0.7 × prior",
+     "effect": "returns nil (case 1, measured stands)"
+    },
+    {
+     "at": "+17",
+     "cond": "scaledEstimate non-nil",
+     "effect": "false (no prior and no recorded ratio): nil; true: Estimate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorTRIMPPerMetre(archive:route:before:)": "028aacc076eb05ee",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)": "ea7d0f15f528753e",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)": "be16961ba08d2fbb"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.priorTRIMPPerMetre(archive:route:before:)",
+   "hash": "d9a9e2ddacd2d277",
+   "does": "For each prior same-route session returns luciaTRIMP / distanceMeters where both are positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorSessionsOnRoute(archive:route:before:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)"
+   ],
+   "reads": [
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorSessionsOnRoute(archive:route:before:)": "2b9879b149797857",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)": "07e53f9eafa0934f"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.withoutOutliers(_:)",
+   "hash": "0e92de12d4ce69cc",
+   "does": "Drops ratios under half the median; unchanged when fewer than 2 ratios.",
+   "entry": "Also called directly by RouteTRIMPEstimatorTests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ratios.count > 1",
+     "effect": "false: returns input"
+    },
+    {
+     "at": "+4",
+     "cond": "even count",
+     "effect": "median = mean of middle two; else middle"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteTRIMPEstimator.trimpPerMetre(trimp:distance:)",
+   "hash": "86d4744b16f2cf12",
+   "does": "TRIMP/distance when both are present and > 0, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trimp > 0 and distance > 0",
+     "effect": "false: nil; true: ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)",
+   "hash": "89758d2eb0d1c124",
+   "does": "Distance the estimate represents: saved distance when nothing recorded, when within ±10 % of the route, or when the recording may be truncated and is shorter; otherwise the recorded distance (including runs longer than the route).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "recordedDistance present and > 0",
+     "effect": "false: saved route distance"
+    },
+    {
+     "at": "+8",
+     "cond": "within 90–110 % of route",
+     "effect": "saved route distance"
+    },
+    {
+     "at": "+9",
+     "cond": "shorter than route and distanceMayBeTruncated",
+     "effect": "saved route distance; else recordedDistance"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteTRIMPEstimator.recordingMayBeTruncated(_:)",
+   "hash": "02bbf6711a21fbc8",
+   "does": "True when partialDataReason is appCrashed or userInterrupted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)",
+   "hash": "0ecbeec46ff47c15",
+   "does": "Chooses the case: prior+today → 0.6/0.4 blend × distance with confidence min(0.85, 0.4+0.15·n); prior only → prior × distance, priorDominant; today only → today × distance at 0.4; neither → nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "(prior, today) both present",
+     "effect": "blend, priorConfidence, priorDominant false"
+    },
+    {
+     "at": "+13",
+     "cond": "prior present, today nil",
+     "effect": "prior × distance, priorConfidence, priorDominant true"
+    },
+    {
+     "at": "+17",
+     "cond": "prior nil, today present",
+     "effect": "today × distance, confidence 0.4 (floor)"
+    },
+    {
+     "at": "+21",
+     "cond": "both nil",
+     "effect": "nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Case 3b (no priors) still returns an 'estimate' equal to today's ratio × target distance; when recorded distance is used as target this equals the recorded TRIMP, adding no information but still stored as extrapolatedTRIMP.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:200",
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:203",
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:173"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.targetDistance(recordedDistance:savedDistance:distanceMayBeTruncated:)": "d66eb6135bab5f38"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.priorSessionsOnRoute(archive:route:before:)",
+   "hash": "e957b7f45a99bd63",
+   "does": "Decodes every archived workout that ended before this one (no lower date bound), keeps clean same-sport priors that start within 150 m of either route end and whose track matches the same saved route.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.endAnchors(of:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.startsNear(_:session:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.ranRoute(_:session:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "route has end anchors",
+     "effect": "false: []"
+    },
+    {
+     "at": "+8",
+     "cond": "entry is a workout and (endDate ?? date) <= workoutStart",
+     "effect": "index-level filter; ?? date when entry has no endDate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "No lookback bound: every prior workout in the archive is decrypted/decoded on the main actor (enum is @MainActor) at workout finalize and for each backfill candidate, and each surviving candidate's polyline is decoded twice (startsNear and ranRoute).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:53",
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:221",
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:252",
+      "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift:259"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.endAnchors(of:)": "04bfcf6adacce167",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "88de14e9871a7758",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.ranRoute(_:session:)": "5877e619b362b3c3",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.startsNear(_:session:)": "f10f0ef65e295abd",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.endAnchors(of:)",
+   "hash": "51eb25803e80fee1",
+   "does": "Decodes the saved route polyline and returns CLLocations at its first and last points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)"
+   ],
+   "reads": [
+    "mem:SavedRoute.encodedPolyline"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)": "ea7d0f15f528753e"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)",
+   "hash": "36b9e7adf8c6b7ae",
+   "does": "True when the session has workout metadata of the same sport, ended at/before workoutStart, has no partialDataReason and its load was not replaced by a route estimate.",
+   "entry": "Also called by RouteTRIMPEstimatorTests.",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metadata exists, sport matches, (endDate ?? startDate) <= workoutStart",
+     "effect": "false: false"
+    },
+    {
+     "at": "+2",
+     "cond": "session.endDate ?? startDate",
+     "effect": "start used when no end date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.startsNear(_:session:)",
+   "hash": "6342a802f93e4dfa",
+   "does": "True when the session's first GPS fix is within 150 m of either route anchor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session track has a first point",
+     "effect": "false: false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)": "ea7d0f15f528753e"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.ranRoute(_:session:)",
+   "hash": "2ff19307ced81dbd",
+   "does": "True when RouteLibrary.findMatch on the session's track returns this saved route's id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)": "ea7d0f15f528753e"
+   }
+  },
+  {
+   "key": "func RouteTRIMPEstimator.track(of:)",
+   "hash": "029fe985ed70006d",
+   "does": "Decodes the session's stored GPS polyline into CLLocations, [] when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata.gpsPolyline exists",
+     "effect": "false: []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372"
+   }
+  }
+ ],
+ "deps": {}
+}

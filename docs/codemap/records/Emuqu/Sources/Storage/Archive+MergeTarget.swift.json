@@ -1,0 +1,165 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+MergeTarget.swift",
+ "hash": "90c5fb6319f56502",
+ "role": "The shared merge-target decision for ArchiveStore: which archived entry an incoming recording folds into (copy of the same recording, or nearest same-sleep segment within the user's merge gap), plus holdsCopy/isCopy helpers.",
+ "types": [
+  "ArchiveStore: extension — mergeTarget, isMergeCandidate, sameSleepGap, holdsCopy, isCopy"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveStore.mergeTarget(for:sameSleepGap:)",
+   "hash": "6ad60689a4e7f11f",
+   "does": "Caller holds the lock. Among index entries not absorbed into another entry's linked list and passing isMergeCandidate, returns the first whose span overlaps the session (sameRecording); otherwise, when sameSleepGap is given, the sameSleep entry with the smallest gap; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isMergeCandidate(_:for:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.linkedSessionIds nil (?? [])",
+     "effect": "contributes no absorbed ids"
+    },
+    {
+     "at": "+7",
+     "cond": "sameSleepGap nil (?? 0)",
+     "effect": "relation computed with mergeGap 0 (touching spans become sameSleep, but are ignored below)"
+    },
+    {
+     "at": "+10",
+     "cond": "a related entry is .sameRecording",
+     "effect": "return it (first in index order, not nearest)"
+    },
+    {
+     "at": "+13",
+     "cond": "sameSleepGap is nil",
+     "effect": "return nil; else return the nearest .sameSleep entry or nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isMergeCandidate(_:for:)": "bdddcea56c1f072d",
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "63b49d2eb8660a66",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "08fd193c19fa98a7",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.relation(of:to:mergeGap:)": "dd9ce2e90beb21a0",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)": "51f070aafd4d878b",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "5a5f691630e9fec2"
+   }
+  },
+  {
+   "key": "func ArchiveStore.isMergeCandidate(_:for:)",
+   "hash": "0ba08468a79ccc0a",
+   "does": "True when the entry has a different id and same type, neither side lists the other in linkedSessionIds, and for an overnight both fall in the same overnightWindowStart night under the current sleep schedule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "different id, same type, entry not linked to session",
+     "effect": "else return false"
+    },
+    {
+     "at": "+2",
+     "cond": "entry.linkedSessionIds nil (?? [])",
+     "effect": "treated as no links"
+    },
+    {
+     "at": "+3",
+     "cond": "session.linkedSessionIds nil (?? [])",
+     "effect": "treated as no links"
+    },
+    {
+     "at": "+5",
+     "cond": "session is not .overnight",
+     "effect": "return true; else compare night anchors"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+   }
+  },
+  {
+   "key": "func ArchiveStore.sameSleepGap(for:)",
+   "hash": "54b32b912c54b4b3",
+   "does": "Returns the user's merge gap (mergeGapProvider) for an overnight when sessionMergeMode != .off, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not overnight or merge mode .off",
+     "effect": "return nil; else archive.mergeGapProvider()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func ArchiveStore.holdsCopy(of:)",
+   "hash": "b39d60e3ff948a67",
+   "does": "Takes the lock; true when the id is already indexed or mergeTarget(sameSleepGap:nil) finds an overlapping same-type copy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "3fdc38d069d40530"
+   }
+  },
+  {
+   "key": "func ArchiveStore.isCopy(_:of:)",
+   "hash": "1bbd31faac7da29e",
+   "does": "Pure: entry and session share type and their spans overlap (SessionMerger.overlaps).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.overlaps(_:_:)": "ed84ed5b604c4027",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: HRVSession)": "51f070aafd4d878b",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "5a5f691630e9fec2"
+   }
+  }
+ ],
+ "deps": {}
+}

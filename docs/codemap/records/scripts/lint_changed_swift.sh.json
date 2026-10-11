@@ -1,0 +1,25 @@
+{
+ "file": "scripts/lint_changed_swift.sh",
+ "hash": "65cb6065e3e75a6b",
+ "role": "Developer helper: runs SwiftFormat --lint and SwiftLint --strict (.swiftlint-strict.yml) on the Swift files listed by scripts/changed_swift_files.sh.",
+ "types": [],
+ "state": [
+  "file:.swiftformat",
+  "file:.swiftlint-strict.yml",
+  "env:SCRIPT_INPUT_FILE_COUNT/SCRIPT_INPUT_FILE_<n> (exported)"
+ ],
+ "toplevel": "set -euo pipefail; collects non-empty lines from changed_swift_files.sh; none -> prints message and exit 0. Prints list; `swiftformat <files> --config .swiftformat --lint` (non-zero aborts); exports SCRIPT_INPUT_FILE_* and runs `swiftlint lint --strict --config .swiftlint-strict.yml --use-script-input-files`. Config paths are relative to cwd (no cd). Not referenced by the Makefile, .githooks/pre-commit, any workflow, or any doc (repo-wide grep).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "lint_changed_swift.sh is not invoked by the Makefile, pre-commit hook, workflows or any doc; the only path to it is running it by hand.",
+   "evidence": [
+    "scripts/lint_changed_swift.sh"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

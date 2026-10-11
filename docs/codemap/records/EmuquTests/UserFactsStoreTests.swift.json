@@ -1,0 +1,646 @@
+{
+ "file": "EmuquTests/UserFactsStoreTests.swift",
+ "hash": "2db509071de6960a",
+ "role": "XCTest suite for UserFactsStore using init(fileURL:) on a per-test temp file: add trimming/dedupe/cap, load-time dedupe+cap, remove/clear, async persistence round trip, undecodable-file set-aside, and systemPromptBlock rendering.",
+ "types": [
+  "UserFactsStoreTests: class (@MainActor XCTestCase) — tests over a temp-file UserFactsStore"
+ ],
+ "state": [
+  "mem:UserFactsStoreTests.savedDefaultTimeZone — OSAllocatedUnfairLock<TimeZone?> holding NSTimeZone.default across the class",
+  "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json — per-test backing file (lazy tempDir/fileURL)"
+ ],
+ "toplevel": "fileURL is a lazy var derived from tempDir; tempDir creates a UUID-named temp directory on first access.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Class setUp forces process-global NSTimeZone.default to UTC although no test here reads dates or calendars; it is cargo-culted global mutation (restored in class tearDown).",
+   "evidence": [
+    "EmuquTests/UserFactsStoreTests.swift:26",
+    "EmuquTests/UserFactsStoreTests.swift:30"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func UserFactsStoreTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default into the lock box and sets it to TestTimeZone.utc for the class.",
+   "entry": "XCTest runner: class setUp once before the suite",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:UserFactsStoreTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved NSTimeZone.default if one was captured and clears the box.",
+   "entry": "XCTest runner: class tearDown once after the suite",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:UserFactsStoreTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a saved time zone exists",
+     "effect": "restores it; otherwise NSTimeZone.default is left as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let UserFactsStoreTests.tempDir",
+   "hash": "16710d5db0258b0c",
+   "does": "Lazy initializer: creates <tmp>/UserFactsStoreTests-<UUID>/ (errors ignored via try?) and returns it.",
+   "entry": "lazy stored-property initializer on first access of tempDir/fileURL",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.tearDown() #2",
+   "hash": "b1f8f848531565e1",
+   "does": "Per-test teardown: removes the temp directory (errors ignored) then super.tearDown.",
+   "entry": "XCTest runner: async tearDown after each test",
+   "calls": [
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "3bf97872cf0404c9"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddInsertsTrimmedFact()",
+   "hash": "5fe245dbb868cabe",
+   "does": "Asserts add trims whitespace and stores one fact 'I'm training for a marathon'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddKeepsTheNewestFactsUpToTheCap()",
+   "hash": "264a05f9a697e11b",
+   "does": "Asserts adding maxFacts+10 facts keeps the newest 25 ('fact 10' … 'fact 34').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for index in 0..<maxFacts+10",
+     "effect": "adds one fact per index"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddIgnoresWhitespaceOnlyEntries()",
+   "hash": "07db739e4859a767",
+   "does": "Asserts empty and whitespace-only adds leave facts empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddDeDupesCaseInsensitively()",
+   "hash": "b227195ad31eb8f1",
+   "does": "Asserts three case variants of 'Vegetarian diet' collapse to the first one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddPreservesOrderOfInsertion()",
+   "hash": "752a47078a1f8b5e",
+   "does": "Asserts facts keep insertion order First, Second, Third.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAddDeDupesPunctuationAndCaseVariants()",
+   "hash": "6e8d08bf62dbdaa8",
+   "does": "Asserts trailing-period and case-only twins collapse to one fact.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testLoadDedupesAndCapsLegacyBloat()",
+   "hash": "002730d3dc915ed0",
+   "does": "Writes 5 facts with punctuation/case twins and asserts load yields 2; writes 40 unique facts and asserts load caps at 25.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Cap assertion hard-codes 25 instead of UserFactsStore.maxFacts, unlike the add-cap test, so a cap change breaks this test with a misleading message.",
+     "evidence": [
+      "EmuquTests/UserFactsStoreTests.swift:137",
+      "EmuquTests/UserFactsStoreTests.swift:66",
+      "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift:149"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "6113c94db777144b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "c354bbdd0cdc5a65",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testRemoveDeletesById()",
+   "hash": "8f8a8a5be12342cf",
+   "does": "Asserts remove(id) of 'alpha' leaves only 'beta'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testRemoveUnknownIdIsNoOp()",
+   "hash": "2cd4b5d6442898fa",
+   "does": "Asserts remove(unknown UUID) leaves the single fact.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testClearEmptiesFacts()",
+   "hash": "67636687e7923c81",
+   "does": "Asserts clear() empties facts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testPersistenceRoundTrip()",
+   "hash": "03e5bc19274ecbde",
+   "does": "Adds two facts in a scope that releases the store, then polls reopened stores until two facts hydrate and asserts both texts persisted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testAnUndecodableFileIsSetAsideAndTheNextAddIsSaved()",
+   "hash": "4a13a8b93c16a8dd",
+   "does": "Writes '{ not facts', asserts the store starts empty, adds a fact, waits for it to persist, and asserts exactly one '*undecodable*' file is kept with the corrupt bytes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)",
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/*undecodable*"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "b4c88d9524e2058f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048",
+    "EmuquTests/UserFactsStoreTests.swift::let UserFactsStoreTests.tempDir": "3bf97872cf0404c9"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testClearReplacesAnUndecodableFile()",
+   "hash": "2d82a42547da116f",
+   "does": "Writes a corrupt file, clear()s then adds 'Fresh start', and asserts the reopened store holds it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.reloadIfUnreadable()": "42571c27d87feb4e",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
+    "EmuquTests/UserFactsStoreTests.swift::func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)": "37c819299d37c048"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testSystemPromptBlockIsEmptyWhenNoFacts()",
+   "hash": "1a153488ff84ac79",
+   "does": "Asserts systemPromptBlock() is '' with no facts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.testSystemPromptBlockListsAllFacts()",
+   "hash": "304724fb6fddd4e6",
+   "does": "Asserts the block contains both facts and the 'Things to remember about this user' header.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)"
+   ],
+   "writes": [
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "b363e7a84b22b2ff",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0"
+   }
+  },
+  {
+   "key": "func UserFactsStoreTests.waitForStore(at:toHold:timeout:file:line:)",
+   "hash": "1e78fc65a68d5c02",
+   "does": "Helper: reopens UserFactsStore(fileURL:) every 20 ms (Thread.sleep on the main actor) until it holds the expected count or 30 s elapse, asserts the count, returns the last store.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)"
+   ],
+   "reads": [
+    "ud:assistant.autoExtractFacts (standard, read in init)",
+    "file:<tmp>/UserFactsStoreTests-<UUID>/user_facts.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "facts.count != expected and before deadline",
+     "effect": "sleep 0.02 s and reopen; otherwise exit loop and assert count (fails after 30 s)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.isUnreadable(_:)": "2ddd0b087f4c706b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.loadFacts(at:)": "de714cf1d73d89dc",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "9902b8b8e5eb91c0",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  }
+ ],
+ "deps": {}
+}

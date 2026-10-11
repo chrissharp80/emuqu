@@ -1,0 +1,245 @@
+{
+ "file": "Emuqu/Sources/Collection/SleepRefreshPolicy.swift",
+ "hash": "fd28842d7a5c5be5",
+ "role": "Pure decision layer for automatic overnight sleep refresh (RRCollector+Reanalysis): whether a session may be refreshed, whether fresh HealthKit sleep should update/rescore, and how to apply it to the session's snapshot and ms boundaries.",
+ "types": [
+  "SleepRefreshPolicy: enum — static policy functions",
+  "SleepRefreshPolicy.SleepRefreshVerdict: struct — shouldUpdate/needsRescore and logged numbers"
+ ],
+ "state": [],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
+   "hash": "ab4ba78e4c431663",
+   "does": "Returns false (and logs) when the session is user-adjusted AND already has a sleep snapshot; true otherwise (including user-adjusted sessions with nil snapshot pulled from CloudKit).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepUserAdjusted != true OR sleepSnapshot == nil",
+     "effect": "returns true; otherwise logs 'skipped — user-adjusted sleep' and returns false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md §13.2 says autoRefreshTodaysSleepIfImproved 'Skips entirely when session.sleepUserAdjusted == true', but the guard lets a user-adjusted session with a nil sleepSnapshot through (CloudKit-pulled case) and applyAutoRefresh then fills its snapshot.",
+     "evidence": [
+      "docs/FLOWCHART.md:806",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:38",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:128"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+   "hash": "cfeb183ec9680179",
+   "does": "Computes the refresh verdict: prior/new night minutes, endMovedLater (>60 s), firstSnapshot (prior minutes 0), onset move (>=15 min material) and source upgrade to watch; shouldUpdate = first || endLater || more minutes || onset moved || upgrade; needsRescore = first || |delta| >= 20 || onset moved || upgrade.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no prior snapshot (??)",
+     "effect": "priorMinutes = 0 → firstSnapshot true"
+    },
+    {
+     "at": "+6",
+     "cond": "no prior snapshot sleepEnd (??)",
+     "effect": "priorEnd = distantPast, so any fresh sleepEnd counts as moved later"
+    },
+    {
+     "at": "+7",
+     "cond": "fresh.sleepEnd nil (??)",
+     "effect": "uses distantPast → endMovedLater false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A prior snapshot with 0 night minutes (an earlier empty snapshot) is treated as firstSnapshot and always forces update + rescore, identical to no snapshot.",
+     "evidence": [
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:85",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:89"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md §13.2 gives the rescore threshold as '≥ 20 min or first snapshot'; the code also rescores on an onset move >= 15 min and on a source upgrade to HealthKit/hrValidated, and the update gate also passes on those, so the doc under-describes when scores change.",
+     "evidence": [
+      "docs/FLOWCHART.md:806",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:91",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:95",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "bc65e91b58a590ac",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)",
+   "hash": "213349890b4e7eb8",
+   "does": "Absolute difference in minutes between the session's stored sleepStartMs and the fresh sleepStart's ms offset from session start (clamped >= 0); 0 when either is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.sleepStartMs nil or fresh.sleepStart nil",
+     "effect": "returns 0; otherwise computed move"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)",
+   "hash": "e8afe889287099b3",
+   "does": "True when the prior snapshot boundary source is nil/hrEstimated/healthKitHREstimated/recordingBounds AND the fresh source is healthKit or hrValidated.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.applyAutoRefresh(_:to:)",
+   "hash": "8d3097f7207611aa",
+   "does": "Applies a refresh: user-adjusted sessions get applyPulledSleep (snapshot + fill nil boundaries only), others applyFreshSleep (overwrite snapshot, boundaries, segments).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.sleepUserAdjusted == true",
+     "effect": "applyPulledSleep; otherwise applyFreshSleep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.applyFreshSleep(_:to:)",
+   "hash": "0f6b6dbea198332f",
+   "does": "Overwrites session.sleepSnapshot with fresh, sets sleepStartMs (clamped >= 0) and sleepEndMs from fresh boundaries when present, and sets sleepSegments to ms ranges for multi-segment nights or nil for single-segment nights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fresh.sleepStart present",
+     "effect": "sleepStartMs replaced; otherwise old value kept"
+    },
+    {
+     "at": "+5",
+     "cond": "fresh.sleepEnd present",
+     "effect": "sleepEndMs replaced; otherwise old value kept"
+    },
+    {
+     "at": "+10",
+     "cond": "fresh.segments.count <= 1",
+     "effect": "sleepSegments = nil and return; otherwise mapped to SleepSegmentMs array"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "sleepStartMs is clamped to >= 0 but sleepEndMs is not; a fresh sleepEnd before session start writes a negative end offset while start is clamped to 0.",
+     "evidence": [
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:151",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:154"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicy.applyPulledSleep(_:to:)",
+   "hash": "c28e8fbf9a86777d",
+   "does": "Sets session.sleepSnapshot and fills sleepStartMs/sleepEndMs only when they are currently nil; never touches segments or existing boundaries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleepStartMs nil and resolved sleepStart present",
+     "effect": "fills sleepStartMs (clamped >= 0); otherwise unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepEndMs nil and resolved sleepEnd present",
+     "effect": "fills sleepEndMs; otherwise unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  }
+ ],
+ "deps": {}
+}

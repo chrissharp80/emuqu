@@ -1,0 +1,694 @@
+{
+ "file": "Emuqu/Sources/Views/OvernightChartsView+Charts.swift",
+ "hash": "3091af53ee73b5aa",
+ "role": "Overnight chart building blocks: a stat card, a scrub tooltip, and the Canvas-drawn overnight HR chart (Polar RR-derived HR plus Apple Watch HK HR, analysis window highlight, sleep shading, grid, nadir marker, axis labels) with horizontal drag scrubbing.",
+ "types": [
+  "OvernightStatCard: struct View — title/value/unit/subtitle tile with combined accessibility label",
+  "ChartTooltip: struct View — value/unit/time bubble (also used by MorningResultsCharts and OvernightHRVChartCanvas)",
+  "OvernightHRChartCanvas: struct View — interactive overnight HR Canvas",
+  "OvernightHRChartCanvas.HRChartGeometry: struct (private) OvernightChartViewport — per-frame scales and window bounds"
+ ],
+ "state": [
+  "@State touchLocation, isDragging (view-local)",
+  "instance constants xAxisHeight 20, hkAreaGradient, hkStrokeColor, hrAreaGradient"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OvernightStatCard.body",
+   "hash": "6e60cc2f05c0e456",
+   "does": "Renders title, value+unit and subtitle in a tinted tile; VoiceOver reads 'title: value unit, subtitle' as one element.",
+   "entry": "SwiftUI body (used by OvernightChartsView stat rows).",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var OvernightStatCard.valueAndUnit"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "unit.isEmpty",
+     "effect": "true: no unit in the accessibility label; false: append ' unit'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var OvernightStatCard.valueAndUnit": "80511bd0537a7c83",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OvernightStatCard.valueAndUnit",
+   "hash": "ef05dc27e3a7730c",
+   "does": "Baseline-aligned value (rounded title2, coloured) and unit caption.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ChartTooltip.body",
+   "hash": "0754e1bafe6d34f3",
+   "does": "Bubble with coloured value, unit and bold time on a shadowed system-background rounded rect.",
+   "entry": "SwiftUI body.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OvernightHRChartCanvas.body",
+   "hash": "3a8824ffb8c7399e",
+   "does": "GeometryReader: chart (height minus 20 pt axis) plus touch overlay, with the horizontal scrub gesture.",
+   "entry": "SwiftUI body (rendered by OvernightChartsView.swift:526).",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.chartStack(chartHeight:width:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.touchOverlay(touch:chartHeight:geo:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var OvernightHRChartCanvas.scrubGesture"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.chartStack(chartHeight:width:)": "03f58db630280a44",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.touchOverlay(touch:chartHeight:geo:)": "9961469b17757fb1",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::var OvernightHRChartCanvas.scrubGesture": "a92a8aac1c020839"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.chartStack(chartHeight:width:)",
+   "hash": "674d5eebeb30de7e",
+   "does": "Canvas chart over the x-axis clock labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.chartCanvas(size:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.xAxisLabels(session:stats:width:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.chartCanvas(size:)": "b301dd81f56c5d02",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.xAxisLabels(session:stats:width:)": "307c3b5f50ed0e54"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.touchOverlay(touch:chartHeight:geo:)",
+   "hash": "603b6160577bbe9d",
+   "does": "While dragging: vertical indicator at the touch x and a tooltip with the nearest HR and its clock time, clamped inside the canvas.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.hrAtLocation(_:size:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.tooltipX(_:size:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "touch != nil && isDragging",
+     "effect": "true: indicator; false: nothing"
+    },
+    {
+     "at": "+10",
+     "cond": "hrAtLocation returned a sample",
+     "effect": "true: tooltip; false: indicator only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.hrAtLocation(_:size:)": "cbcccb064a4f32b7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.tooltipX(_:size:)": "a5466cb72183a7a9",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var OvernightHRChartCanvas.scrubGesture",
+   "hash": "49a9eb60889b2d02",
+   "does": "DragGesture(minDistance 8): updates touchLocation/isDragging only for mostly-horizontal drags; clears both on end.",
+   "entry": "SwiftUI gesture callbacks.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "|dy| <= 2*|dx|",
+     "effect": "true: update scrub; false: ignore (page scroll)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.hrAtLocation(_:size:)",
+   "hash": "848bf09303417ed8",
+   "does": "Maps x to a target ms in the chart viewport, finds nearest Polar and HK samples, returns the closer one's HR and formatted clock time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.nearestPolarSample(toMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.nearestHealthKitSample(toMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "chart duration <= 0",
+     "effect": "return nil"
+    },
+    {
+     "at": "+9",
+     "cond": "both sources found",
+     "effect": "pick smaller distance (Polar wins ties)"
+    },
+    {
+     "at": "+10",
+     "cond": "p.dist <= h.dist",
+     "effect": "Polar vs HK"
+    },
+    {
+     "at": "+13",
+     "cond": "only Polar",
+     "effect": "Polar sample"
+    },
+    {
+     "at": "+15",
+     "cond": "only HK",
+     "effect": "HK sample"
+    },
+    {
+     "at": "+17",
+     "cond": "neither",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.nearestHealthKitSample(toMs:)": "fdea4b39c82d20fb",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.nearestPolarSample(toMs:)": "2650d02f48f917d9",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.nearestPolarSample(toMs:)",
+   "hash": "86f22d3032a01e7c",
+   "does": "Linear scan of allHrValues (or hrValues when empty) for the RR point whose t_ms is closest to target; time from absoluteTimeWallClock, falling back to series.startDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.rrSeries == nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "allHrValues empty",
+     "effect": "use hrValues"
+    },
+    {
+     "at": "+5",
+     "cond": "for each (index, hr)",
+     "effect": "scan"
+    },
+    {
+     "at": "+6",
+     "cond": "index >= points.count",
+     "effect": "skip"
+    },
+    {
+     "at": "+8",
+     "cond": "closest nil or dist smaller",
+     "effect": "replace candidate; else continue"
+    },
+    {
+     "at": "+8",
+     "cond": "closest == nil",
+     "effect": "?? true accepts the first"
+    },
+    {
+     "at": "+9",
+     "cond": "absoluteTimeWallClock nil",
+     "effect": "use series.startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "b828c96564df6c4f"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.nearestHealthKitSample(toMs:)",
+   "hash": "03272f0078b66b7e",
+   "does": "Linear scan of stats.healthKitHR for the closest sample; time = session.startDate + timeMs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each sample",
+     "effect": "scan"
+    },
+    {
+     "at": "+4",
+     "cond": "closest nil or dist smaller",
+     "effect": "replace; else continue"
+    },
+    {
+     "at": "+4",
+     "cond": "closest == nil",
+     "effect": "?? true accepts first"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.chartCanvas(size:)",
+   "hash": "ff605badf1f535a1",
+   "does": "Canvas that builds HRChartGeometry and runs draw passes: window highlight, sleep segments, grid, HK HR, Polar HR, nadir marker, axis labels.",
+   "entry": "Canvas renderer closure invoked by SwiftUI.",
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::init OvernightHRChartCanvas.HRChartGeometry(size:stats:points:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawWindowHighlight(_:_:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawSleepSegments(_:_:stats:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawGrid(_:_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawHealthKitHR(_:_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawPolarHR(_:_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawNadirMarker(_:_:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawAxisLabels(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "geometry init returned nil",
+     "effect": "draw nothing (blank chart)"
+    },
+    {
+     "at": "+5",
+     "cond": "session.rrSeries == nil",
+     "effect": "pass [] points"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawAxisLabels(_:_:)": "b8462ef1a3dd7401",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawHealthKitHR(_:_:)": "d6fff69737ecee32",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawNadirMarker(_:_:)": "ea505e15c7259ae4",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawPolarHR(_:_:)": "051a6596b74407bd",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawWindowHighlight(_:_:)": "16a48f5c9128c577",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::init OvernightHRChartCanvas.HRChartGeometry(size:stats:points:)": "422f24c28dd69dba",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawGrid(_:_:)": "d7d91a6b128582a2",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawSleepSegments(_:_:stats:)": "f0d0cc841529d5ba"
+   }
+  },
+  {
+   "key": "init OvernightHRChartCanvas.HRChartGeometry(size:stats:points:)",
+   "hash": "22acaf10243b9525",
+   "does": "Picks plot HR (allHrValues else hrValues), requires some data and a non-degenerate y-range, then stores size, points, y-range, viewport and window bounds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "allHrValues empty",
+     "effect": "use hrValues"
+    },
+    {
+     "at": "+2",
+     "cond": "both plotHR and healthKitHR empty",
+     "effect": "return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "yRange nil (degenerate/flat)",
+     "effect": "return nil — a perfectly flat HR trace draws no chart"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)": "9c0ac2ecedf0d6da",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)": "4217656d24696862"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)",
+   "hash": "85d3640b54c86acf",
+   "does": "Min/max over plot HR and HK HR, padded by 5 bpm; nil if not finite or hi <= lo.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "plotHR empty",
+     "effect": "lo = +inf"
+    },
+    {
+     "at": "+5",
+     "cond": "plotHR empty",
+     "effect": "hi = -inf"
+    },
+    {
+     "at": "+6",
+     "cond": "healthKitHR non-empty",
+     "effect": "fold HK min/max in"
+    },
+    {
+     "at": "+7",
+     "cond": "HK min nil",
+     "effect": "keep lo"
+    },
+    {
+     "at": "+8",
+     "cond": "HK max nil",
+     "effect": "keep hi"
+    },
+    {
+     "at": "+10",
+     "cond": "lo/hi finite and hi > lo",
+     "effect": "return padded range; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.HRChartGeometry.windowBounds(stats:size:totalPoints:firstMs:totalDurationMs:)",
+   "hash": "60313b81d6ec0f15",
+   "does": "Window x-bounds from wall-clock ms when available (clamped to 0..width; full if > 80% of viewport), else from point indices over point count; (0,0,full) when there are no points.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "duration > 0 && windowStartMs != windowEndMs",
+     "effect": "ms-based bounds"
+    },
+    {
+     "at": "+16",
+     "cond": "totalPoints == 0",
+     "effect": "return (0,0,true) — no highlight"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Index fallback divides by point count while the x axis is a time viewport that can be extended by HK sleep (chartStartMs < first point), so the fallback highlight is drawn at the wrong x on extended or gappy charts; 0.8 full-recording cut-off is a magic number.",
+     "evidence": [
+      "Emuqu/Sources/Views/OvernightChartsView+Charts.swift:325",
+      "Emuqu/Sources/Views/OvernightChartsView+Charts.swift:321"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)",
+   "hash": "74450471ca792d6f",
+   "does": "x for a ms offset within the viewport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "totalDurationMs <= 0",
+     "effect": "return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.HRChartGeometry.y(forHR:)",
+   "hash": "55a31cc330cb1b90",
+   "does": "y for an HR value (inverted, scaled to minY..maxY).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.yRange(plotHR:healthKitHR:)": "4217656d24696862"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawWindowHighlight(_:_:)",
+   "hash": "105e6502b35f78b8",
+   "does": "When the window is not ~full recording: fills the window rect, strokes both edges, and draws the time-range pill.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.verticalLine(atX:height:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawWindowLabel(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "windowIsFullRecording",
+     "effect": "return without highlight"
+    },
+    {
+     "at": "+7",
+     "cond": "for each edge x",
+     "effect": "stroke vertical line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.drawWindowLabel(_:_:)": "787abce008ba6d37",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawWindowLabel(_:_:)",
+   "hash": "b3dbb4982b47e7d7",
+   "does": "Draws the 'start - end' clock pill centred over the window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawPill(_:text:centerX:top:canvasWidth:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both formatted times empty",
+     "effect": "return without label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.drawPill(_:text:centerX:top:canvasWidth:color:)": "9d6e10a2e743b638",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawHealthKitHR(_:_:)",
+   "hash": "d5c230eb70d2d6d0",
+   "does": "Draws HK HR as dashed lighter area/line segments, split at 10-minute gaps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.areaPaths(_:height:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no HK samples or duration <= 0",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "segment count >= 2",
+     "effect": "draw; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.areaPaths(_:height:)": "2e01e6f910fc69c6",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)": "b1a5d2154e197a00"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawPolarHR(_:_:)",
+   "hash": "b96df8a1f24f3892",
+   "does": "Maps plot HR indices to point t_ms and draws filled terracotta line segments split at 5-minute gaps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.areaPaths(_:height:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index out of range or duration <= 0",
+     "effect": "drop sample"
+    },
+    {
+     "at": "+5",
+     "cond": "segment count >= 2",
+     "effect": "draw; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.areaPaths(_:height:)": "2e01e6f910fc69c6",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)": "b1a5d2154e197a00",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.splitIntoSegments(_:gapThresholdMs:geo:)",
+   "hash": "53f928b772d04f3c",
+   "does": "Projects (ms, hr) samples to CGPoints, starting a new segment when the gap exceeds the threshold.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.y(forHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each sample",
+     "effect": "project"
+    },
+    {
+     "at": "+8",
+     "cond": "lastMs >= 0 && gap > threshold",
+     "effect": "start new segment"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.ms(_:_:)": "5408ded6f8e98147",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.y(forHR:)": "00acd251ddadabb8"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.areaPaths(_:height:)",
+   "hash": "79678fcce29a3c6f",
+   "does": "Line path through the points and a closed fill path down to the baseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "seg.count <= 1",
+     "effect": "return empty paths"
+    },
+    {
+     "at": "+8",
+     "cond": "for i in 1..<count",
+     "effect": "addLine"
+    },
+    {
+     "at": "+10",
+     "cond": "seg.last nil",
+     "effect": "use seg[0] (unreachable after the count guard)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawNadirMarker(_:_:)",
+   "hash": "1109f56a5acd92d4",
+   "does": "Dashed vertical line, circle and integer label at (nadirTimeMs, nadirHR).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.y(forHR:)",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.verticalLine(atX:height:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.y(forHR:)": "00acd251ddadabb8",
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.verticalLine(atX:height:)": "31b37afaafa0b059"
+   }
+  },
+  {
+   "key": "func OvernightHRChartCanvas.drawAxisLabels(_:_:)",
+   "hash": "1d684bc269131cef",
+   "does": "Draws max and min y-axis values (truncated Int) at the top-left and near the bottom-left.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightHRChartCanvas.verticalLine(atX:height:)",
+   "hash": "bb203f180f8c852d",
+   "does": "Path for a full-height vertical line at x.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab"
+   }
+  }
+ ],
+ "deps": {}
+}

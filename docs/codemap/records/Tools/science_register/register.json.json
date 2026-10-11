@@ -1,0 +1,24 @@
+{
+ "file": "Tools/science_register/register.json",
+ "hash": "3e3d5f59081d86a1",
+ "role": "Governed inventory of score-affecting heuristics: scoring_version \"v3.1.oct2026\" (matches ScoringVersion.current, ScoringVersion.swift:29) and 19 entries {id,status,affects[],evidence,tests[],allowed_language, optional symbols[]} with status in _status_meanings (validated 3, supported-transfer 4, awaiting-validation 12); _retracted_claims.claims (3 strings that must not reappear), _waived_symbols (displayPenalty).",
+ "types": [],
+ "state": [
+  "file:Tools/science_register/register.json"
+ ],
+ "toplevel": "Pure data. Read only by scripts/check_science_register.sh (Makefile:214, ci.yml:203), which checks status validity, non-empty affects/evidence/allowed_language, cited test files exist, scoring_version matches, retracted claims absent from entries/Emuqu/Sources/docs, every discovered *Adjustment/*Penalty/*Bonus/*Modifier/*Damper/*Fraction func in Emuqu/Sources/Analysis is claimed in some entry's symbols or waived, and entry count >= .ci/min_science_register_entries.txt (19). Mutated by scripts/verify_gates_fail.sh:460-463. Referenced in README.md:72 and ScoringVersion.swift:22. All cited test files exist.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "Entry hrr-12bpm-band (affects workout HRR label and PDF report classification) cites tests: []; check_science_register.sh only verifies listed tests exist, not that any are listed, so the entry passes with no test coverage named.",
+   "evidence": [
+    "Tools/science_register/register.json:214",
+    "scripts/check_science_register.sh:98"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

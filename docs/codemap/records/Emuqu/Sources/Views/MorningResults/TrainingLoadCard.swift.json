@@ -1,0 +1,307 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift",
+ "hash": "c4afecc3345b4591",
+ "role": "Card showing training load from a TrainingContext: an acute:chronic ratio gauge with four coloured zones and ATL/CTL/TSB pills.",
+ "types": [
+  "TrainingLoadCard: struct (View) — constructed by MorningResultsView+DetailCards.swift:229"
+ ],
+ "state": [
+  "mem:TrainingLoadCard.acrBelow=0.8/acrInRange=1.3/acrAbove=1.5 (static zone edges)",
+  "mem:TrainingLoadCard.gaugeMin=0.5/gaugeMax=1.7 (static gauge span)"
+ ],
+ "toplevel": "Static lets define ACR zone edges 0.8/1.3/1.5 and gauge span 0.5-1.7 shared by zone text and bands.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TrainingLoadCard.body",
+   "hash": "2e4f33d7e3b6574f",
+   "does": "Card VStack: header, ACR gauge, load pills.",
+   "entry": "SwiftUI View.body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.trainingLoadHeader",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrGauge",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.loadPills"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrGauge": "ce19defa53d4b9b8",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.loadPills": "a776e8e82bff6634",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.trainingLoadHeader": "dafa3e4bc0a94d4e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var TrainingLoadCard.trainingLoadHeader",
+   "hash": "c0750a3d07ec2274",
+   "does": "Running icon + localized 'TRAINING LOAD' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var TrainingLoadCard.acrGauge",
+   "hash": "fac88fb9bfbbc36e",
+   "does": "Shows the ACR gauge with an accessibility label stating the ratio and zone when acuteChronicRatio exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeColumn(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZone(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "training.acuteChronicRatio present",
+     "effect": "gauge shown; nil → no gauge (pills only)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeColumn(_:)": "298dd5ea104c7fb8",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZone(_:)": "9f880aea3256cc29"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.acrGaugeColumn(_:)",
+   "hash": "5f526d3434956406",
+   "does": "20pt GeometryReader gauge track above the zone labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeTrack(acr:width:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrZoneLabels"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeTrack(acr:width:)": "e28427aad0183737",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::var TrainingLoadCard.acrZoneLabels": "3354cd7d32019368"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.acrZone(_:)",
+   "hash": "62eff2ba0fc7b5ff",
+   "does": "Zone name for an ACR: <0.8 below range, ≤1.3 in range, ≤1.5 above range, else sharp increase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "acr < 0.8",
+     "effect": "'below range'"
+    },
+    {
+     "at": "+2",
+     "cond": "acr <= 1.3",
+     "effect": "'in range'"
+    },
+    {
+     "at": "+3",
+     "cond": "acr <= 1.5",
+     "effect": "'above range'; above → 'sharp increase'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "acrZone re-implements the ACR band edges (0.8/1.3/1.5) that ACWRBand.init(ratio:) already defines (and which also has a 0.8-1.0 maintenance band), with different wording ('sharp increase' vs 'Sharp increase', 'above range' vs 'Above your usual'); the two can drift.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:57",
+      "Emuqu/Sources/Collection/TrainingMetrics.swift:58"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.gaugeFraction(_:)",
+   "hash": "bb1f57042c7fa52e",
+   "does": "Maps ACR onto 0...1 across the 0.5-1.7 gauge, clamped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadCard.acrGaugeTrack(acr:width:)",
+   "hash": "c35202f7b2b9647e",
+   "does": "ZStack of zone bands and the thumb.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZoneBands(width:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeThumb(acr:width:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeThumb(acr:width:)": "453a9d4b5e3e622a",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrZoneBands(width:)": "671c468dce3fb403"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.acrZoneBands(width:)",
+   "hash": "7679e687388fa223",
+   "does": "Four bands (mist, sage, softGold, alert at 30%) sized by the gauge fractions between edges 0.5/0.8/1.3/1.5/1.7.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.gaugeFraction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.gaugeFraction(_:)": "e2d0b2a275194f3e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.acrGaugeThumb(acr:width:)",
+   "hash": "ab01d98fd360d4f8",
+   "does": "White 20pt thumb with ACR label, offset to width × gaugeFraction − 10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeThumbLabel(_:)",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.gaugeFraction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.acrGaugeThumbLabel(_:)": "f351fcc827f96eb3",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.gaugeFraction(_:)": "e2d0b2a275194f3e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.acrGaugeThumbLabel(_:)",
+   "hash": "27379fa2229d8dc7",
+   "does": "ACR formatted %.1f with app locale in a 9pt scaled rounded font.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var TrainingLoadCard.acrZoneLabels",
+   "hash": "1b8bf5399334bbac",
+   "does": "Three labels under the four bands: Below, In range, Sharp jump.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Four bands are labelled with three words: the 1.3-1.5 'above range' band has no label and the end label says 'Sharp jump' while the accessibility zone text says 'sharp increase'.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:111",
+      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:83",
+      "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift:60"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+   }
+  },
+  {
+   "key": "var TrainingLoadCard.loadPills",
+   "hash": "6c20a738fbf952ba",
+   "does": "ATL (Fatigue), CTL (Fitness) and TSB (Form, signed) pills; TSB coloured sage when ≥0, terracotta when negative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.trainingPill(label:value:subtitle:color:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "training.tsb >= 0",
+     "effect": "sage; else terracotta"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResults/TrainingLoadCard.swift::func TrainingLoadCard.trainingPill(label:value:subtitle:color:)": "6c9bddc7dc2b40bb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadCard.trainingPill(label:value:subtitle:color:)",
+   "hash": "87dca979741868e9",
+   "does": "Pill VStack of label, value and subtitle with a 'subtitle: value' accessibility label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "color ?? textPrimary",
+     "effect": "given colour (TSB) else textPrimary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

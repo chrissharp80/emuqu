@@ -1,0 +1,404 @@
+{
+ "file": "Emuqu/Sources/Export/HolisticDailyReport.swift",
+ "hash": "37fccbe0e7d4a01d",
+ "role": "The combined \"Daily Report\" PDF: renders two unique cover pages (Today in one glance; Why your score) to a temp PDF, renders the WorkoutPDFReport to another temp, and merges them with PDFKit into the destination; also holds the training-load source for the report and builds the shared DailyLoopAnalysis.",
+ "types": [
+  "HolisticDailyReport: final class (Sendable) — immutable report inputs plus generation entry point; extended by +Pages.swift and +Score.swift",
+  "HolisticDailyReport.Config: struct — page size 612x792, 36pt margin, fonts and colours (primary/sage/amber/text/divider)"
+ ],
+ "state": [
+  "mem:HolisticDailyReport.workoutSession",
+  "mem:HolisticDailyReport.workoutTrack",
+  "mem:HolisticDailyReport.overnightSession",
+  "mem:HolisticDailyReport.recentOvernightSessions",
+  "mem:HolisticDailyReport.userMaxHR/userRestingHR/userLTHR",
+  "mem:HolisticDailyReport.units",
+  "mem:HolisticDailyReport.temperatureUnit",
+  "mem:HolisticDailyReport.config",
+  "mem:HolisticDailyReport.liveLoadSnapshot",
+  "file:<tmp>/holistic-workout-<8 hex>.pdf",
+  "file:<tmp>/holistic-cover-<8 hex>.pdf"
+ ],
+ "toplevel": "Config stored-property initializers create UIFonts/UIColors at construction. Constructed by ReportsListView.renderHolistic (ReportsListView.swift:392), MainTabView+Reports.renderDailyReport (MainTabView+Reports.swift:113) and WorkoutRecorder+Metrics.holisticReport (WorkoutRecorder+Metrics.swift:444), plus EmuquTests/WorkoutReportSmokeTests.swift:214 and TrainingAdviceGateTests.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header comment (lines 24-27) and the overnightSession doc (57-58) say a nil overnight session makes the output drop to just the WorkoutPDFReport pages; this class never does that — it always draws the cover pages, with a \"No morning data\" row (HolisticDailyReport+Pages.swift:236-237). The fallback exists only in callers (WorkoutRecorder+Metrics.swift:422, MainTabView+Reports.swift:110-112).",
+   "evidence": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift:24",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift:57",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:236",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:422"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "TrainingLoadRegistry's surface table says the Holistic Daily Report draws no disclosure (\"none drawn\"), but drawLoadAsOf draws liveLoadSnapshot.disclosure (\"Live · updated …\") at the top right of page 1 whenever a live snapshot is present.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:70",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift:260",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:48"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
+   "hash": "8ac0c48ad299c79f",
+   "does": "Stores all inputs; keeps liveLoadSnapshot only when the workout (endDate, else startDate) is today in the current calendar, so a past day's report uses the frozen session load.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+24",
+     "cond": "workoutSession.endDate is nil",
+     "effect": "?? falls back to startDate for the \"is today\" test"
+    },
+    {
+     "at": "+25",
+     "cond": "isToday",
+     "effect": "stores the passed liveLoadSnapshot; otherwise stores nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/TRAINING_LOAD.md says the PDF/holistic reports read cache.current (the live numbers), but the initializer drops the caller-captured live snapshot unless the workout ended today. Any past-day daily report prints the frozen session load and gates advice on it.",
+     "evidence": [
+      "docs/TRAINING_LOAD.md:289",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:111",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:112"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HolisticDailyReport.generate(to:)",
+   "hash": "02abc19b08f51189",
+   "does": "Async entry point: renders the workout PDF to a temp file, then the two cover pages to another temp, merges cover-then-workout into `url`, and removes both temps via defer whatever happens after each exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<destination url>",
+    "file:<tmp>/holistic-*.pdf (transient)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)": "d0e011ebea5c01cd",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()": "46df12ac277b5b88",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()": "204d12c0221ab60a"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.removeTemp(_:)",
+   "hash": "b2564a1262772a7c",
+   "does": "Deletes a temp file if it exists, logging (not throwing) a removal failure via attempt(\"HolisticDailyReport.remove\").",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/holistic-*.pdf (delete)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "returns without doing anything; otherwise removes it, swallowing (logging) any error"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.renderWorkoutPDF()",
+   "hash": "9ff85091afc52d8f",
+   "does": "Builds a WorkoutPDFReport from the session/track/HR settings/units and renders it to <tmp>/holistic-workout-<8>.pdf; on failure removes the temp and rethrows; returns the temp URL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/holistic-workout-<8 hex>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "workoutReport.generate throws",
+     "effect": "removes the temp then rethrows; otherwise returns the URL"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.renderCoverPDF()",
+   "hash": "df2c493e443495f8",
+   "does": "Renders page 1 (Today in one glance) and page 2 (Why your score) with UIGraphicsPDFRenderer to <tmp>/holistic-cover-<8>.pdf; on failure removes it and rethrows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)",
+    "ext:UIGraphicsPDFRenderer.writePDF"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/holistic-cover-<8 hex>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "writePDF throws",
+     "effect": "removes the temp and rethrows; otherwise returns the URL"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)": "0adf1b7a30d4faec",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "2b2cf652cdfa8c53",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.mergePDFs(cover:workout:to:)",
+   "hash": "59099f51c469d2b0",
+   "does": "Opens both temps as PDFDocuments, appends cover pages then workout pages into a new PDFDocument and writes it to `url`; if either temp fails to open or the combined write fails, logs a warning and copies the workout-only PDF to `url`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.appendPages(of:to:from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:PDFDocument(url:)",
+    "ext:PDFDocument.write(to:)",
+    "ext:FileManager.copyItem"
+   ],
+   "reads": [
+    "file:<tmp>/holistic-cover/workout pdfs"
+   ],
+   "writes": [
+    "file:<destination url>"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "either PDFDocument(url:) returns nil",
+     "effect": "logs a warning (re-opening both temps to report which failed) and copies the workout PDF to url, returning — the cover pages are dropped with no user-visible signal; otherwise merges"
+    },
+    {
+     "at": "+15",
+     "cond": "combined.write(to:) returns false",
+     "effect": "logs a warning and copies the workout-only PDF to url; if write left a file at url, copyItem throws and the error propagates"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "On either fallback the user receives a workout-only PDF titled as a daily report, with the recovery/loop and score pages missing; the only signal is a debugLog warning.",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:187",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:188",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:197",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:198"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.appendPages(of:to:from:)": "4def772abc5464fc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.appendPages(of:to:from:)",
+   "hash": "f182034ec8f7bcfe",
+   "does": "Inserts every page of `doc` into `combined` starting at `index`, skipping pages PDFKit cannot return, and returns the next index.",
+   "entry": null,
+   "calls": [
+    "ext:PDFDocument.page(at:)",
+    "ext:PDFDocument.insert(_:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each page index of doc",
+     "effect": "copies the page into combined"
+    },
+    {
+     "at": "+3",
+     "cond": "doc.page(at:) returns nil",
+     "effect": "skips that page silently (continue)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HolisticDailyReport.trainingLoadForReport()",
+   "hash": "d573b370e662c9d3",
+   "does": "Returns the training-load context the report prints: when a live snapshot exists, a TrainingContext with live ATL/CTL/TSB and the workout session's frozen yesterdayTrimp/vo2Max/daysSinceHardWorkout/recentWorkouts; else the workout session's frozen trainingSnapshot, else the overnight session's.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [
+    "mem:HolisticDailyReport.liveLoadSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "liveLoadSnapshot non-nil",
+     "effect": "builds a context from live ATL/CTL/TSB; otherwise falls back to frozen snapshots"
+    },
+    {
+     "at": "+13",
+     "cond": "workoutSession.trainingSnapshot is nil (live path)",
+     "effect": "yesterdayTrimp ?? 0 — 0 is used; vo2Max/daysSinceHardWorkout/recentWorkouts become nil (the overnight session snapshot is not consulted on this path)"
+    },
+    {
+     "at": "+19",
+     "cond": "workoutSession.trainingSnapshot is nil (frozen path)",
+     "effect": "?? overnightSession?.trainingSnapshot; nil when neither has one"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The crash-guard comments name `WorkoutRecorder+Lifecycle.generateHolisticReport` as the detached render path. No such function exists anywhere in the repo. The real callers are WorkoutRecorder+Metrics.renderCoachReportPDF/holisticReport, ReportsListView.renderHolistic and MainTabView+Reports.renderDailyReport.",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:81",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:237",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:439",
+      "Emuqu/Sources/Views/ReportsListView.swift:391",
+      "Emuqu/Sources/Views/MainTabView+Reports.swift:109"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.loadAsOfDisplay()",
+   "hash": "a0bd08afbd4ef47a",
+   "does": "Returns liveLoadSnapshot?.disclosure (\"Live · updated <time>\"), nil when there is no live snapshot (past day or cold cache).",
+   "entry": "Also called by EmuquTests/WorkoutReportSmokeTests.swift:336.",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.disclosure"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.disclosure": "67c9eb0de80372f3"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.analysis()",
+   "hash": "6df7040a225eda6f",
+   "does": "Builds a fresh DailyLoopAnalysis from the workout, the overnight session, the recent overnight sessions that started on or before the reported night (overnight start, else workout start), max HR and the advice-gate load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightSession is nil",
+     "effect": "?? reported night = workoutSession.startDate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "analysis() constructs a new DailyLoopAnalysis (filtering sessions and recomputing the ln-RMSSD baseline each time a property is read) on every call; one page render calls it about ten times (drawGlanceHero, morningHRVRow, workoutInternalLoadRow, loopParagraph, tomorrowAction, whatsHelpingPoints twice via drawHelpingHurting, hurtingHRVPoints, legacyHRVContribution twice). The doc comment says it is built once per render.",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:264",
+      "Emuqu/Sources/Export/HolisticDailyReport.swift:269",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:124",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:125",
+      "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:475"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()": "b128a4bfd76116fd"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.toneColor(_:)",
+   "hash": "37b637b677874fb9",
+   "does": "Maps a DailyLoopAnalysis verdict tone to a PDF colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tone == .positive",
+     "effect": "config.sage"
+    },
+    {
+     "at": "+3",
+     "cond": "tone == .neutral",
+     "effect": "config.amber"
+    },
+    {
+     "at": "+4",
+     "cond": "tone == .caution",
+     "effect": "config.primary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  }
+ ],
+ "deps": {}
+}

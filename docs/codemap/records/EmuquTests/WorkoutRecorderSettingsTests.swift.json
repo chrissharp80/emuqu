@@ -1,0 +1,232 @@
+{
+ "file": "EmuquTests/WorkoutRecorderSettingsTests.swift",
+ "hash": "490e1c71e359f18e",
+ "role": "Two @MainActor XCTest suites: WorkoutRecorder.sportFTP sport-to-FTP mapping with zero/negative/unset handling, and FootPodOdometer distance from lifetime pod readings across a reset.",
+ "types": [
+  "WorkoutRecorderSettingsTests: class — sportFTP lookup",
+  "FootPodOdometerTests: class — FootPodOdometer"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecorderSettingsTests.settings(running:cycling:)",
+   "hash": "cd255ebee28fb5b9",
+   "does": "Fixture: default UserSettings with runningFTPWatts and cyclingFTPWatts set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testCyclingSportsReadCyclingFTP()",
+   "hash": "257bcbe4cb9ebc62",
+   "does": "Asserts .bike and .indoorBike return cycling FTP 240.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testRunningSportsDoNotReadCyclingFTP()",
+   "hash": "bde4f56e390cbe7f",
+   "does": "Asserts a run does not return the cycling FTP 240.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRunningFTP",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts only `!= 240`; the run path is never asserted to return the running FTP (300), so a mapping returning nil or any other number passes.",
+     "evidence": [
+      "EmuquTests/WorkoutRecorderSettingsTests.swift:34",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:420"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRunningFTP": "946c71bfa2e55779",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testSportsWithoutAPowerModelHaveNoFTP()",
+   "hash": "e12eb5415242e26b",
+   "does": "Asserts .row has no FTP (nil).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testZeroCyclingFTPIsTreatedAsUnset()",
+   "hash": "e735f162426a0fd7",
+   "does": "Asserts a cycling FTP of 0 yields nil for .bike.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testUnsetCyclingFTPIsNil()",
+   "hash": "a34e70c456eab08f",
+   "does": "Asserts unset cycling FTP yields nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorderSettingsTests.testNegativeCyclingFTPIsRejected()",
+   "hash": "7c93d2546b873696",
+   "does": "Asserts a cycling FTP of -50 yields nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.sportFTP(for:settings:)": "877c66935f005bb2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)": "f0fc91068b327c86",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f95ba5fc573c88e3",
+    "EmuquTests/WorkoutRecorderSettingsTests.swift::func WorkoutRecorderSettingsTests.settings(running:cycling:)": "e181dfc2b46f542d"
+   }
+  },
+  {
+   "key": "func FootPodOdometerTests.testDistanceIsMeasuredFromTheFirstReading()",
+   "hash": "8aa9594383d4a813",
+   "does": "Asserts first pod reading 5000 records 0 and 5400 records 400.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "45e10862ccf21af7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "8898b46d8262f6a4"
+   }
+  },
+  {
+   "key": "func FootPodOdometerTests.testAPodResetDoesNotSendDistanceBackwards()",
+   "hash": "1da6536b156b59cf",
+   "does": "Asserts a pod reset (6000 then 10) keeps 1000 m and continues to 1500 at 510.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "45e10862ccf21af7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "8898b46d8262f6a4"
+   }
+  },
+  {
+   "key": "func FootPodOdometerTests.testANewOdometerStartsFromZero()",
+   "hash": "08d086614726eb68",
+   "does": "Asserts a newly constructed odometer reports 0 distance and its first reading records 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "45e10862ccf21af7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "8898b46d8262f6a4"
+   }
+  }
+ ],
+ "deps": {}
+}

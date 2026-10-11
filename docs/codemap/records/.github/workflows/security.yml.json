@@ -1,0 +1,183 @@
+{
+ "file": ".github/workflows/security.yml",
+ "hash": "5ec57b02730168d2",
+ "role": "Manual security workflow: CodeQL SAST over the Swift code and a dependency-review diff between two refs.",
+ "types": [],
+ "state": [
+  "permissions contents: read (jobs elevate)",
+  "concurrency group security-<workflow>-<ref>, cancel-in-progress"
+ ],
+ "toplevel": "Trigger: workflow_dispatch only, inputs base-ref/head-ref. Two independent jobs. No schedule, so neither scan runs unless dispatched.",
+ "flags": [],
+ "units": [
+  {
+   "key": "job codeql",
+   "hash": "05a0c02f2c452b56",
+   "does": "macOS-26 job \"CodeQL (Swift)\" (timeout 60, security-events: write): checkout, Xcode 26.6, CodeQL init (security-and-quality), explicit Debug simulator build, analyze.",
+   "entry": "GitHub Actions job; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/security.yml::step codeql/Checkout",
+    ".github/workflows/security.yml::step codeql/Select Xcode",
+    ".github/workflows/security.yml::step codeql/Initialize CodeQL",
+    ".github/workflows/security.yml::step codeql/Build for analysis",
+    ".github/workflows/security.yml::step codeql/Analyze"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/security.yml::step codeql/Analyze": "f8dcb2e83a103f01",
+    ".github/workflows/security.yml::step codeql/Build for analysis": "740f4d5186d6b34a",
+    ".github/workflows/security.yml::step codeql/Checkout": "b6cba8170626a479",
+    ".github/workflows/security.yml::step codeql/Initialize CodeQL": "63bf84558417cd7c",
+    ".github/workflows/security.yml::step codeql/Select Xcode": "18461322b7591486"
+   }
+  },
+  {
+   "key": "step codeql/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Initialize CodeQL",
+   "hash": "f3442fdee207eae5",
+   "does": "github/codeql-action/init (SHA-pinned v3.37.9) for language swift with query suite security-and-quality.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:github/codeql-action/init"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Build for analysis",
+   "hash": "1df6e2b2d45f75a5",
+   "does": "`xcodebuild build` Emuqu scheme, generic iOS Simulator, Debug, CODE_SIGNING_ALLOWED=NO, SWIFT_TREAT_WARNINGS_AS_ERRORS=NO so CodeQL's extractor observes the compile.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:xcodebuild build"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step codeql/Analyze",
+   "hash": "f406a2aa8e8528a8",
+   "does": "github/codeql-action/analyze, category /language:swift; uploads SARIF to code scanning.",
+   "entry": "Step of security.yml codeql job",
+   "calls": [
+    "ext:github/codeql-action/analyze"
+   ],
+   "reads": [],
+   "writes": [
+    "net:github code scanning (SARIF)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "job dependency-review",
+   "hash": "b475f07bb35e148a",
+   "does": "ubuntu job \"Dependency review\" (timeout 15, pull-requests: write): checkout then dependency-review-action between two refs.",
+   "entry": "GitHub Actions job; workflow_dispatch only.",
+   "calls": [
+    ".github/workflows/security.yml::step dependency-review/Checkout",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/security.yml::step dependency-review/Checkout": "05431691dd46723d",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "2ad042b1c466a046"
+   }
+  },
+  {
+   "key": "step dependency-review/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of security.yml dependency-review job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step dependency-review/Review dependencies",
+   "hash": "a1f3f52261ac5c43",
+   "does": "actions/dependency-review-action v5.0.0 (SHA-pinned) comparing base-ref (input or default branch) to head-ref (input or github.sha); fails on high/critical advisories or GPL-2.0/GPL-3.0/AGPL-3.0/LGPL-3.0 licences; PR comment on failure (no PR exists on dispatch).",
+   "entry": "Step of security.yml dependency-review job",
+   "calls": [
+    "ext:actions/dependency-review-action"
+   ],
+   "reads": [
+    "net:GitHub dependency graph / advisory database"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "inputs.base-ref empty",
+     "effect": "base = repository default branch"
+    },
+    {
+     "at": "+4",
+     "cond": "inputs.head-ref empty",
+     "effect": "head = dispatched commit sha"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "With no inputs and dispatched from the default branch, base and head are the same commit, so the review diffs nothing and reports success; the comment acknowledges \"an empty result is not a clean scan\" but the step still goes green. `pull-requests: write` and comment-summary-in-pr have no effect on a dispatch-only workflow.",
+     "evidence": [
+      ".github/workflows/security.yml:93-95",
+      ".github/workflows/security.yml:106-108",
+      ".github/workflows/security.yml:114-115",
+      ".github/workflows/security.yml:120"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -4,14 +4,15 @@
 
 Every macOS workflow in `.github/workflows/` is `workflow_dispatch` only. There
 is no push trigger, no pull-request trigger, and no schedule for anything that
-needs Xcode. The `main` branch has no required status checks and no required
-reviews.
+needs Xcode.
 
 The one exception is `gates.yml`: the script gates that
 need only bash and python — copy perimeter, science register, scoring
 governance, localization, documentation, SBOM, source-hygiene guards, the
-tech-debt budgets and refactor-spec conformance — run on every push and pull
-request on an **ubuntu** runner, in about a minute, billed at 1x. It is a fast
+code map, the tech-debt budgets and refactor-spec conformance — run on every
+push to `main` and every pull request on an **ubuntu** runner, in about a
+minute, billed at 1x. That job is the one status check `main` requires before
+anything merges. It is a fast
 subset, not a replacement: SwiftLint, the tests, coverage and the sanitizer
 still need macOS and still run on demand.
 
@@ -85,6 +86,7 @@ identically by `make ci`, `make ci-local`, and GitHub Actions.
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
 | **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements |
 | **Documentation** | Link and constant integrity, comment `file:line` citations resolve, documented file counts match the tree |
+| **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code and after any change in what its callees do; open high- and medium-severity findings only go down |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |
 | **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gate_preflight.sh` requires each to fail closed on a missing input; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
 
@@ -340,9 +342,10 @@ system that cannot run at all, which is what the alternative demonstrably was.
 
 ## For reviewers
 
-If your finding is *"CI does not run automatically"* or *"`main` is not
-protected"* — that is accurate, intended, and documented above. Please score it
-against the constraint rather than the checklist.
+If your finding is *"the macOS suite does not run automatically"* — that is
+accurate, intended, and documented above. Please score it against the
+constraint rather than the checklist. `main` is protected by one required
+check, the Linux `gates.yml` job; nothing that needs macOS is required.
 
 For a fast, factual snapshot of what is enforced — every ceiling, every
 zero-tolerance counter, and where each is written down:
@@ -360,10 +363,11 @@ If your finding is *"there is no evidence the checks pass"* — that is fair, an
 the answer is to ask for a run rather than to infer failure from a quiet Actions
 tab. `make ci` output or a dispatched workflow run will settle it.
 
-If your finding is *"required status checks should be enabled on `main`"* — note
+If your finding is *"the macOS jobs should be required checks on `main`"* — note
 the ordering problem. Required checks that can never execute block every merge
 permanently. Enabling them without a working budget makes the repository worse,
 not better, and the correct sequence is: budget → one green run → then require.
+The Linux `gates.yml` job passed that sequence and is required.
 
 Findings this posture does **not** answer, and which remain open on their own
 merits: singleton-based dependency wiring and view-layer test coverage.

@@ -1,0 +1,436 @@
+{
+ "file": "EmuquTests/ScoreBreakdownMessageTests.swift",
+ "hash": "9f300ff4a6f79ee0",
+ "role": "Tests ScoreBreakdown.message / ScoreBreakdownCopy.message for the strong band (composite >= 75): 'Go hard' only with strong HRV, composite >= 90 and a clear load; carriers/holding-back lines; load .easier override; SpO2 penalty flag wording and legacy decode.",
+ "types": [
+  "RecoveryScoreCalculator.ScoreFactor typealias Factor (private)",
+  "ScoreBreakdownMessageTests: class — XCTestCase for score breakdown advice copy"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Asserts English substrings ('Go hard', 'Normal training is fine', 'sleep is holding you back') but never pins the language; ScoreBreakdownCopy localizes via NarrativeLanguage.bundle and switches name/list formatting on NarrativeLanguage.locale, so the tests fail on a non-English host.",
+   "evidence": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift:28",
+    "EmuquTests/ScoreBreakdownMessageTests.swift:72",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:248"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+   "hash": "eab48a9bc227c67a",
+   "does": "Builds a tier-3 ScoreBreakdown with HRV/Sleep/Vitals factors weighted 0.6/0.25/0.15, composite = weighted sum, no penalties; HRV impact positive iff >= 60.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hrv >= 60",
+     "effect": "HRV factor impact .positive; else .negative"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testStrongCompositeWithWeakHRVDoesNotSayGoHard()",
+   "hash": "d33581c1c3d5521e",
+   "does": "For HRV 71/sleep 95/vitals 96 (composite 80.75) asserts the message does not contain 'Go hard' and names HRV (carriers message).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Cannot catch the regression it was written for: b.message calls ScoreBreakdownCopy.message with loadLevel nil, so allClearMessage can never say 'Go hard' (goHardAllowed requires .clear), and if the HRV<72 carriers gate were removed the all-clear line 'HRV, sleep, and vitals are all in a good place. Normal training is fine.' still contains 'HRV'. Both assertions pass with or without the gate at ScoreBreakdownCopy.swift:176.",
+     "evidence": [
+      "EmuquTests/ScoreBreakdownMessageTests.swift:28",
+      "EmuquTests/ScoreBreakdownMessageTests.swift:29",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:156",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:79",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:176",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:196"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.carriersMessage(_:)": "ec4c21bdd9ab2e62",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testExcellentCompositeWithStrongHRVStillSaysGoHard()",
+   "hash": "aaca6037936620fc",
+   "does": "For HRV 92/sleep 92/vitals 95 (composite ~92) with loadLevel .clear asserts the message contains 'Go hard'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testExcellentCompositeWithoutALoadDoesNotSayGoHard()",
+   "hash": "25dbcb6c6363473b",
+   "does": "Same strong breakdown with no load level asserts no 'Go hard' and 'Normal training is fine'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testExcellentCompositeUnderAHeldLoadSaysNormalTraining()",
+   "hash": "583e3232e62a6188",
+   "does": "With loadLevel .holdPush asserts no 'Go hard' and 'Normal training is fine'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testStrongCompositeUnderAHighLoadSuggestsAnEasierSession()",
+   "hash": "570e5f4253274cc8",
+   "does": "For both a strong-HRV and a weak-HRV strong composite with loadLevel .easier, asserts the message says an easier session helps absorb the work.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of the two breakdowns",
+     "effect": "asserts the .easier message on each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testGoodCompositeDoesNotSayGoHard()",
+   "hash": "8aac35b6c347cbc9",
+   "does": "For composite 89.0 asserts < 90 and no 'Go hard'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Vacuous for the 90 threshold it names: b.message passes loadLevel nil, so 'Go hard' is never produced at any composite (ScoreBreakdownCopy.swift:196 requires goHardAllowed); the assertion would pass even if the >=90 check were deleted.",
+     "evidence": [
+      "EmuquTests/ScoreBreakdownMessageTests.swift:66",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:80",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:196"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.allClearMessage(_:goHardAllowed:)": "4d355e8212f36d67",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testStrongCompositeWithAFactorUnderSixtyNamesIt()",
+   "hash": "3ef81b33d160b814",
+   "does": "For HRV 95/sleep 55/vitals 95 asserts composite >= 80 and message 'sleep is holding you back'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listPhrase(_:)": "cd29ffa21302af26",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.sentenceCase(_:)": "8389e10f7b598b2a",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.strongBandMessage(_:weakest:loadLevel:)": "7482dac74e1b50c5",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9",
+    "EmuquTests/ScoreBreakdownMessageTests.swift::func ScoreBreakdownMessageTests.breakdown(hrv:sleep:vitals:)": "a8ac4221c8cd243e"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testSpO2MessageFollowsTheFlagNotThePenaltyText()",
+   "hash": "b779f5e21a66eb1f",
+   "does": "With a German penalty string and spo2PenaltyApplied true (gap 10), asserts the SpO2-specific wording appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "7ab83d289abeb803",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "ae0a47f30691925e",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testLegacyEnglishPenaltyDecodesWithTheFlagSet()",
+   "hash": "68aca1c9afab3297",
+   "does": "Decodes a legacy JSON breakdown with English 'Low blood oxygen (−10)' and no flag and asserts spo2PenaltyApplied is inferred true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testFlagSurvivesAnEncodeDecodeRoundTrip()",
+   "hash": "c6d75b0e79d3e04d",
+   "does": "Asserts spo2PenaltyApplied survives JSON round trip, and a breakdown with only 'No sleep data' penalty infers false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)",
+    "ext:JSONEncoder",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "20f04f9001cc30b3"
+   }
+  },
+  {
+   "key": "func ScoreBreakdownMessageTests.testWeakHRVIsNotLowercased()",
+   "hash": "3917c073fead6512",
+   "does": "With HRV 40 and a penalty (gap 10) asserts the message contains 'weak HRV' (HRV not lowercased).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.message": "d0b0c73404adc2d2",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.bandMessage(_:weakest:strongest:loadLevel:)": "267f839de3a15935",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.baselineDriftMessage(_:)": "321acfc78d5dd5e4",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:)": "c5ebaac0d7086a28",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.midSentenceName(_:)": "b31fa83fd00c415c",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.vitalsPenaltyMessage(_:weakest:)": "10eeb91f9476d4b9"
+   }
+  }
+ ],
+ "deps": {}
+}

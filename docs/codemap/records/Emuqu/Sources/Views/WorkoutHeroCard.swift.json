@@ -1,0 +1,463 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutHeroCard.swift",
+ "hash": "6c7719db620a818a",
+ "role": "Pure-value hero card at the top of the post-workout summary: sport header with relative end date, big distance/duration/pace, dominant α1 band pill, route polyline trace and a narrative sentence.",
+ "types": [
+  "WorkoutHeroCard: struct View — hero card from plain values",
+  "WorkoutHeroCard.TraceBounds: private struct — lat/lon extent with cos(lat) longitude scaling"
+ ],
+ "state": [],
+ "toplevel": "Stored lets set by FitnessPostSummaryView+Feeling.swift:280 heroCard.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutHeroCard.body",
+   "hash": "e63a2b47eb8c1adb",
+   "does": "Card VStack: sport header, distance/duration, α1 pill, route trace, narrative.",
+   "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift:280.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.sportHeaderBand",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.distanceDurationStack",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.alpha1BandPill",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.routeTrace",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.narrativeText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.alpha1BandPill": "efe1c09b3d8e61fd",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.distanceDurationStack": "825992663ef0c5f4",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.narrativeText": "6472b0b3d251ac05",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.routeTrace": "f0006eb16263d06d",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.sportHeaderBand": "4ab7016c40b9b635"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.sportHeaderBand",
+   "hash": "e55d17daee2c6aed",
+   "does": "Sport icon in a tinted circle, upper-cased localized sport name, and relative end date when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.relativeDate(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "endDate non-nil",
+     "effect": "relative date text; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon": "ddc62fcbe71995cf",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.relativeDate(_:)": "42d3610ef061d2c7"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.narrativeText",
+   "hash": "7933858fe78d4c10",
+   "does": "Narrative text if non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "narrative non-empty",
+     "effect": "centered callout; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.distanceDurationStack",
+   "hash": "e2ce58b0c021489a",
+   "does": "Large distance label above the duration/pace row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.durationAndPaceRow",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.durationAndPaceRow": "cc1b2df70b56dbc5"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.durationAndPaceRow",
+   "hash": "68a21ce84337b2e5",
+   "does": "Duration text followed by pace text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.paceLabelText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::var WorkoutHeroCard.paceLabelText": "42b73770d6d313e0"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.paceLabelText",
+   "hash": "c74f330089140c2d",
+   "does": "Separator dot and pace when paceLabel exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "paceLabel non-nil",
+     "effect": "'·' + pace; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.alpha1BandPill",
+   "hash": "a37c7b20cad044cb",
+   "does": "Pill for the dominant α1 band unless nil/unknown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandPill(band:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "band non-nil and != .unknown",
+     "effect": "bandPill; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandPill(band:)": "95453e79f4378d31"
+   }
+  },
+  {
+   "key": "var WorkoutHeroCard.routeTrace",
+   "hash": "64975470b24cc888",
+   "does": "56pt polyline trace when the route has at least 2 points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.polylineTrace(coordinates:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "routeCoordinates.count >= 2",
+     "effect": "trace; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.polylineTrace(coordinates:)": "c31aefab5d662ba5"
+   }
+  },
+  {
+   "key": "func WorkoutHeroCard.bandPill(band:)",
+   "hash": "681b15c7d72c0a6f",
+   "does": "Capsule with coloured dot and upper-cased band label, tinted background and darker text colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandAppearance(_:)",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandTextColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandAppearance(_:)": "154c623c03b08450",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandTextColor(_:)": "21afdffd5d4cc136"
+   }
+  },
+  {
+   "key": "func WorkoutHeroCard.bandTextColor(_:)",
+   "hash": "ef6a993c14baf6f9",
+   "does": "Text colour per band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "belowAeT",
+     "effect": "sageText"
+    },
+    {
+     "at": "+3",
+     "cond": "nearAeT",
+     "effect": "softGoldText"
+    },
+    {
+     "at": "+4",
+     "cond": "aboveVT2",
+     "effect": "terracottaText"
+    },
+    {
+     "at": "+5",
+     "cond": "unknown",
+     "effect": "textTertiary (unreachable: alpha1BandPill filters .unknown)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutHeroCard.bandAppearance(_:)",
+   "hash": "c3f3db828f156d31",
+   "does": "Fill colour and localized label per band.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "belowAeT",
+     "effect": "sage, 'Easy · Below Aerobic Threshold'"
+    },
+    {
+     "at": "+3",
+     "cond": "nearAeT",
+     "effect": "yellow, 'Threshold · Near LT1'"
+    },
+    {
+     "at": "+4",
+     "cond": "aboveVT2",
+     "effect": "red, 'Very Hard · Above LT2'"
+    },
+    {
+     "at": "+5",
+     "cond": "unknown",
+     "effect": "tertiary, 'α1 unavailable' (unreachable via alpha1BandPill)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "nearAeT covers 0.50 ≤ α1 < 0.75, i.e. between the aerobic threshold and LT2 per LiveDFAAnalyzer.Band docs, but the pill calls it 'Near LT1'.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:166",
+      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:116"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": ".unknown cases in bandAppearance/bandTextColor are never reached because alpha1BandPill skips .unknown.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:122",
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:168",
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:159"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Band labels are a second hand-written set ('Easy · Below Aerobic Threshold' etc.) beside LiveDFAAnalyzer.Band.localizedLabel ('Easy'/'Threshold'/'Very Hard').",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:165",
+      "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift:143"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Fill colours for nearAeT and aboveVT2 are hard-coded (.yellow, RGB 0.90/0.35/0.35) instead of AppTheme tokens used everywhere else on the card.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:166",
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:167"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutHeroCard.polylineTrace(coordinates:)",
+   "hash": "abe9ed101d0f3cf6",
+   "does": "GeometryReader stroking a Path built by tracePath in terracotta.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.tracePath(_:coordinates:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.tracePath(_:coordinates:in:)": "f5a6a27727fcf034"
+   }
+  },
+  {
+   "key": "func WorkoutHeroCard.tracePath(_:coordinates:in:)",
+   "hash": "fb77c60bd25ff720",
+   "does": "Fills path with the route scaled uniformly (cos-lat corrected) and centred in size; y flipped so north is up.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::init WorkoutHeroCard.TraceBounds(_:)",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.TraceBounds.x(_:)",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.TraceBounds.y(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "TraceBounds init returns nil (empty coordinates)",
+     "effect": "return with empty path; else draw"
+    },
+    {
+     "at": "+8",
+     "cond": "for each coordinate",
+     "effect": "loop over all points"
+    },
+    {
+     "at": "+13",
+     "cond": "i == 0",
+     "effect": "move(to:); else addLine(to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.TraceBounds.x(_:)": "3191836820dd986d",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.TraceBounds.y(_:)": "ffe177d90e7f8e40",
+    "Emuqu/Sources/Views/WorkoutHeroCard.swift::init WorkoutHeroCard.TraceBounds(_:)": "3219dd468a03ec44"
+   }
+  },
+  {
+   "key": "init WorkoutHeroCard.TraceBounds(_:)",
+   "hash": "d2abfe9c72d3060a",
+   "does": "Computes min lat/lon, cos(mid-lat) longitude scale, scaled width and height; nil for empty input.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "any min/max missing (empty array)",
+     "effect": "return nil; else set fields"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Longitude extent is plain max-min; a route crossing the ±180° meridian gets a ~360° width and the trace collapses to a line at each edge.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:218",
+      "Emuqu/Sources/Views/WorkoutHeroCard.swift:222"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutHeroCard.TraceBounds.x(_:)",
+   "hash": "6bbf89268158592f",
+   "does": "Scaled x of a coordinate from minLon.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutHeroCard.TraceBounds.y(_:)",
+   "hash": "97fd05b018079852",
+   "does": "y of a coordinate from minLat in degrees.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutHeroCard.relativeDate(_:)",
+   "hash": "5f69fe7e33d4728e",
+   "does": "Relative date string (named style, app locale) for min(date, now) relative to now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1635 @@
+{
+ "file": "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift",
+ "hash": "ab4aa56b9f23c9df",
+ "role": "The 17-rule default trigger catalogue for WorkoutTriggerEngine, as factory functions each pairing a condition predicate and message builder, with small closure-captured state classes for rules that need per-workout memory (α1 VT2 streak, HR-spike streak, threshold cooldowns, split index, readiness/race-pace/periodic/load once-flags).",
+ "types": [
+  "WorkoutTriggerEngine: extension — rule factories",
+  "Alpha1VT2State: class (private) — consecutiveBelow, lastSeen",
+  "HRSpikeState: class (private) — consecutiveAbove, lastSeenHR",
+  "ThresholdCooldownState: class (private) — lastSpokenAt[UUID: workout second]",
+  "SplitMarkerState: class (private) — lastSplitFiredAt",
+  "ReadinessOpeningState: class (private) — fired",
+  "RacePaceState: class (private) — sustainedSec, fired, lastTickAt",
+  "CoachUpdateState: class (private) — lastFiredAt",
+  "RecentLoadState: class (private) — fired"
+ ],
+ "state": [
+  "closure-captured per-rule instances of Alpha1VT2State, HRSpikeState, ThresholdCooldownState, SplitMarkerState, ReadinessOpeningState, RacePaceState, CoachUpdateState, RecentLoadState (one per engine, created when defaultRules() runs)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "med",
+   "text": "Only user.threshold.breach is .spoken. The other 16 rules are .silent (13) or .haptic (3: hr.spikeNoPace, equipment.strapDown, cadence.consistencyDrop) and WorkoutVoiceCoach.dispatch drops both tiers, so their messages, including the long 'Speak ONE short sentence…' LLM prompts for split, decoupling, readiness, race pace, periodic and load rules, are never spoken or sent to any model. The prompt text implies an AI path that does not exist.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:618",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:684",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:708",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:759",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:872",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:920",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Conditions mutate closure state (set fired flags, advance split index, stamp lastSpokenAt in the message builder). Correctness depends on evaluate() calling condition then message exactly once per firing; any second evaluation (for example a dry-run or preview) would consume the once-per-workout or cooldown state.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:603",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:735",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:798",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:540",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:111"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutTriggerEngine.effortRules()",
+   "hash": "379e7e69183b337d",
+   "does": "Returns the four effort rules in order: alpha1.belowAeT, alpha1.aboveVT2, hr.driftHigh, hr.spikeNoPace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()": "8e2dfbf58ab62742",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "134d492d72c408cb",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighRule()": "7f6269eb0c7fecad",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()": "a48e89a20700d5ae"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1FitOK(_:)",
+   "hash": "0244fa1d6954e029",
+   "does": "Returns true when α1 fit R² is unknown or ≥ 0.85; false when the last DFA fit is poor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1FitQuality non-nil",
+     "effect": "nil: returns true (gate passes when quality unknown); else returns r2 >= 0.85"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1BelowAeTRule()",
+   "hash": "ad2184a5c5c3e0b4",
+   "does": "Builds rule alpha1.belowAeT: tier .silent: event only lands in the engine's unread in-memory history (WorkoutVoiceCoach.dispatch ignores .silent), routine, 20 min cooldown, condition alpha1BelowAeTCondition, message alpha1BelowAeTMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTCondition(_:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says 'α1 crosses below aerobic threshold → call it out once', but the condition is a level test (0.60 <= α1 < 0.75) with a 20 min cooldown, so it re-fires every 20 min while α1 stays in the band; there is no crossing detection.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:43",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:57",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:66"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTCondition(_:)": "3704e72a15543992",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTMessage(_:)": "fdb7258e83e75db4",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1BelowAeTCondition(_:)",
+   "hash": "87d38e27600bbac7",
+   "does": "True when the fit-quality gate passes and α1 is in [0.60, 0.75).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1FitOK",
+     "effect": "false: returns false; true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "alpha1 non-nil",
+     "effect": "nil: false; else returns 0.60 <= α1 < 0.75"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "a311b896d25adc35"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1BelowAeTMessage(_:)",
+   "hash": "0e505e07ce872f9e",
+   "does": "Localized line quoting α1 to 2 dp and calling it the aerobic edge, offering to back off or hold for tempo.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctx.alpha1 nil (`?? 0.75`)",
+     "effect": "would print 0.75; unreachable because the condition requires α1 non-nil on the same ctx"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1AboveVT2Rule()",
+   "hash": "0d824a32b31a1935",
+   "does": "Builds rule alpha1.aboveVT2 (.silent, routine, 15 min cooldown) with a fresh Alpha1VT2State captured by its condition, message and reset closures.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Condition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Message(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Condition(_:state:)": "d302432c7b45fbd1",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Message(_:state:)": "c7bfc7479a6eedbd",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)": "98bb3a383de2d3f9",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1AboveVT2Condition(_:state:)",
+   "hash": "f10c705708a04677",
+   "does": "Requires the fit gate and a known α1; on each NEW α1 value increments consecutiveBelow when α1 < 0.50 else resets it; fires when the streak is ≥ 2 and current α1 < 0.50.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1FitOK",
+     "effect": "false: returns false without touching the streak"
+    },
+    {
+     "at": "+2",
+     "cond": "alpha1 non-nil",
+     "effect": "nil: false"
+    },
+    {
+     "at": "+6",
+     "cond": "alpha != state.lastSeen (new reading)",
+     "effect": "true: records it and updates streak; false: streak unchanged (same 20 s recompute seen again)"
+    },
+    {
+     "at": "+8",
+     "cond": "alpha < 0.50",
+     "effect": "true: consecutiveBelow += 1; false: consecutiveBelow = 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Streak compares exact Double equality to detect a 'new' reading; two consecutive recomputes that happen to produce the identical value are counted as one, and the streak is frozen during the 15 min cooldown (see engine evaluate).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:119",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:110"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the rule targets 'a session the user said was easy', but the condition never reads targetZone or any intent field; it fires on any α1 < 0.50 streak regardless of intended intensity. Also the streak is not reset when the fit gate fails or α1 is nil (lines 114-115), so two sub-0.50 readings separated by rejected windows still count as 'consecutive'.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:74",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:114",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:115",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:127"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "a311b896d25adc35"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1AboveVT2Message(_:state:)",
+   "hash": "32a65afaaa6474b1",
+   "does": "Localized line quoting α1 and saying the user is above anaerobic threshold, easing up optional.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctx.alpha1 nil (`?? 0`)",
+     "effect": "prints 0.00; unreachable since the condition requires α1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)",
+   "hash": "a048055ec28b53c0",
+   "does": "Resets the α1 VT2 streak to 0 and lastSeen to -1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrDriftHighRule()",
+   "hash": "1475bf6916b5e6c1",
+   "does": "Builds rule hr.driftHigh (.silent, routine, 20 min cooldown) with hrDriftHighCondition / hrDriftHighMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighCondition(_:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighCondition(_:)": "453c39e988fb5873",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighMessage(_:)": "d248435c2ae32695",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrDriftHighCondition(_:)",
+   "hash": "1846ba6e2f34808e",
+   "does": "Fires when live HR drift > 5% after 30 min, grade is known and within ±2%, and recent HR slope is known and non-negative.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "liveHRDriftPercent non-nil",
+     "effect": "nil: false"
+    },
+    {
+     "at": "+2",
+     "cond": "drift > 5 and elapsed > 1800 s",
+     "effect": "false: false"
+    },
+    {
+     "at": "+11",
+     "cond": "currentGradePercent non-nil",
+     "effect": "nil: false (fail-closed)"
+    },
+    {
+     "at": "+12",
+     "cond": "|grade| > 2",
+     "effect": "true: false (climb/descent)"
+    },
+    {
+     "at": "+13",
+     "cond": "recentHRSlopeBpm non-nil",
+     "effect": "nil: false (fail-closed)"
+    },
+    {
+     "at": "+14",
+     "cond": "slope < 0",
+     "effect": "true: false (HR falling); else returns true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the minimum elapsed floor was bumped beyond 30 min ('Doubling the back-quartile sample requirement'), but the code still gates on elapsedSeconds > 30*60.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:155",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:159",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:172"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrDriftHighMessage(_:)",
+   "hash": "c5024dbe30d45357",
+   "does": "Localized drift line with drift %, plus current HR and signed grade when known (four phrasing variants).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "liveHRDriftPercent nil (`?? 0`)",
+     "effect": "prints 0; unreachable because condition requires drift"
+    },
+    {
+     "at": "+6",
+     "cond": "case (hr?, g?)",
+     "effect": "HR + grade + drift sentence (the only reachable case when HR is known, since condition requires grade)"
+    },
+    {
+     "at": "+8",
+     "cond": "case (hr?, nil)",
+     "effect": "HR + drift; unreachable: condition requires grade"
+    },
+    {
+     "at": "+10",
+     "cond": "case (nil, g?)",
+     "effect": "grade + drift; used when no HR sample yet"
+    },
+    {
+     "at": "+12",
+     "cond": "case (nil, nil)",
+     "effect": "drift only; unreachable: condition requires grade"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrSpikeNoPaceRule()",
+   "hash": "f67ede2081f13b4b",
+   "does": "Builds rule hr.spikeNoPace (.haptic → no-op in coach, routine, 10 min cooldown) with a fresh HRSpikeState.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceCondition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceMessage(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceCondition(_:state:)": "01a64bd30bc1a9a5",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceMessage(_:state:)": "088e03eef554dc02",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)": "4cdd316e329e1aa2",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrSpikeNoPaceCondition(_:state:)",
+   "hash": "f55dd51c35157ac2",
+   "does": "Requires known HR with positive max HR (else resets streak), a GPS sport, current pace, positive most-recent split pace and a known grade within ±2%; on each new HR value counts consecutive samples where HR > 85% max and current pace is >5% slower than the last split; fires at streak ≥ 2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "heartRate non-nil and userMaxHR > 0",
+     "effect": "false: resets consecutiveAbove to 0 and returns false"
+    },
+    {
+     "at": "+5",
+     "cond": "sport.usesGPS",
+     "effect": "false: returns false (indoor sports never fire)"
+    },
+    {
+     "at": "+6",
+     "cond": "current pace, positive last split pace and grade within ±2% all known",
+     "effect": "false: returns false without resetting the streak"
+    },
+    {
+     "at": "+12",
+     "cond": "hr != lastSeenHR (new sample)",
+     "effect": "true: updates streak; false: streak unchanged — an unchanged HR value on consecutive samples counts once"
+    },
+    {
+     "at": "+14",
+     "cond": "meetsCriteria (HR > 85% max AND pace > last split × 1.05)",
+     "effect": "true: increment streak; false: reset to 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "'New sample' is detected as HR value != lastSeenHR, so a sustained spike at a constant integer HR (e.g. 165,165,165) advances the streak only once and never reaches 2; and the early returns at 257-261 (non-GPS sport, pace/grade unknown or grade > 2%) do not reset consecutiveAbove, so samples separated by such gaps still count as consecutive, contrary to the 'two CONSECUTIVE NEW HR samples' comment.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:222",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:257",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:261",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:264",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:268"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.usesGPS": "e1e254fffc25bef1",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrSpikeNoPaceMessage(_:state:)",
+   "hash": "bbe2b5bc8856db3c",
+   "does": "Localized 'pace didn't pick up' line with HR and signed grade when known (four variants).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case (hr?, g?)",
+     "effect": "HR + grade sentence — the only reachable case (condition requires HR and grade)"
+    },
+    {
+     "at": "+5",
+     "cond": "case (hr?, nil)",
+     "effect": "unreachable: condition requires grade"
+    },
+    {
+     "at": "+7",
+     "cond": "case (nil, g?)",
+     "effect": "unreachable: condition requires HR"
+    },
+    {
+     "at": "+9",
+     "cond": "case (nil, nil)",
+     "effect": "unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)",
+   "hash": "8c91f2c4ca89f2a5",
+   "does": "Resets the HR-spike streak to 0 and lastSeenHR to -1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.terrainAndZoneRules()",
+   "hash": "69f88cedc5beb417",
+   "does": "Returns terrain.climbAhead, zone.drifted.high, zone.drifted.low, route.climbAhead in order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadRule()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadRule()": "55a5eaef46fbb053",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadRule()": "246e34773524a81d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()": "50cba58de930ebe3",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()": "aa793f8cb1a153d4"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.terrainClimbAheadRule()",
+   "hash": "161788044403853d",
+   "does": "Builds rule terrain.climbAhead (.silent, 10 min cooldown): fires when an upcoming climb has grade ≥ 3% and starts ≥ 100 m ahead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "ctx.upcomingClimb non-nil",
+     "effect": "nil: false; else grade >= 3 && distanceMeters >= 100"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says 'sustained climb (>3% over ~200 m)' but the condition tests climb.distanceMeters, which is how far AHEAD the climb starts (UpcomingClimb doc), not its length; lengthMeters is ignored.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:300",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:308",
+      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:356"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "terrain.climbAhead and route.climbAhead both fire on the same ctx.upcomingClimb with overlapping windows; both are .silent.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:308",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:418"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.terrainClimbAheadMessage(_:)": "842d2b98002a8be2",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.terrainClimbAheadMessage(_:)",
+   "hash": "ab5024f7952b0ab3",
+   "does": "Localized climb-ahead line with grade and distance, prefixed with HR when known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "upcomingClimb nil (`?? 0` distance)",
+     "effect": "0 m; unreachable since condition requires a climb"
+    },
+    {
+     "at": "+2",
+     "cond": "upcomingClimb nil (`?? 0` grade)",
+     "effect": "0.0%; unreachable"
+    },
+    {
+     "at": "+3",
+     "cond": "ctx.heartRate non-nil",
+     "effect": "nil: sentence without HR; else sentence starting 'HR's at <hr>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.zoneDriftedHighRule()",
+   "hash": "07b3cb94f23a70c9",
+   "does": "Builds rule zone.drifted.high (.silent, 150 s cooldown) with zoneDriftedHighCondition / zoneDriftedHighMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)": "771d665319bdb23b",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighMessage(_:)": "0cfd20dad9f8e96f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)",
+   "hash": "2d2a13e40283ddaf",
+   "does": "Fires when a target zone and HR are known, HR fraction of max exceeds the target zone's top (N×0.10+0.50) by > 3 points after 60 s, and grade is known and ≤ +2%.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "targetZone, heartRate known and userMaxHR > 0",
+     "effect": "false: returns false"
+    },
+    {
+     "at": "+11",
+     "cond": "pct > upperBound + 0.03 and elapsedSeconds > 60",
+     "effect": "false: false; for target zone 5 the bound is 1.03 × max HR so it practically never fires"
+    },
+    {
+     "at": "+16",
+     "cond": "currentGradePercent non-nil",
+     "effect": "nil: false (fail-closed)"
+    },
+    {
+     "at": "+17",
+     "cond": "grade > 2",
+     "effect": "true: false (climbing); else true (descents not suppressed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.zoneDriftedHighMessage(_:)",
+   "hash": "0ea1d8c2715f59ae",
+   "does": "Localized 'drifted above Zone N' line with HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "targetZone nil (`?? 0`)",
+     "effect": "Zone 0; unreachable since condition requires target"
+    },
+    {
+     "at": "+2",
+     "cond": "heartRate nil (`?? 0`)",
+     "effect": "HR 0; unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.zoneDriftedLowRule()",
+   "hash": "87b6592769649b6b",
+   "does": "Builds rule zone.drifted.low (.silent, 150 s cooldown): fires when target zone > 1, HR fraction is > 3 points below the bottom of the target zone, after 180 s; message says HR is easier than Zone N.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "targetZone known and > 1, heartRate known, userMaxHR > 0",
+     "effect": "false: returns false (zone 1 target never fires low); true: compares pct to lowerBound - 0.03 and elapsed > 180"
+    },
+    {
+     "at": "+15",
+     "cond": "targetZone nil in message (`?? 0`)",
+     "effect": "unreachable"
+    },
+    {
+     "at": "+16",
+     "cond": "heartRate nil in message (`?? 0`)",
+     "effect": "unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.routeClimbAheadRule()",
+   "hash": "8c20315cde49928b",
+   "does": "Builds rule route.climbAhead (.silent, 8 min cooldown) with routeClimbAheadCondition / routeClimbAheadMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadCondition(_:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadCondition(_:)": "ead48ec93ad0c4cd",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)": "a4c43ad78185acfc",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.routeClimbAheadCondition(_:)",
+   "hash": "5bfe9fe50d97d0b1",
+   "does": "True when an upcoming climb starts between 0 and 500 m ahead (exclusive).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctx.upcomingClimb non-nil",
+     "effect": "nil: false; else 0 < distance < 500"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.routeClimbAheadMessage(_:)",
+   "hash": "ac9c50ddfbb568db",
+   "does": "Builds the route-climb sentence: distance in yards (imperial) or metres, grade percent, optional climb length, and 'First of N' when routeTopology lists more than one climb ahead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.climbLengthLabel(_:imperial:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbSentence(distance:length:grade:climbCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ctx.upcomingClimb non-nil",
+     "effect": "nil: returns 'Climb ahead.' (unreachable via condition)"
+    },
+    {
+     "at": "+3",
+     "cond": "useImperial (userUnits.resolved == .imperial)",
+     "effect": "yards (×1.0936); else metres"
+    },
+    {
+     "at": "+6",
+     "cond": "routeTopology nil (`?? 0`)",
+     "effect": "climbCount 0 → no 'First of' clause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.climbLengthLabel(_:imperial:)": "90150ffb774a30ba",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbSentence(distance:length:grade:climbCount:)": "336571d8387955ea",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)": "656cb588c2399785",
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.routeClimbSentence(distance:length:grade:climbCount:)",
+   "hash": "b017a0dca54d0194",
+   "does": "Chooses one of four localized sentences by whether a length label exists and whether more than one climb is ahead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case (length?, true)",
+     "effect": "length + grade + 'First of N'"
+    },
+    {
+     "at": "+4",
+     "cond": "case (length?, false)",
+     "effect": "length + grade"
+    },
+    {
+     "at": "+6",
+     "cond": "case (nil, true)",
+     "effect": "grade + 'First of N'"
+    },
+    {
+     "at": "+8",
+     "cond": "case (nil, false)",
+     "effect": "grade only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.climbLengthLabel(_:imperial:)",
+   "hash": "d52062881b803baa",
+   "does": "Spoken climb length: nil when length ≤ 0; imperial gives feet under 0.1 mi else miles (1 dp); metric gives metres under 0.1 km else km (1 dp).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lengthMeters > 0",
+     "effect": "false: nil (topology gave no length)"
+    },
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "imperial branch; else metric"
+    },
+    {
+     "at": "+5",
+     "cond": "mi >= 0.1",
+     "effect": "false: '<feet> feet'; true: '<x.x> miles'"
+    },
+    {
+     "at": "+9",
+     "cond": "km >= 0.1",
+     "effect": "false: '<m> meters'; true: '<x.x> kilometers'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.equipmentAndProgressRules()",
+   "hash": "e10e8e9165b31e2b",
+   "does": "Returns equipment.strapDown, user.threshold.breach, split.markerCompleted, cadence.consistencyDrop in order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "c4d69f484d148d15",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "9e7da6e7a2663200",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedRule()": "82e2d9f3d04ad208",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "2b522daa2308f09d"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.equipmentStrapDownRule()",
+   "hash": "c5bc19f0a2bebca0",
+   "does": "Builds rule equipment.strapDown (.haptic, urgent, 60 s cooldown): fires whenever ctx.strapConnected is false; message says the strap went quiet and HR switches to the Watch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Condition is just `!strapConnected`, which is also true for every workout recorded without a Polar strap, so the rule 'fires' every 60 s for Watch-only sessions with a 'Strap just went quiet' message. Because the tier is .haptic (no-op) nothing is heard, but it fills the 200-event history and the rule cannot represent a real drop.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:480",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:78"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.userThresholdBreachRule()",
+   "hash": "531a127fe7f95716",
+   "does": "Builds the only .spoken rule, user.threshold.breach (urgent, 30 s floor cooldown), with a ThresholdCooldownState: condition is 'any due threshold', message picks the longest-breached one, reset clears lastSpokenAt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachMessage(_:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachMessage(_:state:)": "35fdf3e5f1dff864",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.dueThresholds(_:state:)",
+   "hash": "654ce18427d26536",
+   "does": "Filters active thresholds to those breached > 0 s and ≥ their debounce whose own cooldown (on the workout clock) has expired since last spoken, sorted by longest breach first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "thresholdBreachSec[id] missing (`?? 0`)",
+     "effect": "treated as 0 → not breached"
+    },
+    {
+     "at": "+4",
+     "cond": "breachSec > 0 and >= debounceSec",
+     "effect": "false: excluded"
+    },
+    {
+     "at": "+5",
+     "cond": "threshold has a lastSpokenAt entry",
+     "effect": "none: due; else due only if elapsed - last >= cooldownSec"
+    },
+    {
+     "at": "+8",
+     "cond": "sort key missing breach (`?? 0`)",
+     "effect": "treated as 0 for ordering"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.userThresholdBreachMessage(_:state:)",
+   "hash": "5ba039cbb829f936",
+   "does": "Takes the first due threshold, stamps its lastSpokenAt with the current workout second, and returns its user cue if non-empty or the threshold's default cue using the observed metric value; if none due returns 'Threshold breached.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.observedValue(of:in:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a due threshold exists",
+     "effect": "none: returns generic 'Threshold breached.' (only if state changed between condition and message, which does not happen in evaluate)"
+    },
+    {
+     "at": "+5",
+     "cond": "threshold.userCue non-nil and non-empty",
+     "effect": "returns user cue verbatim; else defaultCue(currentValue:)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The threshold's own cooldown is started in the message builder, which runs whether or not the event is spoken: when the coach is muted or coachAlertsEnabled is off, the cue is consumed silently and the next spoken cue waits a full cooldownSec after unmute.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:540",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:107",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:108"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.observedValue(of:in:)": "4f3473cc174eaf77",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)": "41a82986b765de44",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.observedValue(of:in:)",
+   "hash": "6ff1a681443445c3",
+   "does": "Returns the live reading for the threshold's metric (HR, power, pace, α1, cadence, 0 when unsampled) or the threshold's own value for other metrics.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .heartRateBPM / heartRate nil (`?? 0`)",
+     "effect": "Double(HR); 0 when no HR"
+    },
+    {
+     "at": "+3",
+     "cond": "case .powerWatts / powerWatts nil (`?? 0`)",
+     "effect": "watts; 0 when none"
+    },
+    {
+     "at": "+4",
+     "cond": "case .paceSecPerKm / pace nil (`?? 0`)",
+     "effect": "pace; 0 when none"
+    },
+    {
+     "at": "+5",
+     "cond": "case .alpha1 / alpha1 nil (`?? 0`)",
+     "effect": "α1; 0 when none"
+    },
+    {
+     "at": "+6",
+     "cond": "case .cadenceSPM / cadence nil (`?? 0`)",
+     "effect": "cadence; 0 when none"
+    },
+    {
+     "at": "+7",
+     "cond": "default (zone, %FTP, distance, elapsed, elevation, grade, naturalLanguage)",
+     "effect": "returns threshold.value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.splitMarkerCompletedRule()",
+   "hash": "ff88fa2263ae9ff3",
+   "does": "Builds rule split.markerCompleted (.silent, cooldown 0) with a SplitMarkerState; reset sets lastSplitFiredAt = 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedCondition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedMessage(_:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedCondition(_:state:)": "4d41977ba80c88e2",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.splitMarkerCompletedMessage(_:state:)": "3c52024e6621947f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.splitMarkerCompletedCondition(_:state:)",
+   "hash": "340421191bc7d09b",
+   "does": "Computes the current whole-mile (imperial) or whole-km index; fires and records it when it exceeds the last fired index and at least 60 s have elapsed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "useImperial",
+     "effect": "1609.344 m splits; else 1000 m"
+    },
+    {
+     "at": "+4",
+     "cond": "currentSplitIndex > lastSplitFiredAt",
+     "effect": "false: false"
+    },
+    {
+     "at": "+8",
+     "cond": "elapsedSeconds >= 60",
+     "effect": "false: false (index not consumed, fires on a later tick); true: records index, returns true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.splitMarkerCompletedMessage(_:state:)",
+   "hash": "1d6cabd1f33eed9e",
+   "does": "Returns an English LLM prompt ('You just finished mile/kilometer N…') asking for one sentence comparing the split with historical baselines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "useImperial",
+     "effect": "label 'mile'; else 'kilometer'"
+    },
+    {
+     "at": "+3",
+     "cond": "useImperial",
+     "effect": "divides by 1609.344; else 1000"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.cadenceConsistencyDropRule()",
+   "hash": "88d7b8bbe5003eb3",
+   "does": "Builds rule cadence.consistencyDrop (.haptic → no-op, 8 min cooldown): fires when cadence drift < -5 spm after 15 min; message reports the drop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "cadenceDriftSpm non-nil",
+     "effect": "nil: false; else drift < -5 && elapsed > 900"
+    },
+    {
+     "at": "+10",
+     "cond": "cadenceDriftSpm nil in message (`?? 0`)",
+     "effect": "0; unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.sessionNarrativeRules()",
+   "hash": "49e3b6c05213c003",
+   "does": "Returns aerobic.decouplingMaterial, readiness.openingRecommendation, race.paceMode.detected, coach.periodicUpdate, training.recentLoadAboveUsualRange in order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.aerobicDecouplingMaterialRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateRule()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeRule()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.aerobicDecouplingMaterialRule()": "8a914a3ce31d92e2",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateRule()": "e28e4ffe4e484c79",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedRule()": "5924458397e71081",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationRule()": "04aa0d8f0e67ea7d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeRule()": "6663ef889bfdd41f"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.aerobicDecouplingMaterialRule()",
+   "hash": "9ac4c7eb9bc32d02",
+   "does": "Builds rule aerobic.decouplingMaterial (.silent, 15 min cooldown): fires when decoupling > 5% after 25 min unless grade is known and > +2%; message is an English LLM prompt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "aerobicDecouplingPercent non-nil",
+     "effect": "nil: false"
+    },
+    {
+     "at": "+7",
+     "cond": "dec > 5 and elapsed > 1500",
+     "effect": "false: false"
+    },
+    {
+     "at": "+8",
+     "cond": "grade known and > 2",
+     "effect": "true: false; nil grade passes (fail-open, unlike hr.driftHigh and zone.drifted.high)"
+    },
+    {
+     "at": "+12",
+     "cond": "aerobicDecouplingPercent nil in message (`?? 0`)",
+     "effect": "0; unreachable"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says decoupling is 'Spoken so the AI can frame it', but the rule tier is .silent, which WorkoutVoiceCoach.dispatch drops; its LLM prompt message is never spoken or sent to a model.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:662",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:674",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.readinessOpeningRecommendationRule()",
+   "hash": "9fac2708927b8219",
+   "does": "Builds rule readiness.openingRecommendation (.silent, cooldown 0) with a ReadinessOpeningState; message is an English LLM prompt for a push/back-off framing; reset clears fired.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationCondition(_:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationCondition(_:state:)": "71a56cf231de053f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.readinessOpeningRecommendationCondition(_:state:)",
+   "hash": "0f68c0bf7da2e004",
+   "does": "Fires once per workout between 180 s and 600 s when any of recovery score, TSB or days-until-fresh is known; sets fired.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "state.fired",
+     "effect": "true: false"
+    },
+    {
+     "at": "+2",
+     "cond": "180 <= elapsed < 600",
+     "effect": "false: false (window missed means never fires)"
+    },
+    {
+     "at": "+9",
+     "cond": "any readiness input present",
+     "effect": "false: false; true: sets fired, returns true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.racePaceModeDetectedRule()",
+   "hash": "8df10e4cde736a62",
+   "does": "Builds rule race.paceMode.detected (.silent, cooldown 0) with a RacePaceState; message is an English LLM prompt about holding 5K race pace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedCondition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedCondition(_:state:)": "31044b8c6b1d5717",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)": "730d7ad2b61dd52a",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.racePaceModeDetectedCondition(_:state:)",
+   "hash": "9f1505ef291ce8ca",
+   "does": "Once per workout after 5 min, with current pace and a 5K prediction known, accumulates wall-clock seconds while pace stays within ±3% of predicted 5K pace (resetting when it leaves the band); fires at 120 contiguous seconds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.restartRacePaceWindow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not fired, elapsed >= 300, pace > 0 known, 5K prediction known",
+     "effect": "false: restartRacePaceWindow → false"
+    },
+    {
+     "at": "+8",
+     "cond": "|pace - racePace| / racePace <= 0.03",
+     "effect": "false: restart window → false"
+    },
+    {
+     "at": "+12",
+     "cond": "state.lastTickAt non-nil",
+     "effect": "true: adds whole seconds since last tick; false: no accumulation this tick"
+    },
+    {
+     "at": "+16",
+     "cond": "sustainedSec >= 120",
+     "effect": "false: false; true: sets fired, returns true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Uses Date() wall clock instead of the `now` passed to WorkoutTriggerEngine.evaluate, so the rule cannot be driven deterministically and a gap between ticks (backgrounding) counts as time at race pace.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:792",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift:107"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.restartRacePaceWindow(_:)": "0ee50ce2e41b0f1c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.restartRacePaceWindow(_:)",
+   "hash": "e220dcfac6b89e8e",
+   "does": "Zeros sustainedSec, sets lastTickAt to now, returns false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)",
+   "hash": "69264a46a0ae5479",
+   "does": "Zeros sustainedSec, clears fired and lastTickAt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.coachPeriodicUpdateRule()",
+   "hash": "8e2041f3000a690c",
+   "does": "Builds rule coach.periodicUpdate (.silent, cooldown 0) with a CoachUpdateState; reset clears lastFiredAt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateCondition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateMessage(_:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateCondition(_:state:)": "2243b2e95a9b0494",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateMessage(_:state:)": "b753331becb5b746",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.coachPeriodicUpdateCondition(_:state:)",
+   "hash": "0b5c09e85d2d7687",
+   "does": "Reads current UserSettings each tick; when periodic updates are enabled, elapsed ≥ cadence (min 60 s), at least one cadence has passed since last fire (wall clock), and a live signal exists, stamps lastFiredAt and fires.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hasLiveSignal(_:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enablePeriodicCoachUpdates",
+    "mem:SettingsManager.settings.periodicCoachCadenceSec"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.enablePeriodicCoachUpdates",
+     "effect": "false: false"
+    },
+    {
+     "at": "+4",
+     "cond": "elapsedSeconds >= cadence",
+     "effect": "false: false"
+    },
+    {
+     "at": "+5",
+     "cond": "lastFiredAt set and less than cadence seconds ago",
+     "effect": "true: false; else continue"
+    },
+    {
+     "at": "+8",
+     "cond": "hasLiveSignal",
+     "effect": "false: false; true: stamps and fires"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "A rule condition reaches into the global AppDependencies.current settings singleton, so the 'pure evaluator' engine depends on app-wide state and cannot be evaluated with injected settings.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:848",
+      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:106"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hasLiveSignal(_:)": "a51beac8edc3e990",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.hasLiveSignal(_:)",
+   "hash": "d70b57fcef526537",
+   "does": "True when any of live HR drift, decoupling, reverse-split delta or cadence drift is present, or the user has at least one historical workout of this sport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the update requires 'at least one live trend metric', but historicalSportSampleCount > 0 also passes, so a user with any history satisfies it from the first cadence window without any live metric.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:818",
+      "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:867"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.coachPeriodicUpdateMessage(_:state:)",
+   "hash": "5c1cb19ce4051983",
+   "does": "English LLM prompt stating minutes elapsed and asking for one sentence about the single most relevant signal, or silence.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeRule()",
+   "hash": "6576aa9baaf058ec",
+   "does": "Builds rule training.recentLoadAboveUsualRange (.silent, cooldown 0) with a RecentLoadState; reset clears fired.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeCondition(_:state:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeMessage(_:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeCondition(_:state:)": "62a9298dc9b1604c",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeMessage(_:state:)": "62bf44517867e4ec",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:resetWorkoutState:)": "3b58706dae48e9bb"
+   }
+  },
+  {
+   "key": "func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeCondition(_:state:)",
+   "hash": "1bc9b92b43cd6bc0",
+   "does": "Fires once per workout when today's ATL/CTL ratio is ≥ 1.4 (CTL > 0); sets fired. No elapsed-time gate, so it fires on the first tick.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "state.fired",
+     "effect": "true: false"
+    },
+    {
+     "at": "+2",
+     "cond": "todayATL and todayCTL known with CTL > 0",
+     "effect": "false: false"
+    },
+    {
+     "at": "+4",
+     "cond": "acwr >= 1.4",
+     "effect": "false: false; true: sets fired, returns true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeMessage(_:state:)",
+   "hash": "578597bd92f731e3",
+   "does": "English LLM prompt describing recent load as above (≥1.4) or noticeably above (≥1.5) the usual range without naming ACWR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "todayATL nil (`?? 0`)",
+     "effect": "0; unreachable"
+    },
+    {
+     "at": "+2",
+     "cond": "todayCTL nil (`?? 1`)",
+     "effect": "1; unreachable"
+    },
+    {
+     "at": "+4",
+     "cond": "acwr >= 1.5",
+     "effect": "'noticeably above…'; else 'above…'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

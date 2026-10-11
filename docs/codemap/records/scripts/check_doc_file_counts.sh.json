@@ -1,0 +1,24 @@
+{
+ "file": "scripts/check_doc_file_counts.sh",
+ "hash": "ab0ec1db42ecd179",
+ "role": "CI gate: file counts written as '(~N files)' next to directory labels in docs/MAINTAINERS.md must be within 15% of the actual *.swift counts.",
+ "types": [],
+ "state": [
+  "file:docs/MAINTAINERS.md"
+ ],
+ "toplevel": "set -euo pipefail; no cd (relative paths). Python: DIRS (recursive) and FLAT (non-recursive) label->dir maps; missing doc -> exit 2; for each label regex `label ... (~N files)`; real==0 -> problem; |claimed-real| > max(1, 15%) -> problem; zero matches -> exit 1 (guards nothing); problems -> exit 1; else clean. Current run: 17 counts checked, clean.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Only the labels in DIRS/FLAT are checked. docs/MAINTAINERS.md:443 says `Protocols/` has '(1 file)'; Emuqu/Sources/Protocols holds 0 Swift files and the gate passes because Protocols is not a label.",
+   "evidence": [
+    "scripts/check_doc_file_counts.sh:22",
+    "docs/MAINTAINERS.md:443"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

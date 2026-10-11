@@ -1,0 +1,277 @@
+{
+ "file": "Tools/validation/port_dfa.py",
+ "hash": "7c590f6a0b4d089a",
+ "role": "Python port of DFAAnalyzer.compute (DFAAnalysis.swift @ e028039) and Statistics.linearRegression: integrated series, log-spaced box sizes (ratio 2^(1/8)), per-box linear detrend, log-log regression for alpha1 (4-16) and alpha2 (16-64, >= 256 beats).",
+ "types": [],
+ "state": [
+  "ALPHA1_MIN/MAX=4/16, ALPHA2_MIN/MAX=16/64, MIN_BEATS_FOR_DFA_ALPHA2=256 (lines 13-15)"
+ ],
+ "toplevel": "Constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def _swift_round",
+   "hash": "62b210cddef07fa7",
+   "does": "Swift-style rounding (half away from zero) to int.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "x >= 0",
+     "effect": "floor(x+0.5); else -floor(-x+0.5)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def linear_regression",
+   "hash": "97f4b900a5a9de4d",
+   "does": "Least-squares regression returning (slope, intercept, r2 clamped to [0,1]) or None.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "n < 2 or length mismatch",
+     "effect": "None"
+    },
+    {
+     "at": "+6",
+     "cond": "for each point",
+     "effect": "accumulate sums"
+    },
+    {
+     "at": "+14",
+     "cond": "|denominator| <= 1e-10",
+     "effect": "None"
+    },
+    {
+     "at": "+19",
+     "cond": "ss_total <= 0",
+     "effect": "r2 = 0; else computes residual SS and clamped r2"
+    },
+    {
+     "at": "+23",
+     "cond": "for each point",
+     "effect": "residual SS"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _integrated_series",
+   "hash": "c69c83cb6878b2f7",
+   "does": "Cumulative sum of (rr - mean).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each value",
+     "effect": "accumulate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _log_spaced_box_sizes",
+   "hash": "d0895791f0653415",
+   "does": "Log-spaced box sizes from lower to upper by factor 2^(1/8), Swift-rounded and de-duplicated, with upper appended if missing.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def _swift_round"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "upper < lower",
+     "effect": "returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "rounded current <= upper",
+     "effect": "loop"
+    },
+    {
+     "at": "+8",
+     "cond": "list empty or new rounded size differs",
+     "effect": "append"
+    },
+    {
+     "at": "+11",
+     "cond": "last size != upper",
+     "effect": "append upper"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def _swift_round": "3da20ac8c87e1ad4"
+   }
+  },
+  {
+   "key": "def _least_squares_line",
+   "hash": "bf90b257f28eb4e4",
+   "does": "Least-squares line of a segment against index 0..n-1; returns (slope, intercept) or None when the denominator is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "accumulate"
+    },
+    {
+     "at": "+10",
+     "cond": "denominator == 0",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _detrended_sum_of_squares",
+   "hash": "7e56810409e2e737",
+   "does": "Sum of squared residuals of a segment around its least-squares line (raw sum of squares if fewer than 2 points or no line).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def _least_squares_line"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "segment length >= 2",
+     "effect": "fit line; else None"
+    },
+    {
+     "at": "+2",
+     "cond": "no line",
+     "effect": "returns sum of squares"
+    },
+    {
+     "at": "+6",
+     "cond": "for each sample",
+     "effect": "residual"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def _least_squares_line": "5fac2aea9567c6ba"
+   }
+  },
+  {
+   "key": "def _fluctuation",
+   "hash": "248de7f98ba951b4",
+   "does": "Fluctuation F(n): RMS of detrended residuals over all full non-overlapping boxes of size box.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def _detrended_sum_of_squares"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no full box",
+     "effect": "returns 0.0"
+    },
+    {
+     "at": "+5",
+     "cond": "for each box",
+     "effect": "accumulate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def _detrended_sum_of_squares": "228959c65f405db9"
+   }
+  },
+  {
+   "key": "def _log_log_regression",
+   "hash": "690d38aacc598d27",
+   "does": "Regresses log F on log n; returns (slope, r2), (0,0) when fewer than 2 sizes or regression fails; log(0) replaced by -10.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def linear_regression"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 sizes",
+     "effect": "(0,0)"
+    },
+    {
+     "at": "+4",
+     "cond": "F > 0",
+     "effect": "log F else -10.0"
+    },
+    {
+     "at": "+6",
+     "cond": "regression None",
+     "effect": "(0,0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def linear_regression": "75896ee501914c43"
+   }
+  },
+  {
+   "key": "def compute",
+   "hash": "697606766dfad3d6",
+   "does": "DFAAnalyzer.compute: returns None below 64 beats or if fewer than 3 alpha1 box sizes; otherwise dict alpha1, alpha1R2, and alpha2/alpha2R2 when >= 3 alpha2 sizes and >= 256 beats (else None).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_dfa.py::def _integrated_series",
+    "Tools/validation/port_dfa.py::def _log_spaced_box_sizes",
+    "Tools/validation/port_dfa.py::def _fluctuation",
+    "Tools/validation/port_dfa.py::def _log_log_regression"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "len(rr) < 64",
+     "effect": "None"
+    },
+    {
+     "at": "+9",
+     "cond": "fewer than 3 alpha1 box sizes",
+     "effect": "None"
+    },
+    {
+     "at": "+14",
+     "cond": ">= 3 alpha2 sizes and >= 256 beats",
+     "effect": "computes alpha2; else alpha2/alpha2R2 stay None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def _fluctuation": "b374469593685ca5",
+    "Tools/validation/port_dfa.py::def _integrated_series": "9ba2a4ecb9c72a15",
+    "Tools/validation/port_dfa.py::def _log_log_regression": "62ff4b461431e821",
+    "Tools/validation/port_dfa.py::def _log_spaced_box_sizes": "afb84f7566e47ea2"
+   }
+  }
+ ],
+ "deps": {}
+}

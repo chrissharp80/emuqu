@@ -1,0 +1,92 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/TypingIndicator.swift",
+ "hash": "38159175c6535538",
+ "role": "Three-dot pulsing 'Flo is responding' indicator used in AssistantChatView+Sections.swift:307 while waiting for the first token.",
+ "types": [
+  "TypingIndicator: struct — SwiftUI View animating three dots with a Timer"
+ ],
+ "state": [
+  "mem:TypingIndicator.phase (@State Int 0-2)",
+  "mem:TypingIndicator.timer (@State Timer?)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TypingIndicator.body",
+   "hash": "d03144582383a4ec",
+   "does": "Renders dots in a rounded secondary-background bubble with a single accessibility label 'Flo is responding'; starts the timer on appear and stops it on disappear.",
+   "entry": "SwiftUI body; .onAppear/.onDisappear lifecycle callbacks.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::var TypingIndicator.dots",
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::func TypingIndicator.startAnimating()",
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::func TypingIndicator.stopAnimating()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::func TypingIndicator.startAnimating()": "c60cd1cb1d81aa38",
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::func TypingIndicator.stopAnimating()": "d5d1d0067a4e80cd",
+    "Emuqu/Sources/Assistant/Views/TypingIndicator.swift::var TypingIndicator.dots": "3e9ccc37cd7a5202",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TypingIndicator.dots",
+   "hash": "57c041b9d0528707",
+   "does": "Three 6pt circles; the one whose index equals phase is opaque, others 30% opacity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "phase == i",
+     "effect": "opacity 1.0; otherwise 0.3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func TypingIndicator.startAnimating()",
+   "hash": "f4f1b5878cf04796",
+   "does": "Invalidates any existing timer and schedules a repeating 0.45 s Timer that advances phase modulo 3 on the main actor.",
+   "entry": "Called from .onAppear.",
+   "calls": [
+    "ext:Timer.scheduledTimer"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:TypingIndicator.timer",
+    "mem:TypingIndicator.phase"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TypingIndicator.stopAnimating()",
+   "hash": "16d5a2add3278574",
+   "does": "Invalidates and nils the timer.",
+   "entry": "Called from .onDisappear.",
+   "calls": [
+    "ext:Timer.invalidate"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:TypingIndicator.timer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1050 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryScoreDetailView.swift",
+ "hash": "e4339b2e491caf93",
+ "role": "Recovery Score detail screen (pushed in the report sheet from MainTabView): computes the displayed composite/verdict/breakdown/vitals from the frozen session plus a fresh HealthKit vitals fetch, lays out the sections, and on .task(id: session.id) reloads the full RR series, refetches vitals (persisting newly-filled fields back to the archive), fetches HealthKit HR fallback samples, loads organized-recovery zones and builds the cached chart series off-main.",
+ "types": [
+  "RecoveryScoreDetailView: struct (View) — the detail screen; extended by +Charts (via RecoveryScoreCharts), +Panels, +Sections and RecoveryScoreCharts.swift forwarders"
+ ],
+ "state": [
+  "mem:RecoveryScoreDetailView.dt11/dt12/dt13/dt14/dt15/dt17/dt22 (@ScaledMetric font sizes)",
+  "mem:RecoveryScoreDetailView.expandedFactor (@State String?)",
+  "mem:RecoveryScoreDetailView.selectedWindowSegment (@State, initial .bestRecovery)",
+  "mem:RecoveryScoreDetailView.windowChangedHere (@State Bool)",
+  "mem:RecoveryScoreDetailView.segmentBeforePick (@State)",
+  "mem:RecoveryScoreDetailView.restoringSegment (@State)",
+  "mem:RecoveryScoreDetailView.isReanalyzing (@State)",
+  "mem:RecoveryScoreDetailView.isShowingPickWindowSheet (@State, never read or written)",
+  "mem:RecoveryScoreDetailView.refreshedVitals (@State RecoveryVitals?)",
+  "mem:RecoveryScoreDetailView.fallbackHRSamples (@State)",
+  "mem:RecoveryScoreDetailView.fullRRSeries (@State RRSeries?)",
+  "mem:RecoveryScoreDetailView.didCompleteInitialLoad (@State)",
+  "mem:RecoveryScoreDetailView.previewWindowMs (@State Int64?)",
+  "mem:RecoveryScoreDetailView.organizedZoneRanges (@State)",
+  "mem:RecoveryScoreDetailView.hrvHoverDate / hrHoverDate (@State)",
+  "mem:RecoveryScoreDetailView.rmssdChartSeries / hrChartSeries (@State cached chart series)"
+ ],
+ "toplevel": "Reads @Environment(\\.dependencies) (settingsManager via dependencies.app) and @Environment(RRCollector.self). The header doc lists the section order (1-12) but omits the trend comparison card that mainSections inserts between Key Findings and What To Do. File-scope fileprivate helpers sleepHRVitals and mergedVitals build the display vitals.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "@State isShowingPickWindowSheet is declared but never read or written anywhere in the repo (grep -rnw isShowingPickWindowSheet finds only the declaration); the modal Pick Window sheet it served was replaced by the inline slider.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:69"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The comment on organizedZoneRanges says the @State lets 'the chart rebuild after reanalysis pick up freshly-attached zones', but zones are only loaded inside .task(id: session.id); a reanalysis rewrites selectedReportSession with the same id, so the task does not re-run and zones (and fullRRSeries/refreshedVitals) are not reloaded after reanalysis.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:102",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:266",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:430",
+    "Emuqu/Sources/Views/MainTabView.swift:281"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecoveryScoreDetailView.settingsManager",
+   "hash": "57eb0992013d9c1c",
+   "does": "settingsManager from dependencies.app.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.app.settingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)",
+   "hash": "ddb3f739c1ae7e87",
+   "does": "Memberwise-style init storing session, result, recentSessions, baselineStats, totalSessionCount and the two optional re-analysis closures.",
+   "entry": "Called by MainTabView.recoveryScoreDetail and tests (TrainingAdviceGateTests, DetailScreenSnapshotTests, UncoveredScreenSnapshotTests)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.compositeScore",
+   "hash": "a7e27b86849449fc",
+   "does": "0-100 composite: frozen session.recoveryScore × 10 when present, else the live/frozen breakdown composite.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.recoveryScore non-nil",
+     "effect": "frozen ×10; otherwise breakdown.compositeScore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.verdict",
+   "hash": "3f022f12fe2cc89e",
+   "does": "ScoreVerdict(score: compositeScore).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "4a8f255fd29dc101"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.breakdown",
+   "hash": "f72b9da00217a941",
+   "does": "Displayed breakdown: the stored scoreBreakdown with its Vitals factor refreshed from effectiveVitals when it reported no respiration (composite kept); else a live recompute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.liveBreakdown"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.scoreBreakdown non-nil",
+     "effect": "refreshed frozen breakdown; otherwise liveBreakdown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "ba25024ea2d734f2",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.liveBreakdown": "d535e6a65e6a0a99"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.liveBreakdown",
+   "hash": "03fca077bb38d922",
+   "does": "Live RecoveryScoreCalculator.calculateWithBreakdown from the result's HRV metrics, baselineStats, sleepSnapshot, effectiveVitals and current settings (typicalSleepHours, ScoringConfiguration), referenceDate defaulted to now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.ansBalance",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The live recompute uses today's settings and referenceDate = Date(). baselineStats are built from nights strictly before the session (BaselineTracker.swift:207), so for an old session lastDataPointDate precedes the session and the staleness penalty (RecoveryScoreCalculator+Tiers.swift:85-89) grows with the time since that night. For a session without a frozen recoveryScore the headline composite (line 152) drops the longer after the night it is viewed; for a frozen score without a stored breakdown the factor list and provenance drift.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:183",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:152",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:484",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift:85",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:207"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.ansBalance": "fed737bd4c136629",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.settingsManager": "717f9f22d32b4601"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.ansBalance",
+   "hash": "ad609ba45c660b10",
+   "does": "pnsIndex − snsIndex from the result's ANS metrics.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either index missing",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.effectiveVitals",
+   "hash": "a4d41e3f5411aa43",
+   "does": "Display vitals: strap analysis mean HR as restingHeartRate (fallback stored then fresh RHR), other fields fresh-over-stored; HR-only vitals when neither stored nor fresh exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func sleepHRVitals(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func mergedVitals(stored:fresh:sleepHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "result.timeDomain.meanHR > 0",
+     "effect": "sleepHR = strap meanHR"
+    },
+    {
+     "at": "+7",
+     "cond": "meanHR <= 0",
+     "effect": "sleepHR = stored RHR, else fresh RHR, else nil"
+    },
+    {
+     "at": "+8",
+     "cond": "fresh and stored both nil",
+     "effect": "sleepHRVitals(sleepHR) (nil when sleepHR nil); otherwise mergedVitals"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Display merge prefers FRESH values over stored (mergedVitals) while the persisted merge keeps STORED values (mergeVitals); the explanations and refreshed Vitals factor can therefore describe vitals that differ from the ones the frozen score used and from what is written back to the archive.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:542",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:385"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The fresh-over-stored vitals merge with strap-HR override is implemented three times: here (mergedVitals/sleepHRVitals), VitalsDetailV2View.effectiveVitals and SleepDetailV2View.effectiveVitals (+heartRateOnlyVitals). They already differ: this copy requires meanHR > 0, the other two take analysisResult?.timeDomain.meanHR as-is, so a 0 meanHR becomes the displayed sleep HR there but not here.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:221",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:536",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:46",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:52",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:83",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:86"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func mergedVitals(stored:fresh:sleepHR:)": "de26e12267170640",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func sleepHRVitals(_:)": "56f0be635be51d1e"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.deltaText",
+   "hash": "ff82d5a93b74206a",
+   "does": "'+N% vs your average' text from hrvPercentVsBaseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no baseline percent",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "pct >= 0",
+     "effect": "'+' prefix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "1d1f00bed9cd856c"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.rmssdText",
+   "hash": "e6e114438288d614",
+   "does": "'N ms' rounded headline RMSSD.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.spo2Penalty",
+   "hash": "7125a4319a86f8fa",
+   "does": "SpO2 penalty tuple (active, value, points): for unfrozen scores from the live breakdown; for frozen scores from the stored breakdown flag, else the stored vitals snapshot's isSpO2Concerning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.recoveryScore nil",
+     "effect": "(breakdown.spo2PenaltyApplied, effectiveVitals SpO2, points)"
+    },
+    {
+     "at": "+6",
+     "cond": "scoreBreakdown nil",
+     "effect": "applied = vitalsSnapshot?.isSpO2Concerning ?? false"
+    },
+    {
+     "at": "+7",
+     "cond": "vitalsSnapshot SpO2 nil",
+     "effect": "value falls back to effectiveVitals SpO2"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "For a frozen score without a stored breakdown, 'applied' is read from session.vitalsSnapshot, but this same view backfills a late-arriving SpO2 into vitalsSnapshot (persistMergedVitals). On the next open the badge shows a '−N penalty' the frozen score never contained — exactly what the doc comment says must not happen.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:238",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:246",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:364",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:387"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.body",
+   "hash": "81293f122e136fb7",
+   "does": "Screen body: ScrollView with banner/sections and engine room, title 'Recovery', toolbar; .task(id: session.id) runs refreshVitalsAndCharts.",
+   "entry": "SwiftUI View.body; .task(id: session.id) fires on appear and whenever session.id changes",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection": "90852ff9261da25c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()": "615e67620c957aae",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections": "87993f25d60ce727",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar": "e08c6286d2ba6ca7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.detailToolbar",
+   "hash": "fe729f991852afb5",
+   "does": "Toolbar: share button trailing, ConfidencePip in the principal slot when the score is shown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.shareButton",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "showsScore(baselineNights: totalSessionCount)",
+     "effect": "ConfidencePip shown; else empty principal item (share button still present)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.shareButton": "af0291b2aaace469"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.bannerAndSections",
+   "hash": "5947bb4356ea3b8d",
+   "does": "Insufficient banner when the reading was insufficient, then main sections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isInsufficient",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBanner",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.mainSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isInsufficient",
+     "effect": "banner shown above sections; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBanner": "ef6f6e65934ffd9c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isInsufficient": "42fcda2c8d01312f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.mainSections": "747f842ae1349daa"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.mainSections",
+   "hash": "631acbc015b662f5",
+   "does": "Building-baseline block, or the full section stack (hero, meaning, explanations, breakdown, SpO2 badge, findings, trend card, actions, both charts, window picker).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.buildingBaselineBlock",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatThisMeansSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.mostLikelyExplanationsSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoreBreakdownSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.spo2PenaltyBadge",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.trendComparisonSection",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatToDoSection",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.hrvOvernightChart",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.heartRateOvernightChart",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowPicker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isBuildingBaseline",
+     "effect": "only the building block (no charts, no window picker); else full stack"
+    },
+    {
+     "at": "+9",
+     "cond": "spo2Penalty.active",
+     "effect": "SpO2 badge shown"
+    },
+    {
+     "at": "+15",
+     "cond": "onReanalyze or onReanalyzeAt supplied",
+     "effect": "analysis window picker shown; else hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.heartRateOvernightChart": "6da681de4a63b7f9",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.hrvOvernightChart": "e3a787d5992e9626",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowPicker": "7d795975c647f461",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.buildingBaselineBlock": "83422dc21d2b62d4",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "f014e5701c2cc0e6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroSection": "6d6a9f8d88128648",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsSection": "9896d9c4fff90f88",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.mostLikelyExplanationsSection": "65cb776b05e833c0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoreBreakdownSection": "1500017e867443bf",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.spo2PenaltyBadge": "d975b780b19cccc4",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.trendComparisonSection": "516be74fd6b130b4",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatThisMeansSection": "687d48af81b657db",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatToDoSection": "bcc38b41f139ffff",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "4ee743f85b86bb62"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.refreshVitalsAndCharts()",
+   "hash": "5ccd62c53d45d665",
+   "does": "Load pass: reload full RR series + build chart series, refresh HealthKit vitals, fetch fallback HR samples, load organized zones, then set didCompleteInitialLoad.",
+   "entry": "SwiftUI .task(id: session.id) in body",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.reloadFullSeries()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadFallbackHRSamples(referenceDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadOrganizedZones()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.didCompleteInitialLoad"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.endDate nil",
+     "effect": "referenceDate = startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadFallbackHRSamples(referenceDate:)": "b5f0c5bebf80cec3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadOrganizedZones()": "f965e974e33f1815",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "1d85096dcc44db13",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.reloadFullSeries()": "a5eadc66d0f7dcc4"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.reloadFullSeries()",
+   "hash": "cea96a9686919d4f",
+   "does": "Loads the full session from the archive off-main and keeps its RR series when non-empty, then rebuilds chart series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve (full session)"
+   ],
+   "writes": [
+    "mem:RecoveryScoreDetailView.fullRRSeries"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "full session found with a non-empty rrSeries",
+     "effect": "fullRRSeries set; otherwise left nil (retrieve errors are logged by retrieveOrLog and swallowed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "240d02c996453e13"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.refreshVitals(referenceDate:)",
+   "hash": "309f3628f7411295",
+   "does": "Fetches HealthKit recovery vitals around referenceDate, overrides RHR with the strap meanHR, stores them and persists newly-filled fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)"
+   ],
+   "reads": [
+    "hk:respiratoryRate",
+    "hk:oxygenSaturation",
+    "hk:appleSleepingWristTemperature",
+    "hk:restingHeartRate"
+   ],
+   "writes": [
+    "mem:RecoveryScoreDetailView.refreshedVitals"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "fresh vitals empty",
+     "effect": "return without storing; otherwise store and persist. Because withStrapNocturnalRHR receives the non-optional meanHR, fresh is never empty and the guard never returns"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "withStrapNocturnalRHR(result.timeDomain.meanHR) passes the non-optional meanHR even when it is 0 (analysis did not run — the view itself treats meanHR > 0 as the validity test at line 221), so fresh.restingHeartRate becomes 0, the isEmpty guard is defeated, and persistMergedVitals writes restingHeartRate = 0 into the archived vitalsSnapshot whenever the stored snapshot lacked one; that 0 then becomes the displayed sleep HR (line 223) and is read by other surfaces.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:353",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:354",
+      "Emuqu/Sources/Models/RecoveryVitals.swift:105",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:221",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:391"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "d0af6e93451b82b8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.persistMergedVitals(_:)",
+   "hash": "0c8607d0a0fa500b",
+   "does": "Merges fresh into the stored snapshot (stored wins) and, if that adds fields, writes it to the archive on a detached task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsCount(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "merged has no more non-nil vitals than stored",
+     "effect": "no write; otherwise detached archive update"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "med",
+     "text": "The merge is computed from the view's captured session.vitalsSnapshot, and the detached archive.update replaces the archived vitalsSnapshot wholesale with it. If the archive's snapshot changed after this view captured the session (dashboard refresh, re-acceptance, a second detail view), those values are overwritten with the stale merge.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:365",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:370",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:375"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.mergeVitals(fresh:stored:)": "d1332ed489937be3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)": "1bcbcb583a30cdc6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.vitalsCount(_:)": "1ef4d0b358714635"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.storeMergedVitals(_:id:archive:)",
+   "hash": "ff3f21623745c704",
+   "does": "Nonisolated: archive.update(id) setting vitalsSnapshot = merged; logs a warning on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update(vitalsSnapshot, modifiedAt stamped)",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (CloudKit re-upload request)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "archive.update throws",
+     "effect": "error logged at warning level and dropped; display still uses refreshedVitals"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "archive.update is called with the default requestingReupload: true, but Archive.update's doc says false is for HealthKit-snapshot changes that iCloud payloads leave out; vitalsSnapshot is stripped from the CloudKit payload (CloudKitSyncSupport.swift:568). Each vitals backfill therefore stamps modifiedAt and posts a full-session CloudKit re-upload that carries none of the changed data.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:375",
+      "Emuqu/Sources/Storage/Archive.swift:483",
+      "Emuqu/Sources/Storage/Archive.swift:486",
+      "Emuqu/Sources/Storage/Archive.swift:491",
+      "Emuqu/Sources/Storage/Archive.swift:500",
+      "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:568"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.mergeVitals(fresh:stored:)",
+   "hash": "c2bed6286d43068e",
+   "does": "Field-wise merge where each stored value wins and fresh only fills nils.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stored respiratoryRate nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+3",
+     "cond": "stored respiratoryRateBaseline nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+4",
+     "cond": "stored oxygenSaturation nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+5",
+     "cond": "stored oxygenSaturationMin nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+6",
+     "cond": "stored wristTemperature nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+7",
+     "cond": "stored wristTemperatureBaseline nil",
+     "effect": "fresh value"
+    },
+    {
+     "at": "+8",
+     "cond": "stored restingHeartRate nil",
+     "effect": "fresh (strap meanHR, possibly 0) value"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART.md §13.2 says the detail-view vitals refresh is the same merge as the dashboard path, where 'Strap-derived RHR always wins over HK daytime RHR'. The persisted merge keeps stored?.restingHeartRate first, so an older session whose snapshot holds Apple's daytime RHR keeps it in the archive (the strap value wins only in the on-screen effectiveVitals). The doc's 'only when the merge added at least one non-nil field' is also narrower in code: vitalsCount ignores respiratoryRateBaseline / oxygenSaturationMin / wristTemperatureBaseline, so a merge that adds only those is not persisted.",
+     "evidence": [
+      "docs/FLOWCHART.md:803",
+      "docs/FLOWCHART.md:804",
+      "docs/FLOWCHART.md:798",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:391",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:367",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:507"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreDetailView.loadFallbackHRSamples(referenceDate:)",
+   "hash": "05659982ed41f73e",
+   "does": "Fetches HealthKit HR fallback samples and rebuilds chart series when any arrived.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fetchFallbackHRSamples(referenceDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "fallbackHRSamples non-empty",
+     "effect": "rebuild series; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fetchFallbackHRSamples(referenceDate:)": "b06bf8525cc6a39a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "240d02c996453e13"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.fetchFallbackHRSamples(referenceDate:)",
+   "hash": "f9b009a81f431c78",
+   "does": "When no strap RR stream exists, fetches HealthKit HR samples over the sleep window (snapshot sleepStart/End, else session start/end/reference).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [
+    "mem:RecoveryScoreDetailView.fallbackHRSamples"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fullRRSeries non-nil or session.rrSeries has points",
+     "effect": "return (strap stream available)"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepSnapshot.sleepStart nil",
+     "effect": "session.startDate"
+    },
+    {
+     "at": "+6",
+     "cond": "sleepEnd nil",
+     "effect": "session.endDate, else referenceDate"
+    },
+    {
+     "at": "+7",
+     "cond": "sleepEnd <= sleepStart or the HealthKit fetch throws (try?)",
+     "effect": "return with no samples; error swallowed and the chart shows the 'no strap stream' empty state"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.loadOrganizedZones()",
+   "hash": "bd34582c16c9dc76",
+   "does": "Organized zones: persisted on the result, else computed off-main from the effective RR series via the cache/WindowSelector.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.organizedZoneRanges"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result.organizedRecoveryZones non-empty",
+     "effect": "use them and return"
+    },
+    {
+     "at": "+6",
+     "cond": "no effective RR series",
+     "effect": "return (no zones)"
+    },
+    {
+     "at": "+7",
+     "cond": "artifactFlags nil",
+     "effect": "[]"
+    },
+    {
+     "at": "+8",
+     "cond": "sleepStartMs nil",
+     "effect": "0"
+    },
+    {
+     "at": "+9",
+     "cond": "sleepEndMs nil",
+     "effect": "last RR t_ms, else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "576ba89c8abd8e02",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.rebuildChartSeries()",
+   "hash": "6b3339b03598fc45",
+   "does": "Snapshots RR series, flags, start date and fallback samples, builds RMSSD and HR series on a detached task and stores them in @State.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildRMSSDSeries(series:flags:sessionStartDate:)",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.rmssdChartSeries",
+    "mem:RecoveryScoreDetailView.hrChartSeries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)": "f4d1c46c575532f6",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildRMSSDSeries(series:flags:sessionStartDate:)": "b80f4bc09d563225",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)",
+   "hash": "82f1e3694a773d46",
+   "does": "Nonisolated: returns cached zones for the session or runs WindowSelector.findBestWindow for its lastOrganizedZones side effect and caches them.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:zones:)"
+   ],
+   "reads": [
+    "mem:OrganizedZonesCache.shared"
+   ],
+   "writes": [
+    "mem:OrganizedZonesCache.shared"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "cache hit",
+     "effect": "cached zones returned; otherwise computed and cached"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Line-for-line copy of OvernightStatsComputer.computeOrganizedZonesOnDemand (cache get -> WindowSelector.findBestWindow -> lastOrganizedZones -> cache set). The overnight-charts screen's caller backfills computed zones to the archive; this screen's caller (loadOrganizedZones) does not, so zones computed here are lost on relaunch unless the overnight-charts screen is opened. This copy also recomputes when persisted zones are an empty array (line 431), the other uses them as-is (OvernightChartsView+Stats.swift:220).",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:478",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:431",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:243",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:220",
+      "Emuqu/Sources/Views/OvernightChartsView.swift:217"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::var WindowSelector.lastOrganizedZones": "7927a6b2a9e957c3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.get(_:)": "b6b9e6ac24c9d80c",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.set(_:zones:)": "efdf11f02e807df2"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.effectiveRRSeries",
+   "hash": "ad4fd1f9b4927187",
+   "does": "fullRRSeries if loaded, else session.rrSeries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fullRRSeries nil",
+     "effect": "session.rrSeries (nil for lightweight sessions)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreDetailView.vitalsCount(_:)",
+   "hash": "c2bc756a5a6b2625",
+   "does": "Counts non-nil respiratoryRate, oxygenSaturation, wristTemperature and restingHeartRate (baselines/min ignored).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "v nil",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "respiratoryRate present",
+     "effect": "+1"
+    },
+    {
+     "at": "+4",
+     "cond": "oxygenSaturation present",
+     "effect": "+1"
+    },
+    {
+     "at": "+5",
+     "cond": "wristTemperature present",
+     "effect": "+1"
+    },
+    {
+     "at": "+6",
+     "cond": "restingHeartRate present",
+     "effect": "+1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func sleepHRVitals(_:)",
+   "hash": "3add3ae644a4298c",
+   "does": "Fileprivate: RecoveryVitals with only restingHeartRate = sleepHR, nil when sleepHR is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func mergedVitals(stored:fresh:sleepHR:)",
+   "hash": "b134c417b0085913",
+   "does": "Fileprivate: RecoveryVitals taking each field from fresh, else stored, with restingHeartRate = sleepHR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fresh respiratoryRate nil",
+     "effect": "stored"
+    },
+    {
+     "at": "+7",
+     "cond": "fresh RR baseline nil",
+     "effect": "stored"
+    },
+    {
+     "at": "+8",
+     "cond": "fresh SpO2 nil",
+     "effect": "stored"
+    },
+    {
+     "at": "+9",
+     "cond": "fresh SpO2 min nil",
+     "effect": "stored"
+    },
+    {
+     "at": "+10",
+     "cond": "fresh wrist temp nil",
+     "effect": "stored"
+    },
+    {
+     "at": "+11",
+     "cond": "fresh wrist temp baseline nil",
+     "effect": "stored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

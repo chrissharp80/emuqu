@@ -1,0 +1,34 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutHR.swift",
+ "hash": "56be2c7fc124897a",
+ "role": "@Observable sub-object of WorkoutRecorder holding live workout HR metrics so HR chips re-render only on HR changes.",
+ "types": [
+  "WorkoutHR: class (@Observable, @MainActor) — currentHR / peakHR / beatCount"
+ ],
+ "state": [
+  "mem:WorkoutHR.currentHR (Int?, line 17)",
+  "mem:WorkoutHR.peakHR (Int=0, line 20)",
+  "mem:WorkoutHR.beatCount (Int=0, line 23)"
+ ],
+ "toplevel": "Stored-property defaults: currentHR nil, peakHR 0, beatCount 0. Instance is WorkoutRecorder.workoutHR (WorkoutRecorder.swift:50).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutHR.reset()",
+   "hash": "49d496f13b5abbcb",
+   "does": "Resets currentHR to nil, peakHR to 0 and beatCount to 0. Called from WorkoutSessionLifecycle start (WorkoutRecorder+Start.swift:287) and resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift:230).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutHR.currentHR",
+    "mem:WorkoutHR.peakHR",
+    "mem:WorkoutHR.beatCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,192 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift",
+ "hash": "b8aa890c949cce33",
+ "role": "Validated parsing of LLM-supplied numeric tool arguments: FactNumericArgument declares each parameter's name/range/integrality and throws FactArgumentError (an invalidParameter FactValue) for non-finite, out-of-range or fractional input; also splits comma-separated parameter lists.",
+ "types": [
+  "FactNumericArgument: struct — numeric parameter declaration + parser",
+  "FactArgumentError: struct (Error, Equatable) — rejected argument carrying the model-facing detail"
+ ],
+ "state": [
+  "static let startingATL/startingCTL/dailyTrimp (0…10000), gapTrimp (0…10000, lower excluded), horizonDays (1…365 int), latitude (-90…90), longitude (-180…180), segmentRadiusMeters (5…5000), ordinal (0…100000 int), lookbackSeconds (1…86400 int), maxResults (1…10 int) — lines 103-122"
+ ],
+ "toplevel": "Declares 11 static FactNumericArgument constants (lines 103-122) used by TrainingProjections, WorkoutDetail, Workout, Sessions, WorkoutLiveDerived and Settings resolvers.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init FactNumericArgument(_:_:excludesLowerBound:integral:)",
+   "hash": "e9930b1846469d01",
+   "does": "Memberwise init storing name, range, excludesLowerBound (default false) and integral (default false).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNumericArgument.value(_:)",
+   "hash": "fa9ae198e1269521",
+   "does": "Trims the raw text, parses Double, and returns it only if finite and accepted by the range/integral rules; otherwise throws FactArgumentError '<name> must be <requirement>, got '<first 40 chars>''.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.accepts(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Double parse fails, value not finite, or not accepted",
+     "effect": "throws FactArgumentError; otherwise returns value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.accepts(_:)": "fc6fdd48e3931e76",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement": "68810af19e59c85b"
+   }
+  },
+  {
+   "key": "func FactNumericArgument.integer(_:)",
+   "hash": "f9503ec115afa6e4",
+   "does": "Parses via value(_:) then converts with Int(exactly:); throws if not exactly representable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Int(exactly:) nil",
+     "effect": "throws FactArgumentError '<name> must be <requirement>' (unreachable for integral params since value() already rejected fractions and ranges are ≤100000)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The Int(exactly:) guard at line 42 cannot fail for any caller: integer(_:) is only called on integral parameters (ordinal, maxResults, lookbackSeconds, horizonDays), whose value(_:) already rejected fractions and bounded the value to at most 100000.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift:42",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift:50",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:302",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:158",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift:333",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift:339"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement": "68810af19e59c85b"
+   }
+  },
+  {
+   "key": "func FactNumericArgument.accepts(_:)",
+   "hash": "31878170ac204c13",
+   "does": "True when value is in range, not equal to an excluded lower bound, and (if integral) whole.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "outside range or equals excluded lower bound",
+     "effect": "returns false; otherwise returns !integral || value is whole"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197"
+   }
+  },
+  {
+   "key": "var FactNumericArgument.requirement",
+   "hash": "8c69ec98e55f1166",
+   "does": "Human description of the accepted values, e.g. 'a whole number from 1 to 365' or 'a finite number above 0 and at most 10000'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "integral",
+     "effect": "kind 'a whole number' else 'a finite number'"
+    },
+    {
+     "at": "+4",
+     "cond": "excludesLowerBound",
+     "effect": "'above X and at most Y' else 'from X to Y'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func FactNumericArgument.format(_:)",
+   "hash": "60e66d7306dedbcb",
+   "does": "Formats a bound with no decimals when whole, else String(bound).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bound is whole",
+     "effect": "'%.0f'; otherwise String(bound)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactArgumentError.factValue",
+   "hash": "e4cf932bfa8db2d0",
+   "does": "Wraps detail as .missing(reason: .invalidParameter, detail:).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNumericArgument.fields(_:counts:format:)",
+   "hash": "6dcc7c6b9f262a43",
+   "does": "Splits on commas keeping empty fields, trims whitespace, and throws 'expected <format>, got '<first 80 chars>'' unless the field count is in counts and no field is empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "field count not in counts or any field empty",
+     "effect": "throws FactArgumentError; otherwise returns trimmed parts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a"
+   }
+  }
+ ],
+ "deps": {}
+}

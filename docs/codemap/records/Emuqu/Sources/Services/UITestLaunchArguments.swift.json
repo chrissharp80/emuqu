@@ -1,0 +1,198 @@
+{
+ "file": "Emuqu/Sources/Services/UITestLaunchArguments.swift",
+ "hash": "e1cb7eb8bf120d84",
+ "role": "Debug-only UI-test hooks: two launch-argument switches (-UITests-ForcePaywall, -UITests-SeedArchive) and, under #if DEBUG, a seeder that scores one deterministic synthetic overnight RR series through the real morning pipeline and archives it.",
+ "types": [
+  "UITestLaunchArguments: enum — static flags read from CommandLine.arguments (always false in Release)",
+  "UITestArchiveSeed: enum (DEBUG only) — builds synthetic RR points and plants one scored overnight session into the archive",
+  "UITestArchiveSeed.SeededGenerator: struct — fixed-seed 64-bit LCG RandomNumberGenerator"
+ ],
+ "state": [
+  "launch arg: -UITests-ForcePaywall (UITestLaunchArguments.swift:18)",
+  "launch arg: -UITests-SeedArchive (UITestLaunchArguments.swift:23)"
+ ],
+ "toplevel": "UITestArchiveSeed and its generator are wrapped in #if DEBUG (lines 34-106) so they do not exist in Release; UITestLaunchArguments exists in Release but isPresent returns false there (line 29).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var UITestLaunchArguments.forcesPaywall",
+   "hash": "f59abd924e1a0045",
+   "does": "Returns true when the Debug build was launched with -UITests-ForcePaywall; consumed by StoreKitManager.hasBypassGrant/hasPermanentGrant and EmuquApp.paywallModal/hasAccess to treat the run as unentitled so the paywall shows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "a252f883d024c684"
+   }
+  },
+  {
+   "key": "var UITestLaunchArguments.seedsArchive",
+   "hash": "bed7142c4ee688ef",
+   "does": "Returns true when the Debug build was launched with -UITests-SeedArchive; gates UITestArchiveSeed.plantIfRequested.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "a252f883d024c684"
+   }
+  },
+  {
+   "key": "func UITestLaunchArguments.isPresent(_:)",
+   "hash": "67197becb7992b79",
+   "does": "Returns CommandLine.arguments.contains(argument) in DEBUG builds; returns false unconditionally in Release (#if DEBUG / #else, lines 26-30), so neither test switch can be activated in a store build.",
+   "entry": null,
+   "calls": [
+    "ext:CommandLine.arguments"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestArchiveSeed.syntheticOvernightPoints(hours:)",
+   "hash": "51e87665a21ae8b7",
+   "does": "Builds a deterministic synthetic overnight RR series of `hours` (default 6) length: each RR = clamp(600...1300, round(950 + 40·sin(2πt/4.2s) + 60·sin(2πt/5400s) + jitter[-20,20])) using the fixed-seed generator (seed 0x5EED_2026), appending RRPoint(t_ms: cumulative ms, rr_ms) until cumulative time reaches the end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::init UITestArchiveSeed.SeededGenerator(seed:)",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.SeededGenerator.next()",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "cumulative tMs < endMs (hours·3,600,000)",
+     "effect": "true: generate one more beat, advance tMs by rr and append; false: stop and return the points (~22,700 beats for 6 h at ~950 ms)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.SeededGenerator.next()": "75b63bc7074b9db2",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::init UITestArchiveSeed.SeededGenerator(seed:)": "7433e1d5e1b4f397"
+   }
+  },
+  {
+   "key": "func UITestArchiveSeed.plantIfRequested(into:)",
+   "hash": "a2724f1edeaa9202",
+   "does": "At launch (Debug, -UITests-SeedArchive) when the archive index is empty, generates the synthetic night, runs it through RRCollector.processOvernightData with isBackgroundRefinement: true (no UI state, single HealthKit sleep-boundary attempt; that mode also skips the pipeline's own pre-archive) and then archives the scored session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.syntheticOvernightPoints(hours:)",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.archive(_:into:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.index",
+    "hk:sleep analysis (via processOvernightData)"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive(_:)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "seedsArchive is false OR collector.archive.index is non-empty",
+     "effect": "true (guard fails): return without doing anything, so a relaunch without -UITests-FreshInstall never plants a second seed; false: generate, score and archive the synthetic night."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "1abdec3bff1dd1a9",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.archive(_:into:)": "a46027685705ed68",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "29773b84e855dfb0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.syntheticOvernightPoints(hours:)": "ef38a7c465f20f85",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c"
+   }
+  },
+  {
+   "key": "func UITestArchiveSeed.baseSession(ending:points:)",
+   "hash": "9bc99ad99280ea45",
+   "does": "Builds the template HRVSession for the seed: new UUID, .analyzing, .overnight, endDate = given end, startDate = end minus the last point's t_ms (0 if no points), all optional payloads nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points.last?.t_ms is nil (empty points) — `?? 0`",
+     "effect": "fallback 0: start == end (zero-length session); never happens from plantIfRequested because syntheticOvernightPoints always returns points for hours=6."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func UITestArchiveSeed.archive(_:into:)",
+   "hash": "a2a846bac05daf54",
+   "does": "Archives the scored seed session via SessionArchive.archive(_:) (which posts .flowRecoveryArchiveChanged) and NSLogs success; on a thrown error NSLogs the localized description and continues.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive(_:)",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "archive(_:) throws",
+     "effect": "error is logged with NSLog and swallowed; the UI test then runs with an empty archive and fails on the missing Recent strip/History entry rather than on the seed error."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9"
+   }
+  },
+  {
+   "key": "init UITestArchiveSeed.SeededGenerator(seed:)",
+   "hash": "eb0e8850d2da6c48",
+   "does": "Initializes the LCG state to the given seed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestArchiveSeed.SeededGenerator.next()",
+   "hash": "659b86f22b51775e",
+   "does": "Advances the 64-bit LCG (state·6364136223846793005 + 1442695040888963407, wrapping) and returns the upper 31 bits (state >> 33).",
+   "entry": "RandomNumberGenerator protocol witness; called directly by syntheticOvernightPoints.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

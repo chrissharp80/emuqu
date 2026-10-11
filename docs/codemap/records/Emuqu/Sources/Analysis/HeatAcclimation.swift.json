@@ -1,0 +1,290 @@
+{
+ "file": "Emuqu/Sources/Analysis/HeatAcclimation.swift",
+ "hash": "6ed83c794cc168b6",
+ "role": "Pure heat-acclimatization model: humidity-aware shade-WBGT estimate, per-session/daily heat stimulus, asymmetric daily EWMA replay into a 0–100 level, bands, days-to-target and adapted-temperature readouts.",
+ "types": [
+  "HeatAcclimation: enum — pure functions",
+  "HeatAcclimation.Exposure: struct — tempC, relativeHumidity, durationMinutes",
+  "HeatAcclimation.DayInput: struct — date + stimulus",
+  "HeatAcclimation.DaySample: struct — date, level, stimulus",
+  "HeatAcclimation.Band: enum String Codable — notAcclimated/partial/wellAcclimated/fullyAcclimated"
+ ],
+ "state": [],
+ "toplevel": "No state; constants come from HeatConstants (Constants+SleepAndDisplay.swift:316).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HeatAcclimation.saturationVaporPressure(tempC:)",
+   "hash": "acfad7f87b6a9e22",
+   "does": "Magnus-Tetens saturation vapour pressure in hPa: 6.105·exp(17.27·T/(237.7+T)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+   "hash": "3476f8d5e611990c",
+   "does": "Shade WBGT ≈ 0.567·T + 0.393·e + 3.94 with e = clamp(RH,0,100)/100 × saturation pressure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d"
+   }
+  },
+  {
+   "key": "func HeatAcclimation.sessionStimulus(_:)",
+   "hash": "629715979a2be65c",
+   "does": "0–1 session stimulus = min((WBGT-19)/12, 1) × min(minutes/45, 1); 0 when WBGT <= 19 °C or duration < 15 min.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "WBGT above 19 °C threshold",
+     "effect": "false: returns 0; true: computes severity"
+    },
+    {
+     "at": "+12",
+     "cond": "durationMinutes >= 15",
+     "effect": "false: returns 0; true: returns severity × duration factor"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Exposure.durationMinutes is documented as 'Active duration', but both producers (HeatAcclimationCache.workoutForHeat and exposure(from:)) pass wall-clock start→end minutes including pauses, so paused time counts toward the duration factor.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HeatAcclimation.swift:93",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:242",
+      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:341"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98"
+   }
+  },
+  {
+   "key": "func HeatAcclimation.dailyStimulus(_:)",
+   "hash": "8c17d5a1e6846dcc",
+   "does": "Sums session stimuli for the day and caps at 1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7"
+   }
+  },
+  {
+   "key": "func HeatAcclimation.replay(_:)",
+   "hash": "e1077ca31ee12aa0",
+   "does": "Sorts days and replays from level 0: each day level = max(induced, decayed) when stimulus > 0, where induced = 100·s·0.181 + level·0.819 and decayed = level·0.975; else decayed. Returns per-day samples.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each sorted day",
+     "effect": "applies one EWMA step"
+    },
+    {
+     "at": "+10",
+     "cond": "day.stimulus > 0",
+     "effect": "level = max(induced, decayed); else decayed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HeatAcclimation.Band.label",
+   "hash": "60bd8977bb574b4f",
+   "does": "English label for the band (used by the assistant/AI context).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".notAcclimated",
+     "effect": "'Not heat-acclimated'"
+    },
+    {
+     "at": "+3",
+     "cond": ".partial",
+     "effect": "'Partially acclimated'"
+    },
+    {
+     "at": "+4",
+     "cond": ".wellAcclimated",
+     "effect": "'Well acclimated'"
+    },
+    {
+     "at": "+5",
+     "cond": ".fullyAcclimated",
+     "effect": "'Fully acclimated'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HeatAcclimation.Band.localizedLabel",
+   "hash": "0736c903da1f7042",
+   "does": "Localized label for the card via LanguageManager.appBundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".notAcclimated",
+     "effect": "localized 'Not heat-acclimated'"
+    },
+    {
+     "at": "+3",
+     "cond": ".partial",
+     "effect": "localized 'Partially acclimated'"
+    },
+    {
+     "at": "+4",
+     "cond": ".wellAcclimated",
+     "effect": "localized 'Well acclimated'"
+    },
+    {
+     "at": "+5",
+     "cond": ".fullyAcclimated",
+     "effect": "localized 'Fully acclimated'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HeatAcclimation.band(for:)",
+   "hash": "03d8ed2f7bd25bb9",
+   "does": "Maps level to band: <25 not, <60 partial, <85 well, else fully.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "level < 25",
+     "effect": "notAcclimated"
+    },
+    {
+     "at": "+3",
+     "cond": "level < 60",
+     "effect": "partial"
+    },
+    {
+     "at": "+4",
+     "cond": "level < 85",
+     "effect": "wellAcclimated"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "fullyAcclimated"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)",
+   "hash": "b107643c9fe34121",
+   "does": "Days of sustained stimulus needed to reach target (default 85): 0 if already there, nil if the dose ceiling (100×stimulus) is not above target, else ceil(ln((C-target)/(C-current))/ln(1-0.181)) with a minimum of 1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "current < target",
+     "effect": "false: returns 0"
+    },
+    {
+     "at": "+7",
+     "cond": "ceiling > target",
+     "effect": "false: returns nil (unreachable at that dose); true: computes n"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimation.adaptedWBGT(for:)",
+   "hash": "27379f31520320f0",
+   "does": "Adapted shade-WBGT = 19 + level/100 × 11 °C, nil when level < 25.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "level >= 25",
+     "effect": "false: nil; true: returns WBGT"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeatAcclimation.approxAirTempC(fromWBGT:)",
+   "hash": "c27af2ab39c7ca2e",
+   "does": "Inverts the WBGT relation at 50 % RH by 12 fixed-point iterations seeded at the WBGT value; returns the approximate air temperature (error ~0.13 °C at WBGT 30, since the iteration only oscillates toward the root).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for 12 iterations",
+     "effect": "T = (WBGT - 0.393·0.5·es(T) - 3.94)/0.567"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.saturationVaporPressure(tempC:)": "a0fb4be99335b69d"
+   }
+  }
+ ],
+ "deps": {}
+}

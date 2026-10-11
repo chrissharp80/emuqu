@@ -1,0 +1,302 @@
+{
+ "file": "EmuquTests/CloudKitSyncStateTests.swift",
+ "hash": "aa16fdb770c9fc5c",
+ "role": "Unit tests for CloudKitSyncState persistence (uploaded set and pending queue round-trip, save-before-load guard and merge, corrupted file) and its mark* mutation helpers, using a per-test temp directory.",
+ "types": [
+  "CloudKitSyncStateTests: class — XCTestCase for CloudKitSyncState"
+ ],
+ "state": [
+  "tempDir: lazy per-test directory tmp/CloudKitSyncStateTests_<uuid>"
+ ],
+ "toplevel": "The lazy tempDir initializer creates a unique temp directory on first access.",
+ "flags": [],
+ "units": [
+  {
+   "key": "let CloudKitSyncStateTests.tempDir",
+   "hash": "868c9949d0f49e69",
+   "does": "Lazily creates and returns tmp/CloudKitSyncStateTests_<uuid>, ignoring a creation error.",
+   "entry": "Lazy stored-property initializer, run on first access of tempDir",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.tearDown()",
+   "hash": "304fd8ff5c20466a",
+   "does": "Removes the per-test temp directory (error ignored) and calls super.tearDown.",
+   "entry": "XCTest per-test tearDown override",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/ (deleted)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir": "a46b528fb0916557"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.makeSyncState()",
+   "hash": "56f5aae509f65a24",
+   "does": "Builds a CloudKitSyncState whose sync_state.json lives in tempDir.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)": "d9fba658d4c49cb0",
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir": "a46b528fb0916557"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testSaveAndLoadSyncState()",
+   "hash": "99f36291382de607",
+   "does": "Loads an empty state, stores two uploaded ids and saves, then asserts a fresh state loaded from the same file holds exactly those two ids.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/sync_state.json",
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by loadAll)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "657c3f46133a6920",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "b8e9b0f58f0dd232",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "9504a40bcb7d8aea",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "4b9d91d2dd778a9c",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testSaveAndLoadPendingQueue()",
+   "hash": "569a3659e7a13831",
+   "does": "Loads, sets one pending id, saves the pending queue, and asserts a fresh loaded state contains it.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/pending_uploads.json",
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by loadAll)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "657c3f46133a6920",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "b8e9b0f58f0dd232",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "9504a40bcb7d8aea",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueue()": "24930bf90ddc7e31",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testSaveBeforeLoadKeepsFileAndLoadMergesEarlyMarks()",
+   "hash": "1adf5f7305ec621c",
+   "does": "Saves one stored id, then on a not-yet-loaded state marks another id and calls saveSyncState (which must be skipped), loads and asserts the in-memory set is the union while the file still holds only the stored id.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/sync_state.json",
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by loadAll)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "657c3f46133a6920",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "b8e9b0f58f0dd232",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "9504a40bcb7d8aea",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "4b9d91d2dd778a9c",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "5ae5c8d7c99fa0e5",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testMarkUploadedMovesFromPendingToUploaded()",
+   "hash": "a6b074e622a3d99a",
+   "does": "Asserts markUploaded moves an id from pending to uploaded and clears its failure count.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "a31119e0ec464463",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testMarkFailedAddsToPendingAndIncrementsCount()",
+   "hash": "67220a094c0005ec",
+   "does": "Asserts markFailed adds the id to pending with count 1 and a second call increments to 2.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testMarkRemovedClearsFromUploaded()",
+   "hash": "2efa176aefe5fb5e",
+   "does": "Asserts markRemoved takes the id out of uploaded and adds it to pending.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "b25b3f650720f2b1",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testMarkDeletedLeavesNothingToPush()",
+   "hash": "321756d61d36b6c7",
+   "does": "Asserts markDeleted after markFailed leaves the id in neither uploaded nor pending and clears its failure count.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5423f0d392aeff36",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "8d2ca1f8610499aa",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testLoadAllWithNoFilesStartsEmpty()",
+   "hash": "72d11568f634f228",
+   "does": "Asserts loadAll with no files on disk leaves uploaded, pending and failure counts empty.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by loadAll)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "657c3f46133a6920",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "b8e9b0f58f0dd232",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "9504a40bcb7d8aea",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4"
+   }
+  },
+  {
+   "key": "func CloudKitSyncStateTests.testLoadSyncStateHandlesCorruptedFile()",
+   "hash": "482f75a9a82d1a25",
+   "does": "Writes 'not json' to sync_state.json, loads, and asserts the uploaded set is empty (decode error swallowed).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CloudKitSyncStateTests_<uuid>/sync_state.json",
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by loadAll)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "657c3f46133a6920",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadPendingQueue()": "b8e9b0f58f0dd232",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadQuarantineQueue()": "bf4f42ce369dff62",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadSyncState()": "9504a40bcb7d8aea",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.readUUIDs(at:label:)": "4c29dc3f0c59462c",
+    "EmuquTests/CloudKitSyncStateTests.swift::func CloudKitSyncStateTests.makeSyncState()": "db8bb11970c72ad4",
+    "EmuquTests/CloudKitSyncStateTests.swift::let CloudKitSyncStateTests.tempDir": "a46b528fb0916557"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,251 @@
+{
+ "file": "EmuquTests/ArchiveMigrationParityTests.swift",
+ "hash": "363f9e12884f4d71",
+ "role": "XCTest suite checking SessionArchive.runDeferredMigrations is idempotent and does not drop or corrupt an archived index entry, using a private temp archive with merge mode off.",
+ "types": [
+  "ArchiveMigrationParityTests: class — XCTestCase for archive migration parity"
+ ],
+ "state": [
+  "mem:ArchiveMigrationParityTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)",
+  "file:FileManager.temporaryDirectory/ArchiveMigrationParityTests-<UUID>",
+  "mem:ArchiveMigrationParityTests.archive (lazy, replaced in setUp)"
+ ],
+ "toplevel": "archiveDirectory per-instance temp URL; lazy archive = SessionArchive(directory:) (production settings providers) which setUp immediately replaces with an injected 22:00/8h schedule and merge mode .off.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "The migrations under test are gated by UserDefaults.standard done-flags shared with the app host (runIndexMigration returns 0 when the flag is set); after the first run in the process — or any prior launch of the host app on the simulator — every migration is a no-op, so both tests can pass without exercising any migration. The tests also set those real flags in the host's defaults.",
+   "evidence": [
+    "EmuquTests/ArchiveMigrationParityTests.swift:91",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift:76",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift:87"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ArchiveMigrationParityTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Class setUp: saves NSTimeZone.default and pins it to UTC.",
+   "entry": "XCTest: class setUp()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchiveMigrationParityTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Class tearDown: restores the saved zone and clears it.",
+   "entry": "XCTest: class tearDown()",
+   "calls": [
+    "ext:NSTimeZone.default"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:ArchiveMigrationParityTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a zone was saved",
+     "effect": "restores it; else leaves default as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.setUp() #2",
+   "hash": "799eefedd4b097e3",
+   "does": "Per-test setUp: replaces archive with SessionArchive(directory:, 22:00/8h schedule, merge mode .off) and resets testSessionIds.",
+   "entry": "XCTest: instance setUp()",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The injected merge mode .off makes removeDuplicates (one of the seven steps of runDeferredMigrations) return immediately, so the duplicate-quarantine migration is never exercised by this suite.",
+     "evidence": [
+      "EmuquTests/ArchiveMigrationParityTests.swift:64",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:286"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.tearDown() #2",
+   "hash": "e27d04ab6c7e13eb",
+   "does": "Per-test tearDown: try? deletes recorded sessions (errors swallowed) and removes the temp directory.",
+   "entry": "XCTest: instance tearDown()",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
+    "ud:archive.deletionTimes (UserDefaults.standard, via ArchiveStore.recordDeletionTime)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each recorded id",
+     "effect": "try? delete; errors ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.testRunDeferredMigrationsIsIdempotent()",
+   "hash": "2b18febd5a7506b3",
+   "does": "Archives a bare overnight session, runs runDeferredMigrations twice and asserts fileHash, recoveryScore, meanRMSSD and endDate are equal after the first and second runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()"
+   ],
+   "reads": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
+    "kc:EncryptionManager archive key",
+    "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
+   ],
+   "writes": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Fixture session has no RR series, analysis or sleep snapshot, so the backfill migrations have nothing to patch; equality of nil fields across runs is trivially true.",
+     "evidence": [
+      "EmuquTests/ArchiveMigrationParityTests.swift:140",
+      "EmuquTests/ArchiveMigrationParityTests.swift:97"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The class doc says each case archives a session whose index entry is in the pre-migration shape and asserts the post-migration shape; neither test builds a pre-migration entry (the fixture is archived with a current, complete entry) nor asserts any migrated field.",
+     "evidence": [
+      "EmuquTests/ArchiveMigrationParityTests.swift:16",
+      "EmuquTests/ArchiveMigrationParityTests.swift:18",
+      "EmuquTests/ArchiveMigrationParityTests.swift:86",
+      "EmuquTests/ArchiveMigrationParityTests.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "4f6a66270b66d262"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.testArchivedEntryPreservedAcrossMigrations()",
+   "hash": "34c9c11398843202",
+   "does": "Archives a session, runs runDeferredMigrations once, and asserts the entry still exists with the same id/date/type and the file is still readable via retrieveLightweightOrLog.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
+    "kc:EncryptionManager archive key",
+    "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
+   ],
+   "writes": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "entry found before migration",
+     "effect": "continues; else XCTFail and return"
+    },
+    {
+     "at": "+11",
+     "cond": "entry found after migration",
+     "effect": "asserts fields and readability; else XCTFail('dropped') and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "4f6a66270b66d262"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.makeCompletedSession()",
+   "hash": "b133e9c9ded47428",
+   "does": "Returns an overnight HRVSession starting 8 h ago and ending now, with no RR data or analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar date(byAdding: -8h) returns nil",
+     "effect": "start = now; else 8 h ago"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  }
+ ],
+ "deps": {}
+}

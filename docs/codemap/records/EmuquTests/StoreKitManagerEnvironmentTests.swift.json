@@ -1,0 +1,78 @@
+{
+ "file": "EmuquTests/StoreKitManagerEnvironmentTests.swift",
+ "hash": "fb464f44091a12fe",
+ "role": "XCTest suite pinning how a verified AppTransaction environment maps to the developer-install (Xcode) and beta-tester (production) routes in StoreKitManager.",
+ "types": [
+  "StoreKitManagerEnvironmentTests: class — XCTestCase for StoreKitManager environment mapping"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StoreKitManagerEnvironmentTests.testSandboxGrantsNothing()",
+   "hash": "dff68db2a4d46f7a",
+   "does": "Asserts verifiedXcodeInstall(.sandbox) is nil (sandbox/App Review grants nothing).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "69cdf6edf12aa185"
+   }
+  },
+  {
+   "key": "func StoreKitManagerEnvironmentTests.testXcodeIsADeveloperInstall()",
+   "hash": "94f63c232341565e",
+   "does": "Asserts verifiedXcodeInstall(.xcode) is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "69cdf6edf12aa185"
+   }
+  },
+  {
+   "key": "func StoreKitManagerEnvironmentTests.testProductionClearsTheDeveloperInstallRecord()",
+   "hash": "588c94db4216bb74",
+   "does": "Asserts verifiedXcodeInstall(.production) is false (clears the developer-install record).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "69cdf6edf12aa185"
+   }
+  },
+  {
+   "key": "func StoreKitManagerEnvironmentTests.testOnlyProductionLetsABetaAnchorIn()",
+   "hash": "12039e05cba446b9",
+   "does": "Asserts verifiedProductionInstall is true for production and false for sandbox and xcode.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)": "6a940270930c94ec"
+   }
+  }
+ ],
+ "deps": {}
+}

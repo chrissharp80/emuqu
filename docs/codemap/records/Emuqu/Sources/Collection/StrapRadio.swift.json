@@ -1,0 +1,578 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapRadio.swift",
+ "hash": "116ff9c2e7bf55f2",
+ "role": "The app's whole strap surface (17 calls) as the StrapRadio protocol, and StrapAPI, the production conformer that forwards live HR to StandardHeartRateLink and every other call to the Polar SDK; tests substitute FakeStrapRadio via PolarManager.radioForTesting.",
+ "types": [
+  "StrapRadio: protocol (Sendable) — connection, streaming, H10 exercise and Verity offline-recording calls",
+  "StrapAPI: struct (StrapRadio, @unchecked Sendable) — wraps PolarBleApi + StandardHeartRateLink"
+ ],
+ "state": [],
+ "toplevel": "Whole file under #if canImport(PolarBleSdk). StrapAPI instances are built per access by PolarManager.strapAPI (PolarManager.swift:436).",
+ "flags": [],
+ "units": [
+  {
+   "key": "requirement StrapRadio.connectToDevice(_:)",
+   "hash": "7c3af60c4d694941",
+   "does": "Protocol requirement: connect to a strap by id.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapDiscoveryCoordinator.swift:150, StrapLinkCoordinator.swift:239.",
+   "calls": [
+    "dyn:StrapRadio.connectToDevice → Emuqu/Sources/Collection/StrapRadio.swift:81|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.connectToDevice(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.connectToDevice(_:)": "229b0ed4a3564a9d",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.connectToDevice(_:)": "a0d7707a9ca9147e"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.disconnectFromDevice(_:)",
+   "hash": "38d5372f2ab8cf3f",
+   "does": "Protocol requirement: disconnect a strap.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapDiscoveryCoordinator.swift:171,193, StrapLinkCoordinator.swift:544.",
+   "calls": [
+    "dyn:StrapRadio.disconnectFromDevice → Emuqu/Sources/Collection/StrapRadio.swift:82|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.disconnectFromDevice(_:)": "fcc07fbea78ae69e",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)": "a6dbc003f55f882e"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.searchForDevice()",
+   "hash": "1ec8a82abc9666c3",
+   "does": "Protocol requirement: stream scan results.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapDiscoveryCoordinator.swift:80.",
+   "calls": [
+    "dyn:StrapRadio.searchForDevice → Emuqu/Sources/Collection/StrapRadio.swift:83|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.searchForDevice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.searchForDevice()": "4b689591b288fe5b",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.searchForDevice()": "5d79dd4da360a8a5"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.startHrStreaming(_:peripheralId:)",
+   "hash": "563f3cfce60280b8",
+   "does": "Protocol requirement: open the live HR stream (standard HR service) on a peripheral.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapHeartRateFeed.swift:137.",
+   "calls": [
+    "dyn:StrapRadio.startHrStreaming → Emuqu/Sources/Collection/StrapRadio.swift:85|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startHrStreaming(_:peripheralId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.startHrStreaming(_:peripheralId:)": "14c5f1ffaa8192cd",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startHrStreaming(_:peripheralId:)": "14ffad7ecc29ca1d"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.startPpiStreaming(_:)",
+   "hash": "aaccfeb88cb77848",
+   "does": "Protocol requirement: open the Verity PPI stream.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapHeartRateFeed.swift:139.",
+   "calls": [
+    "dyn:StrapRadio.startPpiStreaming → Emuqu/Sources/Collection/StrapRadio.swift:91|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startPpiStreaming(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.startPpiStreaming(_:)": "b3dc1850b27977e9",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startPpiStreaming(_:)": "023b37102f4a876b"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.startRecording(_:exerciseId:interval:sampleType:)",
+   "hash": "ebce54a47f221e03",
+   "does": "Protocol requirement: start H10 internal exercise recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:198.",
+   "calls": [
+    "dyn:StrapRadio.startRecording → Emuqu/Sources/Collection/StrapRadio.swift:95|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startRecording(_:exerciseId:interval:sampleType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.startRecording(_:exerciseId:interval:sampleType:)": "91e9f19d08733812",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startRecording(_:exerciseId:interval:sampleType:)": "4f0ef34178ed4ab5"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.stopRecording(_:)",
+   "hash": "3aa4466d5f54f46c",
+   "does": "Protocol requirement: stop H10 recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapRecordingCoordinator+Transfer.swift:238.",
+   "calls": [
+    "dyn:StrapRadio.stopRecording → Emuqu/Sources/Collection/StrapRadio.swift:101|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.stopRecording(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.stopRecording(_:)": "004fdd27e5062141",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.stopRecording(_:)": "4b06f6bd1ce07d47"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.requestRecordingStatus(_:)",
+   "hash": "28103e4606ca8caa",
+   "does": "Protocol requirement: read H10 recording status.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:435.",
+   "calls": [
+    "dyn:StrapRadio.requestRecordingStatus → Emuqu/Sources/Collection/StrapRadio.swift:103|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.requestRecordingStatus(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.requestRecordingStatus(_:)": "1300377b03abdebc",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.requestRecordingStatus(_:)": "2393f291c7568cea"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.listExercises(_:)",
+   "hash": "c228142dd5fa4c1b",
+   "does": "Protocol requirement: list H10 stored exercises.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:312.",
+   "calls": [
+    "dyn:StrapRadio.listExercises → Emuqu/Sources/Collection/StrapRadio.swift:107|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listExercises(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.listExercises(_:)": "ca18b86d845feb9c",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listExercises(_:)": "883f3b10441a20ce"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.fetchExercise(_:entry:)",
+   "hash": "7abd1186c22e9119",
+   "does": "Protocol requirement: download one H10 exercise.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at StrapRecordingCoordinator+Transfer.swift:444.",
+   "calls": [
+    "dyn:StrapRadio.fetchExercise → Emuqu/Sources/Collection/StrapRadio.swift:111|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.fetchExercise(_:entry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.fetchExercise(_:entry:)": "582822aa15cac65f",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.fetchExercise(_:entry:)": "1983c1286a15b66c"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.removeExercise(_:entry:)",
+   "hash": "545f2f7b8b799dd3",
+   "does": "Protocol requirement: delete one H10 exercise.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:273.",
+   "calls": [
+    "dyn:StrapRadio.removeExercise → Emuqu/Sources/Collection/StrapRadio.swift:115|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeExercise(_:entry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.removeExercise(_:entry:)": "dda23db091442716",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeExercise(_:entry:)": "7cfeab2e85bc7c36"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.startOfflineRecording(_:feature:settings:secret:)",
+   "hash": "d168fb5236fcc12e",
+   "does": "Protocol requirement: start Verity offline recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+VeritySense.swift:33.",
+   "calls": [
+    "dyn:StrapRadio.startOfflineRecording → Emuqu/Sources/Collection/StrapRadio.swift:119|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startOfflineRecording(_:feature:settings:secret:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.startOfflineRecording(_:feature:settings:secret:)": "e7feac3f778d5494",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startOfflineRecording(_:feature:settings:secret:)": "27019a8c62391233"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.stopOfflineRecording(_:feature:)",
+   "hash": "9aace36203cc7f48",
+   "does": "Protocol requirement: stop Verity offline recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:425.",
+   "calls": [
+    "dyn:StrapRadio.stopOfflineRecording → Emuqu/Sources/Collection/StrapRadio.swift:126|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.stopOfflineRecording(_:feature:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.stopOfflineRecording(_:feature:)": "fbbc7c283040c800",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.stopOfflineRecording(_:feature:)": "9516e1d885dec8cf"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.getOfflineRecordingStatus(_:)",
+   "hash": "56d3f81f5614c31c",
+   "does": "Protocol requirement: read Verity offline status.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:345.",
+   "calls": [
+    "dyn:StrapRadio.getOfflineRecordingStatus → Emuqu/Sources/Collection/StrapRadio.swift:130|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.getOfflineRecordingStatus(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.getOfflineRecordingStatus(_:)": "90aa51ea8d687117",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.getOfflineRecordingStatus(_:)": "0eefb2117f14c911"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.listOfflineRecordings(_:)",
+   "hash": "e203842b2a2d6cae",
+   "does": "Protocol requirement: list Verity offline recordings.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:293.",
+   "calls": [
+    "dyn:StrapRadio.listOfflineRecordings → Emuqu/Sources/Collection/StrapRadio.swift:134|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.listOfflineRecordings(_:)": "ec5c59b89712341e",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.listOfflineRecordings(_:)": "c94c55e59839bb88"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.getOfflineRecord(_:entry:secret:)",
+   "hash": "55bff6b58715d405",
+   "does": "Protocol requirement: download one Verity offline recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+VeritySense.swift:140.",
+   "calls": [
+    "dyn:StrapRadio.getOfflineRecord → Emuqu/Sources/Collection/StrapRadio.swift:138|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.getOfflineRecord(_:entry:secret:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.getOfflineRecord(_:entry:secret:)": "5a0e90fc8f675d8f",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.getOfflineRecord(_:entry:secret:)": "c3d76f715fa76685"
+   }
+  },
+  {
+   "key": "requirement StrapRadio.removeOfflineRecord(_:entry:)",
+   "hash": "3f4f099189c1c5aa",
+   "does": "Protocol requirement: delete one Verity offline recording.",
+   "entry": "Called through `any StrapRadio` (manager.strapAPI) at PolarManager+Recording.swift:304.",
+   "calls": [
+    "dyn:StrapRadio.removeOfflineRecord → Emuqu/Sources/Collection/StrapRadio.swift:144|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.removeOfflineRecord(_:entry:)": "36242175419f5317",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.removeOfflineRecord(_:entry:)": "123fef953ac6f902"
+   }
+  },
+  {
+   "key": "func StrapAPI.connectToDevice(_:)",
+   "hash": "0473f5a8e1889cef",
+   "does": "Forwards connect to a strap by id to PolarBleApi.connectToDevice unchanged.",
+   "entry": "Witness for StrapRadio.connectToDevice; called at StrapDiscoveryCoordinator.swift:150, StrapLinkCoordinator.swift:239.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.connectToDevice"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar connectToDevice"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.disconnectFromDevice(_:)",
+   "hash": "9fb3bb3698558de5",
+   "does": "Forwards disconnect a strap to PolarBleApi.disconnectFromDevice unchanged.",
+   "entry": "Witness for StrapRadio.disconnectFromDevice; called at StrapDiscoveryCoordinator.swift:171,193, StrapLinkCoordinator.swift:544.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.disconnectFromDevice"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar disconnectFromDevice"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.searchForDevice()",
+   "hash": "97ce0d6d69a45a97",
+   "does": "Forwards stream scan results to PolarBleApi.searchForDevice unchanged.",
+   "entry": "Witness for StrapRadio.searchForDevice; called at StrapDiscoveryCoordinator.swift:80.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.searchForDevice"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar searchForDevice"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.startHrStreaming(_:peripheralId:)",
+   "hash": "f5e2786d7fefde12",
+   "does": "Returns StandardHeartRateLink.samples(peripheralId:) — live HR from the standard Heart Rate Service on the given peripheral; the device identifier is ignored.",
+   "entry": "Witness for StrapRadio.startHrStreaming, called from StrapHeartRateFeed.openAndDrain (StrapHeartRateFeed.swift:137).",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.samples(peripheralId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Heart Rate Measurement 2A37"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.samples(peripheralId:)": "27fc6864db84d96d"
+   }
+  },
+  {
+   "key": "func StrapAPI.startPpiStreaming(_:)",
+   "hash": "17041d6f4c03ec30",
+   "does": "Forwards open the Verity PPI stream to PolarBleApi.startPpiStreaming unchanged.",
+   "entry": "Witness for StrapRadio.startPpiStreaming; called at StrapHeartRateFeed.swift:139.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.startPpiStreaming"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar startPpiStreaming"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.startRecording(_:exerciseId:interval:sampleType:)",
+   "hash": "4befc79616822962",
+   "does": "Forwards start H10 internal exercise recording to PolarBleApi.startRecording unchanged.",
+   "entry": "Witness for StrapRadio.startRecording; called at PolarManager+Recording.swift:198.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.startRecording"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar startRecording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.stopRecording(_:)",
+   "hash": "16466d98f54e73ee",
+   "does": "Forwards stop H10 recording to PolarBleApi.stopRecording unchanged.",
+   "entry": "Witness for StrapRadio.stopRecording; called at StrapRecordingCoordinator+Transfer.swift:238.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.stopRecording"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar stopRecording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.requestRecordingStatus(_:)",
+   "hash": "9666685c38157652",
+   "does": "Forwards read H10 recording status to PolarBleApi.requestRecordingStatus unchanged.",
+   "entry": "Witness for StrapRadio.requestRecordingStatus; called at PolarManager+Recording.swift:435.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.requestRecordingStatus"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar requestRecordingStatus"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.listExercises(_:)",
+   "hash": "d0e9dce2dbbd4337",
+   "does": "Forwards list H10 stored exercises to PolarBleApi.listExercises unchanged.",
+   "entry": "Witness for StrapRadio.listExercises; called at PolarManager+Recording.swift:312.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.listExercises"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar listExercises"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.fetchExercise(_:entry:)",
+   "hash": "7c9233863949f89d",
+   "does": "Forwards download one H10 exercise to PolarBleApi.fetchExercise unchanged.",
+   "entry": "Witness for StrapRadio.fetchExercise; called at StrapRecordingCoordinator+Transfer.swift:444.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.fetchExercise"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar fetchExercise"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.removeExercise(_:entry:)",
+   "hash": "59dd25715f8330eb",
+   "does": "Forwards delete one H10 exercise to PolarBleApi.removeExercise unchanged.",
+   "entry": "Witness for StrapRadio.removeExercise; called at PolarManager+Recording.swift:273.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.removeExercise"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar removeExercise"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.startOfflineRecording(_:feature:settings:secret:)",
+   "hash": "10179f7cecd4792f",
+   "does": "Forwards start Verity offline recording to PolarBleApi.startOfflineRecording unchanged.",
+   "entry": "Witness for StrapRadio.startOfflineRecording; called at PolarManager+VeritySense.swift:33.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.startOfflineRecording"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar startOfflineRecording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.stopOfflineRecording(_:feature:)",
+   "hash": "c280dfcec306df8c",
+   "does": "Forwards stop Verity offline recording to PolarBleApi.stopOfflineRecording unchanged.",
+   "entry": "Witness for StrapRadio.stopOfflineRecording; called at PolarManager+Recording.swift:425.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.stopOfflineRecording"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar stopOfflineRecording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.getOfflineRecordingStatus(_:)",
+   "hash": "bb8008e81085d869",
+   "does": "Forwards read Verity offline status to PolarBleApi.getOfflineRecordingStatus unchanged.",
+   "entry": "Witness for StrapRadio.getOfflineRecordingStatus; called at PolarManager+Recording.swift:345.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.getOfflineRecordingStatus"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar getOfflineRecordingStatus"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.listOfflineRecordings(_:)",
+   "hash": "6c876861f853bb50",
+   "does": "Forwards list Verity offline recordings to PolarBleApi.listOfflineRecordings unchanged.",
+   "entry": "Witness for StrapRadio.listOfflineRecordings; called at PolarManager+Recording.swift:293.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.listOfflineRecordings"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar listOfflineRecordings"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.getOfflineRecord(_:entry:secret:)",
+   "hash": "40045a66f7a5a04c",
+   "does": "Forwards download one Verity offline recording to PolarBleApi.getOfflineRecord unchanged.",
+   "entry": "Witness for StrapRadio.getOfflineRecord; called at PolarManager+VeritySense.swift:140.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.getOfflineRecord"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar getOfflineRecord"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapAPI.removeOfflineRecord(_:entry:)",
+   "hash": "22066b0b317a00a2",
+   "does": "Forwards delete one Verity offline recording to PolarBleApi.removeOfflineRecord unchanged.",
+   "entry": "Witness for StrapRadio.removeOfflineRecord; called at PolarManager+Recording.swift:304.",
+   "calls": [
+    "ext:PolarBleSdk.PolarBleApi.removeOfflineRecord"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:Polar removeOfflineRecord"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

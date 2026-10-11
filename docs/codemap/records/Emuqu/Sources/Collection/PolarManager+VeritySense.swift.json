@@ -1,0 +1,301 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarManager+VeritySense.swift",
+ "hash": "c8ef0736672f1a49",
+ "role": "StrapRecordingCoordinator extension for the Verity Sense offline-PPI recording: arming it, reading all completed recordings (read-only, failure-tolerant, joined into one series), and converting SDK PPI data through the shared StrapPPIFilter; declares OfflinePpiRead.",
+ "types": [
+  "StrapRecordingCoordinator: extension — Verity Sense offline PPI",
+  "OfflinePpiRead: struct — listed count, joined points, failed count, earliest start"
+ ],
+ "state": [],
+ "toplevel": "SDK-dependent members inside #if canImport(PolarBleSdk); without the SDK startOfflinePpiRecording/fetchOfflinePpiRecording throw sdkNotAvailable.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapRecordingCoordinator.startOfflinePpiRecording()",
+   "hash": "057e924985ae12f7",
+   "does": "Requires api, device id and .connected state plus offlineRecording usable, then arms the offline PPI recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.armOfflinePpiRecording(api:deviceId:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapAPI nil, no device id, or connectionState != .connected",
+     "effect": "throw PolarError.notConnected (recordingState set to .starting by the caller is left as is)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.armOfflinePpiRecording(api:deviceId:)": "14774846e1e18fab",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.armOfflinePpiRecording(api:deviceId:)",
+   "hash": "d3ff97917433ad97",
+   "does": "Sets recordingState .starting, calls api.startOfflineRecording(ppi), and on success sets .recording and isRecordingOnDevice true; on failure surfaces a humanized error and rethrows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.surfaceOfflineRecordingStartFailure(_:)",
+    "dyn:StrapRadio.startOfflineRecording → Emuqu/Sources/Collection/StrapRadio.swift:119|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startOfflineRecording(_:feature:settings:secret:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.recordingState",
+    "mem:PolarManager.isRecordingOnDevice",
+    "ble:Verity Sense offline PPI recording (started)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "startOfflineRecording throws",
+     "effect": "surfaceOfflineRecordingStartFailure (state .idle, lastError) then rethrow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.surfaceOfflineRecordingStartFailure(_:)": "7ec41be2e7aaecd6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.surfaceOfflineRecordingStartFailure(_:)",
+   "hash": "4b7c1d9f73aafa0c",
+   "does": "Logs the failure, sets recordingState .idle and lastError = recordingFailed(humanized message).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizeStartFailure(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.recordingState",
+    "mem:PolarManager.lastError"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same idle-reset + humanized recordingFailed pattern as surfaceH10StartFailure, but without the battery-too-low mapping, so a Verity refusing for low battery shows a generic 'Recording failed' instead of strapBatteryTooLow.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager+VeritySense.swift:51",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:208"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizeStartFailure(_:)": "1fa47d375eaaa0e7",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.fetchOfflinePpiRecording(requireEveryEntry:recordedSince:)",
+   "hash": "651bf6b8bb84088a",
+   "does": "Reads the Verity's completed offline PPI recordings (optionally only those started since recordedSince) without deleting anything; throws noRecordingFound when none listed, fetchFailed when any failed and either requireEveryEntry or nothing downloaded; otherwise returns the joined points dated at the earliest listed start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.readAllOfflinePpi(api:deviceId:since:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ble:Verity Sense offline recordings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapAPI or connectedDeviceId nil",
+     "effect": "throw notConnected"
+    },
+    {
+     "at": "+5",
+     "cond": "no recordings listed",
+     "effect": "throw noRecordingFound"
+    },
+    {
+     "at": "+6",
+     "cond": "some entries failed and (requireEveryEntry or no points at all)",
+     "effect": "throw fetchFailed('N of M recordings did not download'); with requireEveryEntry false and some points, the partial read is returned and only logged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "With requireEveryEntry false (the morning/transfer path via readVeritySenseRecording, StrapRecordingCoordinator+Transfer.swift:482) a read where some recordings failed returns the remaining beats as a complete recording; the missing part is only in the debug log.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager+VeritySense.swift:73",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:482"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.readAllOfflinePpi(api:deviceId:since:)": "e95c9623587af252",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.readAllOfflinePpi(api:deviceId:since:)",
+   "hash": "ed8f969da7886408",
+   "does": "Lists PPI entries, keeps those with date ≥ since (all when nil), sorts oldest first, reads each (failures counted and skipped), re-bases each recording's t_ms to continue after the previous one, and returns OfflinePpiRead(count, points, failed, start: earliest listed date).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.readOfflinePpiEntry(api:deviceId:entry:)",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.continuing(_:after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "since is nil (?? true)",
+     "effect": "no date filter"
+    },
+    {
+     "at": "+8",
+     "cond": "for each entry, oldest first",
+     "effect": "read and append"
+    },
+    {
+     "at": "+9",
+     "cond": "readOfflinePpiEntry returned nil (download failed)",
+     "effect": "failed += 1, continue"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "start is taken from entries.first even when that first (earliest) recording failed to download, so the returned StrapRecording.startedAt predates its first point; consumers place the beats on the session clock from startedAt and mark that start in the download ledger (StrapRecordingCoordinator+Transfer.swift:147-149).",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager+VeritySense.swift:99",
+      "Emuqu/Sources/Collection/PolarManager+VeritySense.swift:105",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:147"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "73ab72fa9690a88b",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.continuing(_:after:)": "6dbdd533f0bda53f",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.readOfflinePpiEntry(api:deviceId:entry:)": "a693674bb77cf3bd"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.continuing(_:after:)",
+   "hash": "f0cee91def8ecdf2",
+   "does": "Shifts a recording's points so its first t_ms continues at the previous series' end (no gap inserted); returns points unchanged when there is no earlier series or no offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "earlier series empty or points empty",
+     "effect": "return points unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "offset == 0",
+     "effect": "return as is; else map shifted(by: offset)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.readOfflinePpiEntry(api:deviceId:entry:)",
+   "hash": "8f93072c34f46db9",
+   "does": "Downloads one offline record and converts it to quality-filtered RRPoints; any error is logged and returned as nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchOfflineRecord(api:deviceId:entry:)",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.convertOfflinePpiToRRPoints(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "fetch/convert throws",
+     "effect": "log and return nil (counted as failed by the caller)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.convertOfflinePpiToRRPoints(_:)": "1adc94a7c4c4bce0",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchOfflineRecord(api:deviceId:entry:)": "2f237c7fb80ab1e0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StrapRecordingCoordinator.fetchOfflineRecord(api:deviceId:entry:)",
+   "hash": "dc0a0449fbb975b6",
+   "does": "Returns api.getOfflineRecord(deviceId, entry, secret: nil).",
+   "entry": null,
+   "calls": [
+    "dyn:StrapRadio.getOfflineRecord → Emuqu/Sources/Collection/StrapRadio.swift:138|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.getOfflineRecord(_:entry:secret:)"
+   ],
+   "reads": [
+    "ble:Verity Sense offline record download"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapRecordingCoordinator.convertOfflinePpiToRRPoints(_:)",
+   "hash": "a4eb2276a7bc2b64",
+   "does": "Extracts PPI samples from PolarOfflineRecordingData and runs them through StrapPPIFilter.rrPoints (same gates as live streaming); non-PPI data yields [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "data is not .ppiOfflineRecordingData",
+     "effect": "log and return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

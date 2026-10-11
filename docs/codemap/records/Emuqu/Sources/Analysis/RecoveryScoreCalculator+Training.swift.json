@@ -1,0 +1,81 @@
+{
+ "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift",
+ "hash": "e01231502ba24f45",
+ "role": "Extension of RecoveryScoreCalculator computing Foster monotony and strain from daily TRIMP over the trailing 7 calendar days (used by the Load & Trajectory surface and training advice, not the recovery score).",
+ "types": [
+  "RecoveryScoreCalculator: extension — Foster monotony/strain"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+   "hash": "bd139c1c528a3271",
+   "does": "Builds the 7 start-of-day dates ending at referenceDate (Calendar.current), reads dailyTrimp per date (missing=0), returns (monotony, strain=sum*monotony) or nil when fewer than 7 dates could be built or the week's sum is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "last7.count == 7",
+     "effect": "false (calendar discontinuity) returns nil"
+    },
+    {
+     "at": "+13",
+     "cond": "dailyTrimp[day] ?? 0.0",
+     "effect": "day missing from dict counts as 0 load"
+    },
+    {
+     "at": "+15",
+     "cond": "sum > 0",
+     "effect": "false returns nil (no training)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Lookup is by exact Date key equal to Calendar.current.startOfDay; any dailyTrimp key not normalised to local start-of-day (or built under a different time zone) silently reads as 0 load.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift:34",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCalculator.cappedMonotony(of:sum:)",
+   "hash": "6ad81527bb29d0e2",
+   "does": "Monotony = mean/SD (population SD) of values, capped at Training.monotonyCap; cap also returned when SD==0 or values empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "days > 0",
+     "effect": "false (empty array) returns monotonyCap — unreachable from the only caller, which guarantees 7 values"
+    },
+    {
+     "at": "+5",
+     "cond": "sd > 0",
+     "effect": "true: mean/sd; false: monotonyCap; then min(raw, cap)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

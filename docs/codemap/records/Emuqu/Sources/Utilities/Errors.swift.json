@@ -1,0 +1,132 @@
+{
+ "file": "Emuqu/Sources/Utilities/Errors.swift",
+ "hash": "d90e362650e094b1",
+ "role": "Defines PipelineError (HRV analysis failure categories with log descriptions) and the attempt/sleepQuietly helpers that replace try? with a logged swallow.",
+ "types": [
+  "PipelineError: enum (Error, LocalizedError) — analysis pipeline failure kinds"
+ ],
+ "state": [],
+ "toplevel": "Free functions attempt<T> and sleepQuietly.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PipelineError.errorDescription",
+   "hash": "4b0eb7933faec9e4",
+   "does": "Returns a short English description per PipelineError case with the session UUID's first 8 chars.",
+   "entry": "LocalizedError witness; read via error.localizedDescription in HRVAnalysisPipeline+Metrics.swift:134",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "noRRSeries",
+     "effect": "'No RR series for session …'"
+    },
+    {
+     "at": "+4",
+     "cond": "timeDomainFailed",
+     "effect": "'Time domain analysis failed … window [s-e]'"
+    },
+    {
+     "at": "+6",
+     "cond": "nonlinearFailed",
+     "effect": "'Nonlinear analysis failed …'"
+    },
+    {
+     "at": "+8",
+     "cond": "windowSelectionFailed",
+     "effect": "'Window selection returned no result …'"
+    },
+    {
+     "at": "+10",
+     "cond": "noRecoveryWindow",
+     "effect": "'No recovery window found …'"
+    },
+    {
+     "at": "+12",
+     "cond": "insufficientRange",
+     "effect": "'Invalid window range …'"
+    },
+    {
+     "at": "+14",
+     "cond": "healthKitFetchFailed",
+     "effect": "'Apple Health <op> failed …' (underlying error dropped)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "PipelineError.noRecoveryWindow is never constructed anywhere in the repo (its only occurrence is this case), so this description is unreachable.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Errors.swift:25",
+      "Emuqu/Sources/Utilities/Errors.swift:11"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "healthKitFetchFailed's description discards the associated `underlying` error, and logPipelineError logs only error.localizedDescription, so a HealthKit daytime-resting-HR fetch failure is logged as 'Apple Health daytimeRestingHR failed …' with no reason (auth denied, protected data, etc.).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Errors.swift:29",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:72",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:134"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func attempt(_:file:line:_:)",
+   "hash": "d7f0fae356414019",
+   "does": "Runs a throwing closure, returning its value or nil; on throw logs '[operation] failed: …' at .warning attributed to the caller.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.pendingLines"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "body throws",
+     "effect": "logs at .warning (lands in Recent Problems) and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func sleepQuietly(_:context:file:line:)",
+   "hash": "245db3beeacb9a50",
+   "does": "Awaits Task.sleep(nanoseconds:); on cancellation logs '[Sleep] interrupted during <context>' at .info and returns normally.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Task.sleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleep throws (CancellationError)",
+     "effect": "logged, swallowed; caller continues as if the sleep completed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  }
+ ],
+ "deps": {}
+}

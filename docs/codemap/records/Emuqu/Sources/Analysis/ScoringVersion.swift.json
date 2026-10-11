@@ -1,0 +1,29 @@
+{
+ "file": "Emuqu/Sources/Analysis/ScoringVersion.swift",
+ "hash": "38947bd78948f5de",
+ "role": "Declares the scoring-algorithm version string stamped on each ScoreBreakdown and the label for pre-stamp records.",
+ "types": [
+  "ScoringVersion: enum — version identifiers"
+ ],
+ "state": [
+  "mem:ScoringVersion.current = \"v3.1.oct2026\"",
+  "mem:ScoringVersion.unversioned = \"unversioned\""
+ ],
+ "toplevel": "Two static lets only; read by ScoreBreakdown default/decoder (RecoveryScoreCalculator.swift:120,129,150).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "RecoveryScoreCalculator header says the architecture is 'v3.oct2026' while the stamped version is 'v3.1.oct2026', and the z-band parameter set carries its own unrelated version 'v2.2026-06-22' that is never stored on the breakdown, so a stored score cannot tell which band table produced it.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/ScoringVersion.swift:29",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:7",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:304",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:120"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

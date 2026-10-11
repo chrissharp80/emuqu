@@ -1,0 +1,144 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapExerciseDecoder.swift",
+ "hash": "3d818b6bb5db1c41",
+ "role": "Converts H10 exercise recordings into RR beat series and encodes/decodes the app's exercise-id start stamp (yyyyMMddHHmmss, POSIX, Gregorian, local zone).",
+ "types": [
+  "StrapExerciseDecoder: enum — exercise id formatting/parsing, newest-recording selection, duration and RR point reconstruction (no quality filter by design)"
+ ],
+ "state": [
+  "static idStampToleranceSeconds = 2"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+   "hash": "ae254166420617d5",
+   "does": "Formats `date` in `timeZone` as a 14-digit yyyyMMddHHmmss id used as the H10 exercise id.",
+   "entry": "Called from PolarManager+Recording.swift:196 when arming the H10; tests StrapExerciseDecoderTests and strap flow tests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)": "47740b7d049e9170"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
+   "hash": "05ab1da8a3b8a93f",
+   "does": "Parses a 14-digit all-numeric id back into the recording start Date in `timeZone`; nil for any other id.",
+   "entry": "Called from PolarManager+Recording.swift:181,403, StrapRecordingCoordinator+Transfer.swift:239,447, and newestRecording.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id is 14 chars and all digits",
+     "effect": "false: returns nil (id not written by this app); true: DateFormatter parse (nil if invalid date)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The id stores local wall time with no offset, and every production caller formats and parses with TimeZone.current. If the time zone or DST offset changes between arming and download, the recovered start moves by that difference. Travelling east makes it earlier than recordedSince, so newestRecording's notBefore filter (2 s slack) drops tonight's recording, and the night's beats and the download-ledger key (whole-second start) are filed at the wrong time. StrapExerciseDecoderTests.swift:66-69 shows that parsing in another zone gives a different start.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapExerciseDecoder.swift:29",
+      "Emuqu/Sources/Collection/StrapExerciseDecoder.swift:41",
+      "Emuqu/Sources/Collection/StrapExerciseDecoder.swift:63",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:196",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:447",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:469",
+      "EmuquTests/StrapExerciseDecoderTests.swift:69"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)": "47740b7d049e9170"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)",
+   "hash": "d24aa162cd5873c7",
+   "does": "Picks the entry whose id-encoded start is latest; with notBefore nil falls back to the first listed entry when none is dated; with notBefore returns the latest dated entry starting at or after notBefore−2 s, or nil.",
+   "entry": "Called from PolarManager+Recording.swift:402 (notBefore nil) and StrapRecordingCoordinator+Transfer.swift:469 (notBefore = recordedSince).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
+    "closure:exerciseId key-path passed by caller (\\.entryId)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "notBefore is nil",
+     "effect": "true: newest dated entry, else (??) entries.first (an undated, foreign-id recording) when none is dated; false: filter by earliest start"
+    },
+    {
+     "at": "+10",
+     "cond": "?? fallback",
+     "effect": "no dated entries → entries.first (nil if list empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)",
+   "hash": "a9ff62f5706ef8a2",
+   "does": "Builds a DateFormatter with en_US_POSIX locale, Gregorian calendar, the given time zone and format yyyyMMddHHmmss.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapExerciseDecoder.durationSeconds(of:)",
+   "hash": "848abb17da41634d",
+   "does": "Sums rr_ms across points (Int64) and returns seconds.",
+   "entry": "Called from StrapRecording.endedAt, RRCollector+DeviceRecording.swift:312, RRCollector+Recovery.swift:142.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)",
+   "hash": "0b2d96ef001f9d8a",
+   "does": "Builds RRPoints from raw ms intervals, each stamped at the cumulative sum of the previous intervals (t_ms starts at 0); no validity filtering.",
+   "entry": "Called from PolarManager.swift:563 (H10 fetchExercise conversion); tests.",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each interval",
+     "effect": "appends a point and advances cumulative time; empty input → empty result"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,609 @@
+{
+ "file": "Emuqu/Sources/Analysis/HRRCaptureService.swift",
+ "hash": "88bcacff62e8b8c3",
+ "role": "Post-workout heart-rate-recovery capture: waits to +60 s/+120 s after Stop and reads the Polar strap, then nearby HealthKit heart-rate samples, then Apple's heartRateRecoveryOneMinute, merges and filters contaminated inversions.",
+ "types": [
+  "HRRCaptureService: final class @MainActor — three-tier HRR capture, created per workout stop by WorkoutRecorder+Stop"
+ ],
+ "state": [
+  "stored polarManager, healthKit, captureWindowSec (default 120)",
+  "static regressionTolerance = 10 bpm"
+ ],
+ "toplevel": "No top-level code beyond the type.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Tier 2 is described as running after 'the full capture window' (comment line 72-73), but when the strap is absent tier 1 sleeps only to +60 s and breaks, so the HealthKit query runs at about +60 s; a Watch sample near +120 s cannot exist yet and the 2-minute HRR is never captured from the Watch.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift:72",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift:181",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift:274"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init HRRCaptureService(polarManager:healthKit:captureWindowSec:)",
+   "hash": "c4083b5ad20e999c",
+   "does": "Stores the Polar manager, HealthKit manager and capture window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRRCaptureService.captureHRR(stopDate:stopHR:)",
+   "hash": "0f4c807fd9fbae0e",
+   "does": "Entry point: rejects stopHR < 60 or a non-positive window with []; otherwise gathers strap + Watch samples, adds Apple's computed 1-minute HRR when no ~60 s sample exists, and returns the samples sorted and filtered by enforceMonotonicDrop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapAndWatchSamples(stopDate:stopHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appendAppleHRRIfMissing(_:stopDate:stopHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.finalise(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "stopHR >= 60",
+     "effect": "false: logs and returns [] (no HRR for low/zero stop HR); true: continues"
+    },
+    {
+     "at": "+16",
+     "cond": "captureWindowSec > 0",
+     "effect": "false: logs and returns []; true: captures"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appendAppleHRRIfMissing(_:stopDate:stopHR:)": "096ebcaa4d3e90a4",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapAndWatchSamples(stopDate:stopHR:)": "0c523158c1df9d7c",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.finalise(_:)": "1e46fc95c1898b29",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.captureStrapAndWatchSamples(stopDate:stopHR:)",
+   "hash": "eb2aa9fe06ca88c7",
+   "does": "Runs tier 1 (strap at +60/+120 s), then tier 2 (HealthKit HR samples), drops Watch samples whose offset already has a strap sample, appends the rest and logs counts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapSamples(stopDate:stopHR:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureWatchSamples(stopDate:stopHR:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureStrapSamples(stopDate:stopHR:)": "6720ab6678bc5b12",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureWatchSamples(stopDate:stopHR:)": "60bf6c1f4be50a50",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.appendAppleHRRIfMissing(_:stopDate:stopHR:)",
+   "hash": "5e771a1e4cbe9492",
+   "does": "If no sample lies at offset 55–65 s, queries Apple's heartRateRecoveryOneMinute and appends it as a 60-s healthKitComputed sample; logs either way.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureAppleHealthKitHRR(stopDate:stopHR:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRateRecoveryOneMinute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a sample with offset 55...65 exists",
+     "effect": "returns without querying tier 3; else continues"
+    },
+    {
+     "at": "+2",
+     "cond": "Apple HRR sample found",
+     "effect": "false: logs 'no Apple-computed HRR' and returns; true: appends and logs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureAppleHealthKitHRR(stopDate:stopHR:)": "f55cf575184a87be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.finalise(_:)",
+   "hash": "f704f28619f6c99c",
+   "does": "Sorts samples by offset, runs enforceMonotonicDrop, logs at info when the result is empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "final is empty",
+     "effect": "logs 'all 3 tiers empty'; else no log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.enforceMonotonicDrop(_:)": "8c567af811db61af",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.enforceMonotonicDrop(_:)",
+   "hash": "f1d63714a6555563",
+   "does": "Pure filter over offset-ordered samples: keeps the first sample, then drops any later sample whose drop is more than 10 bpm below the running maximum drop (logging it at warning), keeping and raising the max otherwise.",
+   "entry": "Also called directly by XCTest (HRRCaptureServiceTests, HRRMonotonicDropTests).",
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.logContaminatedSample(_:priorMax:regressionTolerance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "evaluates against running max"
+    },
+    {
+     "at": "+4",
+     "cond": "no prior max yet",
+     "effect": "keeps the sample and sets max = its drop"
+    },
+    {
+     "at": "+9",
+     "cond": "s.drop >= prior - 10",
+     "effect": "false: logs contamination and skips the sample; true: keeps it"
+    },
+    {
+     "at": "+14",
+     "cond": "s.drop > prior",
+     "effect": "raises running max; else max unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.logContaminatedSample(_:priorMax:regressionTolerance:)": "fb09b6a6c8508ef8",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.logContaminatedSample(_:priorMax:regressionTolerance:)",
+   "hash": "3ea837002ae40519",
+   "does": "Logs a dropped contaminated sample at .warning level with offset, drop, provenance, prior max and tolerance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Logged at .warning, which per the file's own comments (lines 98-103, 199-204) surfaces in Troubleshooting 'Recent Problems'; a routine post-workout yawn produces a user-visible 'problem'.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:164",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:199"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.captureStrapSamples(stopDate:stopHR:)",
+   "hash": "3d8ab530e0298832",
+   "does": "For targets 60 and 120 s (<= window) sleeps until stopDate+target, reads the strap HR and appends a strap HRRSample (drop = stopHR - hr); stops at the first missing strap reading or cancellation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.strapHR(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.streamedRRPoints"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for target in [60,120] where target <= captureWindowSec",
+     "effect": "iterates each allowed target"
+    },
+    {
+     "at": "+4",
+     "cond": "secondsToWait > 0",
+     "effect": "false: continue — target already passed, NO reading taken for it (if the detached task starts after +60 s the 60-s strap sample is skipped); true: sleeps"
+    },
+    {
+     "at": "+7",
+     "cond": "Task.sleep throws (cancellation)",
+     "effect": "logs and breaks; samples so far returned"
+    },
+    {
+     "at": "+11",
+     "cond": "strapHR(at:) returns a value",
+     "effect": "false: break (no +120 s attempt after a missing +60 s); true: appends strap sample"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A target whose time has already passed is skipped rather than read immediately (continue at line 174), so a late-starting capture loses that offset even with the strap still streaming.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:173",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:174"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.strapHR(at:)": "4f9effec5d3eed93",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.strapHR(at:)",
+   "hash": "67bb4a645b908e0c",
+   "does": "Returns the strap's current HR when the Polar manager is connected and streaming and the RR buffer yields a plausible median HR; logs each failure reason.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.currentHRFromBuffer()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.streamedRRPoints"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectionState == .connected",
+     "effect": "false: logs and returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "isStreaming",
+     "effect": "false: logs and returns nil"
+    },
+    {
+     "at": "+10",
+     "cond": "currentHRFromBuffer() non-nil",
+     "effect": "false: logs at .warning and returns nil; true: returns hr"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.currentHRFromBuffer()": "03f056c9ae328955",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.currentHRFromBuffer()",
+   "hash": "46e43e3dbe2e87cd",
+   "does": "Takes the last 8 RR points with rr_ms > 0, computes their median RR and returns Int(60000/median) when the median > 50 ms and bpm in (20,250); nil otherwise. Does not check the points' timestamps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints"
+   ],
+   "reads": [
+    "mem:PolarManager.streamedRRPoints"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "any positive RR in the last 8",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+4",
+     "cond": "even count",
+     "effect": "median = mean of the two middle values; else middle value"
+    },
+    {
+     "at": "+11",
+     "cond": "median finite and > 50",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+13",
+     "cond": "bpm finite and 20 < bpm < 250",
+     "effect": "false: nil; true: Int(bpm) (truncated, not rounded)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The buffer's last 8 beats are used without any timestamp check; if beats stop arriving while isStreaming stays true, the +60/+120 s readings repeat the last pre-stall HR and are stored as strap HRR.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:227"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "e1584f9930f839e0"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.captureWatchSamples(stopDate:stopHR:)",
+   "hash": "4cea9511c90cbc05",
+   "does": "Tier 2: if HealthKit is available fetches HR samples in [stop, stop+window+15 s] and converts them to HRR samples at 60/120 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHeartRateSamples(stopDate:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHRRSamples(from:stopDate:stopHR:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HKHealthStore.isHealthDataAvailable()",
+     "effect": "false: logs warning, returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "samples non-empty",
+     "effect": "false: returns []; true: maps to HRR samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHRRSamples(from:stopDate:stopHR:)": "a38e7f73f07745ce",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.watchHeartRateSamples(stopDate:)": "4233bd2702e06591",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.watchHeartRateSamples(stopDate:)",
+   "hash": "5a87fa5862ede17f",
+   "does": "Logs the HR read-authorization status, runs a bounded HKSampleQuery for heart-rate samples between stop and stop+window+15 s, logs when empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.runHeartRateQuery(type:start:end:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "samples empty",
+     "effect": "logs a likely-cause message; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The query has no source filter (no hrReadExcludingOwnWrites), so any HR source in HealthKit — including this app's own writes or another app — is labelled .watchSamples.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:282",
+      "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.runHeartRateQuery(type:start:end:)": "2d9399634251b852",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.runHeartRateQuery(type:start:end:)",
+   "hash": "db45cd95897e4694",
+   "does": "Runs an HKSampleQuery for the HR type over [start,end] sorted ascending via runBoundedQuery (6 s timeout), returning [] on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.quantitySamples(_:_:)",
+    "ext:HKSampleQuery",
+    "ext:HKQuery.predicateForSamples"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "runBoundedQuery returns nil (timeout)",
+     "effect": "?? [] — no samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.quantitySamples(_:_:)": "5d60fe805720c413",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "d1e335e960bba6e9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.quantitySamples(_:_:)",
+   "hash": "d8f4332f8df82da5",
+   "does": "Converts HK query results to quantity samples, logging any error at warning; error or non-quantity results become [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error non-nil",
+     "effect": "logs warning (results still used if present)"
+    },
+    {
+     "at": "+4",
+     "cond": "results cast to [HKQuantitySample]",
+     "effect": "?? []: failure yields no samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.watchHRRSamples(from:stopDate:stopHR:)",
+   "hash": "5248f366b15a9683",
+   "does": "For 60 and 120 s picks the HK sample whose start is nearest stopDate+target, accepts it only within 15 s, and builds .watchSamples HRR samples; logs when all candidates were too far.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for target in [60,120] where target <= window",
+     "effect": "iterates targets"
+    },
+    {
+     "at": "+10",
+     "cond": "samples.min exists",
+     "effect": "false (samples empty): continue"
+    },
+    {
+     "at": "+13",
+     "cond": "nearest within 15 s",
+     "effect": "false: counts rejection, continue; true: appends HRR sample"
+    },
+    {
+     "at": "+20",
+     "cond": "results empty and rejectedTooFar > 0",
+     "effect": "logs diagnostic; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "No sanity check on the sign of the drop: a HealthKit HR sample above stopHR (user moving after Stop) yields a negative drop that is stored, and enforceMonotonicDrop keeps the first sample unconditionally, so a negative 1-min HRR can be archived.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:325",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:143",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:144"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.captureAppleHealthKitHRR(stopDate:stopHR:)",
+   "hash": "e0d8d4aac417f0cf",
+   "does": "Tier 3: when HealthKit is available fetches Apple's heartRateRecoveryOneMinute within ±5 min of stop and returns a 60-s healthKitComputed HRRSample with drop = Apple's value, hr = max(0, stopHR - drop).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appleCardioRecoverySample(stopDate:)"
+   ],
+   "reads": [
+    "hk:heartRateRecoveryOneMinute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HKHealthStore.isHealthDataAvailable()",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+2",
+     "cond": "Apple sample found",
+     "effect": "false: nil; true: builds sample"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Apple's HRR value comes from Apple's own workout and its own peak, but is stored with peakHR = this app's stopHR and hr derived from it, mixing two different reference points.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:342",
+      "Emuqu/Sources/Analysis/HRRCaptureService.swift:344"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.appleCardioRecoverySample(stopDate:)": "86bee6177c90aa54",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9"
+   }
+  },
+  {
+   "key": "func HRRCaptureService.appleCardioRecoverySample(stopDate:)",
+   "hash": "ea1bcd14c01573ac",
+   "does": "Bounded HKSampleQuery for heartRateRecoveryOneMinute in [stop-5 min, stop+5 min], newest first, limit 1; returns it or nil (errors and timeout give nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:heartRateRecoveryOneMinute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "runBoundedQuery nil (timeout)",
+     "effect": "?? [] → returns nil"
+    },
+    {
+     "at": "+13",
+     "cond": "results cast to [HKQuantitySample]",
+     "effect": "?? [] — query error swallowed silently (error parameter ignored)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.hrvQueryTimeoutSec": "d1e335e960bba6e9"
+   }
+  }
+ ],
+ "deps": {}
+}

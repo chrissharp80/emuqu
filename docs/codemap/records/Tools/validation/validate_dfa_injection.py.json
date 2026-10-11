@@ -1,0 +1,206 @@
+{
+ "file": "Tools/validation/validate_dfa_injection.py",
+ "hash": "6aac8b78d4d53541",
+ "role": "Validation 3: selects clean 120-s all-N windows from nsr2db that cleanRRForDFA leaves untouched, injects ectopic (-30 %/+30 % compensatory) or missed-beat (merged) artifacts at 1/3/6/10 % with 3 seeds, and compares DFA alpha1 uncorrected vs after cleanRRForDFA (and in windows passing the 6 % gate); also measures false corrections on artifact-free windows; writes results/dfa_injection_nsr2db.json.",
+ "types": [],
+ "state": [
+  "WIN_MS=120000, PER_RECORD=20, RATES=[0.01,0.03,0.06,0.10], SEEDS=3 (lines 39-42)",
+  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/RECORDS, <rec>.hea/.ecg (read)",
+  "file:Tools/validation/results/dfa_injection_nsr2db.json (written)"
+ ],
+ "toplevel": "Adds script dir to sys.path; runs main() as a script.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def candidate_windows",
+   "hash": "e19ad4d6e2edac2c",
+   "does": "Walks beats in non-overlapping ~120-s spans; a span qualifies when it has >= 64 intervals, every beat is N, every RR is 300-2000 ms and it spans >= 118 s. Qualifying spans that cleanRRForDFA leaves unchanged are candidates; the others are counted and returned as 'flagged' (artifact-free windows the corrector touches).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "start index before last beat",
+     "effect": "build span"
+    },
+    {
+     "at": "+9",
+     "cond": "next beat within 120 s of span start",
+     "effect": "extend"
+    },
+    {
+     "at": "+15",
+     "cond": "span qualifies",
+     "effect": "check corrector"
+    },
+    {
+     "at": "+16",
+     "cond": "corrector changes nothing",
+     "effect": "candidate; else counted as excluded_by_corrector and kept in flagged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1"
+   }
+  },
+  {
+   "key": "def inject",
+   "hash": "93b15c4e96feccfb",
+   "does": "Injects m = max(1, round(rate*n)) artifacts at shuffled positions 1..n-3 that are >= 3 apart; ectopic shortens RR_i by 30 % and adds it to RR_{i+1}; missed merges RR_i and RR_{i+1}. Returns (rounded int series, events injected).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each shuffled candidate",
+     "effect": "consider"
+    },
+    {
+     "at": "+9",
+     "cond": "enough positions",
+     "effect": "stop"
+    },
+    {
+     "at": "+11",
+     "cond": "within 2 of a taken position",
+     "effect": "skip"
+    },
+    {
+     "at": "+16",
+     "cond": "for each position (descending)",
+     "effect": "apply"
+    },
+    {
+     "at": "+17",
+     "cond": "kind == ectopic",
+     "effect": "shift 30 %; else merge and delete"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "4f290e7be27bc4d4",
+   "does": "Collects up to 20 evenly spaced candidate windows per nsr2db record, runs every (kind, rate, seed) trial with alpha1 uncorrected and after cleanRRForDFA, records corrected fraction and whether the app would publish (fraction <= 0.06 and alpha1 computed), summarises Bland-Altman/MAE/publish rate per kind x rate, computes false-correction statistics on the flagged artifact-free windows, writes JSON and prints.",
+   "entry": "python3 -I validate_dfa_injection.py",
+   "calls": [
+    "Tools/validation/validate_dfa_injection.py::def candidate_windows",
+    "Tools/validation/validate_dfa_injection.py::def inject",
+    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/validation_common.py::def bland_altman",
+    "ext:wfdb.rdheader",
+    "ext:wfdb.rdann",
+    "ext:random.Random(zlib.crc32 seed)"
+   ],
+   "reads": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/RECORDS",
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/<rec>.hea|.ecg"
+   ],
+   "writes": [
+    "file:Tools/validation/results/dfa_injection_nsr2db.json"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each record",
+     "effect": "collect"
+    },
+    {
+     "at": "+15",
+     "cond": "no candidates",
+     "effect": "skip record"
+    },
+    {
+     "at": "+18",
+     "cond": "for each picked index",
+     "effect": "add window"
+    },
+    {
+     "at": "+22",
+     "cond": "for each window",
+     "effect": "trials"
+    },
+    {
+     "at": "+24",
+     "cond": "clean alpha1 None",
+     "effect": "window skipped"
+    },
+    {
+     "at": "+27",
+     "cond": "for each kind",
+     "effect": "loop"
+    },
+    {
+     "at": "+28",
+     "cond": "for each rate",
+     "effect": "loop"
+    },
+    {
+     "at": "+29",
+     "cond": "for each seed",
+     "effect": "trial"
+    },
+    {
+     "at": "+41",
+     "cond": "for each kind",
+     "effect": "summary"
+    },
+    {
+     "at": "+42",
+     "cond": "for each rate",
+     "effect": "summary"
+    },
+    {
+     "at": "+66",
+     "cond": "for each flagged window",
+     "effect": "false-correction pair"
+    },
+    {
+     "at": "+70",
+     "cond": "both alpha1 values computed",
+     "effect": "recorded; else dropped"
+    },
+    {
+     "at": "+86",
+     "cond": "for each summary entry",
+     "effect": "print"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Summary statistics assume every trial produced alpha1: a_uncorr/a_app are stored as None when port_dfa.compute returns None (< 64 intervals after a missed-beat merge), and bland_altman/np.mean over them would raise TypeError. It ran because windows average 153 intervals, but a 64-70 interval window at 10 % missed beats would crash the run.",
+     "evidence": [
+      "Tools/validation/validate_dfa_injection.py:134",
+      "Tools/validation/validate_dfa_injection.py:147",
+      "Tools/validation/port_dfa.py:132"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/validate_dfa_injection.py::def candidate_windows": "f105f0762cfa5872",
+    "Tools/validation/validate_dfa_injection.py::def inject": "08efcbc5f47cde0b",
+    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/validate_dfa_injection.py::def main": "35cc15ae37d9632e",
+  "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+ }
+}

@@ -1,0 +1,323 @@
+{
+ "file": "docs/TRAINING_LOAD.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Canonical description of the training-load chain: per-workout load ladder, daily bucketing, Banister EWMA ATL/CTL/TSB, Load & Trajectory interpretation, the TrainingMetricsCache store, and where training load is and is not used.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Training Load — end-to-end calculation",
+   "hash": "1905534f8027229b",
+   "does": "Claims training load does not feed the recovery score (HRV + Sleep + Vitals only, ScoringWeights in Constants.swift); verified ScoringWeights.Tier3 0.60/0.25/0.15 (Constants.swift:399-402).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "c56b06672fd5d0dd",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTierComposite(_:)": "6dca408cb769ec28",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.tier3Weights(comebackModeActive:)": "bd6aa4da9d441b8c"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > The chain at a glance",
+   "hash": "bc863daa32684825",
+   "does": "Claims the chain: effectiveLoad ladder powerTSS ▸ [route estimate on strap dropout] ▸ hrTSS ▸ METs ▸ luciaTRIMP ▸ extrapolatedTRIMP else HR-only TRIMP; daily sum per local day with rest days 0; EWMA seeded at 0; live 180-day window; series 580-day replay keeping 400; ATL τ7, CTL τ42, TSB = CTL − ATL; today from TrainingMetricsCache.current; interpretation FormDescriptor/RampBand/TrajectoryVerdict. All matched in code (see later sections).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 0 — Per-workout load (the stress score of a single session)",
+   "hash": "a0523a940a4a3ff8",
+   "does": "Claims WorkoutSummary.effectiveLoad uses precomputedLoad when > 0 else calculateTrimp, then caps at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000, Constants.swift:338) via cappedLoad, logging when capped. Shown signature has defaults restingHR = 60, maxHR: Double? = nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Quoted code shows `effectiveLoad(restingHR: Double = 60, maxHR: Double? = nil)`; the real signature is `effectiveLoad(restingHR: Double, maxHR: Double)` with no defaults and a non-optional maxHR, so the doc implies a 60 bpm resting default that does not exist.",
+     "evidence": [
+      "docs/TRAINING_LOAD.md:38",
+      "Emuqu/Sources/Collection/HealthDataTypes.swift:333"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "6da7c607ba44d751",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)": "0e6ca7af113872c5",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "65bf65d390a4ab48"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 0 — Per-workout load (the stress score of a single session) > 0a. `precomputedLoad` — the preferred-source ladder",
+   "hash": "41fea6af3eac4c4e",
+   "does": "Claims for app-recorded workouts precomputedLoad = TrainingLoadPrecedence.stored with tiers power (storedPowerTSS, else readTimePowerTSS from NP and today's FTP for the sport, moving time), routeHistory when routeEstimateReplacesHRLoad, hr (hrTSS, LTHR fallback 0.88 × HRmax in WorkoutAnalyzer.computeHrTSS), mets (computedMETLoad, 12 METs anchor), banister (luciaTRIMP; Edwards fallback in WorkoutAnalyzer), routeHistory; same order as WorkoutMetadata.preferredTrainingLoad; runs off main; HealthKit workouts carry no precomputedLoad. Verified TrainingLoadPrecedence.swift:83-111, WorkoutMetadata.swift:659-666,709-721, WorkoutAnalyzer.swift:347-356, WorkoutMetadata.swift:627. The two ladders are separate copies (stored vs preferredTrainingLoad) kept in the same order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The doc's 'same order as WorkoutMetadata.preferredTrainingLoad' holds only by hand: the six-tier ladder is written twice (TrainingLoadPrecedence.stored feeds ATL/CTL, preferredTrainingLoad feeds the per-workout rows), with no shared definition, so a tier change in one makes the row's load differ from the load counted in CTL.",
+     "evidence": [
+      "docs/TRAINING_LOAD.md:53",
+      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:83",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:709"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "46b94a5f6afa60be",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "bff2d08aed4fed7c",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 0 — Per-workout load (the stress score of a single session) > 0b. HR-only Banister TRIMP (the fallback)",
+   "hash": "f5bb404a4b9d00ae",
+   "does": "Claims HR-only Banister TRIMP: HRR clamped 0..1, TRIMP = minutes × HRR × A·e^(k·HRR), male 0.64/1.92, female 0.86/1.67 when biologicalSex == .female, constants in TrainingConstants.TRIMP (Constants.swift:318-327), no average HR → 0, restingHR = Apple resting HR else settings.effectiveRestingHR and maxHR = settings.effectiveMaxHR resolved once by trainingHeartRateAnchors and shared by live value and series. Verified HealthDataTypes.swift:369-391 (also returns 0 HRR when maxHR ≤ restingHR), TrainingHealthQueries+Queries.swift:488-495, TrainingLoadSeries.swift:20-22.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "98732597083cf83f",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "6da7c607ba44d751",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 1 — Daily bucket",
+   "hash": "c90b401ee6b6f13f",
+   "does": "Claims TrainingLoadSeries.dailyLoad pre-seeds every day with 0, adds effectiveLoad per startOfDay, skips workouts outside the window, clamps each day at maxDailyLoad 1200; workout set = archive + non-overlapping HealthKit (mergeArchiveAuthoritative, ≥60% of shorter), dedup scan up to 30 min, merge on same type within 5 min or ≥60% overlap, richness score precomputedLoad 8/avgHR 4/maxHR 2/calories 1; HealthKit workouts under 1 min dropped in summary(for:). Verified TrainingLoadSeries.swift:57-77, TrainingHealthQueries+Queries.swift:72-155,209-211, Constants.swift:339.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "4a3ae641cba0ef72",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)": "0058ec3b86912664",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)": "ef8d75c92178244a",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "4e23a88ccff23cef",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "af22d142fcf62ad8",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)": "c08f99eb5e367da3",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)": "3dff8a910c9f9a0b"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 2 — Banister EWMA → ATL / CTL / TSB",
+   "hash": "e82e6b625da4d5da",
+   "does": "Claims Point.stepped uses exact decay e^(−1/7), e^(−1/42); point(through:in:) for live, replay for series; ACWR = ATL/CTL only when CTL > 0 (TrainingMetrics.acuteChronicRatio, TrainingMetrics.swift:30-33); live window 180 days (ewmaLookbackDays, TrainingHealthQueries+Queries.swift:630); series 400 + 180 warm-up (TrainingMetricsCache.swift:54,61); morning readings stop at yesterday but report todayTrimp, live includes today (TrainingHealthQueries+Queries.swift:505-520); Load & Trajectory takes today from TrainingMetricsCache.current; TrainingConstants.EWMA acuteDays 7 / chronicDays 42 (Constants.swift:343-346) — these constants are what stepped reads, not a mirror.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says the EWMA window constants are 'also mirrored' at TrainingConstants.EWMA (acuteDays 7, chronicDays 42), implying a second copy; they are the only copy and are what Point.stepped reads, so editing them changes ATL/CTL directly rather than a mirror.",
+     "evidence": [
+      "docs/TRAINING_LOAD.md:194",
+      "Emuqu/Sources/Analysis/TrainingLoadSeries.swift:39",
+      "Emuqu/Sources/Analysis/TrainingLoadSeries.swift:40",
+      "Emuqu/Sources/Utilities/Constants.swift:343"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "6b391f26011174a2",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "c30287884e799aea",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "fee4f972f248039e",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.makeSamples()": "edbe67771cf67e43"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Layer 3 — Interpretation (Load & Trajectory surface)",
+   "hash": "62b094c5706adfe9",
+   "does": "Claims FormDescriptor thresholds >+10 Fresh, −5…+10 Held, −15…−5 Working, −25…−15 Tired, <−25 Very tired; ctlSlopePerWeek OLS over trailing 14 days ×7, 0 under 8 days; RampBand <−1.5 Easing down, −1.5…1.5 Holding steady, 1.5…3 Conservative, 3…8 Standard, >8 Rapid increase; compute order comeback → overreach → peaking → buildingBaseline unless >7 samples and week-ago CTL → delta = rampRate (fallback CTL difference when rampRate == 0) → TSB < −15 highStrain → delta > 1.5 building/rapidIncrease(>8) → delta < −1.5 detraining unless TSB < −5 maintaining → maintaining; peaking heuristic ATL < CTL by >10% over last 4 days; Foster monotony mean/SD over last 7 calendar days capped at 10, strain = week load × monotony, warning when monotony > 2.0 and strain > 1600. All verified in TrajectoryVerdict.swift:144-228 and FormDescriptor/RampBand inits, LoadTrajectoryLoader.swift:274-279, RecoveryScoreCalculator+Training.swift:24-45, FosterMonotonyWarning.swift:17-29, Constants+RecoveryScore.swift:230,237,244. TrainingDetailView uses the same isRaised rule (TrainingDetailView.swift:153-155).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The doc names one peaking heuristic (LoadTrajectoryLoader.peakingHeuristic); the same 'ATL < CTL by >10% for the last 4 days' rule is implemented three times (Load & Trajectory loader, the Dashboard Load chip, the assistant trajectory fact), each a separate copy, so a threshold change in one leaves the chip, the screen and Flo disagreeing on Peaking.",
+     "evidence": [
+      "docs/TRAINING_LOAD.md:227",
+      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:274",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:266",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Trajectory.swift:90"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "abf013434c2dc527",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "adea3d310f1d8fc6",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "d4884cbaba89725a",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "cd9c76e68397ba21"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > The store / source-of-truth",
+   "hash": "ae84b149dc643117",
+   "does": "Claims TrainingMetricsCache (@MainActor singleton, TrainingMetricsCache.swift:19-21) holds current and a 400-day dailySeries; refresh fetches 580 days of HealthKit workouts once (TrainingMetricsCache.swift:373), resolves anchors once, rebuilds when the HistoricalKey changes; needsRebuild: no result or invalidated → always, LoadSettings changed → at once, archive workouts or day changed → after the 300 s burst throttle, else after 1800 s (unchangedMaxAgeSec); snapshot() uses the same rule; .flowRecoveryArchiveChanged invalidates only when the workout fingerprint changed; AI reaches it via TrainingLoadRegistry and training.load.* tools. Verified TrainingMetricsCache+Freshness.swift:12-69, TrainingMetricsCache.swift:98,142-148,283-320.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "6c250026916b78a8",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "4a3ae641cba0ef72",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()": "3d88aab61312c601",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "a8c7bc0e743a61de",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "1faf6972f9023f4e",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6"
+   }
+  },
+  {
+   "key": "§ Training Load — end-to-end calculation > Where it does and doesn't go",
+   "hash": "38423976ca1df564",
+   "does": "Claims training load is excluded from the recovery score (Tier3 0.60/0.25/0.15); ACWR above 1.3 applies a dampened readiness penalty (ReadinessScoring.applyACWRModifier, acwrOverreachingThreshold, ReadinessScoring.swift:257-266); Load & Trajectory and the Training Load screen show the same monotony warning; AI reads TrainingMetricsCache/TrainingLoadRegistry; reports read the live cache value (HolisticDailyReport.trainingLoadForReport uses the TrainingLoadRegistry.live() snapshot and falls back to the session's frozen trainingSnapshot when no live value was captured, HolisticDailyReport.swift:233-253).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()",
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "2dc1e8ad595eac0d",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "deb1966504f9047f"
+   }
+  }
+ ],
+ "deps": {}
+}

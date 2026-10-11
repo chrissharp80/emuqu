@@ -1,0 +1,1657 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/AssistantContext.swift",
+ "hash": "033a1e13d9d7e7a1",
+ "role": "Defines AssistantContext, the per-request snapshot of everything the assistant knows about the user, and its two renderers: compactRender() (full text dump for Apple on-device and no-tools fallbacks) and renderLiveStateForCloud() (today/yesterday/location <live_state> tail for cloud providers). Also global helpers formatNum and sleepEfficiencyClause.",
+ "types": [
+  "AssistantContext: struct Codable — top-level context fields (generatedAt, userProfile, today, yesterday, yesterdayDiagnostic, recent, baselines, trends, analysisSummary, recentWorkouts, liveWorkout, liveHRVSession, ambientLocation)",
+  "AssistantContext.AmbientLocationSnapshot: struct — always-on resolved road/locality/heading/speed/altitude/accuracy/age",
+  "AssistantContext: extension — rendering functions"
+ ],
+ "state": [],
+ "toplevel": "Struct declaration with Codable synthesis; liveWorkout, liveHRVSession, ambientLocation are var so AssistantContextSource overlays fresh broker data after build. The file comment claims 'Pure data — no analysis logic lives here', but rendering reads LiveWorkoutBroker.shared via AppDependencies (line 265) and the wall clock (lines 327, 743, 765).",
+ "flags": [
+  {
+   "kind": "coupling",
+   "sev": "med",
+   "text": "compactRender is documented as a pure render of the context ('Pure data', CompactRenderParityTests pins the output) yet liveWorkoutHRHistoryLines pulls samples from the global LiveWorkoutBroker and liveWorkoutBits/weeklyRollupLines/thirtyDayTotalLine use Date() instead of generatedAt, so the same AssistantContext renders differently depending on global state and time of render.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:265",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:327",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:765"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AssistantContext.renderLiveStateForCloud(now:)",
+   "hash": "c1856f43bdc0f10e",
+   "does": "Builds the cloud <live_state> text: a today line (if any data), a yesterday line (recovery /100, RMSSD, mean HR) labelled by real wake day, and a '📍 LOCATION:' line only when a live workout is present and ambient location has bits; joined by newlines. `now` defaults to generatedAt. Called by AssistantViewModel+Tools.swift:200 for tool-capable providers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "now param nil (??)",
+     "effect": "use generatedAt"
+    },
+    {
+     "at": "+3",
+     "cond": "todayLiveStateLine returns a line",
+     "effect": "append it; else omit"
+    },
+    {
+     "at": "+4",
+     "cond": "yesterday exists AND has timeDomain",
+     "effect": "append yesterday line; else no yesterday line (a yesterday with score but no timeDomain is dropped entirely)"
+    },
+    {
+     "at": "+5",
+     "cond": "yesterday.recoveryScore nil (??)",
+     "effect": "show '—' for recovery"
+    },
+    {
+     "at": "+9",
+     "cond": "liveWorkout non-nil AND ambientLocation non-nil",
+     "effect": "build location bits (privacy gate: outside a workout location is omitted); else no location line"
+    },
+    {
+     "at": "+11",
+     "cond": "location bits non-empty",
+     "effect": "append '📍 LOCATION: ...'; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "628485a8b92002f2",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "f01fe165fab46080",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.liveStateDayLabel(_:now:)",
+   "hash": "c04ad36a589ca86a",
+   "does": "Returns a day label for a session based on its wake date (endDate, else startDate) relative to now: 'TODAY:' / 'YESTERDAY:' or 'MOST RECENT, recorded yyyy-MM-dd (N days ago, NOT today):', with ' (<sessionType>)' appended for non-overnight sessions.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil (??)",
+     "effect": "use startDate as wake"
+    },
+    {
+     "at": "+3",
+     "cond": "sessionType == overnight (?:)",
+     "effect": "true: no suffix; false: ' (<type>)' suffix"
+    },
+    {
+     "at": "+4",
+     "cond": "wake is same calendar day as now",
+     "effect": "return 'TODAY<kind>:'"
+    },
+    {
+     "at": "+5",
+     "cond": "wake is same calendar day as now − 1 day",
+     "effect": "return 'YESTERDAY<kind>:'"
+    },
+    {
+     "at": "+9",
+     "cond": "dateComponents day nil (??)",
+     "effect": "use 0 days; then return MOST RECENT label with POSIX/gregorian yyyy-MM-dd date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayLiveStateLine(now:)",
+   "hash": "3d0512a84703ea5f",
+   "does": "Builds the first live-state line from `today`: day label plus recovery /100 with tier, RMSSD/SDNN/mean HR, overnight nadir/mean HR, sleep h/m with efficiency clause, and score message; nil when no today session or no data bits beyond the label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "today is nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "recoveryScore present",
+     "effect": "append 'recovery N/100 (tier T);' (score×10 clamped 0-100)"
+    },
+    {
+     "at": "+4",
+     "cond": "scoreTier nil (??)",
+     "effect": "no tier suffix"
+    },
+    {
+     "at": "+7",
+     "cond": "timeDomain present",
+     "effect": "append HRV RMSSD/SDNN/mean HR"
+    },
+    {
+     "at": "+10",
+     "cond": "overnightHR present",
+     "effect": "append nadir and mean"
+    },
+    {
+     "at": "+13",
+     "cond": "sleep present",
+     "effect": "append sleep duration and efficiency"
+    },
+    {
+     "at": "+16",
+     "cond": "scoreMessage non-nil and non-empty",
+     "effect": "append 'note: <msg>'"
+    },
+    {
+     "at": "+17",
+     "cond": "only the label was added (bits.count <= 1)",
+     "effect": "return nil; else return joined line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func AssistantContext.ambientLocationBits(_:)",
+   "hash": "8dbc99e925f3e591",
+   "does": "Concatenates placeBits and motionBits for an ambient location snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.placeBits(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.motionBits(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.motionBits(_:)": "fe00dcb015db2ce2",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.placeBits(_:)": "d5e02473e0f241d7"
+   }
+  },
+  {
+   "key": "func AssistantContext.placeBits(_:)",
+   "hash": "165d85f6498ee38a",
+   "does": "Builds place fragments from an AmbientLocationSnapshot: 'on road', 'near cross' (if different from road), 'in locality', '(subdivision)' (if different from locality), administrative area, country.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "road present",
+     "effect": "append 'on <road>'"
+    },
+    {
+     "at": "+3",
+     "cond": "cross street present and != road",
+     "effect": "append 'near <cross>'"
+    },
+    {
+     "at": "+4",
+     "cond": "locality present",
+     "effect": "append 'in <locality>'"
+    },
+    {
+     "at": "+5",
+     "cond": "subdivision present and != locality",
+     "effect": "append '(<sub>)'"
+    },
+    {
+     "at": "+6",
+     "cond": "administrativeArea present",
+     "effect": "append it"
+    },
+    {
+     "at": "+7",
+     "cond": "country present",
+     "effect": "append it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContext.motionBits(_:)",
+   "hash": "3a56ccfc04b55926",
+   "does": "Builds motion fragments: 'heading <cardinal> (<deg>°)', speed m/s and km/h when ≥0, 'alt Nm', 'GPS ±Nm' when >0, '(Ns old)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "headingCardinal present",
+     "effect": "append heading (degrees only if present)"
+    },
+    {
+     "at": "+3",
+     "cond": "headingDegrees nil (??)",
+     "effect": "omit degrees suffix"
+    },
+    {
+     "at": "+6",
+     "cond": "speedMS present and >= 0",
+     "effect": "append speed; negative (invalid CoreLocation speed) skipped"
+    },
+    {
+     "at": "+9",
+     "cond": "altitudeMeters present",
+     "effect": "append 'alt Nm'"
+    },
+    {
+     "at": "+10",
+     "cond": "accuracyMeters present and > 0",
+     "effect": "append 'GPS ±Nm'"
+    },
+    {
+     "at": "+11",
+     "cond": "ageSeconds present",
+     "effect": "append '(Ns old)'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContext.liveWorkoutLocationLines(_:)",
+   "hash": "f3b6e0c5fe9b8d08",
+   "does": "Builds the '📍 LIVE LOCATION:' line from a LiveWorkoutSnapshot's road, cross street, locality, heading, speed and GPS accuracy; empty array if none present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentRoadName present",
+     "effect": "append 'on <road>'"
+    },
+    {
+     "at": "+3",
+     "cond": "cross street present and != road",
+     "effect": "append 'near <cross>'"
+    },
+    {
+     "at": "+6",
+     "cond": "currentLocality present",
+     "effect": "append 'in <locality>'"
+    },
+    {
+     "at": "+7",
+     "cond": "heading cardinal present",
+     "effect": "append heading"
+    },
+    {
+     "at": "+8",
+     "cond": "heading degrees nil (??)",
+     "effect": "omit degree suffix"
+    },
+    {
+     "at": "+11",
+     "cond": "currentSpeedMS present",
+     "effect": "append speed m/s and km/h (no negative-speed check unlike motionBits:213)"
+    },
+    {
+     "at": "+14",
+     "cond": "gpsAccuracyMeters present",
+     "effect": "append 'GPS ±Nm'"
+    },
+    {
+     "at": "+15",
+     "cond": "no bits",
+     "effect": "return []; else one LIVE LOCATION line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca046840e972fc1"
+   }
+  },
+  {
+   "key": "func AssistantContext.liveWorkoutHRHistoryLines(_:)",
+   "hash": "2b2bb36aa75eaf28",
+   "does": "Fetches live workout samples from the global LiveWorkoutBroker (AppDependencies.current.assistant.liveWorkoutBroker → LiveWorkoutBroker.shared unless overridden), and if ≥6 samples, summarises the last ≤600 into HR buckets for a '📈 LIVE HR HISTORY' line. The `live` parameter is unused.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrBucketSummaries(_:)"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker.shared (samplesProvider)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 6 samples",
+     "effect": "return []"
+    },
+    {
+     "at": "+4",
+     "cond": "bucket summaries empty (no HR in any bucket)",
+     "effect": "return []; else return one history line"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Reads live samples from the process-wide LiveWorkoutBroker at render time instead of from the AssistantContext it renders, so a context captured during a workout and rendered later (or in tests) shows whatever the broker holds now; the `live` argument is ignored.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:264",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:265"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrBucketSummaries(_:)": "dd1a942bb88b89bc",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSamples()": "8aeda0c52d6667c9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.liveWorkoutBroker": "e05e91154e3e8f2d"
+   }
+  },
+  {
+   "key": "func AssistantContext.hrBucketSummaries(_:)",
+   "hash": "8ee05976dce5783e",
+   "does": "Splits the sample window into min(6, max(2, n/60)) equal buckets and returns 'a–bm min/avg/max' per bucket from offsetSec and non-nil heartRate; buckets with no HR are skipped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each bucket",
+     "effect": "compute range"
+    },
+    {
+     "at": "+6",
+     "cond": "last bucket (?:)",
+     "effect": "true: extend to end of window; false: perBucket boundary"
+    },
+    {
+     "at": "+9",
+     "cond": "no heart-rate values in bucket",
+     "effect": "skip bucket"
+    },
+    {
+     "at": "+10",
+     "cond": "slice.first nil (??)",
+     "effect": "lowMin 0 (unreachable: slices are non-empty)"
+    },
+    {
+     "at": "+11",
+     "cond": "slice.last nil (??)",
+     "effect": "use lowMin (unreachable)"
+    },
+    {
+     "at": "+13",
+     "cond": "hrs.min()/max() nil (??)",
+     "effect": "fallback avg (unreachable since hrs non-empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContext.liveWorkoutLines(formatter:)",
+   "hash": "8c37a2df1f22bbd7",
+   "does": "Returns the live-workout block: '🟢 LIVE WORKOUT: ...' line plus live location line and HR-history line; empty when no liveWorkout. The formatter parameter is unused.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutBits(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLocationLines(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutHRHistoryLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "liveWorkout nil",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutBits(_:)": "7983f09c94e0da2b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutHRHistoryLines(_:)": "0b7f5ba3fd166f4f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLocationLines(_:)": "5ed452f799305954"
+   }
+  },
+  {
+   "key": "func AssistantContext.liveWorkoutBits(_:)",
+   "hash": "10f7788b654accae",
+   "does": "Builds live-workout fragments: sport, minutes elapsed, snapshot_age_sec (now − snapshotAt, from Date()), HR with % of userMaxHR, peak HR, distance, steps, and α1 value/band or 'α1 unavailable: <status>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "heartRate present",
+     "effect": "append HR (with % of max when userMaxHR > 0)"
+    },
+    {
+     "at": "+7",
+     "cond": "userMaxHR > 0 (?:)",
+     "effect": "true: compute percent; false: nil percent"
+    },
+    {
+     "at": "+8",
+     "cond": "pct nil (??)",
+     "effect": "plain 'HR n'"
+    },
+    {
+     "at": "+10",
+     "cond": "peakHR > 0",
+     "effect": "append peak HR"
+    },
+    {
+     "at": "+11",
+     "cond": "distanceMeters > 0",
+     "effect": "append dist"
+    },
+    {
+     "at": "+12",
+     "cond": "stepCount > 0",
+     "effect": "append steps"
+    },
+    {
+     "at": "+13",
+     "cond": "alpha1 present",
+     "effect": "append α1 value and band; else 'α1 unavailable: <alpha1Status>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+   }
+  },
+  {
+   "key": "func AssistantContext.liveHRVLines()",
+   "hash": "bbb00eb765de8296",
+   "does": "Builds the '🟢 LIVE RECORDING:' line from liveHRVSession: phase description, minutes elapsed, beat count, collecting/not collecting, last error.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "liveHRVSession present",
+     "effect": "build line; else return []"
+    },
+    {
+     "at": "+9",
+     "cond": "elapsedSeconds present",
+     "effect": "append 'Nm elapsed'"
+    },
+    {
+     "at": "+13",
+     "cond": "beatCount > 0",
+     "effect": "append beats"
+    },
+    {
+     "at": "+14",
+     "cond": "isCollecting (?:)",
+     "effect": "'collecting' vs 'not collecting'"
+    },
+    {
+     "at": "+15",
+     "cond": "lastErrorDescription non-nil and non-empty",
+     "effect": "append 'last error: ...'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+   }
+  },
+  {
+   "key": "func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+   "hash": "8f338973bbe404e3",
+   "does": "Returns the '📍 LOCATION:' line from ambientLocation when includeAmbientLocation is true (privacy gate for cloud renders) and bits exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "includeAmbientLocation false OR ambientLocation nil",
+     "effect": "return []"
+    },
+    {
+     "at": "+3",
+     "cond": "no location bits",
+     "effect": "return []; else one LOCATION line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "628485a8b92002f2"
+   }
+  },
+  {
+   "key": "func AssistantContext.profileLines()",
+   "hash": "e8d542e59febd019",
+   "does": "Builds 'Profile: ...' line (age, sex, fitness level, VO2max, maxHR, units, on-break, training goal) when any present, followed by the algorithm line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "age present",
+     "effect": "append 'Ny'"
+    },
+    {
+     "at": "+4",
+     "cond": "biologicalSex present",
+     "effect": "append"
+    },
+    {
+     "at": "+5",
+     "cond": "fitnessLevel present",
+     "effect": "append"
+    },
+    {
+     "at": "+6",
+     "cond": "vo2Max present",
+     "effect": "append 'VO2max x'"
+    },
+    {
+     "at": "+7",
+     "cond": "maxHR present",
+     "effect": "append 'maxHR n'"
+    },
+    {
+     "at": "+8",
+     "cond": "unitsPreference present",
+     "effect": "append"
+    },
+    {
+     "at": "+9",
+     "cond": "onTrainingBreak",
+     "effect": "append 'on-break'"
+    },
+    {
+     "at": "+10",
+     "cond": "trainingGoal present",
+     "effect": "append 'training goal: ...'"
+    },
+    {
+     "at": "+11",
+     "cond": "profileBits non-empty",
+     "effect": "append Profile line; else only algorithm line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.algorithmLine()": "1ce40998a5773602",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+   }
+  },
+  {
+   "key": "func AssistantContext.algorithmLine()",
+   "hash": "ba3816b983107a5d",
+   "does": "Builds the algorithm description line: version with hard-coded tier weights (T3 60/25/15, T2 70/30, T1 HRV only), Comeback mode day N of 21 and weight shift when active, and a not-yet-recomputed warning.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "comebackModeActive",
+     "effect": "append Comeback sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "comebackModeDayInWindow nil (??)",
+     "effect": "omit ' — day N of 21' (stored 0-based, rendered +1)"
+    },
+    {
+     "at": "+8",
+     "cond": "scoreHistoryRecomputed false",
+     "effect": "append 'Score history NOT yet recomputed' warning"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Tier weights (60/25/15, 70/30) and Comeback weights are hard-coded prose here, separate from RecoveryScoreCalculator's constants and AppKnowledgeBase.reference, so a weight change must be edited in three places.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:416",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:420",
+      "Emuqu/Sources/Assistant/Context/AppKnowledgeBase.swift:51",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:9"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The algorithm line tells the model Tier 2 is always 'HRV 70% / Sleep 30%', but ScoreDetailBuilder.buildTier2 switches to HRV 85% / Sleep 15% when the HRV z-score < -1 and sleep < 50; on those nights the assistant explains the score with the wrong weights. The reference text in AppKnowledgeBase does not mention the dampened case either.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:416",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:139",
+      "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift:140",
+      "Emuqu/Sources/Utilities/Constants.swift:413"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantContext.todayLines(formatter:)",
+   "hash": "3cc3b11edba4006a",
+   "does": "Returns the today-session block (header, ISO start date, score, physiology, load/feeling lines) or [] when no today session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "today nil",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)": "1c935d870c1b4c37",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)": "ff01c66d570cec48",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)": "c6e4e38206656791"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayScoreLines(_:)",
+   "hash": "1397883d8d9b09b7",
+   "does": "Returns 'Recovery score: N/100 (Tier T)' and 'Coach note: ...' lines for a session when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryScore present",
+     "effect": "append score line (×10, clamped)"
+    },
+    {
+     "at": "+5",
+     "cond": "scoreTier nil (??)",
+     "effect": "no tier suffix"
+    },
+    {
+     "at": "+8",
+     "cond": "scoreMessage non-nil and non-empty",
+     "effect": "append Coach note"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayPhysiologyLines(_:)",
+   "hash": "2a84e278a3b89e9f",
+   "does": "Concatenates today's HRV, overnight HR and sleep lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayHRVLines(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayOvernightHRLines(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todaySleepLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayHRVLines(_:)": "b40ecf48919717c7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayOvernightHRLines(_:)": "fa95f21bfe5dda06",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todaySleepLines(_:)": "22513cf1ee57ef51"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayHRVLines(_:)",
+   "hash": "6a40c098966b2670",
+   "does": "Returns 'HRV: RMSSD .. SDNN .. mean HR ..' when timeDomain present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "timeDomain present",
+     "effect": "append line; else []"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same HRV line text is built again inline in yesterdayMetricLines.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:460",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:534"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayOvernightHRLines(_:)",
+   "hash": "f58bf2b7cbe40820",
+   "does": "Returns 'Overnight HR: nadir N bpm [at h:mm a], range a–b, mean m' when overnightHR present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnightHR present",
+     "effect": "build line; else []"
+    },
+    {
+     "at": "+4",
+     "cond": "nadirAt present",
+     "effect": "append ' at h:mm a' (device-locale DateFormatter)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Near-copy of overnightHRLine (A:547) differing only by the trailing mean; two formatters for the same fact.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:465",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:547"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.todaySleepLines(_:)",
+   "hash": "fcad18f9c4d58781",
+   "does": "Returns 'Sleep: Hh Mm, efficiency ..[ (short)][ (fragmented)]' when sleep present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleep present",
+     "effect": "build line; else []"
+    },
+    {
+     "at": "+7",
+     "cond": "isShortSleep (?:)",
+     "effect": "append ' (short)' or nothing"
+    },
+    {
+     "at": "+8",
+     "cond": "isFragmented (?:)",
+     "effect": "append ' (fragmented)' or nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func AssistantContext.todayLoadAndFeelingLines(_:)",
+   "hash": "fc27a9b335c48e88",
+   "does": "Returns training-load line (ATL, CTL, TSB, optional ACWR) and self-rated feeling 'N/5 (label)' lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "training present",
+     "effect": "append Training line"
+    },
+    {
+     "at": "+4",
+     "cond": "acwr present",
+     "effect": "append ', ACWR x'"
+    },
+    {
+     "at": "+7",
+     "cond": "morningFeeling present",
+     "effect": "append feeling with label clamped to 1..5 index"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Training line duplicates trainingLoadLine (A:558) minus the prior-day TRIMP suffix.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:498",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:559"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func AssistantContext.yesterdayLines(formatter:)",
+   "hash": "87771d9a0dc9ae87",
+   "does": "Returns the yesterday block (header, ISO date, metric lines) and the 'Yesterday's summary: title — explanation' line from yesterdayDiagnostic.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "yesterday present",
+     "effect": "append header, date and metric lines"
+    },
+    {
+     "at": "+8",
+     "cond": "yesterdayDiagnostic present",
+     "effect": "append summary line (rendered even when yesterday is nil, without a header)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)": "faeb910949bc1629"
+   }
+  },
+  {
+   "key": "func AssistantContext.yesterdayMetricLines(_:)",
+   "hash": "650df72c10daf65d",
+   "does": "Returns yesterday's score, HRV, overnight HR, sleep, training-load and feeling lines, each only when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryScore present",
+     "effect": "append score line"
+    },
+    {
+     "at": "+3",
+     "cond": "scoreTier nil (??)",
+     "effect": "no tier suffix"
+    },
+    {
+     "at": "+6",
+     "cond": "timeDomain present",
+     "effect": "append HRV line"
+    },
+    {
+     "at": "+9",
+     "cond": "overnightHR present",
+     "effect": "append overnightHRLine"
+    },
+    {
+     "at": "+10",
+     "cond": "sleep present",
+     "effect": "append sleep line"
+    },
+    {
+     "at": "+14",
+     "cond": "training present",
+     "effect": "append trainingLoadLine"
+    },
+    {
+     "at": "+15",
+     "cond": "morningFeeling present",
+     "effect": "append 'Self-rated feeling: N/5'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "34ee98aff246e92f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadLine(_:)": "33d9cad77f49265d",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "bf8be88388003629",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func AssistantContext.overnightHRLine(_:)",
+   "hash": "89859e1f4416bf66",
+   "does": "Formats 'Overnight HR: nadir N bpm [at h:mm a], range a–b'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nadirAt present",
+     "effect": "append time"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.trainingLoadLine(_:)",
+   "hash": "a6ce00ca88422594",
+   "does": "Formats 'Training: ATL, CTL, TSB[, ACWR], prior-day TRIMP'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "acwr present",
+     "effect": "append ACWR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func AssistantContext.earlierSessionLines()",
+   "hash": "bb595379e75fcba7",
+   "does": "Returns up to 5 overnight sessions from `recent` dated before yesterday's (or today's) startDate, one line each, under an 'Earlier sessions' header.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLine(_:dateFormatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "yesterday and today both nil (??)",
+     "effect": "cutoff = distantFuture so all overnight sessions qualify; else cutoff = (yesterday ?? today).startDate"
+    },
+    {
+     "at": "+5",
+     "cond": "no earlier sessions",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLine(_:dateFormatter:)": "0af2d63144dc61be"
+   }
+  },
+  {
+   "key": "func AssistantContext.earlierSessionLine(_:dateFormatter:)",
+   "hash": "5433fd6bfd8a99d4",
+   "does": "Formats one earlier session: date then each present field (score /100, RMSSD, HR, sleep, deep, REM, dip, TSB, ACWR, trimp >0, feel).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryScore present",
+     "effect": "append score"
+    },
+    {
+     "at": "+3",
+     "cond": "rmssd present",
+     "effect": "append"
+    },
+    {
+     "at": "+4",
+     "cond": "meanHR present",
+     "effect": "append"
+    },
+    {
+     "at": "+5",
+     "cond": "sleepMinutes present",
+     "effect": "append"
+    },
+    {
+     "at": "+6",
+     "cond": "deepSleepMinutes present",
+     "effect": "append"
+    },
+    {
+     "at": "+7",
+     "cond": "remSleepMinutes present",
+     "effect": "append"
+    },
+    {
+     "at": "+8",
+     "cond": "nocturnalDipPercent present",
+     "effect": "append"
+    },
+    {
+     "at": "+9",
+     "cond": "tsb present",
+     "effect": "append"
+    },
+    {
+     "at": "+10",
+     "cond": "acwr present",
+     "effect": "append"
+    },
+    {
+     "at": "+11",
+     "cond": "yesterdayTrimp present and > 0",
+     "effect": "append trimp"
+    },
+    {
+     "at": "+12",
+     "cond": "morningFeeling present",
+     "effect": "append feel"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.baselineLines()",
+   "hash": "04ab383f8f129b2d",
+   "does": "Returns the personal-baseline block (header with daysInWindow, RMSSD/SDNN/mean HR/stress-index baselines when present).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "baselines present",
+     "effect": "build block; else []"
+    },
+    {
+     "at": "+6",
+     "cond": "rmssdBaseline present",
+     "effect": "append"
+    },
+    {
+     "at": "+7",
+     "cond": "sdnnBaseline present",
+     "effect": "append"
+    },
+    {
+     "at": "+8",
+     "cond": "meanHRBaseline present",
+     "effect": "append"
+    },
+    {
+     "at": "+9",
+     "cond": "stressIndexBaseline present",
+     "effect": "append"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.weeklySummaryLines()",
+   "hash": "af26580d73dafb43",
+   "does": "Returns the 7-day trend block: header with data-point count, overall trend, and first 4 metric trend lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.metricTrendLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trends7Day nil",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.metricTrendLine(_:)": "069ec448bbff8961"
+   }
+  },
+  {
+   "key": "func AssistantContext.metricTrendLine(_:)",
+   "hash": "34a151ba93b3dd18",
+   "does": "Formats one metric trend: 'name: mean x, trend[, d% vs baseline]'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviationFromBaseline present",
+     "effect": "append '% vs baseline'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.narrativeLines()",
+   "hash": "f67827e03c3c8d2c",
+   "does": "Returns the analysis summary block: title — explanation, then up to 3 probable causes, key findings and actionable steps.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "analysisSummary nil",
+     "effect": "return []"
+    },
+    {
+     "at": "+3",
+     "cond": "probableCauses non-empty",
+     "effect": "append up to 3"
+    },
+    {
+     "at": "+9",
+     "cond": "keyFindings non-empty",
+     "effect": "append up to 3"
+    },
+    {
+     "at": "+13",
+     "cond": "actionableSteps non-empty",
+     "effect": "append up to 3"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b"
+   }
+  },
+  {
+   "key": "func AssistantContext.recentWorkoutDetailLines(_:)",
+   "hash": "4689a880b3173bfc",
+   "does": "Returns one ' · '-joined line per workout in the window plus an indented note line when workoutFeelingNote is non-empty. Uses a DateFormatter with only dateFormat 'yyyy-MM-dd' (device calendar/locale).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.workoutBits(_:dateFormatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each workout",
+     "effect": "append bits line"
+    },
+    {
+     "at": "+6",
+     "cond": "note non-nil and non-empty",
+     "effect": "append '    note: ...'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Date formatter sets no locale/calendar, unlike earlierSessionLines and liveStateDayLabel which pin en_US_POSIX + gregorian; on a device using a non-Gregorian calendar (e.g. Buddhist, Japanese) workout dates are rendered with that calendar's year (e.g. 2569) while session dates use Gregorian, so the model sees inconsistent dates.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:660",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:661",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:575",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:576"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.workoutBits(_:dateFormatter:)": "9f0d26d34eb382df"
+   }
+  },
+  {
+   "key": "func AssistantContext.workoutBits(_:dateFormatter:)",
+   "hash": "36f5fde5c9bc6885",
+   "does": "Formats one workout as bits: date, sport, duration, distance km (≥100 m), pace m:ss/km, avg/max HR, TRIMP, HRSS, decoupling, METs, kcal, elevation (>5 m), plus sensor bits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sensorBits(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "durationSec present",
+     "effect": "append duration"
+    },
+    {
+     "at": "+4",
+     "cond": "seconds == 0 (?:)",
+     "effect": "'Nmin' vs 'NmSs'"
+    },
+    {
+     "at": "+6",
+     "cond": "distance present and >= 100 m",
+     "effect": "append km"
+    },
+    {
+     "at": "+7",
+     "cond": "pace present",
+     "effect": "append m:ss/km"
+    },
+    {
+     "at": "+10",
+     "cond": "averageHR present",
+     "effect": "append"
+    },
+    {
+     "at": "+11",
+     "cond": "maxHRInSession present",
+     "effect": "append"
+    },
+    {
+     "at": "+12",
+     "cond": "trimp present",
+     "effect": "append"
+    },
+    {
+     "at": "+13",
+     "cond": "hrTSS present",
+     "effect": "append as 'HRSS'"
+    },
+    {
+     "at": "+14",
+     "cond": "decouplingPercent present",
+     "effect": "append"
+    },
+    {
+     "at": "+15",
+     "cond": "avgMETs present",
+     "effect": "append"
+    },
+    {
+     "at": "+16",
+     "cond": "estimatedCalories present",
+     "effect": "append kcal"
+    },
+    {
+     "at": "+17",
+     "cond": "elevation present and > 5 m",
+     "effect": "append elev"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sensorBits(_:)": "c3e85dc98126f4cb",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.estimatedCalories(avgMETs:durationSec:)": "7a49b7f83b5f3b33",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func AssistantContext.sensorBits(_:)",
+   "hash": "af72997ec1361ee1",
+   "does": "Formats power/cadence/α1/HRR/feeling bits for a workout, each only when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "normalizedPowerWatts present",
+     "effect": "append NP"
+    },
+    {
+     "at": "+3",
+     "cond": "avgPowerWatts present",
+     "effect": "append"
+    },
+    {
+     "at": "+4",
+     "cond": "peakPowerWatts present",
+     "effect": "append"
+    },
+    {
+     "at": "+5",
+     "cond": "powerTSS present",
+     "effect": "append powerLoad"
+    },
+    {
+     "at": "+6",
+     "cond": "intensityFactor present",
+     "effect": "append IF"
+    },
+    {
+     "at": "+7",
+     "cond": "avgCadenceSpm present",
+     "effect": "append"
+    },
+    {
+     "at": "+8",
+     "cond": "alpha1Mean present",
+     "effect": "append"
+    },
+    {
+     "at": "+9",
+     "cond": "hrr1MinDrop present",
+     "effect": "append"
+    },
+    {
+     "at": "+10",
+     "cond": "hrr2MinDrop present",
+     "effect": "append"
+    },
+    {
+     "at": "+11",
+     "cond": "workoutFeeling present",
+     "effect": "append"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.recentWorkoutLines()",
+   "hash": "7af1de20919beef4",
+   "does": "Returns the recent-workouts block: blank line, weekly rollup, detail lines for the first 14 workouts, and a '(+ N older — call workout.list...)' line when more exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutDetailLines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recentWorkouts empty",
+     "effect": "return []"
+    },
+    {
+     "at": "+5",
+     "cond": "more than 14 workouts",
+     "effect": "append older-count line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutDetailLines(_:)": "54ebabbc9dc34211",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()": "c11fbe69339d0e68"
+   }
+  },
+  {
+   "key": "func AssistantContext.weeklyRollupLines()",
+   "hash": "b99638b82537a257",
+   "does": "Builds the rollup header: last-N-shown count and 7-day totals (sessions, km, minutes, TRIMP) computed against Date(), the 7-day sport mix, and the 30-day total line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "sport mix non-empty",
+     "effect": "append 'Sport mix (7d)'"
+    },
+    {
+     "at": "+17",
+     "cond": "thirtyDayTotalLine non-nil",
+     "effect": "append it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)": "42d9775e0ac577c7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.thirtyDayTotalLine(sevenDayCount:)",
+   "hash": "c5c22e35c21180ae",
+   "does": "Returns '30-day total: N sessions, X km' when the 30-day count exceeds the 7-day count, else nil; window measured from Date().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "30-day count <= 7-day count",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.compactRender(includeAmbientLocation:)",
+   "hash": "c97f8ae866441d5b",
+   "does": "Renders the full compact context text: header, live workout, live HRV, ambient location (gated by includeAmbientLocation, default true), profile+algorithm, today, yesterday, earlier sessions, baselines, 7-day trend, summary, recent workouts; newline-joined. Called by AssistantViewModel+Routing.swift:511 (Apple only, default gate) and AssistantViewModel+Tools.swift:644 (no-tools fallback, gate = apple || liveWorkout != nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "includeAmbientLocation defaults to true (fail-open): the privacy gate for cloud-bound renders depends on every cloud caller remembering to pass the disclosure-matched value; today the only cloud-capable caller (fallbackContextRender) does, and Routing:511 renders only for Apple, but a new caller using the default would send street-level location to a cloud provider outside a workout.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:778",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:793",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:644",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:511"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationLines(includeAmbientLocation:)": "c4901a737684b905",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.baselineLines()": "7865441ac1633820",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.earlierSessionLines()": "9b1c37c7c135cfc6",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveHRVLines()": "a41da4693c70f466",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)": "c35a869f96449f9f",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "0e3ec60f7313405b",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "56a6e2abe9a978be",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "ccca2ee16b593c43",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "41c8ea28048ad0d7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "6997944c835bc710",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "86b07484200de716"
+   }
+  },
+  {
+   "key": "func formatNum(_:_:)",
+   "hash": "e77825c3dc27441f",
+   "does": "Global helper: formats a Double with a fixed number of decimal digits via String(format: \"%.<n>f\"). Called only from AssistantContext.swift renderers (grep finds no other file calling formatNum).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func sleepEfficiencyClause(_:)",
+   "hash": "ad3f4a6fa755f9b7",
+   "does": "Global helper: returns 'efficiency N%' from SleepSnapshot.sleepEfficiency×100, or 'efficiency not measured' when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepEfficiency nil",
+     "effect": "return 'efficiency not measured'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  }
+ ],
+ "deps": {}
+}

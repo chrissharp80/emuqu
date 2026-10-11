@@ -1,0 +1,760 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AIProvider.swift",
+ "hash": "1c9454e14bbc548c",
+ "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, the AIProvider protocol and AnyJSON encoder.",
+ "types": [
+  "ProviderID: enum — the six AI backends (apple, anthropic, openai, gemini, grok, deepseek) with display/vendor/symbol/privacy URL",
+  "ModelOption: struct — one selectable model (apiID, context window, per-MTok prices, default flag)",
+  "AssistantSubsystem: enum — which AI surface produced a turn (coach, workoutVoiceCoach, voiceConversation, coachReport)",
+  "ChatTurn: struct — one persisted chat message (role, text, provider/model, subsystem, routed tier, localOnly)",
+  "ChatTurn.Role: enum — user/assistant",
+  "ToolSpec: struct — tool name/description/JSON input schema sent to providers",
+  "ToolSpec.InputSchema: struct — top-level object schema",
+  "ToolSpec.Property: struct — one schema property",
+  "ToolExchange: struct — a completed tool call + serialized result replayed in continuation requests",
+  "AIStreamEvent: enum — textDelta/toolUse/usage/done stream events",
+  "AIProviderError: enum (LocalizedError) — provider failure taxonomy with isFallbackable/isAppleGuardrail and localized messages",
+  "ProviderAccountReply: enum — string heuristics for credit-exhausted and purchase-prompt vendor replies",
+  "AIProvider: protocol — backend interface (id, models, key need, availability, tool cap, streaming send)",
+  "AIProvider: extension — default maxToolSchemaCount nil and 4-argument toolless send",
+  "AnyJSON: struct (Encodable) — re-encodes JSONSerialization output via Codable"
+ ],
+ "state": [
+  "mem:ProviderAccountReply.creditMarkers (private static let, 9 lowercase phrases)",
+  "mem:ProviderAccountReply.purchaseMarkers (private static let, 10 lowercase phrases)"
+ ],
+ "toplevel": "Conformances: ProviderID String/Codable/CaseIterable/Identifiable; ModelOption Codable/Hashable/Identifiable/Sendable; AssistantSubsystem String/Codable; ChatTurn Codable (synthesized encode, custom decode)/Identifiable/Hashable/Sendable with stored default localOnly=false; ToolSpec Hashable/Codable/Sendable; AIStreamEvent.usage has default 0 for cache fields; AIProviderError LocalizedError.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ProviderID.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id: returns the raw value string of the ProviderID.",
+   "entry": "Identifiable conformance (SwiftUI ForEach/Picker over ProviderID.allCases)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderID.displayName",
+   "hash": "cdd6f80bc592cc28",
+   "does": "Returns the user-facing product name for the provider (Apple Intelligence, Claude, ChatGPT, Gemini, Grok, DeepSeek).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "\"Apple Intelligence\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .anthropic",
+     "effect": "\"Claude\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .openai",
+     "effect": "\"ChatGPT\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .gemini",
+     "effect": "\"Gemini\""
+    },
+    {
+     "at": "+6",
+     "cond": "case .grok",
+     "effect": "\"Grok\""
+    },
+    {
+     "at": "+7",
+     "cond": "case .deepseek",
+     "effect": "\"DeepSeek\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderID.symbolName",
+   "hash": "197b3c6fd1dee26c",
+   "does": "Returns the SF Symbol name shown on provider chips/rows (used by CoachHomeV2View, AIAssistantSettingsPage+Sections, ProviderConsentSheet, GrokQuirkPolicy).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "\"iphone\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .anthropic",
+     "effect": "\"sparkles\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .openai",
+     "effect": "\"circle.dashed\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .gemini",
+     "effect": "\"diamond\""
+    },
+    {
+     "at": "+6",
+     "cond": "case .grok",
+     "effect": "\"x.circle\""
+    },
+    {
+     "at": "+7",
+     "cond": "case .deepseek",
+     "effect": "\"fish\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderID.vendorName",
+   "hash": "054eff20983507ad",
+   "does": "Returns the vendor company name used in consent/privacy/error text (Apple, Anthropic, OpenAI, Google, xAI, DeepSeek).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "\"Apple\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .anthropic",
+     "effect": "\"Anthropic\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .openai",
+     "effect": "\"OpenAI\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .gemini",
+     "effect": "\"Google\""
+    },
+    {
+     "at": "+6",
+     "cond": "case .grok",
+     "effect": "\"xAI\""
+    },
+    {
+     "at": "+7",
+     "cond": "case .deepseek",
+     "effect": "\"DeepSeek\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ProviderID.privacyPolicyURL",
+   "hash": "6dc4398d0d44eb6c",
+   "does": "Returns the vendor privacy-policy URL shown in ProviderConsentSheet, AIAssistantSettingsPage and PrivacyPolicyView; all literals are valid so never nil in practice.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "apple.com/legal/privacy"
+    },
+    {
+     "at": "+3",
+     "cond": "case .anthropic",
+     "effect": "anthropic.com/legal/privacy"
+    },
+    {
+     "at": "+4",
+     "cond": "case .openai",
+     "effect": "openai.com/policies/privacy-policy"
+    },
+    {
+     "at": "+5",
+     "cond": "case .gemini",
+     "effect": "policies.google.com/privacy"
+    },
+    {
+     "at": "+6",
+     "cond": "case .grok",
+     "effect": "x.ai/legal/privacy-policy"
+    },
+    {
+     "at": "+7",
+     "cond": "case .deepseek",
+     "effect": "cdn.deepseek.com/.../deepseek-privacy-policy.html"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ModelOption.id",
+   "hash": "7003c8bfe3494b0a",
+   "does": "Identifiable id: \"<providerID.rawValue>:<apiID>\".",
+   "entry": "Identifiable conformance (SwiftUI lists of models)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ModelOption.isFree",
+   "hash": "a4b8934393266df9",
+   "does": "True when both input and output prices are nil (Apple on-device model).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ModelOption.isFree has no reader anywhere in the repo, app or tests (grep -rnw isFree finds only the declaration).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantSubsystem.displayName",
+   "hash": "e97fdb9b32870869",
+   "does": "English identity label of the subsystem: Flo for coach/voiceConversation, Coach for workoutVoiceCoach, Flo Report for coachReport; ChatBubble shows it for Flo and a localized chip name otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .coach",
+     "effect": "\"Flo\""
+    },
+    {
+     "at": "+3",
+     "cond": "case .workoutVoiceCoach",
+     "effect": "\"Coach\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .voiceConversation",
+     "effect": "\"Flo\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .coachReport",
+     "effect": "\"Flo Report\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantSubsystem.glyph",
+   "hash": "79bb95fae41f12ba",
+   "does": "SF Symbol glyph for the subsystem chip in ChatBubble.subsystemHeader.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .coach",
+     "effect": "sparkles"
+    },
+    {
+     "at": "+3",
+     "cond": "case .workoutVoiceCoach",
+     "effect": "figure.run.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "case .voiceConversation",
+     "effect": "waveform"
+    },
+    {
+     "at": "+5",
+     "cond": "case .coachReport",
+     "effect": "envelope.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AssistantSubsystem.voiceAnnouncement",
+   "hash": "6c55c1c3bacf3fbe",
+   "does": "Localized spoken self-announcement for a subsystem (from LanguageManager.appBundle). Only .workoutVoiceCoach (WorkoutVoiceCoach.swift:306) and .voiceConversation (VoiceConversationController+Speech.swift:92) are read in the app.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .coach",
+     "effect": "\"Flo here.\" (never requested by app code)"
+    },
+    {
+     "at": "+3",
+     "cond": "case .workoutVoiceCoach",
+     "effect": "\"Coach here.\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .voiceConversation",
+     "effect": "\"Flo here.\""
+    },
+    {
+     "at": "+5",
+     "cond": "case .coachReport",
+     "effect": "\"Flo Report.\" (never requested by app code)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+   "hash": "5bf9e102b1f2aa05",
+   "does": "Memberwise initializer for ChatTurn with defaults: new UUID, now, nil provider/model/subsystem/tier, localOnly false.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ChatTurn(from:)",
+   "hash": "e994f0b4fc83e5b4",
+   "does": "Decodable init: decodes id/role/text/createdAt as required and providerID/modelID/subsystem/routedTierRaw/localOnly as optional, so transcripts written before localOnly existed still load; a missing required key throws.",
+   "entry": "Decodable synthesis replacement — invoked by JSONDecoder when the chat transcript is loaded",
+   "calls": [
+    "ext:Decoder.container/decodeIfPresent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "localOnly key absent (decodeIfPresent nil)",
+     "effect": "defaults to false (turn treated as sendable); when present uses the stored Bool"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ToolSpec.InputSchema(properties:required:)",
+   "hash": "b0a6f04b3e91dba7",
+   "does": "Builds a top-level object schema: type fixed to \"object\", given properties and required list (both default empty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func redactAPIKeys(_:)",
+   "hash": "6d76549f174f9ef7",
+   "does": "Replaces anything matching 8 key/credential regexes (sk-ant-, sk-/sk-proj-, AIza, xai-, Bearer tokens, authorization:, x-api-key:, x-goog-api-key: headers) with \"[redacted]\" and returns the scrubbed string. Used on HTTP error bodies by Anthropic, Gemini and OpenAICompatibleStreamer.",
+   "entry": null,
+   "calls": [
+    "ext:String.replacingOccurrences(.regularExpression)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for each pattern",
+     "effect": "each regex is applied in order to the progressively scrubbed text"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AIProviderError.isAppleGuardrail",
+   "hash": "44a8f38a5315d1ee",
+   "does": "True only for .guardrailViolation (Apple safety refusal); routing uses it to never re-send a refusal elsewhere.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .guardrailViolation",
+     "effect": "returns true; otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AIProviderError.isFallbackable",
+   "hash": "425fbf11c3f8a758",
+   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation and cancelled. Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "missingKey, authFailed, rateLimited, network, modelUnavailable, outOfCredit",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "invalidResponse, unsupportedOS, unknown",
+     "effect": "true (treated as fallbackable so misconfiguration does not dead-end the chat)"
+    },
+    {
+     "at": "+10",
+     "cond": "guardrailViolation, cancelled",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AIProviderError.guardrailMessage",
+   "hash": "a7dadb8a0f48e039",
+   "does": "Localized text for the Apple guardrail refusal (\"Apple Intelligence declined to answer this...\").",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AIProviderError.errorDescription",
+   "hash": "eab44a8bbdb1b57c",
+   "does": "LocalizedError text for each case, localized from LanguageManager.appBundle; vendor-supplied text in invalidResponse/modelUnavailable/unknown passes through vendorText, which replaces purchase prompts.",
+   "entry": "LocalizedError.errorDescription — read via localizedDescription by the chat error banner",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProviderError.vendorText(_:shown:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProviderError.outOfCreditMessage(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.guardrailMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "missingKey(p)",
+     "effect": "\"No <vendor> API key set. Add one in Settings → Flo.\""
+    },
+    {
+     "at": "+4",
+     "cond": "unsupportedOS(req)",
+     "effect": "\"This model requires <req>.\""
+    },
+    {
+     "at": "+5",
+     "cond": "guardrailViolation",
+     "effect": "guardrailMessage"
+    },
+    {
+     "at": "+6",
+     "cond": "rateLimited",
+     "effect": "\"Rate limited. Wait a moment...\""
+    },
+    {
+     "at": "+7",
+     "cond": "authFailed",
+     "effect": "\"Authentication failed. Check your API key...\""
+    },
+    {
+     "at": "+8",
+     "cond": "network(msg)",
+     "effect": "\"Network error: <msg>\" (msg not screened by vendorText)"
+    },
+    {
+     "at": "+9",
+     "cond": "invalidResponse(msg)",
+     "effect": "vendorText(msg) else \"Unexpected response: <msg>\""
+    },
+    {
+     "at": "+10",
+     "cond": "modelUnavailable(msg)",
+     "effect": "vendorText(msg) else msg"
+    },
+    {
+     "at": "+11",
+     "cond": "outOfCredit(p)",
+     "effect": "outOfCreditMessage(p)"
+    },
+    {
+     "at": "+12",
+     "cond": "cancelled",
+     "effect": "\"Request cancelled.\""
+    },
+    {
+     "at": "+13",
+     "cond": "unknown(msg)",
+     "effect": "vendorText(msg) else msg"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProviderError.outOfCreditMessage(_:)": "381ceba8eda9b740",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProviderError.vendorText(_:shown:)": "f2f9e384dcf99d40",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.guardrailMessage": "ba9e01b464a7fd84",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AIProviderError.outOfCreditMessage(_:)",
+   "hash": "32c98026fe5fa8af",
+   "does": "Localized message that <vendor> declined because the API key has no credit left.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AIProviderError.vendorText(_:shown:)",
+   "hash": "bf9eb0c288a32d1b",
+   "does": "Returns shown() unless the vendor text carries a purchase prompt, in which case returns a neutral localized sentence about the key's account (App Store 3.1.1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "carriesPurchasePrompt(raw) is false",
+     "effect": "returns the closure's text unchanged; when true returns the neutral replacement"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)": "5f44af92700ff614",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ProviderAccountReply.isCreditExhausted(status:body:)",
+   "hash": "869e393b2b8e9f9c",
+   "does": "True when HTTP status is 402 or the lowercased body contains any credit marker (e.g. \"credit balance is too low\", \"insufficient_quota\", \"spending limit\").",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "status == 402",
+     "effect": "true immediately; otherwise substring match on creditMarkers"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderAccountReply.carriesPurchasePrompt(_:)",
+   "hash": "37e180b40ebb7225",
+   "does": "True when the lowercased text contains any purchase marker (billing, add funds, purchase, payment, top up, recharge, ...).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Plain substring matching: any vendor error that merely mentions the word \"payment\" or \"billing\" (e.g. a model-name or policy message) is replaced by the generic account sentence, hiding the real error text.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:465",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:481"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "requirement AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "8cdc9f88fddd896c",
+   "does": "Protocol requirement: stream a response for messages/model/context/system prompt/tools/tool rounds as AsyncThrowingStream<AIStreamEvent>.",
+   "entry": null,
+   "calls": [
+    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
+    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "ac452c89288faf61",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3291746dee017ce6",
+    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "786eeefe853edfb8",
+    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "635788248911791d"
+   }
+  },
+  {
+   "key": "var AIProvider.maxToolSchemaCount",
+   "hash": "bd09b041810a5ab8",
+   "does": "Default protocol extension: no tool-schema cap (nil); GrokProvider overrides with 110.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AIProvider.send(messages:model:contextRendered:systemPrompt:)",
+   "hash": "8267c4cebe5fa88a",
+   "does": "Back-compat 4-argument send: forwards to the full send with empty tools and toolRounds. Used by the summarizer, auto-fact extractor and voice interjection.",
+   "entry": null,
+   "calls": [
+    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::requirement AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "aa4081aa9569fabd"
+   }
+  },
+  {
+   "key": "init AnyJSON(_:)",
+   "hash": "a978d38af5fc5e50",
+   "does": "Wraps an arbitrary JSONSerialization value for Codable encoding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnyJSON.encode(to:)",
+   "hash": "2bf8a014b7692196",
+   "does": "Encodes the wrapped value into a single-value container: CFBoolean NSNumber as Bool first, then String, Int, Double, Bool, arrays and dictionaries recursively, NSNull and anything else as null.",
+   "entry": "Encodable — called by JSONEncoder when Anthropic ContentBlock.input and Gemini functionCall/functionResponse bodies are encoded",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "NSNumber whose CF type is CFBoolean",
+     "effect": "encodes Bool (prevents true replaying as 1)"
+    },
+    {
+     "at": "+6",
+     "cond": "String",
+     "effect": "encodes string"
+    },
+    {
+     "at": "+7",
+     "cond": "Int",
+     "effect": "encodes Int"
+    },
+    {
+     "at": "+8",
+     "cond": "Double",
+     "effect": "encodes Double"
+    },
+    {
+     "at": "+9",
+     "cond": "Bool",
+     "effect": "encodes Bool"
+    },
+    {
+     "at": "+10",
+     "cond": "[Any]",
+     "effect": "encodes array of AnyJSON recursively"
+    },
+    {
+     "at": "+11",
+     "cond": "[String: Any]",
+     "effect": "encodes dictionary of AnyJSON recursively (sorted if encoder has .sortedKeys)"
+    },
+    {
+     "at": "+13",
+     "cond": "NSNull",
+     "effect": "encodes null"
+    },
+    {
+     "at": "+14",
+     "cond": "default (any other type, e.g. Date/Data)",
+     "effect": "encodes null silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "9ca17d9e1a71af27"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,428 @@
+{
+ "file": "Emuqu/Sources/Services/RecurrenceClassifier.swift",
+ "hash": "207257b04c2298f8",
+ "role": "Tier-2 journey intelligence: matches the in-progress breadcrumb trail against archived trails (same 100 m start bucket + 4-hour band, 24-point path signature, ≤75 m mean offset, ≥2 matches) and returns a label plus median duration/length for the AI fact resolver.",
+ "types": [
+  "RecurrenceClassifier: enum — static matcher",
+  "RecurrenceClassifier.Match: struct — label, priorOccurrences, medianDurationSeconds, medianPathLengthMeters, averageMatchOffsetMeters",
+  "RecurrenceClassifier.ScoredTrail: struct (private) — matched trail + offset"
+ ],
+ "state": [
+  "static let startCoordRoundingMeters = 100 (RecurrenceClassifier.swift:86)",
+  "static let signatureResolution = 24 (:91)",
+  "static let matchThresholdMeters = 75 (:98)",
+  "static let minimumClusterSize = 2 (:103)",
+  "static let minimumElapsedSecondsForMatch = 300 (:109)"
+ ],
+ "toplevel": "Header comment (lines 4-57) documents the approach; no executable top-level code.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "match/scoreCandidates/clusterMatch/signature/resample have no tests; RecurrenceClassifierTests only covers roundCoord, median and cumulativeDistances, so the user-facing 'usual route' claim the AI repeats is unverified.",
+   "evidence": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift:120",
+    "EmuquTests/RecurrenceClassifierTests.swift:16",
+    "EmuquTests/RecurrenceClassifierTests.swift:105"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RecurrenceClassifier.match(current:archive:)",
+   "hash": "bc284dafad166a4a",
+   "does": "Returns a Match when the current trail has ≥5 fixes and ≥5 min elapsed, ≥2 archived trails share its bucket, and ≥2 of them have a signature (cut at the distance walked so far) within 75 m mean offset; otherwise nil. Called by WorkoutLiveCoachingNamespace.journeyRecurrence with BreadcrumbStore.loadArchive().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "current.origin and last fix exist",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+8",
+     "cond": "elapsed >= 300 s and fixes >= 5",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+10",
+     "cond": "bucket candidates >= 2",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+12",
+     "cond": "current signature non-empty",
+     "effect": "false (path ≤1 m or <2 fixes): nil"
+    },
+    {
+     "at": "+16",
+     "cond": "scored matches >= 2",
+     "effect": "false: nil; true: return clusterMatch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.clusterMatch(_:current:)": "d413d3222fd285bc",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.sameBucketCandidates(for:in:)": "cea970a1d88774f0",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)": "671537ad035d6b82",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.sameBucketCandidates(for:in:)",
+   "hash": "6d3b03e692d9fedc",
+   "does": "Filters the archive to trails with a different startedAt, ≥5 fixes and the same bucketKey as the current trail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "9d0cda794b206c53",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.scoreCandidates(_:against:walkedMeters:)",
+   "hash": "e1cd5ecb96922d51",
+   "does": "For each candidate builds a signature cut at walkedMeters and keeps those with equal length whose average per-point distance to the current signature is ≤75 m, recording the offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "signature length equals current signature length",
+     "effect": "false (empty signature): drop candidate"
+    },
+    {
+     "at": "+7",
+     "cond": "offset <= 75 m",
+     "effect": "false: drop; true: keep as ScoredTrail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Candidates are cut at the distance walked so far, so at the 5-min threshold only the route prefix is compared: two distinct routes that leave the same start the same way match, and the reported median duration/length (computed over full archived trails) then mixes different routes, against the header's 'false positives are worse than missing one'.",
+     "evidence": [
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:164",
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:180",
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:187",
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:54"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.averagePerPointDistance(_:_:)": "e79250ccef7ac4ef",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.signature(for:upToMeters:)": "df06f5dd37ab34f0"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.clusterMatch(_:current:)",
+   "hash": "6b7ccdce288d858d",
+   "does": "Builds the Match: sorted durations (origin→last fix), sorted walked lengths, mean offset, label from describeLabel with the trail's label or resolved origin label; medians fall back to 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "scored trail has origin and last fix",
+     "effect": "false: duration omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "current.label nil",
+     "effect": "uses current.resolvedOriginLabel"
+    },
+    {
+     "at": "+14",
+     "cond": "median(durations) nil",
+     "effect": "0"
+    },
+    {
+     "at": "+15",
+     "cond": "median(pathLengths) nil",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.describeLabel(for:originLabel:)": "462fd7bef75129d2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.median(_:)": "90b90f779a840a26",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.bucketKey(for:)",
+   "hash": "7c311a49a7a0b242",
+   "does": "Returns 'lat|lon|bN' from the origin rounded to 100 m (longitude cosine-corrected) and the start hour's four-hour band; 'no-origin' when no origin. Also used by BreadcrumbNamespace.recurrenceBuckets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "trail.origin nil",
+     "effect": "return 'no-origin' (all origin-less trails share one bucket)"
+    },
+    {
+     "at": "+17",
+     "cond": "hour component nil",
+     "effect": "hour band 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Hard rounding/band edges: two starts metres apart across a rounding boundary, or 07:59 vs 08:01, land in different buckets and never match (acknowledged in header as no fuzzy matching).",
+     "evidence": [
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:240",
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:217"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)": "75db7a14c31de924"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.roundCoord(_:toMeters:isLongitude:latitudeForCorrection:)",
+   "hash": "916a6848cc9dd4d1",
+   "does": "Rounds a lat/lon to a grid step of meters/metersPerDegree (longitude scaled by cos(latitude), denominator floored at 1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isLongitude",
+     "effect": "true: metersPerDeg = lat metres × cos(latitudeForCorrection); false: latitude metres per degree"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifier.signature(for:upToMeters:)",
+   "hash": "d8f51d50034ed760",
+   "does": "Resamples the trail's fix coordinates to 24 evenly spaced points over min(path length, limit); empty when <2 fixes or covered length ≤1 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.cumulativeDistances(along:)",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.resample(_:cumulative:total:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "fewer than 2 points",
+     "effect": "return []"
+    },
+    {
+     "at": "+6",
+     "cond": "cumulative.last nil",
+     "effect": "0"
+    },
+    {
+     "at": "+7",
+     "cond": "total > 1 m",
+     "effect": "false: return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.cumulativeDistances(along:)": "437d003ef89933d2",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.resample(_:cumulative:total:)": "a897c516f590bdc9",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func RecurrenceClassifier.cumulativeDistances(along:)",
+   "hash": "164483482bc372fd",
+   "does": "Returns cumulative CLLocation distances from the first point to each point; [] for an empty array.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "pts empty",
+     "effect": "return []"
+    },
+    {
+     "at": "+8",
+     "cond": "for each subsequent point",
+     "effect": "append running total"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifier.resample(_:cumulative:total:)",
+   "hash": "8242a1ff21c0df11",
+   "does": "Linear-interpolates 24 points at equal arc-length targets along the polyline using the cumulative array.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for n in 0..<24",
+     "effect": "one output point per n"
+    },
+    {
+     "at": "+9",
+     "cond": "idx < count-2 and next cumulative < target",
+     "effect": "advance segment index"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifier.averagePerPointDistance(_:_:)",
+   "hash": "35a80f081100722b",
+   "does": "Mean CLLocation distance between paired points of two equal-length signatures; infinity when lengths differ or empty.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "equal non-empty lengths",
+     "effect": "false: .infinity"
+    },
+    {
+     "at": "+6",
+     "cond": "for each index",
+     "effect": "accumulate distance"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifier.median(_:)",
+   "hash": "5b10b70ccedb738f",
+   "does": "Generic median: nil for empty input, mean of middle two for even counts, middle element otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "count even",
+     "effect": "average of middle pair; else middle"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same median helper exists privately in BreadcrumbNamespace (AppFactResolver+Breadcrumbs.swift:156) and several other files.",
+     "evidence": [
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:322",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift:156"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecurrenceClassifier.describeLabel(for:originLabel:)",
+   "hash": "2854e4ac9e4a8439",
+   "does": "Builds '<band> route[ near <origin>]' where band is morning (04-10), midday (11-13), afternoon (14-17), evening (18-21), late-night otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "hour 4..<11",
+     "effect": "morning"
+    },
+    {
+     "at": "+9",
+     "cond": "hour 11..<14",
+     "effect": "midday"
+    },
+    {
+     "at": "+10",
+     "cond": "hour 14..<18",
+     "effect": "afternoon"
+    },
+    {
+     "at": "+11",
+     "cond": "hour 18..<22",
+     "effect": "evening"
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": "late-night"
+    },
+    {
+     "at": "+15",
+     "cond": "originLabel nil",
+     "effect": "no ' near …' suffix"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

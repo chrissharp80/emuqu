@@ -1,0 +1,238 @@
+{
+ "file": "EmuquTests/MetricKitCrashStackTests.swift",
+ "hash": "2be3aa4aec93fc1d",
+ "role": "XCTest suite for MetricKitCrashStack: frame rendering ('<binary> +0x<offset> (<uuid>)' with '?' for missing fields), subFrame flattening order, attributed-thread filtering with all-thread fallback, depth truncation at maxDepth, and malformed-input tolerance.",
+ "types": [
+  "MetricKitCrashStackTests: class — XCTestCase over the MetricKitCrashStack parser"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+   "hash": "b0719d994a8e1f1d",
+   "does": "Helper: builds a MetricKit frame dictionary (binaryName, binaryUUID, offsetIntoBinaryTextSegment) and adds subFrames only when non-empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "subFrames non-empty",
+     "effect": "sets dict['subFrames']; otherwise key omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricKitCrashStackTests.tree(_:)",
+   "hash": "f95dd957aec6755b",
+   "does": "Helper: wraps stacks in a root dict {callStacks: stacks, callStackPerThread: true}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testFrameRendersBinaryOffsetAndUUID()",
+   "hash": "ed4c2979a067695e",
+   "does": "Asserts describe renders 'Emuqu +0x24ed48 (ABC)' (lowercase hex).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testIncompleteFrameKeepsItsPlaceWithQuestionMarks()",
+   "hash": "028d341b7561c19d",
+   "does": "Asserts describe([:]) is '? +? (?)' and a name-only frame is 'Emuqu +? (?)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testZeroOffsetIsPrintedNotTreatedAsMissing()",
+   "hash": "441789bdc746ccd7",
+   "does": "Asserts a zero offset renders '+0x0' rather than '?'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testNestedSubFramesFlattenOutermostFirst()",
+   "hash": "53d9e41427320cc1",
+   "does": "Asserts a three-level nested frame chain flattens outermost-first (pthread, dispatch, Emuqu).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)": "d6277b9431dde0c2",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)": "387c3b61ba5e2525"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testOnlyTheAttributedThreadIsFlattenedWhenOneIsMarked()",
+   "hash": "9e4fd1e783655cc5",
+   "does": "Asserts only the threadAttributed=true stack is flattened when one is marked (idle thread ignored).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)": "d6277b9431dde0c2",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)": "387c3b61ba5e2525"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testUnattributedTreeFallsBackToEveryThread()",
+   "hash": "b736a8472f423d6d",
+   "does": "Asserts that with no threadAttributed flag every stack is flattened in order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)": "d6277b9431dde0c2",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)": "387c3b61ba5e2525"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testPathologicallyDeepTreeIsTruncatedRatherThanOverflowing()",
+   "hash": "087766a33f82898c",
+   "does": "Builds a frame chain maxDepth+201 deep and asserts frames() returns exactly maxDepth+1 (513) entries, i.e. recursion stops at maxDepth.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for maxDepth+200 iterations",
+     "effect": "wraps the previous frame as a subFrame of a new one, producing a deep chain"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.append(_:into:depth:)": "d6277b9431dde0c2",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.describe(_:)": "27d60e8e3041f27f",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)": "387c3b61ba5e2525"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testMalformedPayloadsYieldNoFramesRatherThanThrowing()",
+   "hash": "280c3b4965d7a81c",
+   "does": "Asserts empty Data, non-JSON Data, empty dict and a dict whose callStacks is the wrong type all return [] without throwing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe"
+   }
+  },
+  {
+   "key": "func MetricKitCrashStackTests.testDataAndDictionaryEntryPointsAgree()",
+   "hash": "1290c24a788f9369",
+   "does": "Serialises a tree to JSON Data and asserts frames(fromCallStackTree: Data) equals frames(fromCallStackTree: dict).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: [String: Any])": "3785c673789067fe",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.tree(_:)": "387c3b61ba5e2525"
+   }
+  }
+ ],
+ "deps": {}
+}

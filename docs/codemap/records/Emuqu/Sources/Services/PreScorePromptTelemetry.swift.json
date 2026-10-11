@@ -1,0 +1,187 @@
+{
+ "file": "Emuqu/Sources/Services/PreScorePromptTelemetry.swift",
+ "hash": "9aabd20640f11d76",
+ "role": "Local-only UserDefaults counters (shown/completed/skipped, first-seen) for the pre-score subjective prompt, surfaced as a one-line summary in Diagnostics.",
+ "types": [
+  "PreScorePromptTelemetry: final class (@Observable, @MainActor) — counters for the pre-score prompt"
+ ],
+ "state": [
+  "mem:PreScorePromptTelemetry.shared",
+  "ud:preScorePrompt.telemetry.shownCount",
+  "ud:preScorePrompt.telemetry.completedCount",
+  "ud:preScorePrompt.telemetry.skippedCount",
+  "ud:preScorePrompt.telemetry.firstSeen",
+  "mem:PreScorePromptTelemetry.shownCount/completedCount/skippedCount/firstSeen"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "firstSeen is written to UserDefaults and kept in memory but nothing in the repo reads it (grep finds no reader outside this file), so the stored value is write-only.",
+   "evidence": [
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:25",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:42"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init PreScorePromptTelemetry(defaults:)",
+   "hash": "77ba3a2bc5649377",
+   "does": "Loads the three counters and firstSeen from the given UserDefaults (standard by default).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.completedCount",
+    "ud:preScorePrompt.telemetry.skippedCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordShown()",
+   "hash": "2ef8f0d2c1e5a326",
+   "does": "Increments and persists shownCount; stamps firstSeen the first time. Called from PreScorePromptView .task.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "firstSeen is nil",
+     "effect": "sets firstSeen to now in memory and defaults; otherwise unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The counters live in the shared singleton's memory as well as UserDefaults. Delete All My Data sweeps the preScorePrompt.telemetry.* keys (not on the keep list) but never calls reset(), so Diagnostics keeps showing the old counts and the next recordShown/recordCompleted/recordSkipped writes the stale in-memory total back to disk.",
+     "evidence": [
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:37",
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:38",
+      "Emuqu/Sources/Services/DataPurgeService.swift:328",
+      "Emuqu/Sources/Services/DataPurgeService.swift:696"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordCompleted()",
+   "hash": "4c2cc7111f77a5a2",
+   "does": "Increments and persists completedCount (Show my score with ≥1 answer).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.completedCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PreScorePromptTelemetry.recordSkipped()",
+   "hash": "024d99a592b31eab",
+   "does": "Increments and persists skippedCount (Skip / dismiss with no answers).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.skippedCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PreScorePromptTelemetry.completionRate",
+   "hash": "05beedbb4baa3c61",
+   "does": "completed/shown as Double; nil when never shown.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shownCount == 0",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PreScorePromptTelemetry.diagnosticsSummary",
+   "hash": "abd2bfeb7e7de851",
+   "does": "One-line Diagnostics string: 'not yet shown' when shown is 0, else completed/shown with rounded percent and skipped count (unlocalized English).",
+   "entry": "SwiftUI: read by SettingsPages+Diagnostics preScoreTelemetrySection",
+   "calls": [
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "shownCount == 0",
+     "effect": "returns 'Pre-score prompt: not yet shown.'"
+    },
+    {
+     "at": "+4",
+     "cond": "completionRate nil",
+     "effect": "uses 0 (unreachable here because shownCount > 0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "diagnosticsSummary is hard-coded English shown via Text(verbatim:) in Diagnostics, while the sibling ValidationTelemetry.diagnosticsSummary localizes its labels and docs/LOCALIZATION.md requires every user-facing string to go through String(localized:bundle:).",
+     "evidence": [
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:71",
+      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:75",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:302",
+      "Emuqu/Sources/Services/ValidationTelemetry.swift:99",
+      "docs/LOCALIZATION.md:68"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate": "8a44644805255592"
+   }
+  },
+  {
+   "key": "func PreScorePromptTelemetry.reset()",
+   "hash": "0c91e41b8cc488c0",
+   "does": "Zeroes all counters, clears firstSeen and removes the four keys. Wired to Diagnostics reset button.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:preScorePrompt.telemetry.shownCount",
+    "ud:preScorePrompt.telemetry.completedCount",
+    "ud:preScorePrompt.telemetry.skippedCount",
+    "ud:preScorePrompt.telemetry.firstSeen"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

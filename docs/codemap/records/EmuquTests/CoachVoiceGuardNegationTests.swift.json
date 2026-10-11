@@ -1,0 +1,226 @@
+{
+ "file": "EmuquTests/CoachVoiceGuardNegationTests.swift",
+ "hash": "4f4d6236ea021956",
+ "role": "Tests that CoachVoiceGuard's replacement sentences assert nothing about the user's state: negated sentences are intercepted but never turned into a finding, a denial and an affirmation of the same term get the same line, no English deflection contains an old finding fragment, and every shipped translation of every deflection exists and passes the guard.",
+ "types": [
+  "CoachVoiceGuardNegationTests: class — XCTestCase for negation-safe deflections"
+ ],
+ "state": [
+  "assertedFindings: static English fragments of old finding-asserting deflections",
+  "negatedAndAffirmed: static (negated, affirmed) sentence pairs in 9 languages"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Finding fragments are English only and the class never pins the app language, while deflections resolve through LanguageManager.appBundle; on a non-English host, and for every translation in testEveryTranslatedDeflectionIsPresentAndClean (which checks only the guard, not the findings), a translated deflection that still asserts a finding passes, although the header says reassuring answers turned alarming 'in every language'.",
+   "evidence": [
+    "EmuquTests/CoachVoiceGuardNegationTests.swift:11",
+    "EmuquTests/CoachVoiceGuardNegationTests.swift:17",
+    "EmuquTests/CoachVoiceGuardNegationTests.swift:97",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:135"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CoachVoiceGuardNegationTests.testNegatedSentencesAreNotTurnedIntoTheirOpposite()",
+   "hash": "a83239092d3aaadd",
+   "does": "For each of 18 negated/affirmed pairs, scrubs the negated sentence, asserts it was intercepted and that the scrubbed text contains none of the asserted-finding fragments (case-insensitive).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each sentence pair",
+     "effect": "scrubs pair.negated and runs the checks"
+    },
+    {
+     "at": "+4",
+     "cond": "for each finding fragment",
+     "effect": "asserts the scrubbed text does not contain it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "c36696f346c953ad",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "6b2f9d164ff0a50e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "a8c810e8a22c2f5d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardNegationTests.testADenialAndAnAssertionGetTheSameNeutralLine()",
+   "hash": "cbbdc64a74ae03bc",
+   "does": "For each pair, asserts scrub(negated).scrubbed equals scrub(affirmed).scrubbed.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each sentence pair",
+     "effect": "compares the two scrubbed outputs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "c36696f346c953ad",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "6b2f9d164ff0a50e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardNegationTests.testNoDeflectionAssertsAFinding()",
+   "hash": "080141d641a542b0",
+   "does": "For every (concept, deflection) in CoachVoiceGuard.deflections, asserts the deflection contains none of the finding fragments.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each deflection entry",
+     "effect": "runs the fragment check"
+    },
+    {
+     "at": "+2",
+     "cond": "for each finding fragment",
+     "effect": "asserts not contained (case-insensitive)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardNegationTests.testEveryTranslatedDeflectionIsPresentAndClean()",
+   "hash": "7b03a7527e4fe26f",
+   "does": "For each non-Base, non-en localization of Bundle.main with a Localizable.strings table, asserts every distinct English deflection has a translation and that the translation does not trip containsProhibitedLanguage; asserts at least 16 tables were read.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
+    "ext:Bundle.main.path(forResource:ofType:inDirectory:forLocalization:)"
+   ],
+   "reads": [
+    "file:Emuqu.app/<lang>.lproj/Localizable.strings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each localization other than Base and en",
+     "effect": "attempts to read its table"
+    },
+    {
+     "at": "+3",
+     "cond": "table path found and parses as [String:String]",
+     "effect": "true: counts it and checks deflections; false: skips the language silently (caught only by the >=16 count)"
+    },
+    {
+     "at": "+7",
+     "cond": "for each distinct English deflection",
+     "effect": "looks up its translation"
+    },
+    {
+     "at": "+8",
+     "cond": "translation exists",
+     "effect": "true: asserts it is not prohibited; false: XCTFail and continue"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The English keys looked up in each table are taken from CoachVoiceGuard.deflections.values, which are resolved through LanguageManager.appBundle at read time; the class never calls pinEnglishLanguage, so on a host whose app language is not English the values are already translated, every strings[english] lookup misses, and the test fails with 'no translation' for every language without any defect.",
+     "evidence": [
+      "EmuquTests/CoachVoiceGuardNegationTests.swift:92",
+      "EmuquTests/CoachVoiceGuardNegationTests.swift:93",
+      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:130",
+      "Emuqu/Sources/Assistant/CoachVoiceGuard.swift:136"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a"
+   }
+  }
+ ],
+ "deps": {}
+}

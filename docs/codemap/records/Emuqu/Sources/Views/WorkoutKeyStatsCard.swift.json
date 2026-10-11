@@ -1,0 +1,154 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift",
+ "hash": "7cfab3c99340b338",
+ "role": "'AT A GLANCE' 3-column tile grid of caller-supplied workout stats on the post-workout summary.",
+ "types": [
+  "WorkoutKeyStatsCard: struct View — tile grid",
+  "WorkoutKeyStatsCard.Stat: struct Identifiable — label/value/sub/icon/tint with fresh UUID id",
+  "WorkoutKeyStatsCard.TileChrome: private struct ViewModifier — tile background and hairline border"
+ ],
+ "state": [
+  "static tileColumns: 3 flexible GridItems"
+ ],
+ "toplevel": "Stat.id = UUID() initialiser gives every Stat a new identity each time keyStatTiles is rebuilt (FitnessPostSummaryView+Feeling.swift:396).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says six fixed tiles (peak HR, elevation, TRIMP, hrTSS, best split, avg HR) in a 3x2 grid, but the card renders whatever stats array the caller builds via conditional append* helpers.",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WorkoutKeyStatsCard.tileGrid",
+   "hash": "815d5ef3c61d9a05",
+   "does": "LazyVGrid of tiles over stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.tile(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Stat.id is a fresh UUID() and keyStatTiles rebuilds every Stat on each body evaluation, so ForEach sees all-new identities every render (tiles are recreated, no stable diffing).",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:17",
+      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:35",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.tile(_:)": "1ab13f33fd8e4cdb"
+   }
+  },
+  {
+   "key": "var WorkoutKeyStatsCard.body",
+   "hash": "ee9fee1637c3d822",
+   "does": "Card with 'AT A GLANCE' header over tileGrid.",
+   "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift:390.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.tileGrid",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When no tile metric exists (no HR, elevation >2 m, load or splits) keyStatTiles is empty and the card still renders an 'AT A GLANCE' header over an empty grid; neither the card nor its caller hides it.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift:43",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:396",
+      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:190"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::var WorkoutKeyStatsCard.tileGrid": "e7d9a059dacd7b5c"
+   }
+  },
+  {
+   "key": "func WorkoutKeyStatsCard.tile(_:)",
+   "hash": "62caaf2c0db04317",
+   "does": "Tile: header, value, optional sub text, TileChrome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.tileHeader(_:)",
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.TileChrome.body(content:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "stat.sub non-nil",
+     "effect": "sub caption; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.TileChrome.body(content:)": "5fe662883bf1d354",
+    "Emuqu/Sources/Views/WorkoutKeyStatsCard.swift::func WorkoutKeyStatsCard.tileHeader(_:)": "45b866af99be239e"
+   }
+  },
+  {
+   "key": "func WorkoutKeyStatsCard.TileChrome.body(content:)",
+   "hash": "f88eefc1500a39db",
+   "does": "Applies half-opacity card background, grey hairline rounded border and 10pt corner radius.",
+   "entry": "ViewModifier.body invoked by SwiftUI via .modifier(TileChrome()).",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "func WorkoutKeyStatsCard.tileHeader(_:)",
+   "hash": "622fb437d9e3865b",
+   "does": "Tinted icon plus label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,748 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsView+Appearance.swift",
+ "hash": "8d74d354641c9838",
+ "role": "Settings › Appearance page (background theme + colour theme pickers with live preview and palette swatches, writing UserSettings.appearanceTheme/colorTheme) and Settings › Language page plus the AppLanguage enum that reads/writes the app's AppleLanguages override.",
+ "types": [
+  "AppearancePage: struct (View) — background/colour theme picker",
+  "AppLanguage: enum (String, CaseIterable, Identifiable, @MainActor) — 18 cases (system + 17 locales) mapping to AppleLanguages codes",
+  "LanguagePage: struct (View) — language list that calls LanguageManager.setLanguage"
+ ],
+ "state": [
+  "ud:AppleLanguages (standard suite; read from the app's persistent domain, written/removed by AppLanguage.apply)",
+  "mem:LanguagePage.selectedLanguage (@State, initialised from AppLanguage.current)",
+  "mem:SettingsManager.settings.appearanceTheme / colorTheme (written here, persisted to user_settings.json)"
+ ],
+ "toplevel": "AppLanguage raw values: system, en, da, de, es, fi, fr, is, it, ja, ko, nb, nl, pt-BR, ru, sv, zh-Hans, ar. The long doc comment on AppearancePage.body records that there is deliberately no new-design flag and that 'Hide Fitness tab' lives in Settings › Training.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AppearancePage.body",
+   "hash": "ba489632a5849980",
+   "does": "Form with live preview, background theme, colour theme and palette sections, titled 'Appearance'.",
+   "entry": "SwiftUI body (pushed from SettingsView.swift:305 and the Settings search entry)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.livePreviewSection",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.paletteSwatchSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.backgroundThemeSection": "148450a6eae5c3d7",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeSection": "c6b8cdc9e2f76b10",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.livePreviewSection": "f2325994d3d9afd4",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.paletteSwatchSection": "b4be0143302ca333",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var AppearancePage.livePreviewSection",
+   "hash": "ea9f49bc032b0c70",
+   "does": "Preview section rendering a ScoreRing at score 84 / .good and a sample NarrativeCard with the current AppTheme.primary accent.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body",
+    "Emuqu/Sources/Views/NarrativeCard.swift::var NarrativeCard.body",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NarrativeCard.swift::var NarrativeCard.body": "37d71171f7f5be1f",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.body": "7698d574175ed7fc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AppearancePage.backgroundThemeSection",
+   "hash": "2a0f8500b2c70768",
+   "does": "Section listing a row for every AppearanceTheme case with header and footer copy.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeRow(_:)": "0820b1f8b40b1844"
+   }
+  },
+  {
+   "key": "func AppearancePage.backgroundThemeRow(_:)",
+   "hash": "fb221119741b903c",
+   "does": "Button that sets settingsManager.settings.appearanceTheme = theme (persisted by SettingsManager.settings didSet → user_settings.json and posts flowRecoverySettingsChanged); accessibility label 'name: description' and selected trait when current.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeLabel(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "settings.appearanceTheme == theme",
+     "effect": "true: adds .isSelected trait; false: no extra trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "0bd25c451f13d8f5",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "98b2b0ce43bd809d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.backgroundThemeLabel(_:)": "105ea3f5669386b7"
+   }
+  },
+  {
+   "key": "func AppearancePage.backgroundThemeLabel(_:)",
+   "hash": "47e3448621fa0b79",
+   "does": "Theme name and description with the selected checkmark.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.selectedCheckmark(for:)",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL says the Background Theme picker shows 'a color preview for each option', but each row is only the theme name, description and a checkmark; the only preview is the shared live-preview section for the current theme.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1513",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:78",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:80",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:82",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:87"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.description": "0bd25c451f13d8f5",
+    "Emuqu/Sources/Models/UserSettings.swift::var AppearanceTheme.displayName": "98b2b0ce43bd809d",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.selectedCheckmark(for:)": "1f9ded0966230735",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func AppearancePage.selectedCheckmark(for:)",
+   "hash": "f672a681e3b81862",
+   "does": "Checkmark image (hidden from VoiceOver) when this theme is selected.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.appearanceTheme == theme",
+     "effect": "true: shows checkmark; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AppearancePage.colorThemeSection",
+   "hash": "5565572e985cc554",
+   "does": "'Color Theme' section hosting the colour grid.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeGrid"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.colorThemeGrid": "7f9b1feb171a77b6"
+   }
+  },
+  {
+   "key": "var AppearancePage.colorThemeGrid",
+   "hash": "0ea47f225767cac0",
+   "does": "Adaptive LazyVGrid (min 90pt) with one swatch per ColorTheme case.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatch(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatch(_:)": "3900b54ebef2dbb4"
+   }
+  },
+  {
+   "key": "func AppearancePage.colorThemeSwatch(_:)",
+   "hash": "de7c18f1ebddf0a7",
+   "does": "Plain button that sets settingsManager.settings.colorTheme = theme (persisted via SettingsManager didSet); accessibility label 'Color theme: name' plus selected trait.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatchLabel(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings",
+    "file:user_settings.json",
+    "notif:flowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "settings.colorTheme == theme",
+     "effect": "true: .isSelected trait; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "de62d06acaccd742",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorThemeSwatchLabel(_:)": "ace72ae5adfd1dcf"
+   }
+  },
+  {
+   "key": "func AppearancePage.colorThemeSwatchLabel(_:)",
+   "hash": "c0235344976c696a",
+   "does": "36pt circle filled with the static swatch colour, overlaid with the checkmark, and the theme name below.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatch(for:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatchCheckmark(_:)",
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName": "de62d06acaccd742",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatch(for:)": "495f5394eefda625",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppearancePage.colorSwatchCheckmark(_:)": "eacf3faa7090af20",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func AppearancePage.colorSwatchCheckmark(_:)",
+   "hash": "ebbed1e21d826660",
+   "does": "White bold checkmark when this colour theme is selected.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings.colorTheme == theme",
+     "effect": "true: checkmark; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppearancePage.paletteSwatchSection",
+   "hash": "0be6afc14eb66c4c",
+   "does": "'Palette' section combining surface, accent and text swatches as one accessibility element 'Preview of current theme'.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.surfaceSwatches",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.accentSwatches",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.textSwatches"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.accentSwatches": "49ab6283deca3411",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.surfaceSwatches": "4c256c09ec762cf4",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppearancePage.textSwatches": "865367761fe23a65"
+   }
+  },
+  {
+   "key": "var AppearancePage.surfaceSwatches",
+   "hash": "dc88ec8d0c465eb3",
+   "does": "Two rounded rectangles filled with AppTheme.background and AppTheme.cardBackground, labelled.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AppearancePage.accentSwatches",
+   "hash": "1089ff839d5b3b98",
+   "does": "Three circles in AppTheme.primary, primaryDark, primaryLight (hidden from VoiceOver).",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AppearancePage.textSwatches",
+   "hash": "da356b60e89d41b6",
+   "does": "'Primary', 'Secondary', 'Tertiary' text samples in the matching AppTheme text colours.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func AppearancePage.colorSwatch(for:)",
+   "hash": "fbbec40ec5f93c51",
+   "does": "Returns a fixed RGB swatch colour per ColorTheme, independent of light/dark mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "theme is .blue",
+     "effect": "returns Color(red,green,blue) (0.23,0.51,0.96)"
+    },
+    {
+     "at": "+3",
+     "cond": "theme is .teal",
+     "effect": "returns Color(red,green,blue) (0.10,0.59,0.56)"
+    },
+    {
+     "at": "+4",
+     "cond": "theme is .indigo",
+     "effect": "returns Color(red,green,blue) (0.35,0.34,0.84)"
+    },
+    {
+     "at": "+5",
+     "cond": "theme is .purple",
+     "effect": "returns Color(red,green,blue) (0.58,0.30,0.82)"
+    },
+    {
+     "at": "+6",
+     "cond": "theme is .rose",
+     "effect": "returns Color(red,green,blue) (0.82,0.28,0.48)"
+    },
+    {
+     "at": "+7",
+     "cond": "theme is .orange",
+     "effect": "returns Color(red,green,blue) (0.82,0.44,0.10)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The six swatch RGB values are copies of the light-mode branch of AppTheme.primary; a palette change in Theme.swift leaves the picker swatches showing the old colours.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:218",
+      "Emuqu/Sources/Views/Theme.swift:17",
+      "Emuqu/Sources/Views/Theme.swift:22"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AppLanguage.id",
+   "hash": "3dbeadd51793ce61",
+   "does": "Returns rawValue as the Identifiable id (nonisolated).",
+   "entry": "Identifiable.id witness used by ForEach(AppLanguage.allCases) in LanguagePage",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppLanguage.displayName",
+   "hash": "d4dcf1f67f82d6e3",
+   "does": "Returns the language's endonym (hard-coded, not localized) or the localized 'System Default' for .system.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self is .system",
+     "effect": "returns localized 'System Default'"
+    },
+    {
+     "at": "+3",
+     "cond": "self is .en",
+     "effect": "returns English"
+    },
+    {
+     "at": "+4",
+     "cond": "self is .da",
+     "effect": "returns Dansk"
+    },
+    {
+     "at": "+5",
+     "cond": "self is .de",
+     "effect": "returns Deutsch"
+    },
+    {
+     "at": "+6",
+     "cond": "self is .es",
+     "effect": "returns Español"
+    },
+    {
+     "at": "+7",
+     "cond": "self is .fi",
+     "effect": "returns Suomi"
+    },
+    {
+     "at": "+8",
+     "cond": "self is .fr",
+     "effect": "returns Français"
+    },
+    {
+     "at": "+9",
+     "cond": "self is .icelandic",
+     "effect": "returns Íslenska"
+    },
+    {
+     "at": "+10",
+     "cond": "self is .it",
+     "effect": "returns Italiano"
+    },
+    {
+     "at": "+11",
+     "cond": "self is .ja",
+     "effect": "returns 日本語"
+    },
+    {
+     "at": "+12",
+     "cond": "self is .ko",
+     "effect": "returns 한국어"
+    },
+    {
+     "at": "+13",
+     "cond": "self is .nb",
+     "effect": "returns Norsk Bokmål"
+    },
+    {
+     "at": "+14",
+     "cond": "self is .nl",
+     "effect": "returns Nederlands"
+    },
+    {
+     "at": "+15",
+     "cond": "self is .ptBR",
+     "effect": "returns Português (Brasil)"
+    },
+    {
+     "at": "+16",
+     "cond": "self is .ru",
+     "effect": "returns Русский"
+    },
+    {
+     "at": "+17",
+     "cond": "self is .sv",
+     "effect": "returns Svenska"
+    },
+    {
+     "at": "+18",
+     "cond": "self is .zhHans",
+     "effect": "returns 简体中文"
+    },
+    {
+     "at": "+19",
+     "cond": "self is .ar",
+     "effect": "returns العربية"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AppLanguage.current",
+   "hash": "b8d974bb5b4f6c8a",
+   "does": "Reads AppleLanguages from the app's own persistent UserDefaults domain (not the global domain) and returns the case whose rawValue equals the first entry, else .system. Read by LanguageManager.init, LanguagePage's initial state and SettingsView's Language row.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.standard.persistentDomain(forName:)"
+   ],
+   "reads": [
+    "ud:AppleLanguages (app persistent domain)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Bundle.main.bundleIdentifier is nil",
+     "effect": "uses \"\" as the domain name (persistentDomain returns nil → .system); otherwise the app's bundle id"
+    },
+    {
+     "at": "+2",
+     "cond": "the domain has an AppleLanguages [String] with a first element",
+     "effect": "true: matches it against the cases; false (no override): returns .system"
+    },
+    {
+     "at": "+7",
+     "cond": "no case's rawValue equals the first code exactly",
+     "effect": "falls back to .system (e.g. a region-qualified code such as 'de-DE' is reported as System Default); otherwise returns the matching case"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Exact rawValue match only: an AppleLanguages override written in any other form (region-qualified code, or a code not in the enum) reads as .system, so the Language page checks 'System Default' while LanguageManager.systemLanguage still resolves the app to the override language via UserDefaults.stringArray(AppleLanguages).",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:295",
+      "Emuqu/Sources/Services/LanguageManager.swift:116"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AppLanguage.apply()",
+   "hash": "0eae0aeb17847215",
+   "does": "Persists the choice: removes the AppleLanguages key for .system, otherwise sets AppleLanguages = [rawValue] in standard UserDefaults (takes full effect for Bundle.main at next launch; LanguageManager swaps bundles live).",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.standard.set(_:forKey:)/removeObject(forKey:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self == .system",
+     "effect": "true: removeObject(forKey: AppleLanguages) so the device language list applies; false: set([rawValue])"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LanguagePage.body",
+   "hash": "7eaf6a92cf66a0c1",
+   "does": "Form with the language section, titled 'Language'.",
+   "entry": "SwiftUI body (pushed from SettingsView.swift:313 and the Settings search entry)",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.languageSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var LanguagePage.languageSection": "8b8d650b2581257f",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "func LanguagePage.languageRow(_:)",
+   "hash": "4cb702d432a3f72d",
+   "does": "Button calling selectLanguage(language), labelled by the endonym with a selected trait.",
+   "entry": "SwiftUI button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectLanguage(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRowLabel(_:)",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selectedLanguage == language",
+     "effect": "true: .isSelected trait; false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRowLabel(_:)": "cd8a49fa73cfff76",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectLanguage(_:)": "167ed231a3511369",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "7323b3822357366e"
+   }
+  },
+  {
+   "key": "func LanguagePage.selectLanguage(_:)",
+   "hash": "861928119c596c4e",
+   "does": "Ignores a tap on the already-selected language; otherwise updates selectedLanguage and calls LanguageManager.setLanguage, which writes AppleLanguages, swaps locale/bundle, posts languageDidChangeNotification and bumps revision.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages",
+    "mem:LanguageManager.locale",
+    "mem:LanguageManager.bundle",
+    "mem:LanguageManager.revision",
+    "notif:LanguageManager.languageDidChangeNotification"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "language == selectedLanguage",
+     "effect": "true: returns with no change; false: applies the new language"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05"
+   }
+  },
+  {
+   "key": "func LanguagePage.languageRowLabel(_:)",
+   "hash": "f29d1bd542af2e54",
+   "does": "Endonym text plus the selected checkmark.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectedLanguageCheckmark(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.selectedLanguageCheckmark(_:)": "f47aa69c055a0fde",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.displayName": "7323b3822357366e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func LanguagePage.selectedLanguageCheckmark(_:)",
+   "hash": "d16c40bc3543c878",
+   "does": "Checkmark (VoiceOver-hidden) for the selected language.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedLanguage == language",
+     "effect": "true: checkmark; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var LanguagePage.languageSection",
+   "hash": "eeaa9a4e64c46a22",
+   "does": "Section with a row per AppLanguage case and a footer saying the switch is immediate.",
+   "entry": "SwiftUI view-builder evaluation of the parent view's body",
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func LanguagePage.languageRow(_:)": "489229256b60ac31"
+   }
+  }
+ ],
+ "deps": {}
+}

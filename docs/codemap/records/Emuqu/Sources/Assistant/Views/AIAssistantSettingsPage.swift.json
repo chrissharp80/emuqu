@@ -1,0 +1,738 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift",
+ "hash": "e185ae088877b70a",
+ "role": "Settings → Flo page (AIAssistantSettingsPage: title/alert shell, per-provider kill-switch toggles, Tavily placeholder, Apple status) and the per-provider BYOK key editor (APIKeyEditorView: save/replace/remove keychain key, consent status and withdrawal, data-use notes).",
+ "types": [
+  "AIAssistantSettingsPage: struct View — Settings → Flo shell; its list sections live in AIAssistantSettingsPage+Sections.swift",
+  "AIAssistantSettingsPage.ProviderFlagEntry: struct — (FeatureFlags.Key, title, subtitle) row model for the provider switches",
+  "APIKeyEditorView: struct View — per-provider key editor + data-sharing consent section",
+  "APIKeyEditorView.SaveStatus: enum — idle/saved/removed/failed footer state"
+ ],
+ "state": [
+  "@State AIAssistantSettingsPage.refreshToken (UUID bumped to force redraw after flag/key changes, line 10)",
+  "@State AIAssistantSettingsPage.newFactText / showClearFactsConfirm / tavilyKeyDraft / tavilyKeyShown / tavilyKeySaveFailed (lines 11-15; used by +Sections)",
+  "@State APIKeyEditorView.keyText / hasExistingKey / saveStatus / showWithdrawConfirm (lines 105-108)",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey/<ProviderID> (accessed via APIKeyStore, not declared here)"
+ ],
+ "toplevel": "No global code. Both types read services from @Environment(\\.dependencies). AIAssistantSettingsPage.body delegates its content to `settingsList` declared in AIAssistantSettingsPage+Sections.swift:21.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AIAssistantSettingsPage.registry",
+   "hash": "bf14465fd0892c1e",
+   "does": "Returns dependencies.providers.providerRegistry (the shared ProviderRegistry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry": "011c65c2dc3b4ab7"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.facts",
+   "hash": "2f3e5daa0b391db3",
+   "does": "Returns dependencies.assistant.userFactsStore (cross-session memory facts store).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore"
+   ],
+   "reads": [
+    "mem:UserFactsStore"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "4dcd8eac0def2920"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.settingsManager",
+   "hash": "57eb0992013d9c1c",
+   "does": "Returns dependencies.app.settingsManager.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.body",
+   "hash": "d6217e6a33de3d78",
+   "does": "Renders settingsList with inline nav title 'Flo' and a 'Forget everything?' alert whose destructive button clears every saved memory fact (UserFactsStore.clear → persists empty list to user_facts.json).",
+   "entry": "SwiftUI view body evaluation; alert buttons are user taps",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Assistant/user_facts.json (UserFactsStore.clear)",
+    "mem:UserFactsStore.facts"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList": "5df84bbdf171508d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "fcbf317d2a557ec8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.providerFlagToggles",
+   "hash": "fd8a3a05b43413c3",
+   "does": "Returns the five provider kill-switch rows (OpenAI, Anthropic, Google Gemini, xAI Grok, DeepSeek), each mapped to its FeatureFlags.Key and sharing one subtitle string.",
+   "entry": "read by providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift:628) during body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Provider titles 'OpenAI', 'Anthropic', 'Google Gemini', 'xAI Grok', 'DeepSeek' are hardcoded literals rather than ProviderID.vendorName/displayName, so they can drift from the names shown elsewhere in the same page.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:40-54",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:41"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func AIAssistantSettingsPage.bindingFor(flag:)",
+   "hash": "0e2ac2814b9b7e5a",
+   "does": "Builds a Binding<Bool> over FeatureFlags for one provider key: get reads featureFlags.value(for:) (touching refreshToken so the row re-evaluates); set writes featureFlags.set, calls ProviderRegistry.keysChanged() so a switched-off active provider falls back, and bumps refreshToken.",
+   "entry": "Toggle binding in providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift:629); setter fires on user toggle",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.featureFlags",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()"
+   ],
+   "reads": [
+    "ud:FeatureFlags.Key.providerOpenAIEnabled/providerAnthropicEnabled/providerGeminiEnabled/providerGrokEnabled/providerDeepSeekEnabled (FeatureFlags defaults)"
+   ],
+   "writes": [
+    "ud:FeatureFlags.Key.provider*Enabled (FeatureFlags defaults)",
+    "mem:FeatureFlags.cache",
+    "mem:ProviderRegistry.activeProvider (via keysChanged fallback)",
+    "ud:assistant.activeProvider / assistant.activeModelID (via setActive in keysChanged)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "54aa3690150b5924",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.featureFlags": "947ed76de6bc632b",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.tavilyKeyPlaceholder",
+   "hash": "08bd39f95b9aebaf",
+   "does": "Returns the masked preview of the saved Tavily web-search key (e.g. •••••abcd) or the format hint 'tvly-…' when none is stored.",
+   "entry": "read by the Tavily SecureField placeholder (AIAssistantSettingsPage+Sections.swift:279)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedServicePreview(for:)"
+   ],
+   "reads": [
+    "kc:service.tavily_web_search"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a Tavily service key is stored in the keychain",
+     "effect": "returns its masked preview; otherwise returns 'tvly-…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedServicePreview(for:)": "53f9150f4fabb1f9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+   }
+  },
+  {
+   "key": "var AIAssistantSettingsPage.applePathStatus",
+   "hash": "0f03d9315753653c",
+   "does": "Returns 'Available' when the Apple Foundation provider reports isAvailable, else 'Unavailable on this device or iOS version'.",
+   "entry": "read by +Sections.swift:126 during body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.apple"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "registry.apple.isAvailable",
+     "effect": "true → 'Available'; false → 'Unavailable on this device or iOS version'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AIAssistantSettingsPage.keysChanged()",
+   "hash": "65b225b3c34b33ae",
+   "does": "Calls ProviderRegistry.keysChanged() (re-evaluate active provider / availability cache) and bumps refreshToken so key-status rows redraw.",
+   "entry": "passed as APIKeyEditorView.onChange from providerKeyRow (AIAssistantSettingsPage+Sections.swift:60); invoked after save/remove/withdraw",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeProviderAvailable",
+    "ud:assistant.activeProvider / assistant.activeModelID (only when fallback selected)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "54aa3690150b5924",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry": "25dc37377e33fd79"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.consent",
+   "hash": "e22ed2299fae56ff",
+   "does": "Returns dependencies.providers.providerConsentTracker (@Observable consent tracker).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker"
+   ],
+   "reads": [
+    "mem:ProviderConsentTracker.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "b6e12f3eff34e013"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.keys",
+   "hash": "fb9f2b38f9987435",
+   "does": "Returns dependencies.providers.apiKeyStore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore"
+   ],
+   "reads": [
+    "mem:APIKeyStore.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.body",
+   "hash": "c919822d43e76820",
+   "does": "Form with API Key, Data Sharing and key-usage sections; nav title = provider display name; onAppear sets hasExistingKey from the keychain; 'Stop sharing with this provider?' alert whose Withdraw button calls withdrawConsent.",
+   "entry": "SwiftUI view body evaluation; .onAppear on push from Settings → Flo provider row; alert button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeySection",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.dataSharingSection",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keyUsageSection",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.withdrawConsent()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.withdrawConsent()": "0c544ec5b6721dc1",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeySection": "5d069ee08b9da44d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.dataSharingSection": "1a6fa924c7388fe5",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keyUsageSection": "bdc60e1e26028e5d",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "6ad361dde0017163",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.dataSharingSection",
+   "hash": "b2990f51ef602607",
+   "does": "Shows a 'Data Sharing' section (consent status row + withdraw button, footer explaining re-prompt) only for providers in ProviderConsentTracker.providersRequiringConsent.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consentStatusRow",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.withdrawConsentButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider.id is one of anthropic/openai/gemini/grok/deepseek",
+     "effect": "renders the section; otherwise (apple) renders nothing — APIKeyEditorView is only built for requiresKey providers, so the false path is not reached from the app"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The Settings → Flo section of USERS_MANUAL lists the per-provider editor contents (key field, Save/Replace/Remove, privacy link, footer) but omits this Data Sharing section with consent date and 'Withdraw consent', and does not say Remove key also withdraws consent (removeKeyAndConsent).",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1530-1535",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:148-158",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:256-258"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consentStatusRow": "7e2ec86230da6579",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.withdrawConsentButton": "cb6f86a63eea07e2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.consentStatusRow",
+   "hash": "96cde6dd60fa5969",
+   "does": "LabeledContent row 'Sharing consent' showing consentStatusText in secondary style.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consentStatusText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consentStatusText": "fd8d03a41bbeacba",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.consentStatusText",
+   "hash": "9ef1cb8773c70d24",
+   "does": "Returns 'Not agreed' when the provider still requires consent, 'Agreed' when consented but no grant date stored, otherwise 'Agreed <abbreviated date>' from the consent record.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)"
+   ],
+   "reads": [
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "consent.requiresConsent(provider) is false (already agreed)",
+     "effect": "continues; when true returns 'Not agreed'"
+    },
+    {
+     "at": "+4",
+     "cond": "a grantedAt Date is stored for this provider",
+     "effect": "returns 'Agreed <date>'; when nil returns plain 'Agreed'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)": "590793ba5e12212a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.withdrawConsentButton",
+   "hash": "144882a216ddb4f9",
+   "does": "Shows a destructive 'Withdraw consent' button (sets showWithdrawConfirm) only when the provider is currently consented.",
+   "entry": "SwiftUI view body evaluation; button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider does not require consent (consent on file)",
+     "effect": "button shown; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func APIKeyEditorView.withdrawConsent()",
+   "hash": "55c3eb67251ecf68",
+   "does": "Revokes the provider's consent (removes in-memory ack and both UserDefaults keys) then calls onChange (AIAssistantSettingsPage.keysChanged).",
+   "entry": "alert 'Withdraw' button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "closure:onChange — AIAssistantSettingsPage.keysChanged passed at +Sections.swift:60",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "ud:assistant.consent.v8.<provider>",
+    "ud:assistant.consent.v8.<provider>.grantedAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "b064c2c4bf5e0e8f",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.apiKeySection",
+   "hash": "b3d0749c83411998",
+   "does": "Section 'API Key' containing the SecureField, Save/Replace button and Remove button, with apiKeyStatusText as footer.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeyField",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.saveKeyButton",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.removeKeyButton",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeyStatusText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeyField": "c692e3d96ededf04",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.apiKeyStatusText": "edeb4c6c2fd021c1",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.removeKeyButton": "9849daf059c91773",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.saveKeyButton": "6a4d7a9be27a0cf8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func APIKeyEditorView.keyPlaceholder(for:)",
+   "hash": "4b0d40e0229fcd03",
+   "does": "Maps a ProviderID to a key-format hint: anthropic 'sk-ant-...', openai/deepseek 'sk-...', gemini 'AIza...', grok 'xai-...', apple ''.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id == .anthropic",
+     "effect": "'sk-ant-...'"
+    },
+    {
+     "at": "+3",
+     "cond": "id is .openai or .deepseek",
+     "effect": "'sk-...'"
+    },
+    {
+     "at": "+4",
+     "cond": "id == .gemini",
+     "effect": "'AIza...'"
+    },
+    {
+     "at": "+5",
+     "cond": "id == .grok",
+     "effect": "'xai-...'"
+    },
+    {
+     "at": "+6",
+     "cond": "id == .apple",
+     "effect": "'' — unreachable from the app since the editor is only built for requiresKey providers (+Sections.swift:49)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var APIKeyEditorView.apiKeyField",
+   "hash": "216b0354af281eab",
+   "does": "SecureField bound to keyText with the provider's key-format placeholder; autocorrection and autocapitalisation off.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.keyPlaceholder(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.keyPlaceholder(for:)": "e8216b9b4370d432"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.saveKeyButton",
+   "hash": "8749b147fa554d0a",
+   "does": "Button 'Save key'/'Replace key' (label by hasExistingKey), disabled while keyText is blank: on tap stores the key via APIKeyStore.setKey (trimmed, keychain update-or-add), clears keyText on success, refreshes hasExistingKey, sets saveStatus saved/failed and calls onChange.",
+   "entry": "button tap; label evaluated in body",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)",
+    "closure:onChange — AIAssistantSettingsPage.keysChanged (+Sections.swift:60)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "setKey returned true",
+     "effect": "keyText cleared; on false the typed key stays in the field"
+    },
+    {
+     "at": "+5",
+     "cond": "stored",
+     "effect": "saveStatus = .saved; else .failed (footer shows keychain error)"
+    },
+    {
+     "at": "+8",
+     "cond": "hasExistingKey",
+     "effect": "label 'Replace key'; else 'Save key'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "b064c2c4bf5e0e8f",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "6ad361dde0017163",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.removeKeyButton",
+   "hash": "a41beb322e0d03f8",
+   "does": "Destructive 'Remove key' button shown only when a key exists; tap runs removeKeyAndConsent.",
+   "entry": "SwiftUI view body evaluation; button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hasExistingKey",
+     "effect": "button shown; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()": "7d56805a56af41a8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func APIKeyEditorView.removeKeyAndConsent()",
+   "hash": "cca55f07e8fe232f",
+   "does": "Deletes the provider's keychain key, revokes its consent, turns enableWebSearch off when removing the Anthropic key and no Tavily key exists, then sets hasExistingKey=false, saveStatus=.removed and calls onChange.",
+   "entry": "'Remove key' button tap",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "closure:onChange — AIAssistantSettingsPage.keysChanged",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
+   ],
+   "reads": [
+    "kc:service.tavily_web_search"
+   ],
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>",
+    "ud:assistant.consent.v8.<provider>",
+    "ud:assistant.consent.v8.<provider>.grantedAt",
+    "mem:ProviderConsentTracker.acknowledgedProviders",
+    "file:user_settings.json (SettingsManager.settings.enableWebSearch)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "provider is Anthropic AND no Tavily key is stored",
+     "effect": "settings.enableWebSearch = false (persisted by SettingsManager didSet); otherwise web search setting left unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "The Bool result of keys.removeKey(for:) is discarded; when SecItemDelete fails (status other than success/notFound) the UI still sets hasExistingKey=false and shows 'Key removed.' while the key remains in the keychain and the provider stays usable (onAppear re-reads it next visit).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:257",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:264-265",
+      "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift:83-91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)": "e4e751df1d08e7d5",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "b064c2c4bf5e0e8f",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "aaf612cd1adc3d0e",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "6ad361dde0017163",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.apiKeyStatusText",
+   "hash": "634515c78b354b64",
+   "does": "Footer text: keychain-failure message, 'Key saved.', 'Key removed.', 'Currently saved: •••••xxxx' or empty, in that priority.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedPreview(for:)"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey/<provider>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "saveStatus == .failed",
+     "effect": "shows 'The key couldn't be saved to the keychain. Try again.'"
+    },
+    {
+     "at": "+4",
+     "cond": "saveStatus == .saved",
+     "effect": "shows 'Key saved.'"
+    },
+    {
+     "at": "+6",
+     "cond": "saveStatus == .removed",
+     "effect": "shows 'Key removed.'"
+    },
+    {
+     "at": "+8",
+     "cond": "hasExistingKey and a masked preview is readable",
+     "effect": "shows 'Currently saved: <preview>'; else empty Text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedPreview(for:)": "7fdb63e236fda0f7",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "6ad361dde0017163",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var APIKeyEditorView.keyUsageSection",
+   "hash": "eb142b58a33ad126",
+   "does": "Section 'Where this key is used': per-provider data-use notes from ProviderConsentSheet.dataUseNotes, a privacy-policy Link when the provider has one, and a footer describing when Flo sends data to this vendor (selected model, routing while Apple is selected, retry fallback).",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "provider.id.privacyPolicyURL is non-nil",
+     "effect": "renders a Link '<vendor> privacy policy'; otherwise no link"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL describes this footer as a reminder 'that the key is sent only to that vendor when you select it', but the footer (and routing code it describes) says a consented vendor also receives turns while Apple Intelligence is selected (voice/actions/Auto/Deep routing) and on retry fallback.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1534",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:298"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL": "934f55e51085b9e8",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "a5c541f8cf1df5b0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

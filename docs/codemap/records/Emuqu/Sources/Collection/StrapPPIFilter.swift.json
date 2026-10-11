@@ -1,0 +1,99 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapPPIFilter.swift",
+ "hash": "c64c8887db5c6d55",
+ "role": "Single quality gate for optical (Verity Sense) PPI intervals used by both the live stream and offline downloads: blocker bit, error estimate <= 20 ms, and 300–2000 ms range; plus offline PPI → RRPoint conversion.",
+ "types": [
+  "StrapPPISample: struct — app-side PPI sample",
+  "StrapPPIFilter: enum — acceptedInterval / rrPoints"
+ ],
+ "state": [
+  "static maxErrorEstimateMs = 20"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var StrapPPIFilter.acceptedRange",
+   "hash": "59ed7a6f2a6e96a9",
+   "does": "Returns HRVConstants.RRValidity.polarStreamRange (300...2000).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapPPIFilter.acceptedInterval(_:)",
+   "hash": "0ae058226ad76ae0",
+   "does": "Returns ppInMs when blockerBit == 0, ppErrorEstimate <= 20 and ppInMs within the accepted range; else nil.",
+   "entry": "Called from PolarManager.ingestPpi (PolarManager+Streaming.swift:129) and rrPoints; tests StrapPPIFilterTests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "blocker bit clear and error <= 20 ms",
+     "effect": "false: nil; true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "interval within 300...2000 ms",
+     "effect": "false: nil; true: returns interval"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange": "4b23ead6007be4c9"
+   }
+  },
+  {
+   "key": "func StrapPPIFilter.rrPoints(from:)",
+   "hash": "8d012ddbc0bcc248",
+   "does": "Converts offline PPI samples to RRPoints, keeping only accepted intervals; t_ms accumulates only accepted beats, points carry no wallClockMs.",
+   "entry": "Called from PolarManager+VeritySense.swift:160 (convertOfflinePpiToRRPoints).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "processed in order"
+    },
+    {
+     "at": "+4",
+     "cond": "acceptedInterval returns nil",
+     "effect": "true: skipped with no elapsed time added; false: appended at cumulative time"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The doc says the compressed t_ms is safe because 'the window selector translates through wallClockMs', but these points are built with RRPoint(t_ms:rr_ms:), which sets wallClockMs = nil, so the selector falls back to t_ms (closestIndex uses wallClockMs ?? t_ms). Every rejected optical interval shortens a Verity offline night's timeline, so sleep-boundary/window placement and StrapRecording.endedAt (start + sum of accepted beats) land earlier than real time by the total rejected duration.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapPPIFilter.swift:64",
+      "Emuqu/Sources/Collection/StrapPPIFilter.swift:67",
+      "Emuqu/Sources/Models/RRModels.swift:36",
+      "Emuqu/Sources/Models/RRModels.swift:224",
+      "Emuqu/Sources/Collection/StrapRecording.swift:19"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  }
+ ],
+ "deps": {}
+}

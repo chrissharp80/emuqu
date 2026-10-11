@@ -1,0 +1,117 @@
+{
+ "file": "Emuqu/Sources/Collection/RecordingPhase.swift",
+ "hash": "88a3e55a0d5f0d54",
+ "role": "Enum state machine of the collector recording lifecycle (idle, streaming(target), overnightStreaming, deviceRecording, paused(id), analyzing, awaitingAcceptance) with helpers and a description used in logs and the persisted recording state.",
+ "types": [
+  "RecordingPhase: enum — recording lifecycle state, Equatable, CustomStringConvertible"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecordingPhase.isRecording",
+   "hash": "de1995de126ce388",
+   "does": "True for .streaming, .overnightStreaming and .deviceRecording; false otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case streaming/overnightStreaming/deviceRecording",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo, app or tests (grep '[Pp]hase?.isRecording' finds none).",
+     "evidence": [
+      "Emuqu/Sources/Collection/RecordingPhase.swift:22"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var RecordingPhase.isActive",
+   "hash": "aebcfc1a8e1fe4e2",
+   "does": "True when the phase is not .idle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller in the repo, app or tests; other '.isActive' hits are TrialPolicy/audio session types.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RecordingPhase.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var RecordingPhase.description",
+   "hash": "7dbe0d4bbabc03a6",
+   "does": "String form of the phase: 'idle', 'streaming(Ns)', 'overnightStreaming', 'deviceRecording', 'paused(<8-char id>)', 'analyzing', 'awaitingAcceptance'. Stored as PersistedRecordingState.phase and interpolated into logs.",
+   "entry": "CustomStringConvertible witness (string interpolation, persistRecordingState)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "idle",
+     "effect": "\"idle\""
+    },
+    {
+     "at": "+3",
+     "cond": "streaming(target)",
+     "effect": "\"streaming(<target>s)\""
+    },
+    {
+     "at": "+4",
+     "cond": "overnightStreaming",
+     "effect": "\"overnightStreaming\""
+    },
+    {
+     "at": "+5",
+     "cond": "deviceRecording",
+     "effect": "\"deviceRecording\""
+    },
+    {
+     "at": "+6",
+     "cond": "paused(id)",
+     "effect": "\"paused(<id prefix 8>)\""
+    },
+    {
+     "at": "+7",
+     "cond": "analyzing",
+     "effect": "\"analyzing\""
+    },
+    {
+     "at": "+8",
+     "cond": "awaitingAcceptance",
+     "effect": "\"awaitingAcceptance\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

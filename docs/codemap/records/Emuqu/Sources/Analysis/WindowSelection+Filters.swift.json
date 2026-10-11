@@ -1,0 +1,381 @@
+{
+ "file": "Emuqu/Sources/Analysis/WindowSelection+Filters.swift",
+ "hash": "3f9f31dec40d9b63",
+ "role": "WindowSelector extension with the isolated-spike filter, the sliding local-median ectopic gate, masked RMSSD over adjacent kept beats, a time formatter and two legacy selectRecoveryWindow wrappers.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WindowSelector.filterIsolatedSpikes(_:)",
+   "hash": "1d5ae43f10524ce6",
+   "does": "Splits windows into those kept and a count of rejected isolated spikes (interior windows whose RMSSD is >=1.5x both neighbours).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each window",
+     "effect": "iterate"
+    },
+    {
+     "at": "+4",
+     "cond": "isIsolatedSpike",
+     "effect": "count as rejected; else keep"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The spike filter compares array neighbours, not grid neighbours. Between grid-adjacent windows (step = max(10, size/10) <= size/2) every successive-difference pair of window i belongs to window i-1 or i+1, so RMSSD_i >= 1.5x both requires n_prev+n_next >= 2.25*n_i usable pairs and practically never holds; the filter can only fire when windows between array neighbours were rejected by the artifact/clean-beat gates, i.e. when it compares windows that are far apart in time, which is not the 'temporal discontinuity' the doc describes.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:24",
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:29",
+      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:28",
+      "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift:30",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:976",
+      "Emuqu/Sources/Analysis/WindowSelection.swift:7"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.isIsolatedSpike(at:in:)": "fc3c52eba75b47fe"
+   }
+  },
+  {
+   "key": "func WindowSelector.isIsolatedSpike(at:in:)",
+   "hash": "f5173f1a744125e8",
+   "does": "True when the window has both neighbours, both neighbours have non-zero RMSSD, and its RMSSD >= isolatedSpikeRatio x each neighbour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i is first or last index",
+     "effect": "return false (edge windows never spikes)"
+    },
+    {
+     "at": "+4",
+     "cond": "either neighbour RMSSD is ~0",
+     "effect": "return false; else compare against both"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelector.filterEctopicBeats(_:)",
+   "hash": "6ef16b3bf1102fd9",
+   "does": "Returns the RR values kept by ectopicKeepMask.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo, including tests (grep 'filterEctopicBeats' finds only TimeDomainAnalyzer's static version and its callers).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:42",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:137"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same job as TimeDomainAnalyzer.filterEctopicBeats.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:137"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.ectopicKeepMask(_:)": "5b16b69db6427d70"
+   }
+  },
+  {
+   "key": "func WindowSelector.ectopicKeepMask(_:)",
+   "hash": "c7091564edec0533",
+   "does": "Per-beat keep mask: each beat is kept when within ectopicThresholdPercent (20%) of the median of its +/-5-beat neighbourhood excluding itself, using an incrementally maintained sorted window; all true when count <= localMedianWindow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.slideWindow(_:values:to:halfWindow:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.keepsBeat(_:window:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrValues.count <= localMedianWindow (10)",
+     "effect": "return all-true mask"
+    },
+    {
+     "at": "+8",
+     "cond": "bootstrap loop over first halfWindow+1 values",
+     "effect": "insert into sorted window"
+    },
+    {
+     "at": "+11",
+     "cond": "for each beat",
+     "effect": "slide window (except at i==0) and evaluate"
+    },
+    {
+     "at": "+12",
+     "cond": "i > 0",
+     "effect": "slide window to i; at i==0 use bootstrap window"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements TimeDomainAnalyzer.ectopicKeepMask (same 10-beat local median excluding the beat, 20% threshold) with its threshold read from Config instead of HRVThresholds.ectopicThresholdPercent; the two must be kept in sync by hand so the selected and reported RMSSD agree.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:143",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:128",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:46"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.keepsBeat(_:window:)": "688a2ab526d4f6f1",
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.slideWindow(_:values:to:halfWindow:)": "5a6c472c83f0f6b4"
+   }
+  },
+  {
+   "key": "func WindowSelector.slideWindow(_:values:to:halfWindow:)",
+   "hash": "1fda825f1af0e270",
+   "does": "Slides the sorted neighbourhood one position: inserts values[i+half] if in range and removes one occurrence of values[i-half-1].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newRight < values.count",
+     "effect": "insert entering value; else nothing enters"
+    },
+    {
+     "at": "+6",
+     "cond": "oldLeft >= 0 and value found",
+     "effect": "remove it; else nothing leaves"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedFirstIndex(of:)": "9fbe2b4ef9db0b69",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func Array.sortedInsertionIndex(of:)": "502ca17409f1cb5f"
+   }
+  },
+  {
+   "key": "func WindowSelector.keepsBeat(_:window:)",
+   "hash": "1de900d15413144a",
+   "does": "True when the beat deviates <= ectopicThresholdPercent from the median of the sorted window with the beat itself excluded; true when that median is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "localMedian <= 0",
+     "effect": "keep the beat (return true); else apply threshold"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.medianExcluding(_:value:)": "b20d57857f179916"
+   }
+  },
+  {
+   "key": "func WindowSelector.medianExcluding(_:value:)",
+   "hash": "53ee8d95187a4637",
+   "does": "Median of a sorted array with one occurrence of value skipped (index arithmetic, no copy); 0 for fewer than 2 elements.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.realIndex(_:skipping:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n <= 1",
+     "effect": "return 0"
+    },
+    {
+     "at": "+3",
+     "cond": "value not found (??)",
+     "effect": "skipIdx = -1 (nothing skipped)"
+    },
+    {
+     "at": "+4",
+     "cond": "skipIdx >= 0",
+     "effect": "effectiveCount n-1; else n"
+    },
+    {
+     "at": "+5",
+     "cond": "effectiveCount == 0",
+     "effect": "return 0 (unreachable after n>1 guard)"
+    },
+    {
+     "at": "+7",
+     "cond": "effectiveCount odd",
+     "effect": "return middle element; else mean of the two middle elements"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.realIndex(_:skipping:)": "92ee317358373d9b"
+   }
+  },
+  {
+   "key": "func WindowSelector.realIndex(_:skipping:)",
+   "hash": "3f2c31693f0e54ea",
+   "does": "Maps a logical index in the skipped view to the real array index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "skipIdx < 0",
+     "effect": "return logical"
+    },
+    {
+     "at": "+2",
+     "cond": "logical < skipIdx",
+     "effect": "return logical; else logical+1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelector.maskedRMSSD(_:kept:breaks:)",
+   "hash": "35888d687477e207",
+   "does": "RMSSD over successive differences of beats that are adjacent in the original series, both kept, and not across a recording break; 0 when no such pair or input sizes mismatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 values or kept.count mismatch",
+     "effect": "return 0"
+    },
+    {
+     "at": "+4",
+     "cond": "pair adjacent, both kept, no break",
+     "effect": "append difference; else skip pair"
+    },
+    {
+     "at": "+9",
+     "cond": "no diffs",
+     "effect": "return 0; else root mean square"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+   }
+  },
+  {
+   "key": "func WindowSelector.formatTime(_:)",
+   "hash": "bf78b1e3a7be9a56",
+   "does": "Formats milliseconds as HH:MM:SS for log lines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelector.selectRecoveryWindow(series:flags:wakeTimeMs:)",
+   "hash": "49cd25d1e0c8ab48",
+   "does": "Legacy wrapper: findBestWindow with only wakeTimeMs (no sleep start, no baseline).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; used only by WindowSelectionTests (lines 86-352).",
+     "evidence": [
+      "EmuquTests/WindowSelectionTests.swift:86"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3"
+   }
+  },
+  {
+   "key": "func WindowSelector.selectRecoveryWindow(series:flags:sessionStart:wakeTime:)",
+   "hash": "d29b76d67352f341",
+   "does": "Legacy wrapper: converts wakeTime-sessionStart to ms (0 on failure) and calls findBestWindow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere, including tests (all test calls pass wakeTimeMs:).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/WindowSelection+Filters.swift:153",
+      "EmuquTests/WindowSelectionTests.swift:89"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  }
+ ],
+ "deps": {}
+}

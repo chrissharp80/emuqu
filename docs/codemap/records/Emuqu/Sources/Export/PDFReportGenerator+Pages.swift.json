@@ -1,0 +1,458 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift",
+ "hash": "6a58d92ad7130c87",
+ "role": "Page orchestration for the recovery PDF: page 1 (header, summary card, optional overnight/sleep/training/vitals/score-breakdown sections, detailed tables, tags/notes, imported-data note), page 2 visualizations, deep-dive pages and the 'What This Means' summary page; plus generateReportURL/writeReport which render and save the PDF to a temp file.",
+ "types": [
+  "PDFReportGenerator: extension — page drawing helpers and URL output"
+ ],
+ "state": [
+  "file:<tmp>/Emuqu_Recovery_yyyyMMdd_HHmmss.pdf (written by writeReport)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)",
+   "hash": "9f8ec5f6c656f3ae",
+   "does": "Begins page 1 (RTL-mirrored if needed), draws header, summary card (composite score), the optional sections, the tail (tables, tags/notes, imported note), and the footer; increments pageNumber; returns final y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawHeader(session:result:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1Sections(_:y:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1Tail(_:y:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1Sections(_:y:pageNumber:in:pageRect:)": "3bd2f924e34e471b",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1Tail(_:y:pageNumber:in:pageRect:)": "bf4c28b2a51c6e7d",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)": "b5c968d765339b39",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawHeader(session:result:in:pageRect:)": "641bf911acfde416",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)": "84a01257001ec817",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "b00af62d5eb939c7"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawPage1Sections(_:y:pageNumber:in:pageRect:)",
+   "hash": "aa2d75fcd73cd699",
+   "does": "Draws, in order and only when enabled and data present: overnight stats, sleep analysis (HealthKit total >0), training load, vitals (hasAnyData), and score breakdown (after a 120pt ensureSpace). Returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawOvernightStatsIfAvailable(_:y:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawSleepAnalysisSection(sleep:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawTrainingLoadSection(training:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.VitalsData.hasAnyData",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawVitalsSection(vitals:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sections has .sleep and sleepData.totalSleepMinutes > 0",
+     "effect": "draws sleep section; else skipped"
+    },
+    {
+     "at": "+11",
+     "cond": "sections has .trainingLoad and trainingContext non-nil",
+     "effect": "draws training load; else skipped"
+    },
+    {
+     "at": "+14",
+     "cond": "sections has .vitals and vitals.hasAnyData",
+     "effect": "draws vitals; else skipped"
+    },
+    {
+     "at": "+17",
+     "cond": "sections has .scoreBreakdown and scoreBreakdown non-nil",
+     "effect": "ensureSpace(120) then draws breakdown with adviceLoadLevel; else skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Overnight stats (~135pt), sleep (~130pt), training (~86pt) and vitals (~86pt) blocks are drawn with no ensureSpace check, unlike the score breakdown; whether they fit on page 1 depends on the header and summary card height, and if the total passes the 752pt bottom margin they draw over the footer/off the page.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:44",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:46",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:49",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:52",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:55"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)": "fc0c598831104e40",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawOvernightStatsIfAvailable(_:y:in:pageRect:)": "3257cac54e090a67",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)": "7443c87514671245",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawSleepAnalysisSection(sleep:yPosition:in:pageRect:)": "5a5986693dd10056",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawTrainingLoadSection(training:yPosition:in:pageRect:)": "43db8ceb6cd0c888",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.drawVitalsSection(vitals:yPosition:in:pageRect:)": "62620b0430da7ac6",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.VitalsData.hasAnyData": "6fe119a89e90e121",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.adviceLoadLevel(_:)",
+   "hash": "5fab7f709174dfda",
+   "does": "Returns TrainingAdviceGate.level for the report's frozen trainingContext (no live load).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawOvernightStatsIfAvailable(_:y:in:pageRect:)",
+   "hash": "68995aef5efde9bc",
+   "does": "Draws the overnight stats section only when .overnightStats is enabled, the session has raw RR data and a series; else returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightStatsSection(_:series:yPosition:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "sections has .overnightStats, hasRawData, series non-nil",
+     "effect": "false: returns y unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightStatsSection(_:series:yPosition:pageRect:)": "eafc39fa7fb99209",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawPage1Tail(_:y:pageNumber:in:pageRect:)",
+   "hash": "910d2662ab9f341f",
+   "does": "Draws detailed metric tables for comprehensive+deepDive reports, the tags & notes block when the session has tags or notes (after ensureSpace 50), and the imported-data note when there is no raw RR data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDetailedMetricTables(result:yPosition:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawTagsAndNotesSection(session:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawImportedDataNote(yPosition:session:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "style == .comprehensive and sections has .deepDive",
+     "effect": "draws detailed tables; else skipped"
+    },
+    {
+     "at": "+16",
+     "cond": "tags non-empty or notes != nil",
+     "effect": "draws Tags & Notes; else skipped"
+    },
+    {
+     "at": "+20",
+     "cond": "!hasRawData",
+     "effect": "draws imported-data note; else skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The condition is `notes != nil`, but drawSessionNotes skips empty notes; a session with no tags and notes == \"\" gets a 'Tags & Notes' heading with nothing under it.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:97",
+      "Emuqu/Sources/Export/OvernightReportRenderer+Sections.swift:353"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "478fbdd48f8d3d63",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawTagsAndNotesSection(session:yPosition:in:pageRect:)": "bc269f187e240177",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDetailedMetricTables(result:yPosition:pageNumber:in:pageRect:)": "36404b338c79a908",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawImportedDataNote(yPosition:session:in:pageRect:)": "d89a17c37b9bbfcf",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "0ed6faa0cdc6c34f"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDetailedMetricTables(result:yPosition:pageNumber:in:pageRect:)",
+   "hash": "1a3814e73787a5bf",
+   "does": "Draws time-domain, frequency-domain (if present), nonlinear and ANS (if present) metric tables, each after a 60pt ensureSpace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTimeDomainSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFrequencyDomainSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawNonlinearSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawANSSection(_:yPosition:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "result.frequencyDomain non-nil",
+     "effect": "draws frequency table; else skipped"
+    },
+    {
+     "at": "+15",
+     "cond": "result.ansMetrics non-nil",
+     "effect": "draws ANS table; else skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawANSSection(_:yPosition:in:pageRect:)": "d54d05dae7f9cf58",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFrequencyDomainSection(_:yPosition:in:pageRect:)": "0bf58275ce51650a",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawNonlinearSection(_:yPosition:in:pageRect:)": "692a1fa66a3e771f",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTimeDomainSection(_:yPosition:in:pageRect:)": "5dd2220ac9deca9b",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawPage2_Visualizations(_:pageNumber:in:pageRect:)",
+   "hash": "182a2f227498c1cd",
+   "does": "Begins page 2 and draws overnight HR chart, Poincaré plot, PSD (if frequency domain exists, with the analysis-window index range), tachogram, quality section and window-selection section (if any window info); footer and pageNumber+1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightHRChart(series:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTachogram(series:flags:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "inputs.series non-nil",
+     "effect": "false: returns top margin without footer or pageNumber increment, leaving a blank page"
+    },
+    {
+     "at": "+12",
+     "cond": "frequencyDomain non-nil",
+     "effect": "draws PSD graph; else skipped"
+    },
+    {
+     "at": "+20",
+     "cond": "windowStartMs or windowSelectionReason non-nil",
+     "effect": "draws window selection card; else skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `guard let series` else-path (blank page, no footer) cannot run: the only caller drawReportPages calls this only when inputs.series != nil.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:140",
+      "Emuqu/Sources/Export/PDFReportGenerator.swift:346"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightHRChart(series:result:yPosition:in:pageRect:)": "de71afb591e6a294",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)": "b5c968d765339b39",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)": "3459d4d3b0ec1882",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)": "819bc02b17ebc0b3",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)": "638f594489d6f861",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTachogram(series:flags:result:yPosition:in:pageRect:)": "b3c9bf00c13d141b",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:yPosition:in:pageRect:)": "e2bf477244ec4d39"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)",
+   "hash": "f1d38ffdfddda011",
+   "does": "Begins a deep-dive page and draws HRV deep-dive, sleep deep-dive (if enabled), training and vitals deep-dives (if enabled), footer, then the analysis summary page(s).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepSleepIfAvailable(_:y:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepTrainingAndVitals(_:y:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawAnalysisSummaryPage(_:pageNumber:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepHRVAnalysis(result:session:recentSessions:pageNumber:yPosition:in:pageRect:)": "0510736088612ff1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawAnalysisSummaryPage(_:pageNumber:in:pageRect:)": "f3d3349a395f41ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepSleepIfAvailable(_:y:pageNumber:in:pageRect:)": "87590254d995f693",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepTrainingAndVitals(_:y:pageNumber:in:pageRect:)": "69318ffa12cf3056",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)": "b5c968d765339b39"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepTrainingAndVitals(_:y:pageNumber:in:pageRect:)",
+   "hash": "6dd2013c15bb706a",
+   "does": "Draws the training deep-dive (when .trainingLoad enabled and context exists) and vitals deep-dive (when .vitals enabled and data exists), each after a 100pt ensureSpace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.VitalsData.hasAnyData",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sections has .trainingLoad and trainingContext non-nil",
+     "effect": "draws training deep-dive; else skipped"
+    },
+    {
+     "at": "+12",
+     "cond": "sections has .vitals and vitals.hasAnyData",
+     "effect": "draws vitals deep-dive; else skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)": "eabcce4de7ebe790",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)": "293fe7e3f847844b",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.VitalsData.hasAnyData": "6fe119a89e90e121"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawDeepSleepIfAvailable(_:y:pageNumber:in:pageRect:)",
+   "hash": "c61a97fcf773fc1c",
+   "does": "Draws the sleep deep-dive (with sleep trend) after a 100pt ensureSpace when .sleep is enabled and HealthKit total sleep > 0; else returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "sections has .sleep, sleepData non-nil, totalSleepMinutes > 0",
+     "effect": "false: returns y unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::func PDFReportGenerator.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "7f8a8685fb47795a",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawAnalysisSummaryPage(_:pageNumber:in:pageRect:)",
+   "hash": "8605f5a1a6fbb8ae",
+   "does": "Begins a new page, draws the 'What This Means' summary section (which may paginate) and the footer with the final page number.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawAnalysisSummarySection(_:yPosition:pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "3f7b4f90582a0bda",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)": "b5c968d765339b39",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawAnalysisSummarySection(_:yPosition:pageNumber:in:pageRect:)": "bf1b0de28a438acc"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+   "hash": "c7d2bd3ad195e995",
+   "does": "Renders the PDF via generateReport with all inputs and writes it to a temp file; returns its URL or nil if rendering or writing failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "generateReport returned data",
+     "effect": "false: returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)": "4eff787372ad663f",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "d0181135712512c1"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.writeReport(_:for:)",
+   "hash": "aa2e89a19102e8c3",
+   "does": "Writes PDF data to <tmp>/Emuqu_Recovery_<yyyyMMdd_HHmmss of session end or start>.pdf (POSIX/gregorian stamp); returns the URL, or logs and returns nil on write failure.",
+   "entry": null,
+   "calls": [
+    "ext:Data.write(to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/Emuqu_Recovery_<stamp>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session.endDate ?? session.startDate",
+     "effect": "uses startDate for the stamp when the session has no endDate"
+    },
+    {
+     "at": "+12",
+     "cond": "catch write error",
+     "effect": "error logged via debugLog and swallowed; returns nil (caller shows no share sheet)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  }
+ ],
+ "deps": {}
+}

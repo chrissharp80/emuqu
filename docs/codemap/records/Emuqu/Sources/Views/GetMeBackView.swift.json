@@ -1,0 +1,1961 @@
+{
+ "file": "Emuqu/Sources/Views/GetMeBackView.swift",
+ "hash": "e6ee57d6d4c4a3e2",
+ "role": "SwiftUI 'Get Me Back' safety screen: shows a compass arrow pointing back to the active breadcrumb trail's origin (bearing minus true heading), an honest GPS-accuracy ribbon, distance/origin label, Talk-to-AI, SOS dialing of a location-chosen emergency number, and end/discard trail actions; plus static emergency-number helpers reused by the assistant.",
+ "types": [
+  "GetMeBackView: struct (View) — the Get Me Back screen, presented as a sheet from FitnessTabView+Sections.swift:41",
+  "GetMeBackView: extension — static emergency-number selection and SOS/dial-failure message text (also used by AppFactResolver+LiveNavigation.swift:402-406)",
+  "CompassArrow: struct (private View) — filled arrow path with blur glow scaled by fuzz",
+  "CardinalLabel: struct (private View) — one N/E/S/W letter offset 110pt and rotated around the dial",
+  "AccuracyState: enum (private) — UI mirror of GPSAccuracyLevel giving color/icon/opacity/fuzz/label"
+ ],
+ "state": [
+  "mem:GetMeBackView.showClearConfirm (@State)",
+  "mem:GetMeBackView.showSOSConfirm (@State)",
+  "mem:GetMeBackView.sosDialNumber (@State, initial emergencyNumber(currentCountry:nil))",
+  "mem:GetMeBackView.showAIDisclaimer (@State)",
+  "mem:GetMeBackView.showDialFailedAlert (@State)",
+  "mem:GetMeBackView.showSettings (@State)",
+  "mem:GetMeBackView.brightnessOverride (@State, initial UIScreen.main.brightness)",
+  "mem:GetMeBackView.systemBrightnessAtAppear (@State)",
+  "mem:GetMeBackView.didSetBrightnessOverride (@State)",
+  "mem:GetMeBackView.handsetEmergencyNumbers (static let {112,911})",
+  "mem:GetMeBackView.countryFixRadiusMeters (static let 5000 m)"
+ ],
+ "toplevel": "@State initializers read UIScreen.main.brightness on every struct construction (60-61) and call GetMeBackView.emergencyNumber(currentCountry:nil) (44), which reads Locale.current.region. Environment: dependencies, dismiss, accessibilityReduceMotion. AccuracyState is Equatable by synthesis (compared with == at 447/449/482). File-level header comment (5-31) states arrow hides above 100 m and the view is offline-first.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "Private AccuracyState re-encodes GPSAccuracyLevel case-for-case (init is a 1:1 switch) and adds UI properties; GPSAccuracyLevel.swift:6-8 says the logic was moved out of the view precisely because a private enum here is untestable, yet color/icon/opacity/fuzz/label remain private and untested here.",
+   "evidence": [
+    "Emuqu/Sources/Views/GetMeBackView.swift:893",
+    "Emuqu/Sources/Views/GetMeBackView.swift:894",
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:6"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var GetMeBackView.recorder",
+   "hash": "dbe01a0ae7ff3cd5",
+   "does": "Returns the BreadcrumbRecorder from the environment's AppDependencies location services (BreadcrumbRecorder.shared unless overridden).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder"
+   ],
+   "reads": [
+    "mem:AppDependencies.location.breadcrumbRecorder"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "b1d087b5ddad95aa"
+   }
+  },
+  {
+   "key": "var GetMeBackView.locationDenied",
+   "hash": "7e2bd72879185ea8",
+   "does": "True when the recorder's published CLAuthorizationStatus is .denied or .restricted; drives the location-denied banner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.authorizationStatus"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "status is .denied or .restricted",
+     "effect": "returns true → banner shown"
+    },
+    {
+     "at": "+3",
+     "cond": "any other status (notDetermined, authorized*)",
+     "effect": "returns false → no banner (notDetermined also shows no banner)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.trail",
+   "hash": "73326ffd54231ef3",
+   "does": "Returns recorder.activeTrail (the in-memory active BreadcrumbTrail or nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.originFix",
+   "hash": "9e1451c0d21d6b27",
+   "does": "Returns the active trail's origin fix (first fix) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73"
+   }
+  },
+  {
+   "key": "var GetMeBackView.latestLocation",
+   "hash": "76eb0d8ad7f1a408",
+   "does": "Returns recorder.latestLocation (latest CLLocation the recorder saw).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.latestLocation"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.latestHeading",
+   "hash": "7e998ff125558c25",
+   "does": "Returns recorder.latestHeading (latest CLHeading).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.latestHeading"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.currentCountryCode",
+   "hash": "c7d482ae4a34c28c",
+   "does": "Country code of the ambient RoadGeocodingService's current reverse geocode if it was made within 5 km of the latest fix, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation"
+   ],
+   "reads": [
+    "mem:RoadGeocodingService.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the ambient service keeps the reverse geocode current 'while this screen is open', but ambient location is started only in onAppear (314-318) and stopped on every background transition (EmuquApp.swift:444); on return to foreground it restarts only when onboarding is done and the AI assistant is enabled (EmuquApp.swift:501-504), and onAppear does not re-fire for a sheet that stayed open. The geocode then goes stale and, once the user is >5 km away, SOS falls back to the Region rule (112/911) instead of the local number.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:94",
+      "Emuqu/Sources/Views/GetMeBackView.swift:318",
+      "Emuqu/EmuquApp.swift:444",
+      "Emuqu/EmuquApp.swift:501",
+      "Emuqu/Sources/Views/GetMeBackView.swift:776"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "72325e6ba5c8c3b1"
+   }
+  },
+  {
+   "key": "var GetMeBackView.sosNumber",
+   "hash": "47240acf3f9b615f",
+   "does": "Emergency number for the current country (or region-derived fallback) via emergencyNumber(currentCountry:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "de2bd0e7912f8a81",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode": "fb673c7431924f0f"
+   }
+  },
+  {
+   "key": "var GetMeBackView.distanceToOriginMeters",
+   "hash": "e4f1e633afdd3a71",
+   "does": "Straight-line distance in meters from latest location to the trail origin; nil if either missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latestLocation and originFix both present",
+     "effect": "true: returns CLLocation.distance; false: returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "60e5c26d5f60676c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "72325e6ba5c8c3b1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "450e72fc43ee378e"
+   }
+  },
+  {
+   "key": "var GetMeBackView.bearingToOriginDegrees",
+   "hash": "b5fd1e2feb541ab4",
+   "does": "Initial great-circle bearing (deg, north=0) from latest location to origin; nil if either missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.bearing(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latest coordinate and origin coordinate both present",
+     "effect": "true: returns bearing(from:to:); false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.bearing(from:to:)": "ea347a5ee842d4b3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "72325e6ba5c8c3b1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "450e72fc43ee378e"
+   }
+  },
+  {
+   "key": "var GetMeBackView.hasValidHeading",
+   "hash": "7736938232dc48a4",
+   "does": "True when a latest heading exists with trueHeading >= 0 and headingAccuracy >= 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latestHeading is non-nil",
+     "effect": "false: returns false; true: returns trueHeading>=0 && headingAccuracy>=0 (trueHeading is -1 when CoreLocation lacks a location to compute true north, so heading is also invalid then)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "65d78505c8189bde"
+   }
+  },
+  {
+   "key": "var GetMeBackView.arrowRotationDegrees",
+   "hash": "f278e940a0573fd4",
+   "does": "Arrow rotation = bearingToOrigin − trueHeading normalized to (-180,180]; 0 when bearing, valid heading or heading missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bearing exists, heading valid, trueHeading available",
+     "effect": "false: returns 0 (arrow straight up); true: computes normalized difference"
+    },
+    {
+     "at": "+9",
+     "cond": "normalized mod > 180",
+     "effect": "true: returns mod−360 (negative = left); false: returns mod"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.bearing(from:to:)": "ea347a5ee842d4b3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "4ab8279fff455859",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "2eb63c5c9c0c5f2b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "65d78505c8189bde"
+   }
+  },
+  {
+   "key": "var GetMeBackView.currentAccuracyMeters",
+   "hash": "04012abd26b41a71",
+   "does": "Latest fix's horizontalAccuracy, nil without a fix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "72325e6ba5c8c3b1"
+   }
+  },
+  {
+   "key": "var GetMeBackView.accuracyState",
+   "hash": "a3e4988fcf550656",
+   "does": "Maps current accuracy through GPSAccuracyLevel.classify (good <10, ok <30, poor <100, else/negative/nil waiting) into AccuracyState.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::init AccuracyState(_:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Accuracy is classified from recorder.latestLocation with no fix-age check; the recorder keeps the previous trail's last fix in memory across disengage/endAndArchive (BreadcrumbRecorder.swift:161-179 never reset latestLocation; only forgetAfterPurge does at :187), so a newly engaged trail shows the old fix's 'GPS strong (±Nm)' ribbon until its first fix arrives.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:149",
+      "Emuqu/Sources/Views/GetMeBackView.swift:153",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:161",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:174",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:187"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "0e8f1f659c9c786e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::init AccuracyState(_:)": "c4aefc19e2ea66ca",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "352a99c15d8657e0"
+   }
+  },
+  {
+   "key": "var GetMeBackView.headlineText",
+   "hash": "e248fd7676dfe2b5",
+   "does": "Headline string: 'No active trail', 'Waiting for origin fix…', 'Wait for a better GPS fix', the formatted distance to origin in the user's units, or an em dash.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail",
+    "ud:fitness.unitsPreference (App Group suite, standard fallback)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorder.activeTrail == nil",
+     "effect": "returns 'No active trail'"
+    },
+    {
+     "at": "+4",
+     "cond": "trail has no origin fix",
+     "effect": "returns 'Waiting for origin fix…'"
+    },
+    {
+     "at": "+8",
+     "cond": "accuracyState == .waiting",
+     "effect": "returns 'Wait for a better GPS fix'"
+    },
+    {
+     "at": "+10",
+     "cond": "accuracyState is .good/.ok/.poor",
+     "effect": "falls to distance check"
+    },
+    {
+     "at": "+11",
+     "cond": "distanceToOriginMeters non-nil",
+     "effect": "true: formatted distance; false: '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "95c99b08d49cbaeb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "5f4eb7e2047d46f6",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "450e72fc43ee378e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.body",
+   "hash": "5f5a7d3aa1196c4c",
+   "does": "Root body: NavigationStack wrapping trailStack with alerts and lifecycle modifiers.",
+   "entry": "SwiftUI body; GetMeBackView presented as sheet from FitnessTabView+Sections.swift:41 and in ScreenSnapshotTests",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withLifecycle(_:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withAlerts(_:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withAlerts(_:)": "0724c615404c3c73",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withLifecycle(_:)": "adf1bd8eb87eac93",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailStack": "3d379b4001aa5d14"
+   }
+  },
+  {
+   "key": "var GetMeBackView.trailStack",
+   "hash": "ec286beb5020ec74",
+   "does": "Vertical layout: optional denied banner, accuracy ribbon, arrow dial, headline, actions row, optional brightness settings panel; sets nav title and toolbar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyRibbon",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.actionsRow",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailToolbar",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "locationDenied",
+     "effect": "true: shows locationDeniedBanner; false: omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "showSettings",
+     "effect": "true: shows settingsPanel with move/opacity transition; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyRibbon": "7331c9b9d7c2da72",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.actionsRow": "f910350d47492637",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial": "deb8f64de4ca3ce4",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline": "ab7673bc494fb117",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied": "f394f66d90aeb685",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner": "1421a91c85f55f47",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel": "1524f88e121a7f6d",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailToolbar": "519d1caaa4f82f7e"
+   }
+  },
+  {
+   "key": "var GetMeBackView.trailToolbar",
+   "hash": "e815b8ec4cbde71f",
+   "does": "Toolbar: settings toggle (trailing) and Done button (leading) that dismisses the sheet.",
+   "entry": "SwiftUI toolbar; Done button action calls dismiss()",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToolbarItem",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToolbarItem": "e340f31c2fd06d0d"
+   }
+  },
+  {
+   "key": "var GetMeBackView.settingsToolbarItem",
+   "hash": "52926f6c50eb8c21",
+   "does": "Trailing toolbar item containing settingsToggleButton.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToggleButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToggleButton": "750df95f5897614b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.settingsToggleButton",
+   "hash": "9423a79ebd9334c6",
+   "does": "Button toggling showSettings with animation; icon reflects state.",
+   "entry": "Button action (user tap)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "showSettings",
+     "effect": "true: chevron.up.circle icon; false: slider.horizontal.3 icon"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1"
+   }
+  },
+  {
+   "key": "func GetMeBackView.startVoiceChat()",
+   "hash": "f18fbaaf0c9ebbee",
+   "does": "Spawns a MainActor Task awaiting VoiceConversationController.start() (no-op unless controller state is .idle).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "31b4ccd4f5fac05a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController": "7a711ab6e2d41627"
+   }
+  },
+  {
+   "key": "var GetMeBackView.aiDisclaimerSheet",
+   "hash": "aa21ec6fd79eabfc",
+   "does": "Disclaimer sheet; on accept sets AssistantViewModel.hasAcceptedDisclaimer=true (persists to UserDefaults) and starts voice chat; interactive dismiss disabled.",
+   "entry": "sheet content; onAccept closure invoked by DisclaimerSheet",
+   "calls": [
+    "ext:DisclaimerSheet (declared outside repo Swift units per lookup)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.disclaimerAccepted",
+    "mem:AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "cbbec18ee2fb079b"
+   }
+  },
+  {
+   "key": "func GetMeBackView.withAlerts(_:)",
+   "hash": "aa836b179b9b234c",
+   "does": "Attaches end-trail alert, AI disclaimer sheet, SOS confirm alert (Cancel / Call → dialEmergencyServices, message from sosConfirmMessage with sosDialNumber) and dial-failed alert.",
+   "entry": "Alert button actions (user tap)",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.aiDisclaimerSheet",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialEmergencyServices()",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialEmergencyServices()": "7295106d4b7a03ab",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)": "efb4ffdc5d3ca2c7",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)": "183e27f4123ea100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)": "ea8f456db904e2a9",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.aiDisclaimerSheet": "76cfadd5531cdf1c"
+   }
+  },
+  {
+   "key": "func GetMeBackView.withEndTrailAlert(_:)",
+   "hash": "967158021236013a",
+   "does": "Attaches 'End this trail?' alert with endTrailAlertActions and explanatory message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions": "1e5f9327674908ef"
+   }
+  },
+  {
+   "key": "var GetMeBackView.endTrailAlertActions",
+   "hash": "9191cc543c1aaba2",
+   "does": "Alert buttons: Keep going (no-op), End and save (recorder.endAndArchive + dismiss), Discard (recorder.clearTrail deletes trail from disk + dismiss).",
+   "entry": "Alert button actions (user tap)",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "file:breadcrumb active trail / archive (BreadcrumbStore.archiveActive / clear)",
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "'End and save' loses the trail when archive.json exists but cannot be read/decoded: archive() returns early without writing (BreadcrumbStore.swift:310) while archiveActive() unconditionally calls clear() next (:241-242), deleting active.json. The user chose 'save' and the trail is gone with only a debug log.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:284",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:239",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:242",
+      "Emuqu/Sources/Services/BreadcrumbStore.swift:310"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()": "dc5fcff0f1a972df",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()": "4323663b1b33f3a5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func GetMeBackView.withLifecycle(_:)",
+   "hash": "5eae4e67829a5662",
+   "does": "Adds onAppear → prepareScreenState and onDisappear → resetScreenState.",
+   "entry": "SwiftUI onAppear/onDisappear",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.prepareScreenState()",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.resetScreenState()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.prepareScreenState()": "9ac08d120f90bdb9",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.resetScreenState()": "2ea913df16608525"
+   }
+  },
+  {
+   "key": "func GetMeBackView.prepareScreenState()",
+   "hash": "545cbd3131e931f4",
+   "does": "On appear: disables idle timer if the keep-screen-on setting is on, starts AmbientLocationService (may prompt for location), resumes a restored breadcrumb trail, and snapshots system brightness into state.",
+   "entry": "onAppear via withLifecycle",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()",
+    "ext:UIApplication.isIdleTimerDisabled",
+    "ext:UIScreen.brightness"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "mem:UIScreen.main.brightness"
+   ],
+   "writes": [
+    "mem:UIApplication.isIdleTimerDisabled",
+    "mem:AmbientLocationService.startRequested",
+    "mem:BreadcrumbRecorder.isEngaged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "settings.shouldKeepScreenOnDuringRecording",
+     "effect": "true: isIdleTimerDisabled=true; false: idle timer untouched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "7adf5536ceedbcb9",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "69d594849389a52c",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9b5d689c5969d74d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+   }
+  },
+  {
+   "key": "func GetMeBackView.resetScreenState()",
+   "hash": "640c1aad25ebc3c9",
+   "does": "On disappear: unconditionally re-enables the idle timer and, if the slider changed brightness, restores the brightness captured at appear.",
+   "entry": "onDisappear via withLifecycle",
+   "calls": [
+    "ext:UIApplication.isIdleTimerDisabled",
+    "ext:UIScreen.brightness"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIApplication.isIdleTimerDisabled",
+    "mem:UIScreen.main.brightness"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "didSetBrightnessOverride",
+     "effect": "true: restores systemBrightnessAtAppear and clears flag; false: brightness untouched"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Clears the process-wide idle-timer flag unconditionally, while RecordView's keep-awake helpers explicitly avoid clearing a timer another flow holds; dismissing Get Me Back while RecordView holds keep-awake (retry/recovery fetch) re-enables auto-lock under it.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:334",
+      "Emuqu/Sources/Views/RecordView+Actions.swift:158",
+      "Emuqu/Sources/Views/RecordView+Panels.swift:605"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "var GetMeBackView.locationDeniedBanner",
+   "hash": "658bde99f304c084",
+   "does": "Orange banner: 'Location is off' heading, instructions to enable location, and Open Settings button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationIsOffSection",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.openSettingsSection",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationIsOffSection": "2ab7cfd0518437ad",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.openSettingsSection": "a5c42f9a43be41c6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var GetMeBackView.locationIsOffSection",
+   "hash": "6eb06a1a625fe0ec",
+   "does": "HStack with location.slash icon and 'Location is off'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var GetMeBackView.openSettingsSection",
+   "hash": "089f7e522ebdf84e",
+   "does": "Button opening the app's Settings page via UIApplication.openSettingsURLString.",
+   "entry": "Button action (user tap)",
+   "calls": [
+    "ext:UIApplication.open",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "URL from openSettingsURLString builds",
+     "effect": "true: opens Settings; false: silently nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1"
+   }
+  },
+  {
+   "key": "var GetMeBackView.accuracyRibbon",
+   "hash": "fd89c6e70219d89f",
+   "does": "Ribbon showing accuracy icon/color/label and, with a trail, the trail's GPS point count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.icon",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.color",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "trail non-nil",
+     "effect": "true: shows '<count> GPS points'; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.color": "bcb18745508bd61d",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.icon": "a4db97b26720f3c5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "95c99b08d49cbaeb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "352a99c15d8657e0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "var GetMeBackView.roseRing",
+   "hash": "0007e3c3945c01ae",
+   "does": "Decorative 240pt ring with four localized cardinal letters placed every 90°; hidden from VoiceOver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.cardinalLetters",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CardinalLabel.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CardinalLabel.body": "36efa46dcccea2e0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.cardinalLetters": "6a18572f67b51e36"
+   }
+  },
+  {
+   "key": "var GetMeBackView.cardinalLetters",
+   "hash": "d6fa25d4f72d72a4",
+   "does": "Splits localized 'N E S W' into four letters; falls back to English letters if the translation doesn't yield exactly four.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "split yields 4 items",
+     "effect": "true: localized letters; false: ['N','E','S','W']"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var GetMeBackView.arrowDial",
+   "hash": "0095e719b4ebc73b",
+   "does": "Dial: rose ring + CompassArrow rotated by arrowRotationDegrees with accuracy opacity/fuzz; arrow hidden (opacity 0) when accuracy is waiting or heading invalid; overlays spinner or compass-unavailable note; accessibility label from arrowAccessibilityLabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.body",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.arrowOpacity",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.fuzzRadius",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableNote",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowAccessibilityLabel",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "accuracyState == .waiting || !hasValidHeading",
+     "effect": "true: arrow opacity 0; false: arrow visible (no check that a trail/origin exists)"
+    },
+    {
+     "at": "+9",
+     "cond": "accuracyState == .waiting",
+     "effect": "true: large ProgressView"
+    },
+    {
+     "at": "+11",
+     "cond": "else !hasValidHeading",
+     "effect": "true: compassUnavailableNote; else nothing extra"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Arrow is shown fully opaque pointing straight up when there is no bearing: line 447 hides it only for .waiting accuracy or an invalid heading, and arrowRotationDegrees returns 0 without a bearing (133-136). Reachable on the second engage in one process: tapping Get Me Back calls engage() which creates a trail with origin nil (BreadcrumbRecorder.swift:123-130), while latestLocation/latestHeading from the previous trail are never cleared by disengage()/endAndArchive() (BreadcrumbRecorder.swift:161-179), so accuracy is not .waiting and heading is valid until the first new fix. Contradicts the comment at 443-444.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:447",
+      "Emuqu/Sources/Views/GetMeBackView.swift:133",
+      "Emuqu/Sources/Views/GetMeBackView.swift:443",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:161",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:174",
+      "Emuqu/Sources/Views/FitnessTabView+Sections.swift:56"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Arrow/spinner gating re-implements GPSAccuracyLevel.showsDirection (`accuracyState == .waiting`), so the tested predicate is used only by GPSAccuracyLevelTests and not by the screen it was extracted for.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:447",
+      "Emuqu/Sources/Views/GetMeBackView.swift:449",
+      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:56",
+      "EmuquTests/GPSAccuracyLevelTests.swift:73"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.arrowOpacity": "55a4d0cdb0a00e19",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var AccuracyState.fuzzRadius": "6c4addc9af75928e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.body": "8a77b2da7b88eb34",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "95c99b08d49cbaeb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowAccessibilityLabel": "0a4bea927872ef82",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "912b3df48532b7a8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableNote": "3b10cd099f7875a8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "2eb63c5c9c0c5f2b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing": "456ad77087b6bc50",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "a9ef79ecc4e5789d"
+   }
+  },
+  {
+   "key": "var GetMeBackView.compassUnavailableNote",
+   "hash": "29c618b66c8a2a6d",
+   "does": "Text block showing compassUnavailableText in place of the arrow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "b794c9b7dc7059d5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var GetMeBackView.compassUnavailableText",
+   "hash": "6428735258fdc97f",
+   "does": "'Compass unavailable' plus bearing from north in degrees when a bearing exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bearingToOriginDegrees non-nil",
+     "effect": "false: 'Compass unavailable'; true: 'Compass unavailable. Your start point is N° from north.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.bearing(from:to:)": "ea347a5ee842d4b3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "4ab8279fff455859"
+   }
+  },
+  {
+   "key": "var GetMeBackView.arrowAccessibilityLabel",
+   "hash": "5f915c463f578574",
+   "does": "VoiceOver label for the dial: waiting text, compass-unavailable text, or distance plus relative direction.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.relativeDirectionLabel(distance:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "accuracyState == .waiting",
+     "effect": "returns 'Waiting for a better GPS fix'"
+    },
+    {
+     "at": "+4",
+     "cond": "!hasValidHeading",
+     "effect": "returns compassUnavailableText"
+    },
+    {
+     "at": "+8",
+     "cond": "distanceToOriginMeters non-nil",
+     "effect": "true: formatted distance; false: 'unknown distance'"
+    },
+    {
+     "at": "+13",
+     "cond": "bearingToOriginDegrees non-nil",
+     "effect": "false: 'Origin is <d> away'; true: relativeDirectionLabel"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.relativeDirectionLabel(distance:)": "005e82eacee8e0b9",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "95c99b08d49cbaeb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "4ab8279fff455859",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "b794c9b7dc7059d5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "5f4eb7e2047d46f6",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "2eb63c5c9c0c5f2b"
+   }
+  },
+  {
+   "key": "func GetMeBackView.relativeDirectionLabel(distance:)",
+   "hash": "06c7a0cfb36694c9",
+   "does": "Converts arrowRotationDegrees into 'straight ahead' (≤15°), 'behind you' (≥165°), or 'N° to your right/left'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rounded |angle| <= 15",
+     "effect": "returns straight ahead"
+    },
+    {
+     "at": "+6",
+     "cond": "rounded |angle| >= 165",
+     "effect": "returns behind you"
+    },
+    {
+     "at": "+9",
+     "cond": "angle > 0",
+     "effect": "true: right; false: left"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "912b3df48532b7a8"
+   }
+  },
+  {
+   "key": "var GetMeBackView.headline",
+   "hash": "1cff9a704fb326f9",
+   "does": "Headline VStack: big headline text, origin label, and 'Walked X out' when the trail has >1 fixes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headlineText",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "trail exists with fixes.count > 1",
+     "effect": "true: shows walked length; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "7d07246a8ccabe1d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headlineText": "e71db363e8fd8bfa",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel": "5297a6db7bb28ab5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "var GetMeBackView.originLabel",
+   "hash": "fbdec7dba86f199f",
+   "does": "Shows originLabelText when a trail exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.originLabelText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trail non-nil",
+     "effect": "true: label; false: empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.originLabelText(_:)": "f2963367ffda9807",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73"
+   }
+  },
+  {
+   "key": "func GetMeBackView.originLabelText(_:)",
+   "hash": "a4c069c38e9f1f9a",
+   "does": "Origin caption: user label, else resolved address, else origin lat/lon, else nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.formatCoord(_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trail.label non-nil",
+     "effect": "'Back to <label>'"
+    },
+    {
+     "at": "+4",
+     "cond": "trail.resolvedOriginLabel non-nil",
+     "effect": "'Back to <resolved>'"
+    },
+    {
+     "at": "+6",
+     "cond": "trail.origin non-nil",
+     "effect": "'Origin: lat, lon'; else empty group"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.formatCoord(_:)": "ba7a7f29d967f0ab",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "c0e38e6a5b780a73",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var GetMeBackView.actionsRow",
+   "hash": "7444490707a813a2",
+   "does": "Stack of Talk-to-AI button and SOS/Clear row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.talkToAIButton",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosAndClearRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment says the Talk-to-AI layer is 'only active when connectivity exists', but the button is always enabled with no connectivity check.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:554",
+      "Emuqu/Sources/Views/GetMeBackView.swift:603"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosAndClearRow": "743720283ae0dd37",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.talkToAIButton": "50623480024fc9d3"
+   }
+  },
+  {
+   "key": "var GetMeBackView.sosAndClearRow",
+   "hash": "6205bea0b6f235fe",
+   "does": "HStack of SOS and Clear buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosButton",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.clearTrailButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.clearTrailButton": "035ce980b13b2279",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosButton": "2e94cc073ce7b6b5"
+   }
+  },
+  {
+   "key": "var GetMeBackView.clearTrailButton",
+   "hash": "b51b2a8844fd6258",
+   "does": "'Clear' button that opens the end-trail confirmation alert.",
+   "entry": "Button action (user tap)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GetMeBackView.showClearConfirm"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1"
+   }
+  },
+  {
+   "key": "var GetMeBackView.sosButton",
+   "hash": "391e8eb6a4bf48c9",
+   "does": "SOS button: freezes sosDialNumber to the current sosNumber and shows the confirmation alert.",
+   "entry": "Button action (user tap)",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosNumber",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GetMeBackView.sosDialNumber"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosNumber": "e7559ea8eaeb40a7"
+   }
+  },
+  {
+   "key": "var GetMeBackView.talkToAIButton",
+   "hash": "fc8037eacfab544e",
+   "does": "Talk-to-AI button: starts voice chat if the AI disclaimer was accepted, otherwise shows the disclaimer sheet.",
+   "entry": "Button action (user tap)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hasAcceptedDisclaimer",
+     "effect": "true: startVoiceChat; false: showAIDisclaimer=true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "cbbec18ee2fb079b"
+   }
+  },
+  {
+   "key": "var GetMeBackView.settingsPanel",
+   "hash": "379e66fcb38808b3",
+   "does": "Settings panel with 'Screen brightness' title, slider row and explanatory caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSliderRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSliderRow": "98c8070da57ef5a5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var GetMeBackView.brightnessSliderRow",
+   "hash": "75f5d40dd998a7ab",
+   "does": "Row with sun icons around the brightness slider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSlider"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSlider": "e4e4d3a0d3aa2aa6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var GetMeBackView.brightnessSlider",
+   "hash": "60983015e45f5eba",
+   "does": "Slider (0.05…1.0) whose setter writes UIScreen.main.brightness live and marks didSetBrightnessOverride so it is restored on disappear.",
+   "entry": "Slider binding set (user drag)",
+   "calls": [
+    "ext:UIScreen.brightness"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIScreen.main.brightness"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Brightness is restored only in onDisappear; if the app is backgrounded or killed while the sheet is up, the system brightness stays at the slider value.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:650",
+      "Emuqu/Sources/Views/GetMeBackView.swift:335"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func GetMeBackView.formatCoord(_:)",
+   "hash": "cb90ab8c628fc003",
+   "does": "Formats a coordinate as '%.4f, %.4f' in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func GetMeBackView.dialEmergencyServices()",
+   "hash": "d35d46e5912a5737",
+   "does": "Opens tel://<sosDialNumber>; shows the dial-failed alert if the URL can't be built or UIApplication.open reports failure.",
+   "entry": "SOS alert 'Call emergency services' button",
+   "calls": [
+    "ext:UIApplication.open(tel://)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GetMeBackView.showDialFailedAlert"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "URL 'tel://<number>' builds",
+     "effect": "false: show dial-failed alert and return; true: open URL"
+    },
+    {
+     "at": "+17",
+     "cond": "open completion opened == false",
+     "effect": "true: showDialFailedAlert=true; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GetMeBackView.bearing(from:to:)",
+   "hash": "db95e7fcecacf4c6",
+   "does": "Static initial great-circle bearing (atan2 forward azimuth) normalized to [0,360).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "Bearing formula has no test reference (grep of EmuquTests for GetMeBackView.bearing finds none); it alone determines the arrow direction on the safety screen.",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:688"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same atan2 forward-azimuth formula is implemented four more times: bearingDegrees(from:to:) on CLLocationCoordinate2D (RoadGeocodingSupport.swift:84), RoadAwarenessEngine.bearingDegrees (:709), SavedRouteStepBuilder.bearing (:365) and WorkoutGeometry.bearing on Route.Point (:74).",
+     "evidence": [
+      "Emuqu/Sources/Views/GetMeBackView.swift:688",
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709",
+      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:365",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func GetMeBackView.emergencyNumber(region:)",
+   "hash": "a1a9ad8eb6f26794",
+   "does": "Static map from ISO region to emergency number: 911 US/CA/MX/AS/GU/PR/VI/PH, 999 GB/IE/HK, 000 AU, 111 NZ, 119 JP/KR/TW, 120 CN, 193 BR, otherwise 112.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "US,CA,MX,AS,GU,PR,VI,PH",
+     "effect": "911"
+    },
+    {
+     "at": "+3",
+     "cond": "GB,IE,HK",
+     "effect": "999"
+    },
+    {
+     "at": "+4",
+     "cond": "AU",
+     "effect": "000"
+    },
+    {
+     "at": "+5",
+     "cond": "NZ",
+     "effect": "111"
+    },
+    {
+     "at": "+6",
+     "cond": "JP,KR,TW",
+     "effect": "119"
+    },
+    {
+     "at": "+7",
+     "cond": "CN",
+     "effect": "120"
+    },
+    {
+     "at": "+8",
+     "cond": "BR",
+     "effect": "193"
+    },
+    {
+     "at": "+9",
+     "cond": "default (incl. nil)",
+     "effect": "112"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GetMeBackView.emergencyNumber(currentCountry:region:)",
+   "hash": "d0162d779e09b377",
+   "does": "SOS number: the current country's number when known; otherwise the phone Region's number only if it is 112/911, else 112.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)"
+   ],
+   "reads": [
+    "ext:Locale.current.region (default arg)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "currentCountry non-nil",
+     "effect": "returns emergencyNumber(region: currentCountry)"
+    },
+    {
+     "at": "+5",
+     "cond": "region's number in {112,911}",
+     "effect": "true: that number; false: '112'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b"
+   }
+  },
+  {
+   "key": "func GetMeBackView.countryCode(of:at:)",
+   "hash": "82a7beab9f91aa96",
+   "does": "Uppercased countryCode of a RoadContext if context and location exist and the context was observed within 5 km of the location; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "context, location non-nil and context.isValid(at:maxDistanceMeters:5000)",
+     "effect": "false: nil; true: countryCode?.uppercased() (nil if geocode had no ISO code)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "a90df5010522669f"
+   }
+  },
+  {
+   "key": "func GetMeBackView.emergencyNumbersShown(dialling:)",
+   "hash": "52df143e7cdcabde",
+   "does": "Display string: number alone if it is 112, otherwise '<number> / 112'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "number == '112'",
+     "effect": "true: '112'; false: '<n> / 112'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)",
+   "hash": "330e7e87c718e5e6",
+   "does": "SOS confirmation message: calling-device text with number(s) and Emergency SOS/satellite guidance, or call-from-a-phone text on iPad/Mac.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canPlaceCalls",
+     "effect": "false: callFromAPhoneMessage; true: formatted SOS guidance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "ba0c017ec53f7e86",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "8db1562c3b2e1806"
+   }
+  },
+  {
+   "key": "func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)",
+   "hash": "3ddd8fb45d394ff3",
+   "does": "Dial-failed message: dial manually / Emergency SOS guidance, or call-from-a-phone text on iPad/Mac.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canPlaceCalls",
+     "effect": "false: callFromAPhoneMessage; true: formatted dial-manually guidance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "ba0c017ec53f7e86",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "8db1562c3b2e1806"
+   }
+  },
+  {
+   "key": "func GetMeBackView.callFromAPhoneMessage(dialling:)",
+   "hash": "0dacab047078fd28",
+   "does": "Message telling iPad/Mac users to call emergency services from a phone, with the number(s).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8"
+   }
+  },
+  {
+   "key": "var GetMeBackView.deviceCanPlaceCalls",
+   "hash": "e03402b34d7e1ff8",
+   "does": "False when running as iOS app on Mac or when UIDevice.model starts with 'iPad'; true otherwise.",
+   "entry": null,
+   "calls": [
+    "ext:ProcessInfo.isiOSAppOnMac",
+    "ext:UIDevice.model"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CompassArrow.body",
+   "hash": "e274b1857f8385f3",
+   "does": "Draws the arrow twice: a blurred 25%-opacity glow (blur = fuzz) and a solid fill at the given opacity, 60×180pt.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.arrowShape"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.arrowShape": "55f58380cfb564bb",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var CompassArrow.arrowShape",
+   "hash": "a72af6662659645c",
+   "does": "Path of the arrowhead polygon (tip at y=-90, notched tail).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CardinalLabel.body",
+   "hash": "e6797f6a03e52c7e",
+   "does": "Cardinal letter offset 110pt up then rotated by angle around the dial centre.",
+   "entry": "SwiftUI body",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func AccuracyState.label(meters:)": "a27b1769d7542ef1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "init AccuracyState(_:)",
+   "hash": "c7a24f29d83fecd2",
+   "does": "Maps GPSAccuracyLevel case to the same-named AccuracyState case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".good",
+     "effect": ".good"
+    },
+    {
+     "at": "+3",
+     "cond": ".ok",
+     "effect": ".ok"
+    },
+    {
+     "at": "+4",
+     "cond": ".poor",
+     "effect": ".poor"
+    },
+    {
+     "at": "+5",
+     "cond": ".waiting",
+     "effect": ".waiting"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccuracyState.color",
+   "hash": "bf1ddf5ca72ba28f",
+   "does": "Ribbon color per state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".good",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": ".ok",
+     "effect": "yellow"
+    },
+    {
+     "at": "+4",
+     "cond": ".poor",
+     "effect": "orange"
+    },
+    {
+     "at": "+5",
+     "cond": ".waiting",
+     "effect": "red"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccuracyState.icon",
+   "hash": "e574156bdb1fddf8",
+   "does": "SF Symbol per state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".good",
+     "effect": "location.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".ok",
+     "effect": "location"
+    },
+    {
+     "at": "+4",
+     "cond": ".poor",
+     "effect": "location.slash"
+    },
+    {
+     "at": "+5",
+     "cond": ".waiting",
+     "effect": "antenna.radiowaves.left.and.right.slash"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccuracyState.arrowOpacity",
+   "hash": "3b8af817f6b96277",
+   "does": "Arrow fill opacity per state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".good",
+     "effect": "1.0"
+    },
+    {
+     "at": "+3",
+     "cond": ".ok",
+     "effect": "0.85"
+    },
+    {
+     "at": "+4",
+     "cond": ".poor",
+     "effect": "0.6"
+    },
+    {
+     "at": "+5",
+     "cond": ".waiting",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccuracyState.fuzzRadius",
+   "hash": "4946783724101bce",
+   "does": "Arrow glow blur radius per state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".good",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": ".ok",
+     "effect": "1.5"
+    },
+    {
+     "at": "+4",
+     "cond": ".poor",
+     "effect": "5"
+    },
+    {
+     "at": "+5",
+     "cond": ".waiting",
+     "effect": "10"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AccuracyState.label(meters:)",
+   "hash": "a24cc565c4dae3b5",
+   "does": "Ribbon label: waiting text if meters can't be shown as Int, else 'GPS strong/ok/poor (±Nm)' or waiting text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "displayMetres(meters) non-nil",
+     "effect": "false: 'GPS waiting for a better fix…'; true: switch on state"
+    },
+    {
+     "at": "+7",
+     "cond": ".good",
+     "effect": "'GPS strong (±Nm)'"
+    },
+    {
+     "at": "+8",
+     "cond": ".ok",
+     "effect": "'GPS ok (±Nm)'"
+    },
+    {
+     "at": "+9",
+     "cond": ".poor",
+     "effect": "'GPS poor (±Nm) — interpret with care'"
+    },
+    {
+     "at": "+10",
+     "cond": ".waiting",
+     "effect": "'GPS waiting for a better fix…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)": "94ea1b80897ec930"
+   }
+  }
+ ],
+ "deps": {}
+}

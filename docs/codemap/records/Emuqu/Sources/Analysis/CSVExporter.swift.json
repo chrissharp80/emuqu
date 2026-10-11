@@ -1,0 +1,520 @@
+{
+ "file": "Emuqu/Sources/Analysis/CSVExporter.swift",
+ "hash": "818dd18a9a8a272e",
+ "role": "Builds the flat CSV workout export (#-comment metadata preamble, per-GPS-fix rows joined to the nearest 1 Hz WorkoutSample, indoor per-second table when there is no track, per-split table) in the user's unit system and writes it to the temp directory for the share sheet.",
+ "types": [
+  "CSVExporter: enum — namespace of static CSV builders",
+  "CSVExporter.Units: struct — resolved metric/imperial converters and column-unit labels"
+ ],
+ "state": [
+  "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.csv (written by writeToTempFile)"
+ ],
+ "toplevel": "Units has no stored-property initializers beyond its init; the default argument of Units.init reads UnitsPreferenceStore.current.resolved. File header comment (lines 21-22) says an indoor/no-GPS session gets only the summary row with an empty trackpoint section, but export appends indoorBlock when samples exist (line 111-113).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header comment says indoor/no-GPS sessions get only the summary row and an empty trackpoint section; export() appends a per-second indoor table whenever samples exist.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift:21",
+    "Emuqu/Sources/Analysis/CSVExporter.swift:111"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "privacy",
+   "sev": "low",
+   "text": "Export files containing the GPS track and per-second HR are written to the app temp directory every time FitnessPostSummaryView builds its exports (buildExports runs eagerly, not on share) and no code in that view removes them.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift:266",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:450",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift:472"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header comment says the HR column is the nearest-in-time beat-derived HR; trackpointRow actually uses WorkoutSample.heartRate (the recorder's smoothed 1 Hz value) and no RR beats are read.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift:10",
+    "Emuqu/Sources/Analysis/CSVExporter.swift:174"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "init CSVExporter.Units(imperial:)",
+   "hash": "d076a238bae2b879",
+   "does": "Resolves the export unit system (default argument reads UnitsPreferenceStore.current.resolved == .imperial) and stores closures metres→mi/km, metres→ft/m, sec-per-km→sec-per-mi (×1.609344) plus the column unit labels.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imperial (distance closure)",
+     "effect": "true: m/1609.344 (miles); false: m/1000 (km)"
+    },
+    {
+     "at": "+3",
+     "cond": "imperial (elevation closure)",
+     "effect": "true: m×UnitConstants.feetPerMeter; false: metres unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "imperial (pace closure)",
+     "effect": "true: sec/km×1.609344 = sec/mi; false: unchanged sec/km"
+    },
+    {
+     "at": "+5",
+     "cond": "imperial distUnit",
+     "effect": "'mi' else 'km'"
+    },
+    {
+     "at": "+6",
+     "cond": "imperial elevUnit",
+     "effect": "'ft' else 'm'"
+    },
+    {
+     "at": "+8",
+     "cond": "imperial paceUnit",
+     "effect": "'sec_per_mi' else 'sec_per_km'"
+    },
+    {
+     "at": "+9",
+     "cond": "imperial altShort",
+     "effect": "'ft' else 'm'"
+    },
+    {
+     "at": "+10",
+     "cond": "imperial distShort",
+     "effect": "'mi' else 'km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "func CSVExporter.headerBlock(session:sport:units:iso:)",
+   "hash": "a63e6c6d9be22cf4",
+   "does": "Builds the '#'-prefixed preamble: export title, sport, ISO start, every optional metadata line from optionalFieldLines, and the units-preference line, joined with newlines plus a blank line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.optionalFieldLines(session:units:iso:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "units.imperial",
+     "effect": "writes '# Units preference: imperial' else 'metric'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.optionalFieldLines(session:units:iso:)": "0eae4b7f9e6bcc15"
+   }
+  },
+  {
+   "key": "func CSVExporter.optionalFieldLines(session:units:iso:)",
+   "hash": "159071640ef35a1c",
+   "does": "Returns '# Label: value' lines for End, Duration (sec, truncated Int), Distance, Elevation gain, Mean HR, RMSSD, TRIMP (luciaTRIMP), HRSS (hrTSS), Decoupling and HRR@1min drop, each only when the session/metadata carries the value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.add(_:_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.add(_:_:)": "d37f458a03335482",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func CSVExporter.add(_:_:)",
+   "hash": "b72e9ed3b896d747",
+   "does": "Nested helper: appends '# label: value' to the enclosing lines array when value is non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is nil",
+     "effect": "returns without appending; otherwise appends the line"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CSVExporter.export(session:track:)",
+   "hash": "637f304d4bf32d6f",
+   "does": "Assembles the full CSV string: preamble, trackpoint table (header always present), indoor per-second table when the track is empty and samples exist, and the splits table when splits exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:units:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "metadata?.samples is nil",
+     "effect": "samples = [] (no HR/pace joins; no indoor block)"
+    },
+    {
+     "at": "+8",
+     "cond": "metadata?.sport is nil",
+     "effect": "sport label falls back to 'Workout'"
+    },
+    {
+     "at": "+14",
+     "cond": "track empty AND samples non-empty",
+     "effect": "appends indoorBlock; otherwise no indoor table (an indoor session with no samples gets only the empty trackpoint header)"
+    },
+    {
+     "at": "+17",
+     "cond": "metadata.splits non-nil and non-empty",
+     "effect": "appends splitsBlock; otherwise omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)": "3ba7bb557cde97a1",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:units:)": "f8966309990fe195",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)": "ee00f769477b3961",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "43cae3779ab21fe6",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)": "679b9e97f80aebce",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+   }
+  },
+  {
+   "key": "func CSVExporter.trackpointBlock(session:track:samples:units:iso:)",
+   "hash": "c02d4d93dbfb9f06",
+   "does": "Writes the trackpoint header (unit-suffixed columns) and one row per GPS fix inside [startDate, sessionEnd], with cumulative distance summed over kept fixes only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "session.endDate nil",
+     "effect": "sessionEnd = startDate+duration; duration is derived from endDate (SessionMetadata.swift:642) so it is also nil and the fallback is Date() (now), keeping every fix after start"
+    },
+    {
+     "at": "+12",
+     "cond": "for each in-window fix",
+     "effect": "emits one row per fix"
+    },
+    {
+     "at": "+13",
+     "cond": "idx > 0",
+     "effect": "adds great-circle distance from previous kept fix to cumulative; first fix stays 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `session.duration.map{...}` fallback can never produce a value: HRVSession.duration returns nil exactly when endDate is nil, so the chain always falls through to Date().",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CSVExporter.swift:141",
+      "Emuqu/Sources/Models/SessionMetadata.swift:642"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)": "bd55d7486adb2927",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
+   "hash": "01dfc0472818b9bd",
+   "does": "Formats one CSV row: ISO timestamp, seconds from start, lat/lon (6dp), altitude and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the nearest sample within 5 s (empty cells otherwise).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "matched sample has heartRate",
+     "effect": "HR cell else ''"
+    },
+    {
+     "at": "+19",
+     "cond": "matched has paceSecPerKm",
+     "effect": "pace in sec per user unit (%.0f) else ''"
+    },
+    {
+     "at": "+20",
+     "cond": "matched has cadenceStepsPerMin",
+     "effect": "cadence else ''"
+    },
+    {
+     "at": "+21",
+     "cond": "matched has mets",
+     "effect": "METs %.1f else ''"
+    },
+    {
+     "at": "+22",
+     "cond": "matched has powerWatts",
+     "effect": "power else ''"
+    },
+    {
+     "at": "+25",
+     "cond": "matched has alpha1",
+     "effect": "α1 %.3f else '' (most rows empty since α1 is ~20 s cadence)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Joins each fix to a sample by wall-clock seconds since start (fix.timestamp - startDate), but WorkoutSample.offsetSec is pause-excluded active time and decode() spreads fix times evenly over the wall-clock duration; after any pause (or with a non-uniform fix rate) every later row gets HR/pace/cadence/power/alpha1 from the wrong moment or an empty cell.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CSVExporter.swift:164",
+      "Emuqu/Sources/Analysis/CSVExporter.swift:165",
+      "Emuqu/Sources/Collection/WorkoutLifecycle.swift:73",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:548",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:558",
+      "Emuqu/Sources/Analysis/GPXExporter.swift:155"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.nearestSample(to:in:)": "dcbf8a5c59544c94",
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func CSVExporter.indoorBlock(samples:units:)",
+   "hash": "725bc6e193f0b28a",
+   "does": "Builds the indoor table (seconds_from_start, hr, pace, cadence, mets, power, altitude, α1) with one row per WorkoutSample, converting pace/altitude to user units.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each sample",
+     "effect": "one row per sample"
+    },
+    {
+     "at": "+8",
+     "cond": "heartRate nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+9",
+     "cond": "paceSecPerKm nil",
+     "effect": "empty cell, else converted pace"
+    },
+    {
+     "at": "+10",
+     "cond": "cadence nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+11",
+     "cond": "mets nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+12",
+     "cond": "powerWatts nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+13",
+     "cond": "altitudeMeters nil",
+     "effect": "empty cell, else converted altitude"
+    },
+    {
+     "at": "+14",
+     "cond": "alpha1 nil",
+     "effect": "empty cell"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func CSVExporter.splitsBlock(_:units:)",
+   "hash": "bb2d5a7b233bd04c",
+   "does": "Builds the splits table (index, distance, duration, avg HR, avg pace, elevation gain, avg α1) in user units, one row per Split.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each split",
+     "effect": "one row per split"
+    },
+    {
+     "at": "+11",
+     "cond": "averageHR nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+12",
+     "cond": "averagePaceSecPerKm nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+13",
+     "cond": "elevationGainMeters nil",
+     "effect": "empty cell"
+    },
+    {
+     "at": "+14",
+     "cond": "averageAlpha1 nil",
+     "effect": "empty cell"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageAlpha1(of:from:to:)": "8c410993eceaae95",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func CSVExporter.nearestSample(to:in:)",
+   "hash": "5c1b4aad1b289e01",
+   "does": "Linear scan for the sample with the smallest |offsetSec − target|; returns it only if within 5 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "loop over every sample",
+     "effect": "scans all samples (no early exit except exact match)"
+    },
+    {
+     "at": "+6",
+     "cond": "distance not smaller than best so far",
+     "effect": "skip sample"
+    },
+    {
+     "at": "+9",
+     "cond": "exact match d == 0",
+     "effect": "break early"
+    },
+    {
+     "at": "+11",
+     "cond": "bestDelta <= 5",
+     "effect": "returns best; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Called once per GPS fix and scans all samples each time (O(fixes×samples)); for a 2 h session with ~7 200 samples and thousands of fixes this is tens of millions of iterations on export. Comment acknowledges it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CSVExporter.swift:233",
+      "Emuqu/Sources/Analysis/CSVExporter.swift:239"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CSVExporter.writeToTempFile(session:track:)",
+   "hash": "191db0c70e9d6ca2",
+   "does": "Renders the CSV, names it '<sport>-<UTC yyyyMMdd-HHmmss>.csv' in the temp directory, writes it atomically and logs the byte count; throws an NSError if UTF-8 encoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [
+    "file:tmp/<sport>-<yyyyMMdd-HHmmss>.csv"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutMetadata nil",
+     "effect": "filename sport part 'workout'"
+    },
+    {
+     "at": "+12",
+     "cond": "csv.data(using: .utf8) nil",
+     "effect": "throws NSError 'Couldn't create the CSV file.' (cannot happen for a Swift String); otherwise writes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  }
+ ],
+ "deps": {}
+}

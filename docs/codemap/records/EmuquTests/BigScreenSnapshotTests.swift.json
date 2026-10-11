@@ -1,0 +1,130 @@
+{
+ "file": "EmuquTests/BigScreenSnapshotTests.swift",
+ "hash": "0ea63eabe10bd24b",
+ "role": "Snapshot tests pinning the rendered MorningResultsView (with and without history) and FitnessPostSummaryView against committed raw references.",
+ "types": [
+  "BigScreenSnapshotTests: class — @MainActor XCTestCase snapshotting the two largest screens"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Doc comment says environment objects are 'constructed fresh rather than taken from singletons', but the harness injects SettingsManager.shared and RRCollector() whose convenience init pulls AppDependencies.current singletons (settings, archive, HealthKit manager), so snapshots depend on shared app-host state.",
+   "evidence": [
+    "EmuquTests/BigScreenSnapshotTests.swift:14",
+    "EmuquTests/BigScreenSnapshotTests.swift:25",
+    "Emuqu/Sources/Collection/RRCollector.swift:628",
+    "Emuqu/Sources/Collection/RRCollector.swift:644"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func BigScreenSnapshotTests.environment(_:)",
+   "hash": "1c668a9e33e2b317",
+   "does": "Wraps a view in a NavigationStack and injects RRCollector(), SettingsManager.shared, ArchiveSignal() and MorningCoordination() into the SwiftUI environment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared",
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814"
+   }
+  },
+  {
+   "key": "func BigScreenSnapshotTests.testMorningResultsRenders()",
+   "hash": "5b70769ba282aad2",
+   "does": "Renders MorningResultsView for a fixture overnight session, fixture analysis result and 5 prior nightly sessions, and asserts it matches snapshot 'screen-morning-results'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-morning-results.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.body": "274f54c65929e6f8",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func BigScreenSnapshotTests.testMorningResultsWithNoHistoryRenders()",
+   "hash": "9e47f2a58a6c09e4",
+   "does": "Renders MorningResultsView with an empty recentSessions list (first-morning state) and asserts it matches snapshot 'screen-morning-results-no-history'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-morning-results-no-history.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "708e5b20f5522dc7",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.body": "274f54c65929e6f8",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func BigScreenSnapshotTests.testFitnessPostSummaryRenders()",
+   "hash": "36fde60f8f78ff44",
+   "does": "Renders FitnessPostSummaryView for the fixture workout session and asserts it matches snapshot 'screen-fitness-post-summary'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.workoutSession()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/screen-fitness-post-summary.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.body": "45424818e7b2f8b2",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.workoutSession()": "f71a7a41ee682cd8",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

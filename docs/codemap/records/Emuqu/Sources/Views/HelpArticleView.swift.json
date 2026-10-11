@@ -1,0 +1,315 @@
+{
+ "file": "Emuqu/Sources/Views/HelpArticleView.swift",
+ "hash": "859d8f73870e8e6d",
+ "role": "Renders one help article: hero header (icon, title, summary) and each typed ArticleSection (text, heading, tip/warning/note callouts, bullets, numbered steps, key-value card, divider).",
+ "types": [
+  "HelpArticleView: struct (View) — article renderer"
+ ],
+ "state": [],
+ "toplevel": "#Preview shows HelpContent.gettingStarted.articles[0].localized. Also constructed by HelpCenterView, HelpCategoryView and MorningResultsView.swift:446.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HelpArticleView.body",
+   "hash": "4c859643ab35ddab",
+   "does": "ScrollView of the article stack with zen background and inline nav title = article title.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.stack",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.stack": "c4944ca87271466d",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenBackground()": "9f665a4650974bfd"
+   }
+  },
+  {
+   "key": "var HelpArticleView.stack",
+   "hash": "4975138eca64ebcc",
+   "does": "VStack of hero header followed by a sectionView for each article section, padded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.heroHeader",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.sectionView(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.sectionView(for:)": "718bb657ff0d4154",
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.heroHeader": "cc9079b7c574aee2"
+   }
+  },
+  {
+   "key": "var HelpArticleView.heroHeader",
+   "hash": "53d836d8eecf6710",
+   "does": "Hero row: article icon in a tinted rounded square plus titles.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.heroTitles"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::var HelpArticleView.heroTitles": "d7597cd97a34f2c3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932"
+   }
+  },
+  {
+   "key": "var HelpArticleView.heroTitles",
+   "hash": "c74ee6eebfc58034",
+   "does": "Title (bold) and summary (secondary) texts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HelpArticleView.sectionView(for:)",
+   "hash": "b983ef71fd00761b",
+   "does": "Switches on ArticleSection and returns the matching view: body text, heading, tip/warning/note callout cards with icon and tint, bullets, steps, key-value list, or divider.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bodyText(_:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.headingText(_:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.calloutCard(icon:iconColor:text:tint:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bulletsView(_:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.stepsView(_:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueView(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".text",
+     "effect": "bodyText"
+    },
+    {
+     "at": "+4",
+     "cond": ".heading",
+     "effect": "headingText (header trait)"
+    },
+    {
+     "at": "+5",
+     "cond": ".tip",
+     "effect": "calloutCard lightbulb, soft gold"
+    },
+    {
+     "at": "+6",
+     "cond": ".warning",
+     "effect": "calloutCard warning triangle, terracotta"
+    },
+    {
+     "at": "+7",
+     "cond": ".note",
+     "effect": "calloutCard info circle, mist icon / primary tint"
+    },
+    {
+     "at": "+8",
+     "cond": ".bullets",
+     "effect": "bulletsView"
+    },
+    {
+     "at": "+9",
+     "cond": ".steps",
+     "effect": "stepsView"
+    },
+    {
+     "at": "+10",
+     "cond": ".keyValue",
+     "effect": "keyValueView"
+    },
+    {
+     "at": "+11",
+     "cond": ".divider",
+     "effect": "Divider with vertical padding"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bodyText(_:)": "52c184d5cd4cb318",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bulletsView(_:)": "18b09f186fe2bbe5",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.calloutCard(icon:iconColor:text:tint:)": "2cdc910822760ccc",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.headingText(_:)": "b95279c716a5b2b6",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueView(_:)": "28433de38f87f0b4",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.stepsView(_:)": "1702cf3799324e93",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func HelpArticleView.bodyText(_:)",
+   "hash": "7e07ea22b91af316",
+   "does": "Subheadline secondary multiline Text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HelpArticleView.headingText(_:)",
+   "hash": "6014fe8eb2d778f7",
+   "does": "Headline semibold Text with .isHeader accessibility trait.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func HelpArticleView.bulletsView(_:)",
+   "hash": "8a91d23a2c32acad",
+   "does": "VStack of bulletItem for each string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bulletItem(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.bulletItem(_:)": "a7bb76e4ec2080da"
+   }
+  },
+  {
+   "key": "func HelpArticleView.bulletItem(_:)",
+   "hash": "3c840e0557884541",
+   "does": "Row with a small dot and the bullet text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func HelpArticleView.stepsView(_:)",
+   "hash": "5d859b1b7b719e8b",
+   "does": "Card VStack of numbered stepRows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.stepRow(index:item:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.stepRow(index:item:)": "d8273888e498e418",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "func HelpArticleView.stepRow(index:item:)",
+   "hash": "7d2de6968f6faa81",
+   "does": "Row with a circular 1-based number badge and the step text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryGradient": "2d47496eb2a59932",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HelpArticleView.keyValueView(_:)",
+   "hash": "0ab0d26194997361",
+   "does": "Card VStack of keyValueRow + divider for each pair.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueRow(_:)",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueDivider(index:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueDivider(index:count:)": "bade9ea7856e058a",
+    "Emuqu/Sources/Views/HelpArticleView.swift::func HelpArticleView.keyValueRow(_:)": "b94eac446a98dc16",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83"
+   }
+  },
+  {
+   "key": "func HelpArticleView.keyValueDivider(index:count:)",
+   "hash": "c37527cfd1b97085",
+   "does": "Divider between key-value rows, omitted after the last.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index < count-1",
+     "effect": "draws divider; last row gets none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HelpArticleView.keyValueRow(_:)",
+   "hash": "89adc32495f09d7b",
+   "does": "Label (semibold) over value (secondary) row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func HelpArticleView.calloutCard(icon:iconColor:text:tint:)",
+   "hash": "4ea6f0a155dbcff2",
+   "does": "Tinted rounded callout with icon and text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  }
+ ],
+ "deps": {}
+}

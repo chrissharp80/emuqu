@@ -1,0 +1,741 @@
+{
+ "file": "Emuqu/Sources/Analysis/LiveReadiness.swift",
+ "hash": "66814b8431f57c9d",
+ "role": "Pure value type computing the dashboard hero's live training readiness from the frozen morning recovery score plus live training metrics, with narrative headline/loop-card copy; also WorkoutDescriptor (marquee workout phrase) and its localized copy table.",
+ "types": [
+  "LiveReadiness: struct — live readiness result + headline/loopCardText",
+  "LiveReadiness.InterpolatedLoad: struct — morning→live interpolated ATL/CTL/ACR + freshness anchor",
+  "WorkoutDescriptor: struct — type/duration/intensity/TRIMP of today's main workout",
+  "WorkoutDescriptorCopy: enum — NarrativeLanguage translations of descriptor words"
+ ],
+ "state": [
+  "mem:WorkoutDescriptor.maxNarrativeDurationMinutes=360 (private static)"
+ ],
+ "toplevel": "Memberwise inits only; no globals.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "recentWorkoutLoads is documented as a 72h lookback so fatigue 'decays smoothly across midnight rather than cliffing when todayTrimp resets', but compute only passes it when live.todayTrimp > 0; on a day with no workout yet the acute-fatigue term is todayTrimp*0.35 = 0, so last night's workout fatigue drops to zero at midnight — the cliff the doc says is removed.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift:81",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift:233",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift:49",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift:163"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Comment says the today-branch mirrors RecoveryDashboardView.computeTrainingReadiness, which does not exist anywhere in the repo.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift:154"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)",
+   "hash": "99af39a4e8a3f443",
+   "does": "Entry: computes LiveReadiness from the morning recovery score (0-100), the morning HRVSession and live TrainingMetrics. Hours since morning anchor on session end/start/now; without metrics returns the morning score unchanged; with metrics interpolates ATL/CTL, passes 72h workout loads only if todayTrimp > 0, and runs the readiness model. Called by MorningResultsViewModel.swift:329 and DashboardV2View.swift:205.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session endDate nil / startDate nil (?? chain)",
+     "effect": "anchor = endDate, else startDate, else now (hoursSinceMorning 0)"
+    },
+    {
+     "at": "+8",
+     "cond": "liveMetrics nil",
+     "effect": "return morningOnly (score == recoveryScore, no drift)"
+    },
+    {
+     "at": "+18",
+     "cond": "live.todayTrimp > 0",
+     "effect": "recentLoads = 72h WorkoutLoads; else nil, so acute fatigue falls back to todayTrimp*0.35 = 0 (yesterday's workout contributes no acute fatigue)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "As soon as todayTrimp > 0 (even a 5-min walk), recentLoads switches from nil to every workout in the last 72 h, including yesterday's, which the 7-day ATL already carries. The comment at 77-80 says that double count is what the gate avoids. Example: a 200-TRIMP run 20 h ago adds 200*exp(-20/24)*0.30 ≈ 26 to effectiveLoad the moment any workout is logged today, so readiness steps down by much more than the new workout's own load. LiveReadinessTests only asserts rest >= active - 1, so this step passes.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:77",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:81",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:236",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:241",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:156",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:161",
+      "EmuquTests/LiveReadinessTests.swift:164",
+      "EmuquTests/LiveReadinessTests.swift:177"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Readiness is also computed separately in TrainingReadinessCard.computedReadiness when no frozen value exists, with different inputs: no ATL/CTL interpolation, no recent workout loads (flat todayTrimp*0.35), and morningATL = snapshotATL. The morning card and the dashboard hero can show different readiness for the same moment.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:30",
+      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:35",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:96"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "a268de40200cac36",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "00db02b971ecf34f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "9738da9ea0818aa6",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "09392256797550a2"
+   }
+  },
+  {
+   "key": "func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)",
+   "hash": "34158c4b6b153203",
+   "does": "Runs RecoveryScoreCalculator.calculateReadiness on the interpolated load and builds the result: raw acute fatigue, ACR, gate load, pulled-down / lifted flags (>=3 point difference) and today's primary workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)"
+   ],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue (via userScaledLoad)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+23",
+     "cond": "live.todayWorkouts empty",
+     "effect": "pick from live.recentWorkouts (still filtered to today by todayPrimary); else todayWorkouts"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "pulledDownByTodaysTraining and liftedByRecovery only test whether score and recoveryScore differ by at least 3. They do not check training or elapsed time. The readiness model differs from the recovery score even at hour 0 on a rest day. Example: recovery 60, CTL 40, ATL 30 (snapshot = live) gives ratio 0.75 → 85.9, modulated to 60 + 25.9*0.55 = 74.2. liftedByRecovery is then true right after the morning reading, and the headline says 'Fatigue is dissipating through the day — readiness is up about 14 from this morning'. The doc at 34-40 says these flags mean today's training or dissipation since morning.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:34",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:38",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:108",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:109",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:205",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:184",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:313",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:314"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)": "4e589efe236e197c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "dbe0742e4ba67153",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "9fd2ee2afbbf8c94",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "088bd81c4054cfaa",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)",
+   "hash": "676fb1edbad8b77c",
+   "does": "Returns a LiveReadiness equal to the morning recovery score with zero load fields and no advice load.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveReadiness.gateLoad(interpolated:live:now:)",
+   "hash": "af766b9656e118d7",
+   "does": "Builds a TrainingAdviceGate.Load from live metrics (Foster monotony/strain) then overrides acwr/ctl/tsb with the interpolated values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(metrics:referenceDate:)": "0e237eb8c64d40f0",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)",
+   "hash": "b69402b3625d31fb",
+   "does": "Interpolates ATL and CTL linearly from the session's frozen training snapshot (or analysisResult.trainingContext) to live values by hours/24 (clamped 0..1), computes ACR, and picks morning ATL as freshness anchor unless a full day has passed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trainingSnapshot nil (?? fallback)",
+     "effect": "use analysisResult.trainingContext; both nil → morningContext nil"
+    },
+    {
+     "at": "+7",
+     "cond": "morningContext nil (?? 0)",
+     "effect": "morningATL = 0 (and morningCTL = 0 at 172), so early-day ATL/CTL are pulled toward 0"
+    },
+    {
+     "at": "+8",
+     "cond": "morningContext nil (?? 0)",
+     "effect": "morningCTL = 0"
+    },
+    {
+     "at": "+19",
+     "cond": "effectiveCTL > 0",
+     "effect": "acr = ATL/CTL; else nil"
+    },
+    {
+     "at": "+20",
+     "cond": "dayFraction >= 1",
+     "effect": "freshness anchor = interpolated ATL (bonus collapses to 0); else morningATL"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When the morning training snapshot is missing, morning ATL and CTL default to 0, so at hour 0 effective CTL is 0 and readiness runs the novel-load model (CTL < 3.2) for an athlete with real history; the comment acknowledges the choice.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:171",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:172",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:172"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var LiveReadiness.headline",
+   "hash": "64fdec583a8544ce",
+   "does": "Headline sentence in NarrativeLanguage: names today's primary workout when readiness was pulled down, a generic 'recent training' line when pulled down without one, a 'fatigue dissipating' line when lifted, else the stock readiness message for score/10 with the advice load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "pulledDownByTodaysTraining",
+     "effect": "workout or generic pull-down sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "todayPrimaryWorkout non-nil",
+     "effect": "'Your <phrase> pulled readiness down about N'; else 'Recent training is pulling readiness about N below'"
+    },
+    {
+     "at": "+12",
+     "cond": "liftedByRecovery",
+     "effect": "'Fatigue is dissipating...up about N'; else ReadinessScoring.readinessMessage"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says a pull-down without a today workout is yesterday's training 'decaying out via the 24h acute-fatigue term', but compute passes no workout loads when todayTrimp == 0, so that term is 0 on such days; the drop comes from ACWR penalty or recovery modulation instead.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:200",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:81"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var LiveReadiness.loopCardText",
+   "hash": "7f79c3a5cb61ed42",
+   "does": "Optional loop-card one-liner: workout-named pull-down, generic pull-down, recovery-lift line, or nil for ordinary days.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "pulled down and primary workout exists",
+     "effect": "'Your <phrase> is the day's main event'"
+    },
+    {
+     "at": "+8",
+     "cond": "pulled down, no workout",
+     "effect": "'Recent training is still in your legs'"
+    },
+    {
+     "at": "+11",
+     "cond": "liftedByRecovery",
+     "effect": "'Body is using the day to recover'; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "27d5529f8df02124",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func LiveReadiness.recentWorkoutLoads(from:now:)",
+   "hash": "50e6e0ede5e76583",
+   "does": "Converts metrics.recentWorkouts within the last 72 h with positive userScaledLoad into WorkoutLoad(hoursAgo, trimp); nil if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad"
+   ],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "mem:SettingsManager.settingsSnapshot (via userScaledLoad)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "elapsed < 0 or > 72 h",
+     "effect": "skip workout"
+    },
+    {
+     "at": "+9",
+     "cond": "userScaledLoad <= 0",
+     "effect": "skip workout"
+    },
+    {
+     "at": "+15",
+     "cond": "no loads",
+     "effect": "return nil; else array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
+   }
+  },
+  {
+   "key": "func LiveReadiness.computeRawAcuteFatigue(todayTrimp:recentLoads:)",
+   "hash": "35acc44a31542555",
+   "does": "Raw acute fatigue for the panel: sum of trimp*exp(-hoursAgo/24) over recent loads, or todayTrimp when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "recentLoads nil or empty",
+     "effect": "return todayTrimp (undecayed)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements the raw-sum half of ReadinessScoring.computeAcuteFatigue (same tau, same formula) instead of sharing it.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:263",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:158"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutDescriptor.phrase",
+   "hash": "72d1ccf021d7e3c6",
+   "does": "Localized phrase 'intensity N-min activity' via WorkoutDescriptorCopy in NarrativeLanguage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.intensity(_:)": "03b90942a0e14fdd",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func WorkoutDescriptor.todayPrimary(from:now:)",
+   "hash": "2b847455cf071cf4",
+   "does": "Picks today's highest-userScaledLoad workout with duration in (0, 360] min (Calendar.current same day) and returns its descriptor, or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)"
+   ],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "no candidates",
+     "effect": "nil"
+    },
+    {
+     "at": "+15",
+     "cond": "pick trimp <= 0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "28604ff2abf17c07",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "c3253d96ae9c9089",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func WorkoutDescriptor.typeLabel(for:)",
+   "hash": "4733f0e9941112df",
+   "does": "Maps HealthKit workout type string to an everyday noun ('Running'→'run', ... default 'workout').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'Running'",
+     "effect": "'run'"
+    },
+    {
+     "at": "+3",
+     "cond": "'Cycling'",
+     "effect": "'ride'"
+    },
+    {
+     "at": "+4",
+     "cond": "'Swimming'",
+     "effect": "'swim'"
+    },
+    {
+     "at": "+5",
+     "cond": "'Strength'",
+     "effect": "'strength session'"
+    },
+    {
+     "at": "+6",
+     "cond": "'HIIT'",
+     "effect": "'HIIT session'"
+    },
+    {
+     "at": "+7",
+     "cond": "'Yoga'",
+     "effect": "'yoga session'"
+    },
+    {
+     "at": "+8",
+     "cond": "'Walking'",
+     "effect": "'walk'"
+    },
+    {
+     "at": "+9",
+     "cond": "'Hiking'",
+     "effect": "'hike'"
+    },
+    {
+     "at": "+10",
+     "cond": "'Rowing'",
+     "effect": "'row'"
+    },
+    {
+     "at": "+11",
+     "cond": "'Cross Training'",
+     "effect": "'cross-training session'"
+    },
+    {
+     "at": "+12",
+     "cond": "'Elliptical'",
+     "effect": "'elliptical session'"
+    },
+    {
+     "at": "+13",
+     "cond": "'Stairs'",
+     "effect": "'stair workout'"
+    },
+    {
+     "at": "+14",
+     "cond": "default",
+     "effect": "'workout'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutDescriptor.intensityWord(for:)",
+   "hash": "48173b6a3a8ebb53",
+   "does": "Buckets TRIMP: <30 easy, <80 moderate, <150 hard, else very hard.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trimp < 30",
+     "effect": "'easy'"
+    },
+    {
+     "at": "+2",
+     "cond": "trimp < 80",
+     "effect": "'moderate'"
+    },
+    {
+     "at": "+3",
+     "cond": "trimp < 150",
+     "effect": "'hard'; else 'very hard'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the boundaries match ReadinessExplainView.todayTrainingTint 'so the colour and the word always agree', but the tint buckets total todayTrimp while the word buckets only the primary workout's TRIMP; with two workouts they disagree.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:360",
+      "Emuqu/Sources/Views/ReadinessExplainView.swift:183"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutDescriptorCopy.intensity(_:)",
+   "hash": "1a6352ad3bfc0f03",
+   "does": "Localizes intensity word; unknown words pass through.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'easy'",
+     "effect": "localized"
+    },
+    {
+     "at": "+3",
+     "cond": "'moderate'",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "'hard'",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "'very hard'",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "returns word unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func WorkoutDescriptorCopy.activity(_:)",
+   "hash": "3fc83c761aaf6131",
+   "does": "Localizes activity label via commonType, then sessionType, else localized 'workout'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.commonType(_:)",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both lookups nil (?? chain)",
+     "effect": "localized 'workout'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.commonType(_:)": "330ba4744e423f8b",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func WorkoutDescriptorCopy.commonType(_:)",
+   "hash": "2721288d48034c0b",
+   "does": "Localized short activity nouns (run/ride/swim/walk/hike/row) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'run'",
+     "effect": "localized"
+    },
+    {
+     "at": "+3",
+     "cond": "'ride'",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "'swim'",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "'walk'",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "'hike'",
+     "effect": "localized"
+    },
+    {
+     "at": "+7",
+     "cond": "'row'",
+     "effect": "localized"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func WorkoutDescriptorCopy.sessionType(_:)",
+   "hash": "e3eb4eab465d21f3",
+   "does": "Localized session nouns (strength/HIIT/yoga/cross-training/elliptical/stair) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'strength session'",
+     "effect": "localized"
+    },
+    {
+     "at": "+3",
+     "cond": "'HIIT session'",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "'yoga session'",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "'cross-training session'",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "'elliptical session'",
+     "effect": "localized"
+    },
+    {
+     "at": "+7",
+     "cond": "'stair workout'",
+     "effect": "localized"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

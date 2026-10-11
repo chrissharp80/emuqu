@@ -1,0 +1,88 @@
+{
+ "file": "scripts/remove_swift_file.py",
+ "hash": "9dafe2bdb19de65e",
+ "role": "Developer tool: removes a Swift file's PBXBuildFile, PBXFileReference, group-child and Sources-phase entries from project.pbxproj by basename, optionally deleting the file (--delete). Not referenced by any script/Makefile/workflow.",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.pbxproj (read/write)"
+ ],
+ "toplevel": "Module constant PROJECT path (relative to cwd). `if __name__ == '__main__': raise SystemExit(main())`.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def remove_file",
+   "hash": "1af3ee253eef4776",
+   "does": "Regex-removes, for an exact basename, all `<id> /* name in Sources */ = {isa = PBXBuildFile...` lines, `<id> /* name */ = {isa = PBXFileReference...` lines, `<id> /* name */,` group children and `<id> /* name in Sources */,` phase entries; returns new content and count notes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+45",
+     "cond": "any PBXBuildFile ids were found for the basename",
+     "effect": "append '(build file ids: ...)' note; otherwise no extra note. All four re.subn removals run unconditionally and report their counts (0 when nothing matched)."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Matching is by basename only: if two different files share a name in different groups/directories, every entry for that name is removed, not just the one at the given path (no duplicate basenames exist in project.pbxproj at 8d32097).",
+     "evidence": [
+      "scripts/remove_swift_file.py:38",
+      "scripts/remove_swift_file.py:52",
+      "scripts/remove_swift_file.py:61",
+      "scripts/remove_swift_file.py:97"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "77aec628db2930b7",
+   "does": "CLI: strips --delete, prints usage (return 2) with no args, return 1 if pbxproj is not under cwd; for each path warns if basename absent, applies remove_file, optionally os.remove()s the file; writes pbxproj back unconditionally.",
+   "entry": "`python3 scripts/remove_swift_file.py <path> [...] [--delete]` via __main__",
+   "calls": [
+    "scripts/remove_swift_file.py::def remove_file"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no path arguments after stripping --delete",
+     "effect": "print module docstring, return 2"
+    },
+    {
+     "at": "+7",
+     "cond": "Emuqu.xcodeproj/project.pbxproj not found relative to cwd",
+     "effect": "stderr 'run from the repo root', return 1"
+    },
+    {
+     "at": "+16",
+     "cond": "basename substring absent from pbxproj text",
+     "effect": "print warning only; removal still runs (no-op) and notes are printed"
+    },
+    {
+     "at": "+22",
+     "cond": "--delete given and the path exists",
+     "effect": "os.remove(path) and print; otherwise file left on disk. After the loop pbxproj is rewritten unconditionally."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/remove_swift_file.py::def remove_file": "4e2dbdd7ddd1390c"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/remove_swift_file.py::def main": "2c24f98a8082aa60"
+ }
+}

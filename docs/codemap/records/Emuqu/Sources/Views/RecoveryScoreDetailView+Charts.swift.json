@@ -1,0 +1,1070 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift",
+ "hash": "75851f71b2881e6f",
+ "role": "Extension of the non-View helper struct RecoveryScoreCharts (declared in RecoveryScoreCharts.swift) holding the Recovery detail screen's HRV-overnight (rolling RMSSD) and HR-overnight Swift Charts, their hover pills, the inline Pick Window slider, and the static off-render-path series builders; plus the shared OvernightTimeAxis modifier and fileprivate chart-content helpers.",
+ "types": [
+  "RecoveryScoreCharts: extension — chart views + static series builders (buildRMSSDSeries/buildHRSeries)",
+  "RecoveryScoreCharts.RMSSDPoint: struct (Identifiable, id = fresh UUID per instance) — one rolling-RMSSD chart point",
+  "RecoveryScoreCharts.HRPoint: struct (Identifiable, id = fresh UUID per instance) — one HR chart point",
+  "OvernightTimeAxis: struct (ViewModifier) — hour-of-day x axis with Dynamic-Type-scaled edge inset shared by both overnight charts"
+ ],
+ "state": [
+  "mem:OvernightTimeAxis.edgeInset (@ScaledMetric relativeTo .caption2, default 24)"
+ ],
+ "toplevel": "RMSSDPoint/HRPoint generate `id = UUID()` at construction so every rebuildChartSeries produces new identities for all points. File-scope fileprivate helpers hrvLineMarks/hrvSelectionMarks/hrvAudioDescriptor/hrLineMarks/hrSelectionMarks/hrAudioDescriptor build ChartContent and accessibility descriptors. All extension members read RecoveryScoreCharts' stored lets/bindings (session, result, rmssdChartSeries, hrChartSeries, organizedZoneRanges, recordingStartMs/EndMs, analysisWindowDateRange, hover/preview/segment bindings) that RecoveryScoreDetailView.charts (RecoveryScoreCharts.swift:48) rebuilds on every access.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "buildRMSSDSeries draws a 5-minute time-window rolling RMSSD stepped every minute, while OvernightChartsView's computeRollingRMSSD uses 300-beat windows every 30 beats; the same night gets two differently-shaped HRV traces on the two overnight screens.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:376",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:440"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecoveryScoreCharts.hrvOvernightChart",
+   "hash": "7bad46710d2b9344",
+   "does": "Wraps hrvChart in a ChartCard titled 'HRV overnight (rolling RMSSD)' with unit label 'ms'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChart": "0a0e89df904155f5"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvChart",
+   "hash": "12193bab107f6a28",
+   "does": "Reads the cached rmssdChartSeries; shows the loading/empty placeholder when empty, otherwise the chart content.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartPlaceholder",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartContent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rmssdChartSeries is empty",
+     "effect": "true: hrvChartPlaceholder (spinner or empty state); false: hrvChartContent(series) (chart + pick-window slot)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartContent(_:)": "e747ecc480e63965",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartPlaceholder": "ebdbeecff92396b9"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvChartPlaceholder",
+   "hash": "936a94a6a1907807",
+   "does": "Picks the HRV chart placeholder: spinner until the first load pass finishes, then the 'No overnight HRV trace' empty state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartLoading",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartEmptyState"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "didCompleteInitialLoad is false",
+     "effect": "true: hrvChartLoading spinner; false: hrvChartEmptyState"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartEmptyState": "6b4c6f290e285807",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvChartLoading": "5b6aadf7c4f79f2f"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvChartLoading",
+   "hash": "4b0612fcfd9f8265",
+   "does": "Static loading view: ProgressView plus 'Loading HRV trace…' caption, min height 180.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvChartEmptyState",
+   "hash": "ed6583a6c64810f0",
+   "does": "EmptyState with waveform glyph saying no overnight HRV trace because raw RR data is unavailable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.hrvChartContent(_:)",
+   "hash": "a5719987447a90e9",
+   "does": "Lays out the HRV chart canvas with the point nearest the hover date selected, followed by the inline Pick Window slot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartCanvas(_:selected:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPickWindowSlot"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvChartCanvas(_:selected:)": "e8142f944a830e35",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)": "e5069344c665edba",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPickWindowSlot": "92bcd09c2a6034a5"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.hrvChartCanvas(_:selected:)",
+   "hash": "dc4213ebb12066cc",
+   "does": "Builds the Swift Chart: organized-zone bands, committed analysis window band + headline rule, live preview band, RMSSD line, selection marks; leading y axis, shared OvernightTimeAxis over sessionXScaleDomain, chartXSelection bound to hrvHoverDate, hover pill overlay and an audio-graph accessibility descriptor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvZoneBands",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvWindowMarks",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPreviewMarks",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvLineMarks(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvSelectionMarks(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func OvernightTimeAxis.body(content:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvHoverPill(proxy:selected:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvAudioDescriptor(_:)",
+    "ext:Charts.chartXSelection"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.hrvHoverDate (via binding)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func OvernightTimeAxis.body(content:)": "a0133d8b77dae2f5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrvHoverPill(proxy:selected:)": "8339b79f3f7af0c0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()": "b00ca4edb9a5f540",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvAudioDescriptor(_:)": "623aebb7fdb40bdf",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvLineMarks(_:)": "9feea431720c357a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrvSelectionMarks(_:)": "3b58db0183a079a0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvPreviewMarks": "3721ce06090f0358",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvWindowMarks": "be1eef5487097e75",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvZoneBands": "26a2fd7220f273c8"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvZoneBands",
+   "hash": "2892b084398ad0e5",
+   "does": "Emits one translucent green RectangleMark per organized-recovery zone date range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.organizedZoneDateRanges"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.organizedZoneDateRanges": "a945ca97e81e92a3"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvWindowMarks",
+   "hash": "858fe08c6cb85f34",
+   "does": "Draws the committed analysis window as a RectangleMark plus the dashed headline-RMSSD rule when the result carries a valid window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvHeadlineRule"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "analysisWindowDateRange (stored let copied from RecoveryScoreDetailView.analysisWindowDateRange) is non-nil",
+     "effect": "true: window band + headline rule drawn; false: nothing drawn, so a result without windowStartMs/windowEndMs shows no band and no headline rule"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvHeadlineRule": "c4317ada372bdb0d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvHeadlineRule",
+   "hash": "35ba12765ce0458d",
+   "does": "Dashed horizontal RuleMark at result.timeDomain.rmssd with a top-trailing annotation fitted to the chart bounds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvHeadlineAnnotation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrvHeadlineAnnotation": "895a5a7ba9baf5a7"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvHeadlineAnnotation",
+   "hash": "841d393251077bec",
+   "does": "Annotation label 'Window: N ms' (rounded headline RMSSD) on a rounded card background.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvPreviewMarks",
+   "hash": "2243eae5b644f991",
+   "does": "Draws the tentative 5-minute preview band and dashed center rule while the Pick Window slider is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.previewWindowDateRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "previewWindowDateRange is non-nil and previewWindowMs != nil",
+     "effect": "true: preview band + center rule drawn; false: nothing. The second condition is redundant: previewWindowDateRange is nil exactly when previewWindowMs is nil (Charts.swift:202)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.previewWindowDateRange": "f14c25b0e5fed83d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.hrvHoverPill(proxy:selected:)",
+   "hash": "700a5ef6c3b819f3",
+   "does": "Overlay pill showing the selected RMSSD (ms) and clock time above the hover position.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.valuePill(text:sub:proxy:date:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.shortTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a selected point exists",
+     "effect": "true: valuePill rendered; false: empty overlay"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.valuePill(text:sub:proxy:date:)": "81ee3e84fae927eb",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.shortTimeFormatter": "344a99ac86f26f48"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrvPickWindowSlot",
+   "hash": "c152ce90205bda12",
+   "does": "Shows the inline Pick Window slider under the HRV chart when the Pick Window segment is active and the RR series gives a valid start/end range.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.inlinePickWindowControl(startMs:endMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedWindowSegment == .pickWindow and recordingStartMs/recordingEndMs both non-nil and end > start",
+     "effect": "true: inlinePickWindowControl shown; false: nothing (Pick Window selected with no RR series shows no slider and no message)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.inlinePickWindowControl(startMs:endMs:)": "322ff58aac5cb127"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.previewWindowDateRange",
+   "hash": "18fc57edb04fd3f9",
+   "does": "Converts previewWindowMs (ms from session start) into a 5-minute (±150 000 ms) Date range and center Date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "previewWindowMs is nil",
+     "effect": "nil returned (no preview); otherwise (start,end,center) dates computed from session.startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCharts.organizedZoneDateRanges",
+   "hash": "922d1eee11b808e1",
+   "does": "Maps organizedZoneRanges (startMs/endMs relative to session start) to (start,end) Dates.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.pickWindowClockText(forMs:)",
+   "hash": "ae6609f69d523e34",
+   "does": "Formats session.startDate + ms as a localized clock time (template 'jmm').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.inlinePickWindowControl(startMs:endMs:)",
+   "hash": "d4be11169a5e6e8c",
+   "does": "Builds the inline Pick Window control: clock readout, a 60 s-step Slider bound to previewWindowMs (defaulting to the recording midpoint), and Cancel/Analyze buttons; slider disabled while reanalyzing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.pickWindowReadout(startMs:currentMs:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowButtons"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.previewWindowMs (via binding)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "previewWindowMs is nil",
+     "effect": "readout uses the recording midpoint instead of the preview position"
+    },
+    {
+     "at": "+8",
+     "cond": "previewWindowMs is nil (slider getter)",
+     "effect": "slider thumb shows the midpoint; setting the slider writes previewWindowMs = Int64(value)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.pickWindowReadout(startMs:currentMs:)": "c34bea1e0084025f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowButtons": "c409964a9396a622",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.pickWindowReadout(startMs:currentMs:)",
+   "hash": "2de73812b239527c",
+   "does": "Readout row: clock time of currentMs and 'N min in' measured from recording start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.pickWindowClockText(forMs:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.pickWindowClockText(forMs:)": "b63002a1aaa8abd3",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.pickWindowButtons",
+   "hash": "0948d1585303c378",
+   "does": "Cancel and 'Analyze here' buttons. Cancel clears the preview, sets restoringSegment so the onChange skips re-analysis, and restores the pre-pick segment; Analyze runs runInlineReanalysis (disabled while reanalyzing).",
+   "entry": "SwiftUI Button actions (user taps Cancel / Analyze here)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.previewWindowMs",
+    "mem:RecoveryScoreDetailView.restoringSegment",
+    "mem:RecoveryScoreDetailView.selectedWindowSegment"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "segmentBeforePick == .pickWindow",
+     "effect": "true: restores .bestRecovery; false: restores segmentBeforePick. The true branch cannot be reached: segmentBeforePick is only assigned the OLD segment when the new one is .pickWindow (Panels.swift:41) and starts as .bestRecovery"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `segmentBeforePick == .pickWindow ? .bestRecovery` fallback can never fire because segmentBeforePick is only ever set to the segment being left for Pick Window.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:277",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift:41",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:66"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()": "604b37bbd7124183"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.runInlineReanalysis()",
+   "hash": "3de71bfdc5570770",
+   "does": "Commits the slider position: marks windowChangedHere, then in a Task sets isReanalyzing, awaits onReanalyzeAt(previewWindowMs), clears the preview and isReanalyzing.",
+   "entry": null,
+   "calls": [
+    "closure:onReanalyzeAt — set by MainTabView.recoveryScoreDetail to rescoreReportAt (collector.reanalyzeAtPosition + applyManualAnalysis, writes selectedReportSession)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.windowChangedHere",
+    "mem:RecoveryScoreDetailView.isReanalyzing",
+    "mem:RecoveryScoreDetailView.previewWindowMs"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyzeAt is non-nil and previewWindowMs is non-nil",
+     "effect": "true: reanalysis task runs; false: returns silently. After one Analyze, previewWindowMs is nil while the slider still shows the midpoint, so pressing Analyze again without dragging does nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "After an Analyze, previewWindowMs is reset to nil but the Pick Window slider stays on screen showing the midpoint; tapping 'Analyze here' again without moving the slider hits the guard and does nothing, with no feedback. The onReanalyzeAt closure returns Void, so a failed manual analysis is also invisible while windowChangedHere already relabels the Window method row.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:293",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:298",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:242",
+      "Emuqu/Sources/Views/MainTabView.swift:287"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCharts.nearestRMSSDPoint(to:in:)",
+   "hash": "a2880f09b9209c58",
+   "does": "Returns the RMSSD point whose time is closest to the hover date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date is nil or series empty",
+     "effect": "nil returned (no selection); otherwise min by |Δt| over the whole series (linear scan per render)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "nearestRMSSDPoint and nearestHRPoint are the same nearest-by-time scan over two point types.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:305",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:310"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreCharts.nearestHRPoint(to:in:)",
+   "hash": "4c4b6ff379ec2e73",
+   "does": "Returns the HR point whose time is closest to the hover date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date is nil or series empty",
+     "effect": "nil; otherwise linear min by |Δt|"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCharts.shortTimeFormatter",
+   "hash": "1a46c0d8cbb73d7e",
+   "does": "Shared cached localized clock-time DateFormatter (template 'jmm').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.valuePill(text:sub:proxy:date:)",
+   "hash": "4839ecce9e1dcc30",
+   "does": "Floating value/time pill positioned at the chart x for the date, clamped 40 pt inside the plot width, y = 14.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "proxy.position(forX: date) returns a position",
+     "effect": "true: pill drawn; false (date outside the plotted domain): nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.buildRMSSDSeries(series:flags:sessionStartDate:)",
+   "hash": "172babea934b94b4",
+   "does": "Static, nonisolated: walks the RR series with a two-pointer pass producing one RMSSD point per 5-minute window stepped by 1 minute, keeping only windows windowRMSSD accepts; timestamps = sessionStartDate + window start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "series is nil/empty or first/last t_ms missing",
+     "effect": "returns []"
+    },
+    {
+     "at": "+14",
+     "cond": "startMs <= lastT - windowMs (loop)",
+     "effect": "iterates windows; recordings shorter than 5 minutes produce no points"
+    },
+    {
+     "at": "+15",
+     "cond": "lo < count and points[lo].t_ms < startMs (inner loop)",
+     "effect": "advances lo to first beat at/after window start"
+    },
+    {
+     "at": "+16",
+     "cond": "hi < lo",
+     "effect": "hi bumped to lo"
+    },
+    {
+     "at": "+17",
+     "cond": "hi < count and points[hi].t_ms < startMs+windowMs (inner loop)",
+     "effect": "advances hi to first beat at/after window end"
+    },
+    {
+     "at": "+18",
+     "cond": "windowRMSSD returns a value",
+     "effect": "true: point appended; false: window skipped (gap in trace)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)": "d15e4bbaa1220e1c"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.windowRMSSD(points:flags:lo:hi:)",
+   "hash": "32b6f74deb80049f",
+   "does": "Static: RMSSD for points[lo..<hi] using TimeDomainAnalyzer.rmssd with an artifact-flag validity predicate; nil unless ≥30 beats and ≥20 artifact-free successive pairs not split by a recording break.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hi - lo < 30",
+     "effect": "nil (too few beats)"
+    },
+    {
+     "at": "+3",
+     "cond": "flags is nil",
+     "effect": "every beat treated valid"
+    },
+    {
+     "at": "+5",
+     "cond": "absolute index >= flags.count",
+     "effect": "beat treated valid (flags array shorter than points)"
+    },
+    {
+     "at": "+10",
+     "cond": "validPairs < 20",
+     "effect": "nil; otherwise the shared estimator's RMSSD (which may itself be nil)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The comment says this chart and the peak scan use the same artifact-skipping arithmetic, but TimeDomainAnalyzer.peakScanRMSSD (used by OvernightChartsView's rolling trace) also drops beats outside HRVConstants.RRInterval.isValid and requires 30 clean beats; windowRMSSD gates only artifact flags and raw beat count, so unflagged out-of-range RR intervals enter this screen's trace and not the other.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:403",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:412",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:411",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:97",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:102",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:105",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:451"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.sessionXScaleDomain()",
+   "hash": "a2167300f68fea05",
+   "does": "X domain for both overnight charts: session.startDate...endDate, using now when endDate is nil, and a 60 s domain when end <= start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.endDate is nil",
+     "effect": "Date() used as end (domain stretches to the current time)"
+    },
+    {
+     "at": "+3",
+     "cond": "end <= start",
+     "effect": "returns start...start+60s; otherwise start...end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreCharts.heartRateOvernightChart",
+   "hash": "e2d1a09d66b560d1",
+   "does": "Wraps hrChart in a ChartCard titled 'Heart rate overnight' with unit 'bpm'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChart": "a6118522041603f3"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrChart",
+   "hash": "e8c70864a4d7f6d0",
+   "does": "Reads cached hrChartSeries; placeholder when empty, canvas otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartPlaceholder",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrChartCanvas(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hrChartSeries is empty",
+     "effect": "true: hrChartPlaceholder; false: hrChartCanvas"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrChartCanvas(_:)": "aca0e85542881dbe",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartPlaceholder": "890536c69066bee2"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrChartPlaceholder",
+   "hash": "6d5b412c989ca994",
+   "does": "Spinner until the initial load completes, then the HR empty state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartLoading",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartEmptyState"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "didCompleteInitialLoad is false",
+     "effect": "true: hrChartLoading; false: hrChartEmptyState"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartEmptyState": "1164d7b08abe313a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.hrChartLoading": "b9bc5b17f46aaff4"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrChartLoading",
+   "hash": "c4347e0b499c4c30",
+   "does": "Static loading view 'Loading HR trace…', min height 160.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var RecoveryScoreCharts.hrChartEmptyState",
+   "hash": "8ec2d508e08d228a",
+   "does": "EmptyState with heart glyph saying the strap beat stream is not in the stored session.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The empty-state text always blames a missing strap stream, but the HR chart is also empty when the strap stream is missing AND the HealthKit fallback fetch failed or returned nothing (errors swallowed by try?), so the stated cause can be wrong.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift:487",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:419"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.hrChartCanvas(_:)",
+   "hash": "891e489998bd55ab",
+   "does": "HR chart: line + selection marks, y domain max(0,min-5)...max+5, leading y axis, shared OvernightTimeAxis, chartXSelection bound to hrHoverDate, hover pill overlay and audio-graph descriptor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestHRPoint(to:in:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrLineMarks(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrSelectionMarks(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func OvernightTimeAxis.body(content:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrHoverPill(proxy:selected:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrAudioDescriptor(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.hrHoverDate (via binding)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "series has no min (empty)",
+     "effect": "minHR fallback 0; unreachable because the caller only renders the canvas for a non-empty series"
+    },
+    {
+     "at": "+2",
+     "cond": "series has no max (empty)",
+     "effect": "maxHR fallback 100; unreachable for the same reason"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func OvernightTimeAxis.body(content:)": "a0133d8b77dae2f5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.hrHoverPill(proxy:selected:)": "44492077fbba7a7b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.nearestHRPoint(to:in:)": "ba28b2fc3a42a443",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.sessionXScaleDomain()": "b00ca4edb9a5f540",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrAudioDescriptor(_:)": "d1d50799e128e30f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrLineMarks(_:)": "c3bb515cabd03a85",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func hrSelectionMarks(_:)": "e3908cb744010505"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.hrHoverPill(proxy:selected:)",
+   "hash": "8950a5612b7802bd",
+   "does": "Overlay pill with the selected HR in bpm and its clock time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.valuePill(text:sub:proxy:date:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.shortTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a selected HR point exists",
+     "effect": "true: pill; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.valuePill(text:sub:proxy:date:)": "81ee3e84fae927eb",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.shortTimeFormatter": "344a99ac86f26f48"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)",
+   "hash": "c5d3dad42d6a6bcc",
+   "does": "Static: emits an HR point at most every 15 s from the strap beat stream (device HR or 60000/rr, artifact beats skipped); when no RR series, maps the HealthKit fallback samples instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.strapHR(_:idx:flags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "series nil or empty",
+     "effect": "returns the fallback HealthKit samples as HRPoints (possibly empty)"
+    },
+    {
+     "at": "+12",
+     "cond": "series.points.first is nil",
+     "effect": "nextEmitMs fallback 0 — unreachable since the series is non-empty here"
+    },
+    {
+     "at": "+13",
+     "cond": "for each point",
+     "effect": "iterates all beats once"
+    },
+    {
+     "at": "+14",
+     "cond": "strapHR is nil or p.t_ms < nextEmitMs",
+     "effect": "beat skipped; otherwise point appended and nextEmitMs = t_ms + 15 000"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.strapHR(_:idx:flags:)": "4102ac2aa6b23aa9"
+   }
+  },
+  {
+   "key": "func RecoveryScoreCharts.strapHR(_:idx:flags:)",
+   "hash": "da110219e44d1627",
+   "does": "Static: HR for one beat: nil if artifact-flagged, the device-reported HR if present, else 60000/rr_ms, nil when rr_ms <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "flags present, idx in range and flagged artifact",
+     "effect": "nil (beat dropped from chart)"
+    },
+    {
+     "at": "+2",
+     "cond": "p.hr is non-nil",
+     "effect": "device HR returned (artifact gate already passed)"
+    },
+    {
+     "at": "+3",
+     "cond": "rr_ms <= 0",
+     "effect": "nil; otherwise 60000/rr_ms"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightTimeAxis.body(content:)",
+   "hash": "61f90a522d86b38a",
+   "does": "ViewModifier body: x axis marks with grid/tick/hour-only labels and chartXScale over the domain with edgeInset padding on both ends.",
+   "entry": "SwiftUI ViewModifier.body, applied via .modifier(OvernightTimeAxis(...)) in hrvChartCanvas/hrChartCanvas",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func hrvLineMarks(_:)",
+   "hash": "1359017cdcddb019",
+   "does": "Fileprivate: one LineMark per RMSSD point (time vs rmssd) in wongOptimal colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func hrvSelectionMarks(_:)",
+   "hash": "8a965c4360d0d7ca",
+   "does": "Fileprivate: dashed vertical RuleMark and enlarged PointMark at the selected RMSSD point.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "selected point non-nil",
+     "effect": "true: rule + point; false: no marks"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func hrvAudioDescriptor(_:)",
+   "hash": "9f4e9e1bbbc60822",
+   "does": "Fileprivate: audio-graph accessibility descriptor for the RMSSD series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535"
+   }
+  },
+  {
+   "key": "func hrLineMarks(_:)",
+   "hash": "1795322d65c16085",
+   "does": "Fileprivate: one LineMark per HR point in wongAttention at 70% opacity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func hrSelectionMarks(_:)",
+   "hash": "d982571f2ff27577",
+   "does": "Fileprivate: dashed rule + point mark at the selected HR point.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "selected point non-nil",
+     "effect": "true: rule + point; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func hrAudioDescriptor(_:)",
+   "hash": "049ba4e08308f97c",
+   "does": "Fileprivate: audio-graph accessibility descriptor for the HR series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535"
+   }
+  }
+ ],
+ "deps": {}
+}

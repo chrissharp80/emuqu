@@ -1,0 +1,335 @@
+{
+ "file": "Emuqu/Sources/Collection/LivePaceEstimator.swift",
+ "hash": "b2594fcda63100a7",
+ "role": "Value-type live speed/pace estimator for workouts: precedence foot pod > averaged GNSS Doppler > GPS distance window > pedometer window > displayed-distance window, with hold/decay between chunked distance updates.",
+ "types": [
+  "LivePaceEstimator: struct — estimator state",
+  "LivePaceEstimator.GPSSpeed: struct — one fix's speed/accuracy",
+  "LivePaceEstimator.Reading: struct — one tick's inputs",
+  "LivePaceEstimator.Source: enum — origin of estimate",
+  "LivePaceEstimator.DistanceWindow: struct — 30 s history of distance advances"
+ ],
+ "state": [
+  "mem:LivePaceEstimator constants (minimumPaceSpeedMS 0.5, dopplerMaxFixAgeSec 3, dopplerMaxHorizontalAccuracyM 20, dopplerMaxSpeedAccuracyMS 0.5, dopplerWindowSec 5, distanceWindowSec 30, distanceTargetSpanSec 10, distanceMinimumSpanSec 4, holdIntervals 1.5, minimumHoldSec 3)"
+ ],
+ "toplevel": "Stored on WorkoutRecorder (WorkoutRecorder.swift:288) and updated each tick from WorkoutRecorder+Ticker.swift:581-586.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LivePaceEstimator.paceSecPerKm",
+   "hash": "12ddee1beff45873",
+   "does": "Pace in sec/km = 1000/speed, nil when no speed or speed < 0.5 m/s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "speed nil or < 0.5",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.countsSteps(_:)",
+   "hash": "8448093ce6866445",
+   "does": "Whether the sport's distance is measured by the pedometer.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run/trailRun/walk/hike/treadmill",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "bike/indoorBike/row/airBike/crossFit",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.reset()",
+   "hash": "74673569eab3e892",
+   "does": "Replaces self with a fresh estimator (new workout or pause).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.update(_:)",
+   "hash": "3aaeeeae571e9678",
+   "does": "Records the tick's GPS, pedometer and displayed distances into their windows, records the Doppler fix, then sets speedMS and source from estimate().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "speed nil",
+     "effect": "source nil; else the estimate's origin"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.record(_:at:)": "4fb243c2016b8066",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.estimate(_:)": "da523619063741da",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.recordDoppler(_:)": "3d58ea85c044bb07"
+   }
+  },
+  {
+   "key": "func LivePaceEstimator.estimate(_:)",
+   "hash": "82f70441254279dd",
+   "does": "Returns the first available speed in precedence order with its source.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "foot pod speed finite and > 0",
+     "effect": "use foot pod"
+    },
+    {
+     "at": "+3",
+     "cond": "Doppler average available",
+     "effect": "use Doppler"
+    },
+    {
+     "at": "+4",
+     "cond": "latest fix accurate and GPS window has a speed",
+     "effect": "use GPS distance"
+    },
+    {
+     "at": "+5",
+     "cond": "pedometer window has a speed",
+     "effect": "use pedometer; else displayed-distance window (may be nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.dopplerSpeed(now:)": "a12118003944283a",
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.gpsIsAccurate(now:)": "97bec92a78fa9a07"
+   }
+  },
+  {
+   "key": "func LivePaceEstimator.gpsIsAccurate(now:)",
+   "hash": "70a1b660b4fb98c2",
+   "does": "Latest fix exists, horizontal accuracy in (0,20] m and age <= 3 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no latest fix",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.recordDoppler(_:)",
+   "hash": "8c5373757a979ca1",
+   "does": "Updates latestFix, drops Doppler readings older than 5 s, appends the new fix when trustworthy and newer than the last stored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reading.gps ?? latestFix",
+     "effect": "keeps the previous fix when this tick has none"
+    },
+    {
+     "at": "+4",
+     "cond": "no fix, untrustworthy, or not newer",
+     "effect": "do not append"
+    },
+    {
+     "at": "+5",
+     "cond": "dopplerReadings.last?.timestamp ?? distantPast",
+     "effect": "empty buffer accepts any fix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d"
+   }
+  },
+  {
+   "key": "func LivePaceEstimator.dopplerSpeed(now:)",
+   "hash": "c17712888c58b783",
+   "does": "Mean Doppler speed of buffered fixes when the latest fix is trustworthy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no latest fix, latest untrustworthy, or buffer empty",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.isTrustworthy(_:now:)": "127a984636ab5e9d"
+   }
+  },
+  {
+   "key": "func LivePaceEstimator.isTrustworthy(_:now:)",
+   "hash": "3e0d203cb3038f45",
+   "does": "Fix trustworthy: finite speed >= 0, speed accuracy in (0,0.5], horizontal accuracy in (0,20], age <= 3 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.DistanceWindow.record(_:at:)",
+   "hash": "0ba8f4ddc0d3c00a",
+   "does": "Appends a step when cumulative distance increases; clears history when distance goes backwards; prunes steps older than 30 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meters non-nil and finite",
+     "effect": "process; else only prune"
+    },
+    {
+     "at": "+2",
+     "cond": "meters < last step",
+     "effect": "clear all steps (source reset)"
+    },
+    {
+     "at": "+3",
+     "cond": "meters > last ?? 0",
+     "effect": "append step (a reading of 0 with no history is ignored)"
+    },
+    {
+     "at": "+3",
+     "cond": "steps.last?.meters ?? 0",
+     "effect": "empty window compares against 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "After a stop longer than 30 s without a pause/reset, the last real step is pruned, and on the next tick the unchanged distance (> 0, compared to an empty window) is appended as a new 'step' though nothing advanced. That phantom step re-appears every 30 s and becomes the anchor when movement resumes, so the span includes standing time and the distance-window speed (indoor/pedometer/GPS-distance sources) under-reads for ~10 s after restarting.",
+     "evidence": [
+      "Emuqu/Sources/Collection/LivePaceEstimator.swift:196",
+      "Emuqu/Sources/Collection/LivePaceEstimator.swift:198",
+      "Emuqu/Sources/Collection/LivePaceEstimator.swift:199",
+      "Emuqu/Sources/Collection/LivePaceEstimator.swift:220"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LivePaceEstimator.DistanceWindow.speed(now:)",
+   "hash": "a381c8f3e36c5e07",
+   "does": "Speed = distance between anchor and newest step over their time span plus how far the next step is overdue beyond the hold time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no steps or no anchor (<2 steps)",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "span < 4 s",
+     "effect": "nil; else speed with decay"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)": "bc5e68a5ac6871d3"
+   }
+  },
+  {
+   "key": "func LivePaceEstimator.DistanceWindow.anchorIndex(newest:)",
+   "hash": "96ab57a672a852f3",
+   "does": "Index of the newest step at least 10 s older than newest, else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 steps",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no step old enough",
+     "effect": "0 (oldest)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init LivePaceEstimator.GPSSpeed(_:)",
+   "hash": "cc3604d639494bac",
+   "does": "Builds a GPSSpeed from a CLLocation's speed, speedAccuracy, horizontalAccuracy and timestamp.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "14fe5393356bdfc1"
+   }
+  }
+ ],
+ "deps": {}
+}

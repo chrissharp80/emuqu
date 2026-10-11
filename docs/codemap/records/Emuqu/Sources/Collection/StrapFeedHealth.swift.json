@@ -1,0 +1,138 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapFeedHealth.swift",
+ "hash": "0e4656f9d22a5b5f",
+ "role": "Pure policy for the strap HR feed: classifies it waiting/settingUp/live/stalled from timestamps and decides none/resubscribe/resetLink, plus the resubscribe backoff schedule.",
+ "types": [
+  "StrapFeedHealth: enum — namespace",
+  "StrapFeedHealth.Status: enum — UI feed status (stored in PolarManager.feedStatus)",
+  "StrapFeedHealth.Action: enum — none/resubscribe/resetLink",
+  "StrapFeedHealth.Decision: struct — status+action",
+  "StrapFeedHealth.Inputs: struct — snapshot of clock, link and feed timestamps"
+ ],
+ "state": [
+  "static liveSilenceSec = 15",
+  "static setupGraceAfterSettleSec = 45",
+  "static setupGraceUnsettledSec = 90",
+  "static resubscribeGraceSec = 30",
+  "static linkResetCooldownSec = 180"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapFeedHealth.decide(_:)",
+   "hash": "c759a2c969ee7263",
+   "does": "From a snapshot decides the feed Status and Action: not linked → waitingForStrap; a sample within 15 s → live; before the stall start → settingUp; else stalled with stalledAction.",
+   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (StrapLinkCoordinator.swift:497); tests StrapFeedHealthTests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stallStart(_:linkedAt:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stalledAction(_:stalledSince:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLinked and linkedAt non-nil",
+     "effect": "false: waitingForStrap/none; true: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "a sample arrived within liveSilenceSec",
+     "effect": "true: live/none; false: continue"
+    },
+    {
+     "at": "+8",
+     "cond": "now >= stall start",
+     "effect": "false: status settingUp if no sample yet else live (the live arm is unreachable: with a sample, stall start = last+15 s and line 76 already returned for now <= last+15 s); true: stalled + stalledAction"
+    },
+    {
+     "at": "+9",
+     "cond": "lastSampleAt == nil (ternary)",
+     "effect": "true: settingUp; false: live (unreachable, see line 80)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `.live` arm of the ternary at line 81 cannot be taken: when lastSampleAt is set, stallStart is last+15 s, and any now <= last+15 s already returned .live at line 76, so the guard at line 80 always passes.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapFeedHealth.swift:76",
+      "Emuqu/Sources/Collection/StrapFeedHealth.swift:81",
+      "Emuqu/Sources/Collection/StrapFeedHealth.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stallStart(_:linkedAt:)": "2e34b6404c1e5008",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stalledAction(_:stalledSince:)": "3e032564afcb073b"
+   }
+  },
+  {
+   "key": "func StrapFeedHealth.stallStart(_:linkedAt:)",
+   "hash": "d96355e46d38e8f1",
+   "does": "Stall start: last sample + 15 s; else readiness settle + 45 s; else link time + 90 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastSampleAt non-nil",
+     "effect": "true: last+15 s"
+    },
+    {
+     "at": "+2",
+     "cond": "settledAt non-nil",
+     "effect": "true: settled+45 s; false: linkedAt+90 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapFeedHealth.stalledAction(_:stalledSince:)",
+   "hash": "f519211c82ad6c72",
+   "does": "Action for a stalled feed: resubscribe unless one already happened during this stall; then only in a session and after 30 s does it return resetLink, unless a link reset happened within 180 s; otherwise none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a resubscribe happened at/after the stall start",
+     "effect": "false: .resubscribe; true: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "sessionActive and >= 30 s since the resubscribe",
+     "effect": "false: .none (outside a session a stalled feed is resubscribed once per stall and then left alone); true: continue"
+    },
+    {
+     "at": "+7",
+     "cond": "last link reset within 180 s",
+     "effect": "true: .none (cooldown); false: .resetLink"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapFeedHealth.resubscribeDelay(afterFailures:)",
+   "hash": "ff047a4548b01d1e",
+   "does": "Backoff for re-opening the subscription: [1,2,3,5] s indexed by failures clamped to 0...3.",
+   "entry": "Called from StrapHeartRateFeed.run (StrapHeartRateFeed.swift:103) and StrapLinkCoordinator.pauseBeforeRetrying (StrapLinkCoordinator.swift:416).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

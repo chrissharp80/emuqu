@@ -1,0 +1,625 @@
+{
+ "file": "Emuqu/Sources/Models/SleepData.swift",
+ "hash": "ff84ccfde67a01ac",
+ "role": "SleepData: one night's resolved sleep (boundaries, night minutes, stages, efficiency, segments, stage intervals, nap credit, edit audit) with display/derivation helpers, recording-start clamping, plausibility check and back-compatible decoding; plus SleepEditRecord audit type.",
+ "types": [
+  "SleepData: struct (Codable, Sendable) — night sleep snapshot",
+  "SleepEditRecord: struct (Codable, Identifiable, Equatable) — one user sleep edit",
+  "SleepEditRecord.Kind: enum String Codable — edit kind, unknown fallback"
+ ],
+ "state": [
+  "mem:SleepData.empty (static let, 0 minutes, boundarySource .recordingBounds, date = Date() at first access)"
+ ],
+ "toplevel": "Synthesized Encodable for SleepData (encodes private totalSleepMinutes under key totalSleepMinutes); SleepData.empty static.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Property comment says segments are 'empty for single-segment', but SleepResolver.buildSegments always writes one segment per group (so a single-segment night has 1 segment).",
+   "evidence": [
+    "Emuqu/Sources/Models/SleepData.swift:31",
+    "Emuqu/Sources/Analysis/SleepResolver.swift:674",
+    "Emuqu/Sources/Analysis/SleepResolver.swift:725"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SleepData.sleepLatencyMinutes",
+   "hash": "a1dda4fe80275000",
+   "does": "Sleep latency minutes: with stage intervals, total awake time before sleepStart; without, min(sleepStart − inBedStart, inBed − total) minutes; nil when not positive or inputs missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepStart nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "stageIntervals non-empty",
+     "effect": "stage-based latency"
+    },
+    {
+     "at": "+7",
+     "cond": "awake-before minutes > 0",
+     "effect": "returns minutes; otherwise nil"
+    },
+    {
+     "at": "+9",
+     "cond": "inBedStart nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+11",
+     "cond": "latency > 0",
+     "effect": "returns latency; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.minutes(in:matching:)": "c1f4b03af033dd81"
+   }
+  },
+  {
+   "key": "var SleepData.totalSleepFormatted",
+   "hash": "e8bfd1dff6a10f75",
+   "does": "Formats totalSleepIncludingNapMinutes as localized 'Xh Ym'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.hoursMinutes(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.hoursMinutes(_:)": "8452f688488279cc",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "var SleepData.napSleepFormatted",
+   "hash": "86194b57c14fed01",
+   "does": "Formats the nap minutes, or nil when no positive nap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.hoursMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "napSleepMinutes nil or <= 0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.hoursMinutes(_:)": "8452f688488279cc"
+   }
+  },
+  {
+   "key": "func SleepData.hoursMinutes(_:)",
+   "hash": "6d7577b8010ddb9f",
+   "does": "Localized abbreviated hours/minutes string via DateComponentsFormatter in the app locale, with an English fallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "minutes >= 60",
+     "effect": "units hour+minute; otherwise minute only"
+    },
+    {
+     "at": "+8",
+     "cond": "formatter returns nil (??)",
+     "effect": "English fallback string"
+    },
+    {
+     "at": "+9",
+     "cond": "total >= 60 in fallback",
+     "effect": "'Xh Ym'; otherwise 'Xm'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.minutes(in:matching:)": "c1f4b03af033dd81",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var SleepData.isSplitNight",
+   "hash": "166de63298d94520",
+   "does": "True when effectiveSegments has more than one segment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No reader anywhere in the repo (grep -rn isSplitNight finds only the declaration), including tests.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:98"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f"
+   }
+  },
+  {
+   "key": "var SleepData.effectiveSegments",
+   "hash": "54ebf9f6806e091d",
+   "does": "Display segments: stored segments if any; else segments derived from stage intervals; else a single envelope segment from sleepStart..sleepEnd; else [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.derivedSegmentsFromStages"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "segments non-empty",
+     "effect": "returns stored segments"
+    },
+    {
+     "at": "+5",
+     "cond": "stage-derived non-empty",
+     "effect": "returns derived"
+    },
+    {
+     "at": "+8",
+     "cond": "sleepStart and sleepEnd present and end > start",
+     "effect": "single envelope segment (coreSleepMinutes nil); otherwise []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.derivedSegmentsFromStages": "763ba4f4cf117402"
+   }
+  },
+  {
+   "key": "var SleepData.nightSleepMinutes",
+   "hash": "a01480e0cddb1d48",
+   "does": "Returns the private totalSleepMinutes (night only).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepData.totalSleepIncludingNapMinutes",
+   "hash": "4e29c65f8e9c972e",
+   "does": "night minutes + max(0, nap minutes).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "napSleepMinutes nil (??)",
+     "effect": "adds 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepData.withNapSleepMinutes(_:)",
+   "hash": "5f2d7d75d1a320a5",
+   "does": "Copy with napSleepMinutes set to minutes when > 0, else nil; all other fields preserved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "minutes > 0",
+     "effect": "nap set; otherwise cleared to nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.minutes(in:matching:)": "c1f4b03af033dd81",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "var SleepData.timeInBedIsSleepPlusAwake",
+   "hash": "a788bd2fe640be21",
+   "does": "Whether in-bed time equals sleep+awake for this boundary source.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "healthKit, hrValidated",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "hrEstimated",
+     "effect": "true only when segments non-empty"
+    },
+    {
+     "at": "+4",
+     "cond": "healthKitHREstimated, recordingBounds",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepData.sleepPlusAwakeMinutes",
+   "hash": "eab53804f7f7f6ef",
+   "does": "night minutes + awake minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepData.withTimeInBedFromSleepAndAwake()",
+   "hash": "631337378d290624",
+   "does": "Copy with inBedMinutes = sleep+awake and efficiency recomputed from it; other fields preserved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepPlusAwakeMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "sleep+awake > 0",
+     "effect": "efficiency = night/(sleep+awake)×100; otherwise 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepPlusAwakeMinutes": "003ab8ccaabfac62"
+   }
+  },
+  {
+   "key": "var SleepData.derivedSegmentsFromStages",
+   "hash": "7eafc4385367fb4f",
+   "does": "Legacy fallback: splits stage intervals by accumulated awake (threshold splitGapMinutes) and builds segments from each group.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stageIntervals empty",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements SleepResolver.buildSegments but without its physical-gap split (splitStageIntervals) step, so legacy archives and clamped nights (segments reset to [] at line 305) get different segments from what the resolver would produce for the same stages.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:217",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:731"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205"
+   }
+  },
+  {
+   "key": "init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+   "hash": "a5626f88f8b3a341",
+   "does": "Memberwise initializer assigning every field (defaults: optional fields nil, segments/stageIntervals/edits [], splitGapMinutes = SleepConstants.defaultSplitGapMinutes).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepData.clampedToRecordingStart(_:)",
+   "hash": "45c1e183b46e1a09",
+   "does": "Clamps a night whose onset precedes recordingStart: re-derives from trimmed stages if any, else trims totals; no-op otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedByStages(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedByTotals(_:onset:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepStart nil or onset >= recordingStart",
+     "effect": "returns self"
+    },
+    {
+     "at": "+2",
+     "cond": "stageIntervals non-empty",
+     "effect": "clampedByStages; otherwise clampedByTotals"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test references clampedToRecordingStart (grep EmuquTests: 0 hits); its only caller is MorningProcessingService+Sleep.swift:221.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:221"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedByStages(_:)": "2a9f8bdb75972615",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedByTotals(_:onset:)": "7e6f322e70f50f04"
+   }
+  },
+  {
+   "key": "func SleepData.clampedByStages(_:)",
+   "hash": "e43bbff2127db82b",
+   "does": "Rebuilds the night from stage intervals trimmed to start at recordingStart: sleep/awake/deep/rem minutes, inBedStart = recordingStart, sleepStart = earliest non-awake trimmed start (or recordingStart), efficiency, segments [] and trimmed intervals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.trimIntervals(_:from:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.minutes(in:matching:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no non-awake trimmed interval (?? on min())",
+     "effect": "sleepStart = recordingStart"
+    },
+    {
+     "at": "+12",
+     "cond": "inBed > 0",
+     "effect": "efficiency computed; otherwise 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "deep/rem are always set to Int minutes (0 when absent), so an unstaged night (deep/rem nil, core/unspecified only) becomes 'staged with 0 deep and 0 REM' after the clamp; SleepDetailV2View+Breakdown treats deep != nil as staged and shows 0-minute stages. This contradicts the nil-means-unstaged contract SleepMergingPipeline.buildSegmentFromIntervals applies.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:300",
+      "Emuqu/Sources/Models/SleepData.swift:301",
+      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:490",
+      "Emuqu/Sources/Collection/SleepMergingPipeline.swift:171"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "data-loss",
+     "sev": "med",
+     "text": "segments is reset to [] on every clamp, and the only caller (MorningProcessingService.buildSleepPollResult) emits multi-segment ms boundaries only when sleepData.segments.count > 1, so a genuinely split night whose onset preceded the recording loses its sleepSegments.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:305",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:221",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:229"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.minutes(in:matching:)": "c1f4b03af033dd81",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.trimIntervals(_:from:)": "d8875badd99d02e3",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepData.clampedByTotals(_:onset:)",
+   "hash": "34c4d66f9ca513de",
+   "does": "Without stages: sets inBedStart/sleepStart to recordingStart, subtracts the pre-recording minutes from total (>=0), inBed = newTotal + awake, recomputes efficiency, clears segments and intervals; deep/rem kept unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "inBed > 0",
+     "effect": "efficiency computed; otherwise 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Deep and REM minutes are kept while the total is reduced by the trimmed lead, so deep+rem can exceed the new total and stage percentages can exceed 100 %.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:315",
+      "Emuqu/Sources/Models/SleepData.swift:320"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepData.trimIntervals(_:from:)",
+   "hash": "504e5aaf9e590af0",
+   "does": "Drops intervals ending at or before recordingStart and clips the straddling one to start at recordingStart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "interval ends at/before recordingStart",
+     "effect": "dropped"
+    },
+    {
+     "at": "+7",
+     "cond": "clipped interval has end <= start",
+     "effect": "dropped (only for malformed input); otherwise clipped copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepData.minutes(in:matching:)",
+   "hash": "52ebe98464e2ea91",
+   "does": "Sums durationMinutes of intervals whose stage matches the predicate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
+   "hash": "d43dec8381da53ee",
+   "does": "True unless the sleep window and recording overlap by less than minRatio of the shorter span; true when sleep bounds missing/degenerate or the shorter span <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "sleepStart/sleepEnd missing or end <= start",
+     "effect": "true (nothing to reject)"
+    },
+    {
+     "at": "+9",
+     "cond": "shorter span <= 0 (zero/negative recording)",
+     "effect": "true; otherwise overlap test"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A zero-length recording (callers pass endDate ?? startDate for a crash-interrupted session, e.g. RRCollector+Reanalysis.swift:426) makes shorterSpan 0 and accepts any sleep block, disabling the guard exactly for the interrupted sessions it is meant to protect.",
+     "evidence": [
+      "Emuqu/Sources/Models/SleepData.swift:393",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:426"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init SleepData(from:)",
+   "hash": "ff564cddeb7eb96a",
+   "does": "Decodes SleepData requiring date, totalSleepMinutes, inBedMinutes, awakeMinutes, sleepEfficiency, boundarySource, segments and stageIntervals; optional fields decodeIfPresent; splitGapMinutes and edits fall back to defaults when missing/undecodable.",
+   "entry": "Decodable init used when decoding archived sessions, CloudKit payloads and SleepDataCache.",
+   "calls": [
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)": "d6f846fc85f556dc"
+   }
+  },
+  {
+   "key": "init SleepEditRecord.Kind(from:)",
+   "hash": "50787513ff2dacd1",
+   "does": "Decodes a Kind from its raw string, mapping unknown strings to .unknown.",
+   "entry": "Decodable init during SleepEditRecord decoding.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "raw string not a known case (??)",
+     "effect": ".unknown"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init SleepEditRecord(kind:summary:timestamp:id:)",
+   "hash": "e8b632ee3c38af8c",
+   "does": "Initializer setting kind, summary, timestamp (default now) and id (default new UUID).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

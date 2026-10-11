@@ -1,0 +1,76 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift",
+ "hash": "225c3f46d01788b6",
+ "role": "The single pasteboard write path: local-only (no Universal Clipboard) with a 60 s expiry unless the user enabled preserveClipboardForPaste.",
+ "types": [
+  "PasteboardWriter: enum — copy(_:) and pasteboardOptions()"
+ ],
+ "state": [
+  "mem:PasteboardWriter.expirySeconds = 60 (private static let)"
+ ],
+ "toplevel": "Callers of copy: DashboardV2View+Chips.swift:473, SettingsPages+DiagnosticActions.swift:87, AssistantChatView+Sections.swift:290, VoiceConversationController+Control.swift:407. pasteboardOptions asserted in EmuquTests/PrivacyControlsTests.swift:25,40,51.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PasteboardWriter.copy(_:)",
+   "hash": "4a28eaa1ffcf0d63",
+   "does": "Writes text as utf8 plain text to UIPasteboard.general with pasteboardOptions().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()",
+    "ext:UIPasteboard.general.setItems"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIPasteboard.general"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()": "002f7b5599f34702"
+   }
+  },
+  {
+   "key": "func PasteboardWriter.pasteboardOptions()",
+   "hash": "60fae5a7bf62632b",
+   "does": "Builds options [.localOnly: true] and, unless settings.preserveClipboardForPaste, an expirationDate now+60 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.preserveClipboardForPaste"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "!preserveClipboardForPaste",
+     "effect": "add 60 s expiry; when user opted to preserve, no expiry (local-only still set)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Header says every write gets a 60-second expiry unless the user opts out, but preserveClipboardForPaste defaults to true, so by default copied RMSSD/debug-log text has no expiry; the expiry is opt-in.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift:6",
+      "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift:41",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:441"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  }
+ ],
+ "deps": {}
+}

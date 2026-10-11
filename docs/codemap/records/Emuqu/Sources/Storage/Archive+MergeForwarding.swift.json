@@ -1,0 +1,84 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+MergeForwarding.swift",
+ "hash": "2111cb32fff0a364",
+ "role": "Forwarders on SessionArchive to SessionMerger's merge decision, kept so archive call sites and ArchivePolicyTests compile unchanged.",
+ "types": [
+  "SessionArchive: extension — mergeSessionData/mergeOutcome/apply forwarders; typealias MergeOutcome = SessionMerger.MergeOutcome"
+ ],
+ "state": [],
+ "toplevel": "typealias SessionArchive.MergeOutcome = SessionMerger.MergeOutcome.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionArchive.mergeSessionData(from:into:)",
+   "hash": "26352f9ccb82d774",
+   "does": "Forwards to SessionMerger.mergeSessionData: merges an imported session's data into existing in place and returns whether anything changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeSessionData(from:into:)": "4247f625bd78ac61"
+   }
+  },
+  {
+   "key": "func SessionArchive.mergeOutcome(imported:existing:)",
+   "hash": "0374057f371b47bc",
+   "does": "Forwards to SessionMerger.mergeOutcome (pure merge decision for imported vs existing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests call it (EmuquTests/ArchivePolicyTests.swift:263).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+MergeForwarding.swift:16",
+      "EmuquTests/ArchivePolicyTests.swift:263"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "92105a7571dd083d"
+   }
+  },
+  {
+   "key": "func SessionArchive.apply(_:from:to:)",
+   "hash": "0a1e03e7d198aa83",
+   "does": "Forwards to SessionMerger.apply to apply a MergeOutcome onto existing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller; only tests call it (EmuquTests/ArchivePolicyTests.swift:274).",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+MergeForwarding.swift:20",
+      "EmuquTests/ArchivePolicyTests.swift:274"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.apply(_:from:to:)": "c09765e3900470cc"
+   }
+  }
+ ],
+ "deps": {}
+}

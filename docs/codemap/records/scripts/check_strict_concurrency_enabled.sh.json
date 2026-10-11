@@ -1,0 +1,30 @@
+{
+ "file": "scripts/check_strict_concurrency_enabled.sh",
+ "hash": "cbe51a5a61b7ee89",
+ "role": "CI guard (make strict-concurrency-enabled; ci.yml strict-concurrency job, gates.yml) that project.pbxproj sets SWIFT_STRICT_CONCURRENCY=complete and SWIFT_VERSION=6.0 in every build configuration and SWIFT_TREAT_WARNINGS_AS_ERRORS=YES in at least one.",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.pbxproj (read)",
+  "env:STRICT_CONCURRENCY_LEVEL (default complete)",
+  "env:SWIFT_LANGUAGE_VERSION (default 6.0)"
+ ],
+ "toplevel": "cd to repo root; fail if pbxproj missing. Counts lines with grep -c: configs = 'SWIFT_VERSION = ' (8 at 8d32097), strict = 'SWIFT_STRICT_CONCURRENCY = <level>;' (8), werror = 'SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;' (2), swift6 = 'SWIFT_VERSION = <ver>;' (8). Prints the three ratios. fail (exit 1) if strict < configs, if swift6 < configs, or if werror < 1; else prints clean. Counts are line counts, not per-configuration matches: a configuration with two strict lines and another with none would still pass, and a configuration lacking SWIFT_VERSION is not in the denominator. Warnings-as-errors only needs to be on in one configuration (2 of 8 at HEAD).",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn fail",
+   "hash": "fcbd6740f28c1290",
+   "does": "Prints 'ERROR: <message>' to stderr and exits the script with status 1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+ }
+}

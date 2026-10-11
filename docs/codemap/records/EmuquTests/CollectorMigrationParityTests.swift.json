@@ -1,0 +1,350 @@
+{
+ "file": "EmuquTests/CollectorMigrationParityTests.swift",
+ "hash": "6e72a1990e67c4de",
+ "role": "Parity tests for three SessionDataMigrations one-shot migrations (workout sleep cleanup, insufficient-data re-flag, TRIMP repair) run against a hermetic temp-directory archive, checking post-state and that the UserDefaults flag short-circuits a second run.",
+ "types": [
+  "CollectorMigrationParityTests: class — @MainActor XCTestCase for collector-owned migrations"
+ ],
+ "state": [
+  "migrationFlagKeys: the three standard-UserDefaults migration flag keys",
+  "tempDir: lazy per-test temp archive directory",
+  "collector: lazy RRCollector on the temp archive",
+  "migrations: lazy SessionDataMigrations",
+  "seededIds: ids archived by the test, deleted in tearDown"
+ ],
+ "toplevel": "Lazy collector/migrations (first use in a test): RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: SessionArchive(directory: tmp/CollectorMigrationParityTests-<uuid>)) and SessionDataMigrations built from that collector's archive, HealthKit manager, settings, baseline tracker and reanalysis service.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "setUp and tearDown remove didRunWorkoutSleepCleanup_v1 / didRunInsufficientDataMigration_v1 / didRunTrimpRepairMigration_v1 from UserDefaults.standard, which is the host app's own domain; after the suite runs on a device/simulator with a real install, all three migrations re-run against the user's real archive on the next app launch.",
+   "evidence": [
+    "EmuquTests/CollectorMigrationParityTests.swift:78",
+    "EmuquTests/CollectorMigrationParityTests.swift:88",
+    "EmuquTests/CollectorMigrationParityTests.swift:231",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift:23"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says each test seeds a pre-state, runs the migration, asserts the post-state and re-runs it as a no-op; only the workout-sleep test does that. The insufficient-data and TRIMP tests either pre-set the flag or run on an empty archive, so neither migration's actual effect (re-flagging/rescoring, TRIMP repair) is ever asserted.",
+   "evidence": [
+    "EmuquTests/CollectorMigrationParityTests.swift:25",
+    "EmuquTests/CollectorMigrationParityTests.swift:148",
+    "EmuquTests/CollectorMigrationParityTests.swift:163",
+    "EmuquTests/CollectorMigrationParityTests.swift:185",
+    "EmuquTests/CollectorMigrationParityTests.swift:212"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func CollectorMigrationParityTests.setUp()",
+   "hash": "68ea2a766f94226c",
+   "does": "Calls super.setUp, removes the three migration flags from standard UserDefaults and resets seededIds.",
+   "entry": "XCTest per-test async setUp override",
+   "calls": [
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "401e59dd41627c73"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.tearDown()",
+   "hash": "2c3f080619858481",
+   "does": "Deletes each seeded session from the temp archive (errors ignored), removes the temp directory, clears the migration flags and calls super.tearDown.",
+   "entry": "XCTest per-test async tearDown override",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1",
+    "file:tmp/CollectorMigrationParityTests-<uuid>/ (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each seeded id",
+     "effect": "attempts archive.delete; failures swallowed by try?"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.clearMigrationFlags()": "401e59dd41627c73"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.testWorkoutSleepCleanupStripsContaminatedFieldOnceOnly()",
+   "hash": "a403f818a46e5b95",
+   "does": "Seeds a workout and an overnight session both carrying a sleep snapshot, runs the workout-sleep cleanup and asserts the workout's snapshot is gone, the overnight's kept and the flag set; re-attaches a snapshot to the workout, reruns, and asserts it is kept (flag short-circuit).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBenignSleepSnapshot()",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)"
+   ],
+   "reads": [
+    "ud:didRunWorkoutSleepCleanup_v1"
+   ],
+   "writes": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "file:tmp/CollectorMigrationParityTests-<uuid>/",
+    "notif:FlowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "4f1fd6ad09f38e3f",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "c5ea75adc3d76ecc",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "1f4363262c7dd5ed",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBenignSleepSnapshot()": "1d0d3250cacee367",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.testInsufficientDataMigrationOnEmptyArchive()",
+   "hash": "4ddf3e446324dc47",
+   "does": "Runs the insufficient-data migration on an empty temp archive and asserts the archive still has 0 entries.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "ud:didRunInsufficientDataMigration_v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The collector's fresh BaselineTracker has no recovery baseline, so runInsufficientDataMigrationIfNeeded returns at its 'no baseline' guard before reading the archive; the assertion that an empty archive stays empty cannot fail and the comment's 'must mark itself complete' is not checked.",
+     "evidence": [
+      "EmuquTests/CollectorMigrationParityTests.swift:147",
+      "EmuquTests/CollectorMigrationParityTests.swift:156",
+      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:22"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.testInsufficientDataMigrationFlagShortCircuits()",
+   "hash": "cb700481c8ec5128",
+   "does": "Pre-sets didRunInsufficientDataMigration_v1, seeds an overnight session, runs the migration and asserts hrvDataQuality is unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "ud:didRunInsufficientDataMigration_v1"
+   ],
+   "writes": [
+    "ud:didRunInsufficientDataMigration_v1"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The seeded session has no analysisResult and would not be a candidate even without the flag (and the migration also exits for lack of a baseline), so the test passes whether or not the flag check works.",
+     "evidence": [
+      "EmuquTests/CollectorMigrationParityTests.swift:168",
+      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:49",
+      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "b64a4d152d46a804",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.testTrimpRepairMigrationFlagShortCircuits()",
+   "hash": "428373672c56f050",
+   "does": "Pre-sets didRunTrimpRepairMigration_v1, seeds a workout, runs the TRIMP repair and asserts the session is still retrievable with the same id, startDate (±1 s) and type.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "writes": [
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.makeBaseSession(type:)": "5718a77437b67bb4",
+    "EmuquTests/CollectorMigrationParityTests.swift::func CollectorMigrationParityTests.seed(_:)": "0925fdb6851dac98"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.testTrimpRepairMigrationOnEmptyArchiveMarksFlag()",
+   "hash": "b2913a81384d8a30",
+   "does": "Runs the TRIMP repair on an empty temp archive and asserts the archive still has 0 entries.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "ud:didRunTrimpRepairMigration_v1",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named '...MarksFlag' but never asserts the flag; only that an empty archive stays empty, which the migration cannot violate (it never archives new sessions).",
+     "evidence": [
+      "EmuquTests/CollectorMigrationParityTests.swift:212",
+      "EmuquTests/CollectorMigrationParityTests.swift:223"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.hasTrimpRepairWork(in:defaults:)": "eb0026c842e1dba1",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "8e425828c6b23d78",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.clearMigrationFlags()",
+   "hash": "a5c527ea5ff4c8d3",
+   "does": "Removes each of the three migration flag keys from UserDefaults.standard.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:didRunWorkoutSleepCleanup_v1",
+    "ud:didRunInsufficientDataMigration_v1",
+    "ud:didRunTrimpRepairMigration_v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each migration flag key",
+     "effect": "removes it"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CollectorMigrationParityTests.seed(_:)",
+   "hash": "7d96cee18950987c",
+   "does": "Archives the session into the temp archive and records its id for cleanup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/CollectorMigrationParityTests-<uuid>/",
+    "notif:FlowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.makeBaseSession(type:)",
+   "hash": "fbe1729f8f78c285",
+   "does": "Builds a complete session of the given type spanning the last 8 hours.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Calendar date arithmetic returns nil",
+     "effect": "falls back to now (zero-length span); never nil for adding hours"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+   }
+  },
+  {
+   "key": "func CollectorMigrationParityTests.makeBenignSleepSnapshot()",
+   "hash": "6ed395e363dd929a",
+   "does": "Returns SleepData.empty as a placeholder non-nil sleep snapshot.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

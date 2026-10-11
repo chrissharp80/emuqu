@@ -1,0 +1,244 @@
+{
+ "file": "EmuquTests/MorningFeelingTagCodecTests.swift",
+ "hash": "22eb0fec80625294",
+ "role": "XCTest suite pinning that MorningFeelingTagArray's lenient decoder skips non-string/unknown elements without hanging (each decode runs on a detached thread under a 5 s watchdog), and that encode/decode round-trips.",
+ "types": [
+  "MorningFeelingTagCodecTests: class — XCTestCase over MorningFeelingTagArray Codable"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningFeelingTagCodecTests.decode(_:file:line:)",
+   "hash": "3896e03207371e8e",
+   "does": "Helper: decodes MorningFeelingTagArray from a JSON string on a detached Thread, waits up to 5 s with XCTWaiter, and returns the tags (nil on decode error or timeout).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "waiter result is not .completed within 5 s",
+     "effect": "XCTFail at caller's file/line and returns nil; otherwise returns the decoded tags (nil when the JSONDecoder threw, via try?)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testValidTagsDecode()",
+   "hash": "609ec603f012fe50",
+   "does": "Asserts a JSON array of the first 3 tag raw values decodes to 3 tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testEmptyArrayDecodes()",
+   "hash": "27d61ebc8a80b3ec",
+   "does": "Asserts '[]' decodes to 0 tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testNumbersInTheArrayAreSkipped()",
+   "hash": "e0e1edf2de2faae1",
+   "does": "Asserts [tag, 42, tag] decodes to 2 tags (number dropped, no hang).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "MorningFeelingTag.allCases is empty",
+     "effect": "XCTFail and return; otherwise runs the decode assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testNestedObjectsAreSkipped()",
+   "hash": "dc69356b74c5a456",
+   "does": "Asserts [{\"a\":1}, tag] decodes to 1 tag.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "allCases empty",
+     "effect": "XCTFail and return; else asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testNestedArraysAreSkipped()",
+   "hash": "2978473a725504bd",
+   "does": "Asserts [[1,2,3], tag] decodes to 1 tag.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "allCases empty",
+     "effect": "XCTFail and return; else asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testNullsAreSkipped()",
+   "hash": "8582830c789c8604",
+   "does": "Asserts [null, tag, null] decodes to 1 tag.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "allCases empty",
+     "effect": "XCTFail and return; else asserts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testUnknownTagStringsAreSkipped()",
+   "hash": "57109c921813faed",
+   "does": "Asserts an unknown tag string decodes to 0 tags rather than failing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testArrayOfOnlyGarbageDecodesToNothing()",
+   "hash": "1014a7835c6a3f19",
+   "does": "Asserts an array of only numbers/object/null/array decodes to 0 tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "EmuquTests/MorningFeelingTagCodecTests.swift::func MorningFeelingTagCodecTests.decode(_:file:line:)": "cb60ebd98f99f604"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagCodecTests.testEncodeDecodeRoundTrips()",
+   "hash": "fea9d38eced53e2c",
+   "does": "Encodes the first 4 tags through MorningFeelingTagArray and asserts decoding returns the same tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(_:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.encode(to:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.encode(to:)": "6f5b7204861dc095",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(_:)": "021c456f0b4a088b",
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349"
+   }
+  }
+ ],
+ "deps": {}
+}

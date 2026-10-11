@@ -1,0 +1,135 @@
+{
+ "file": "Emuqu/Sources/Services/PowerStatePolicy.swift",
+ "hash": "2cb3a4066827cbc8",
+ "role": "@Observable @MainActor singleton mirroring ProcessInfo.isLowPowerModeEnabled (updated by NSProcessInfoPowerStateDidChange) and exposing launchDelayMultiplier (4.0 in LPM) and shouldSkipPeriodicRefresh.",
+ "types": [
+  "PowerStatePolicy: class (@Observable @MainActor) — Low Power Mode policy"
+ ],
+ "state": [
+  "mem:PowerStatePolicy.shared (singleton)",
+  "mem:PowerStatePolicy.isLowPowerMode (observable)",
+  "notif:NSProcessInfoPowerStateDidChange (observed)"
+ ],
+ "toplevel": "static let shared; observers token bag (ObservationIgnored).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says the launch housekeeping 'reads launchDelayMultiplier to stretch its delays'; the multiplier only stretches the road-context and haptics prewarm sleeps — migrations, backfill, rescore and sync never use it (LaunchCoordinator has no delay parameter).",
+   "evidence": [
+    "Emuqu/Sources/Services/PowerStatePolicy.swift:22",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift:297",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift:376",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift:94"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references PowerStatePolicy.",
+   "evidence": [
+    "Emuqu/Sources/Services/PowerStatePolicy.swift:64"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init PowerStatePolicy()",
+   "hash": "de3e6e2b04f89688",
+   "does": "Seeds isLowPowerMode from ProcessInfo and registers a main-queue NSProcessInfoPowerStateDidChange observer that hops to the main actor to syncLowPowerMode().",
+   "entry": "static let shared initializer (first access via AppDependencies.services.powerStatePolicy or PowerStatePolicy.shared in EmuquApp).",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::func PowerStatePolicy.syncLowPowerMode()"
+   ],
+   "reads": [
+    "ext:ProcessInfo.isLowPowerModeEnabled",
+    "notif:NSProcessInfoPowerStateDidChange"
+   ],
+   "writes": [
+    "mem:PowerStatePolicy.isLowPowerMode"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::func PowerStatePolicy.syncLowPowerMode()": "7bfeb63e5e5922ba",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func PowerStatePolicy.syncLowPowerMode()",
+   "hash": "7626674d59dc0fed",
+   "does": "Re-reads Low Power Mode and updates isLowPowerMode only when it changed.",
+   "entry": "NSProcessInfoPowerStateDidChange observer.",
+   "calls": [],
+   "reads": [
+    "ext:ProcessInfo.isLowPowerModeEnabled"
+   ],
+   "writes": [
+    "mem:PowerStatePolicy.isLowPowerMode"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value unchanged",
+     "effect": "returns; changed: assigns (fires Observation)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "deinit PowerStatePolicy",
+   "hash": "42aa4a7951f99c93",
+   "does": "Removes the notification observer tokens; never runs for the process-lifetime singleton.",
+   "entry": "deinit (not reached for static shared).",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "var PowerStatePolicy.launchDelayMultiplier",
+   "hash": "02ba2c4d6cf45220",
+   "does": "4.0 when Low Power Mode is on, else 1.0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PowerStatePolicy.isLowPowerMode"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isLowPowerMode",
+     "effect": "4.0; else 1.0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PowerStatePolicy.shouldSkipPeriodicRefresh",
+   "hash": "08a8f16299d77001",
+   "does": "Returns isLowPowerMode.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PowerStatePolicy.isLowPowerMode"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

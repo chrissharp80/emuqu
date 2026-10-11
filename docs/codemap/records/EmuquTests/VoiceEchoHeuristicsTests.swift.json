@@ -1,0 +1,672 @@
+{
+ "file": "EmuquTests/VoiceEchoHeuristicsTests.swift",
+ "hash": "8f20ac69cf78d746",
+ "role": "XCTest suite for VoiceEchoHeuristics: tokeniser (lowercase, punctuation stripped, two-character floor, non-Latin scripts), wordCount, directional overlapRatio, in-flight barge-in echo guard, post-turn echo guard, and short/long threshold selection.",
+ "types": [
+  "VoiceEchoHeuristicsTests: class (XCTestCase) — pure heuristic tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTokensAreLowercasedAndPunctuationStripped()",
+   "hash": "7664a824480a0e57",
+   "does": "Asserts tokens('Your HRV, today, is HIGH!') == {your, hrv, today, is, high}.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testShortFillerWordsAreDroppedButBargeInWordsSurvive()",
+   "hash": "103e7d374f3dc119",
+   "does": "Asserts 'a I' yields no tokens and 'hey stop no' keeps all three.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testDigitsAreKept()",
+   "hash": "2cc9bab367f3d97d",
+   "does": "Asserts digits are kept: {rmssd, 42, ms}.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testNonLatinScriptsTokenise()",
+   "hash": "dff58dc13cd1633d",
+   "does": "Asserts Cyrillic text tokenises to three lowercase words and Japanese text counts at least 2 words.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)": "34d16060d38e32cf",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTokensOfEmptyTextIsEmpty()",
+   "hash": "03eb40bc834b3207",
+   "does": "Asserts empty and whitespace-only text tokenise to empty sets.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testWordCountAgreesWithTheTokeniserOnTheTwoCharacterFloor()",
+   "hash": "baa179698a4bcf4c",
+   "does": "Asserts wordCount equals a whitespace-split count of ≥2-character pieces for five strings.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each sample text",
+     "effect": "compares wordCount with the ad-hoc whitespace count"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named as agreement with the tokeniser, but it compares wordCount to a hand-written whitespace split, not to tokens(); both wrap the same private words(), so the stated barge-in invariant is true by construction and the comparison only checks five ASCII strings against a different word rule.",
+     "evidence": [
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:51",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:25",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:32"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)": "34d16060d38e32cf",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testWordCountIgnoresSubTwoCharacterWords()",
+   "hash": "d2ef3a4e85fbe1bb",
+   "does": "Asserts wordCount('I am a runner') == 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)": "34d16060d38e32cf",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testWordCountOfEmptyTextIsZero()",
+   "hash": "f5dfde24b2fe82b7",
+   "does": "Asserts wordCount('') == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.wordCount(_:)": "34d16060d38e32cf",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testOverlapRatioIsTheFractionOfTranscriptTokensFound()",
+   "hash": "66ebc8115ae19363",
+   "does": "Asserts overlapRatio('your hrv is high' vs 'your hrv is low') == 0.75.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testOverlapRatioIsOneForAnExactRepeat()",
+   "hash": "22a267af83e2cdbc",
+   "does": "Asserts an exact repeat has overlap 1.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testOverlapRatioIsZeroWhenNothingMatches()",
+   "hash": "d3bef549a6490658",
+   "does": "Asserts disjoint texts have overlap 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testOverlapRatioOfAnEmptyTranscriptIsZero()",
+   "hash": "0c9ee8dc544c06a1",
+   "does": "Asserts overlap of an empty transcript and of 'I a' (no tokens) is 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testOverlapRatioIsDirectional()",
+   "hash": "6760a13087eeaeea",
+   "does": "Asserts overlap is directional: 'beats per minute' against a long reply is 1.0, the reverse is < 0.4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTheMicHearingTheInFlightResponseIsEcho()",
+   "hash": "dcc39ccf8d14af00",
+   "does": "Asserts a candidate repeating the streamed sentence is in-flight echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testAGenuineInterruptionIsNotEcho()",
+   "hash": "6305094dc9da298f",
+   "does": "Asserts 'stop, start a bike ride instead' is not echo of the streamed text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testNothingStreamedYetMeansNothingCanBeEcho()",
+   "hash": "c181bb5ce2853596",
+   "does": "Asserts nothing is echo when nothing has streamed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testACandidateWithNoUsableTokensIsNotEcho()",
+   "hash": "afdecb6f1291a5d0",
+   "does": "Asserts a candidate with no usable tokens is not echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTheInFlightThresholdIsLooserThanThePostTurnOne()",
+   "hash": "b43bf862c44c76fa",
+   "does": "Asserts inFlightEchoThreshold (0.65) lies between longTranscriptEchoThreshold (0.6) and shortTranscriptEchoThreshold (0.85).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Test and production comments say the in-flight guard is 'more permissive' so a barge-in is missed rather than the AI yanked, but 0.65 is a higher echo bar than the post-turn 0.6, so for long candidates the in-flight guard classifies less as echo and lets more self-heard speech through as a barge-in; the test pins the inverted relation.",
+     "evidence": [
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:139",
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:143",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:62",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:86",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:95"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testInFlightEchoFiresAtItsThreshold()",
+   "hash": "667f4d28cc5a5724",
+   "does": "Builds a 20-token candidate sharing 13 tokens with a 13-token reference, asserts overlap 0.65 and that it is in-flight echo (≥ threshold).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTheAssistantsOwnLastTurnComingBackIsEcho()",
+   "hash": "30d9b4345114a50e",
+   "does": "Asserts the assistant's own last turn coming back is echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testARealFollowUpQuestionIsNotEcho()",
+   "hash": "b51c21a4b59a5100",
+   "does": "Asserts a real follow-up question is not echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testAShortReplyWithItsOwnWordsIsNotEcho()",
+   "hash": "22e7e777c7018c10",
+   "does": "Asserts 'start a run' is not echo of an unrelated reply (short threshold).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testAOneWordTranscriptTakenFromTheReplyCountsAsEcho()",
+   "hash": "9cb83791d0050e70",
+   "does": "Asserts one-word 'thanks' contained in the reply counts as echo (ratio 1.0 ≥ 0.85).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testATwoWordReplyWithOneNewWordIsNotEcho()",
+   "hash": "72ad5c9092c4e3d6",
+   "does": "Asserts 'thanks Emuqu' (ratio 0.5) is not echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testAShortNearVerbatimEchoIsStillCaught()",
+   "hash": "585d98581cc239de",
+   "does": "Asserts 'recovery score seventy two' vs 'Recovery score: seventy two.' is echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testEmptyInputsAreNeverEcho()",
+   "hash": "502ea85e3968ca48",
+   "does": "Asserts empty transcript, empty reply, or token-less transcript is never echo.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)": "06713db8abf01b3c",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testFourTokensOrFewerUsesTheShortThreshold()",
+   "hash": "e23ed8eaf96fdd7f",
+   "does": "Asserts threshold(forTokenCount:) is the short threshold for counts 1…4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for count in 1...4",
+     "effect": "one assertion per count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testFiveTokensOrMoreUsesTheLongThreshold()",
+   "hash": "71a676a1878b187b",
+   "does": "Asserts threshold(forTokenCount:) is the long threshold for counts 5…12.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for count in 5...12",
+     "effect": "one assertion per count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristicsTests.testTheShortThresholdIsStricter()",
+   "hash": "4938727f1832b44b",
+   "does": "Asserts the short threshold exceeds the long one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "short > long is already implied by testTheInFlightThresholdIsLooserThanThePostTurnOne, which asserts long < inFlight < short; this test cannot fail unless that one also fails.",
+     "evidence": [
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:247",
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:142",
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:146"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

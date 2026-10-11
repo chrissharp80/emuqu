@@ -1,0 +1,375 @@
+{
+ "file": "Emuqu/Sources/Models/Route.swift",
+ "hash": "3d287aa61c81a34b",
+ "role": "Planned-route model built from a GPX-style track (trackpoints, cumulative distance, climbs, totals) plus RouteProgress, which projects a live fix onto the route and reports progress and the next climb.",
+ "types": [
+  "Route: struct Codable/Identifiable/Equatable — planned course",
+  "Route.Point: struct — lat/lon/altitude",
+  "Route.Climb: struct Codable/Hashable — climb segment with optional roadName",
+  "RouteProgress: struct — live projection result"
+ ],
+ "state": [
+  "RouteProgress.backtrackMeters = 100",
+  "RouteProgress.lookaheadMeters = 1000",
+  "RouteProgress.rejoinMeters = 100",
+  "RouteProgress.tieToleranceMeters = 25"
+ ],
+ "toplevel": "Route and Route.Point use synthesized Codable; Climb has custom CodingKeys and decoder for old saved routes lacking roadName.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says the next climb is the first climb that ENDS beyond the current position, but RouteProgress.compute picks the first climb whose START is beyond it, so while on a climb nextClimb is the following climb.",
+   "evidence": [
+    "Emuqu/Sources/Models/Route.swift:31",
+    "Emuqu/Sources/Models/Route.swift:262"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "totalAscentMeters/totalDescentMeters sum raw unsmoothed GPS altitude deltas, so GPS altitude noise inflates both totals (climb detection smooths, totals do not).",
+   "evidence": [
+    "Emuqu/Sources/Models/Route.swift:140",
+    "Emuqu/Sources/Models/Route.swift:141"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var Route.Climb.lengthMeters",
+   "hash": "a3de377dd2c6700d",
+   "does": "Climb length = end - start distance along route.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)",
+   "hash": "90034a9e16d22e96",
+   "does": "Memberwise initializer for Climb with roadName defaulting to nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init Route.Climb(from:)",
+   "hash": "5798531e3a0da50a",
+   "does": "Decodes a Climb, requiring the four numeric fields and decoding roadName only if present.",
+   "entry": "Decodable synthesis use: JSONDecoder decoding SavedRoute.enrichedClimbs / Route from saved_routes.json and other Codable stores.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Route.fromGPX(name:track:)",
+   "hash": "be7e45dd77bb7d34",
+   "does": "Builds a Route from a CLLocation track: empty Route for <2 points, else trackpoints with altitude, cumulative distance, raw ascent/descent, detected climbs and total distance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.detectClimbs(track:cumulative:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track has >=2 points",
+     "effect": "build full route; otherwise return empty(named:)"
+    },
+    {
+     "at": "+12",
+     "cond": "cumulative.last exists",
+     "effect": "total distance = last cumulative; ?? 0 fallback (unreachable since cumulative starts [0])"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.detectClimbs(track:cumulative:)": "d5e07dd5ed59be9d",
+    "Emuqu/Sources/Models/Route.swift::func Route.elevationProfile(track:)": "56efa429d022b9b3",
+    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "419d55931ca63cde"
+   }
+  },
+  {
+   "key": "func Route.empty(named:)",
+   "hash": "da5f95afc041b297",
+   "does": "Returns a Route with a fresh UUID, the name and no track/climbs/totals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Route.elevationProfile(track:)",
+   "hash": "ae4755e12b5359f3",
+   "does": "Computes cumulative distance per trackpoint plus raw ascent and descent from consecutive altitude differences.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "track has >1 point",
+     "effect": "iterate; otherwise return ([0],0,0)"
+    },
+    {
+     "at": "+8",
+     "cond": "loop i in 1..<count",
+     "effect": "append cumulative distance and altitude delta"
+    },
+    {
+     "at": "+11",
+     "cond": "dh > 0",
+     "effect": "add to ascent; else add |dh| to descent (zero adds 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Route.detectClimbs(track:cumulative:)",
+   "hash": "723673a28dbec363",
+   "does": "For tracks of >=5 points, smooths altitudes with a 5-point moving average, finds rising runs, and keeps those qualifying as climbs (>=30 m gain, >=3% grade).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.qualifyingClimb(fromIdx:toIdx:startAlt:smoothed:cumulative:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track has >=5 points",
+     "effect": "detect; otherwise []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::func Route.qualifyingClimb(fromIdx:toIdx:startAlt:smoothed:cumulative:)": "c12830d6826640b6",
+    "Emuqu/Sources/Models/Route.swift::func Route.risingRuns(in:)": "e3f010fbc3095f03",
+    "Emuqu/Sources/Models/Route.swift::func Route.smooth(_:window:)": "eb1acf20848b2767"
+   }
+  },
+  {
+   "key": "func Route.risingRuns(in:)",
+   "hash": "a9d9bc017dbbe77f",
+   "does": "Returns index ranges where the smoothed profile rises, ignoring flat steps; a run closes at the first falling step and an open run is closed at the last index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "more than one sample",
+     "effect": "scan; otherwise []"
+    },
+    {
+     "at": "+6",
+     "cond": "loop over consecutive deltas",
+     "effect": "classify each step"
+    },
+    {
+     "at": "+8",
+     "cond": "delta == 0",
+     "effect": "skip (flat neither opens nor closes)"
+    },
+    {
+     "at": "+9",
+     "cond": "rising and no run open",
+     "effect": "open run at i-1"
+    },
+    {
+     "at": "+11",
+     "cond": "falling and a run is open",
+     "effect": "close run at i-1"
+    },
+    {
+     "at": "+16",
+     "cond": "run still open at end",
+     "effect": "close it at last index"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Route.qualifyingClimb(fromIdx:toIdx:startAlt:smoothed:cumulative:)",
+   "hash": "7c3f9f959aa96cf6",
+   "does": "Turns an index range into a Climb when gain >=30 m over positive length with average grade >=3%; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "gain >= 30 and length > 0",
+     "effect": "continue; otherwise nil"
+    },
+    {
+     "at": "+7",
+     "cond": "grade >= 3%",
+     "effect": "return Climb; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "76d979bdb467aea7"
+   }
+  },
+  {
+   "key": "func Route.smooth(_:window:)",
+   "hash": "15438d35d2ba0741",
+   "does": "Centered moving average of width `window` over interior points; edges keep raw values; returns input unchanged when window<=1 or values not longer than window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "window > 1 and values.count > window",
+     "effect": "smooth; otherwise return values"
+    },
+    {
+     "at": "+4",
+     "cond": "loop over interior indices",
+     "effect": "average the window"
+    },
+    {
+     "at": "+6",
+     "cond": "inner loop over window",
+     "effect": "sum values"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RouteProgress.compute(currentLocation:route:previousIndex:)",
+   "hash": "da41b55db37d7224",
+   "does": "Projects a fix onto the route: nil for an empty route; otherwise nearest trackpoint (continuity-aware), distance along, percent complete, metres to finish, and the first climb starting after the current position with distance to it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.nearestPointIndex(to:in:after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "route has trackpoints and cumulative distances",
+     "effect": "compute; otherwise nil"
+    },
+    {
+     "at": "+14",
+     "cond": "total > 0",
+     "effect": "percent = min(1, along/total); otherwise 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "RouteProgress.compute / nearestPointIndex / continuityWindow (loop start-vs-finish and out-and-back continuity logic) have no tests: grep 'RouteProgress' in EmuquTests finds nothing.",
+     "evidence": [
+      "Emuqu/Sources/Models/Route.swift:252",
+      "Emuqu/Sources/Models/Route.swift:283"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.nearestPointIndex(to:in:after:)": "1c19fc31d9261e01"
+   }
+  },
+  {
+   "key": "func RouteProgress.nearestPointIndex(to:in:after:)",
+   "hash": "d067f04196195729",
+   "does": "Returns the trackpoint index nearest the fix: within the continuity window around the previous index if the best there is <=100 m, else the earliest index within 25 m of the global minimum.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.continuityWindow(after:in:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a continuity window exists (previous index valid)",
+     "effect": "search it; otherwise global search"
+    },
+    {
+     "at": "+9",
+     "cond": "distances non-empty",
+     "effect": "best = min; ?? 0 when empty (unreachable: caller guards non-empty)"
+    },
+    {
+     "at": "+10",
+     "cond": "first index within best+25 m",
+     "effect": "return it; ?? 0 fallback unreachable since best itself qualifies"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Models/Route.swift::func RouteProgress.continuityWindow(after:in:count:)": "a183864446817773"
+   }
+  },
+  {
+   "key": "func RouteProgress.continuityWindow(after:in:count:)",
+   "hash": "c7744a32a870980b",
+   "does": "Returns the index range from ~100 m behind to ~1000 m ahead of the previous match, or nil without a valid previous index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "previous non-nil, valid index, count > 0",
+     "effect": "build window; otherwise nil"
+    },
+    {
+     "at": "+4",
+     "cond": "first index with cumulative >= along-100",
+     "effect": "lo; ?? 0 fallback (unreachable since previous itself qualifies)"
+    },
+    {
+     "at": "+5",
+     "cond": "first index with cumulative > along+1000",
+     "effect": "hi; ?? count when the lookahead runs past the route end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

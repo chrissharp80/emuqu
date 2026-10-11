@@ -1,0 +1,193 @@
+{
+ "file": "EmuquTests/PrivacyControlsTests.swift",
+ "hash": "4ca962c78c0e74fe",
+ "role": "XCTest suite pinning call-shape privacy controls: PasteboardWriter options carry .localOnly and a 60-s expiry unless preserveClipboardForPaste is on; no source file outside PasteboardWriter.swift references UIPasteboard.general in code; and the assistant stream buffer's closing flush is written inside a `defer`.",
+ "types": [
+  "PrivacyControlsTests: class — @MainActor XCTestCase with option assertions and source-tree text scans"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "The 'nothing writes to the pasteboard directly' scan only looks for the literal 'UIPasteboard.general'. Views that enable system text selection let the user's Copy menu write to the Universal Clipboard without .localOnly or expiry, which the scan cannot see — e.g. the LLM prompt audit bodies (LLMPromptAuditView.swift:231) and the archive index diagnostics (ExportAndArchiveViews.swift:546).",
+   "evidence": [
+    "EmuquTests/PrivacyControlsTests.swift:69",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift:231",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift:546"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "testTheStreamBufferFlushIsDeferred is a text match on 'buffer.flush(force: true' in one hard-coded file path; renaming the variable, moving the call, or wrapping the defer over two lines fails or bypasses it without any behaviour change.",
+   "evidence": [
+    "EmuquTests/PrivacyControlsTests.swift:93",
+    "EmuquTests/PrivacyControlsTests.swift:97",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:204"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PrivacyControlsTests.testPasteboardWritesAreLocalOnly()",
+   "hash": "959ade26aedf26de",
+   "does": "Asserts PasteboardWriter.pasteboardOptions() sets .localOnly to true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settings.preserveClipboardForPaste"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()": "002f7b5599f34702"
+   }
+  },
+  {
+   "key": "func PrivacyControlsTests.testPasteboardExpiryFollowsTheUserSetting()",
+   "hash": "18918e0b2cd1f99e",
+   "does": "With preserveClipboardForPaste false asserts an expirationDate 50–60 s ahead; with it true asserts no expiry; restores the original setting.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared.settings.preserveClipboardForPaste"
+   ],
+   "writes": [
+    "mem:SettingsManager.shared.settings.preserveClipboardForPaste (host settings, persisted by SettingsManager; restored by defer)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "expiry unwrapped",
+     "effect": "asserts 50 < seconds ≤ 60; when nil only the NotNil assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.pasteboardOptions()": "002f7b5599f34702"
+   }
+  },
+  {
+   "key": "func PrivacyControlsTests.testNothingWritesToThePasteboardDirectly()",
+   "hash": "18bad8a5fdbeffdd",
+   "does": "Walks every .swift file under Emuqu/Sources (except PasteboardWriter.swift) and asserts no non-comment line contains 'UIPasteboard.general'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()",
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.swiftFiles(under:)"
+   ],
+   "reads": [
+    "file:Emuqu/Sources/**/*.swift (repo source tree via #filePath)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each Swift file",
+     "effect": "scans it"
+    },
+    {
+     "at": "+4",
+     "cond": "file is PasteboardWriter.swift",
+     "effect": "skipped"
+    },
+    {
+     "at": "+5",
+     "cond": "file read fails",
+     "effect": "treated as '' (silently passes that file)"
+    },
+    {
+     "at": "+10",
+     "cond": "a non-// line contains UIPasteboard.general",
+     "effect": "file name added to offenders; test fails when offenders non-empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "1a7ae0fb7da16999",
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.swiftFiles(under:)": "87b549bdf1bac14d"
+   }
+  },
+  {
+   "key": "func PrivacyControlsTests.testTheStreamBufferFlushIsDeferred()",
+   "hash": "fb4750689a3b5a3c",
+   "does": "Reads Assistant/ViewModel/AssistantViewModel+Tools.swift and asserts every line containing 'buffer.flush(force: true' starts with 'defer {' (and at least one exists).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()"
+   ],
+   "reads": [
+    "file:Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each flush line",
+     "effect": "asserts it begins with 'defer {'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/PrivacyControlsTests.swift::func PrivacyControlsTests.sourceRoot()": "1a7ae0fb7da16999"
+   }
+  },
+  {
+   "key": "func PrivacyControlsTests.sourceRoot()",
+   "hash": "b183c5bdf0167703",
+   "does": "Helper: resolves <repo>/Emuqu/Sources from #filePath; XCTFail and throws when it does not exist (deliberately not a skip).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "source directory missing",
+     "effect": "XCTFail and throw CocoaError(.fileNoSuchFile); else returns the URL"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PrivacyControlsTests.swiftFiles(under:)",
+   "hash": "ad4ec59a526ae96a",
+   "does": "Helper: all .swift URLs under root via FileManager enumerator.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "enumerator is nil",
+     "effect": "returns [] (the scan then passes vacuously); else filters by .swift extension"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "If the enumerator cannot be created, swiftFiles returns [] and testNothingWritesToThePasteboardDirectly passes having scanned nothing, the outcome the sourceRoot doc comment says it guards against.",
+     "evidence": [
+      "EmuquTests/PrivacyControlsTests.swift:130",
+      "EmuquTests/PrivacyControlsTests.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

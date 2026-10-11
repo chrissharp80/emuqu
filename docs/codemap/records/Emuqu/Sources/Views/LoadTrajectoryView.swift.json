@@ -1,0 +1,1200 @@
+{
+ "file": "Emuqu/Sources/Views/LoadTrajectoryView.swift",
+ "hash": "c6fbd49f41e03969",
+ "role": "Stateless (apart from a pending-confirmation @State) SwiftUI screen 'Load & Trajectory': verdict header, CTL/ATL/TSB chart with long-press day picker, LOAD/CTL/ATL/TSB stat cards, ramp-rate row, Foster monotony card, recent workouts list and the three Mode cards (Comeback / Peaking / Intentional overreach) with on-confirmation dialogs.",
+ "types": [
+  "LoadTrajectoryView: struct — View rendering the training-load trajectory",
+  "LoadTrajectoryView.DailySample: struct — per-day ctl/atl/tsb/trimp chart input",
+  "LoadTrajectoryView.RecentWorkout: struct — recent workout row input incl. load source",
+  "LoadTrajectoryView.ConfirmableMode: enum — comeback|overreach, modes that need confirmation to switch on",
+  "LoadTrajectoryView: extension — Modes section and confirmation helpers"
+ ],
+ "state": [
+  "mem:LoadTrajectoryView.pendingMode (@State)",
+  "@ScaledMetric dt10…dt22 Dynamic Type sizes"
+ ],
+ "toplevel": "Constructed in production only by LoadTrajectoryLoader.trajectoryView (LoadTrajectoryLoader.swift:58) and in EmuquTests/ChartScreenSnapshotTests.swift:75,100. Stored inputs: samples, weeklyTrimp, weeklyTrimpDelta, rampRate, mode flags, monotonyFlagged, recentWorkouts, three toggle closures, optional onWorkoutTap/onChartLongPress, peakingDetectionEnabled (default true).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LoadTrajectoryView.ConfirmableMode.id",
+   "hash": "72a66b5bfeecd732",
+   "does": "Identity of a ConfirmableMode is the case itself.",
+   "entry": "Identifiable requirement for confirmationDialog(presenting:)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LoadTrajectoryView.current",
+   "hash": "6b19625747a809b6",
+   "does": "Most recent (today's) sample: samples.last.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LoadTrajectoryView.verdict",
+   "hash": "0d4a3139c4601778",
+   "does": "Computes the screen's TrajectoryVerdict: currentCTL = today's CTL (0 if no samples), ctlOneWeekAgo = samples[count−8].ctl when ≥8 samples, plus sampleCount, mode flags, rampRate and today's TSB.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples.count >= 8",
+     "effect": "true: week-ago CTL = samples[count−8].ctl; false: nil → compute returns .buildingBaseline unless a mode wins"
+    },
+    {
+     "at": "+5",
+     "cond": "current?.ctl ?? 0 / current?.tsb",
+     "effect": "no samples: currentCTL 0 and TSB nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the dashboard chip and this screen 'can never disagree', but the chip feeds currentCTL = yesterday's CTL and ctlOneWeekAgo = series[count−9] while this screen feeds today's live CTL and samples[count−8]. They agree only because rampRate is non-zero in practice; when ctlSlopePerWeek returns exactly 0 the fallback delta uses different endpoints on the two surfaces.",
+     "evidence": [
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:103",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:115",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:226",
+      "Emuqu/Sources/Views/DashboardV2View+Chips.swift:257"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "545fcce91462ea50",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init TrajectoryVerdict.Inputs(currentCTL:ctlOneWeekAgo:sampleCount:comebackActive:overreachActive:peakingDetected:rampRate:currentTSB:)": "e34710ee41988efb",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current": "f7e859ce24c77ce1"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.form",
+   "hash": "21f274d6cf4b526b",
+   "does": "FormDescriptor for today's TSB, nil when no samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init FormDescriptor(tsb:)": "eea56a82a52bdb74",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current": "f7e859ce24c77ce1"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.rampBand",
+   "hash": "4060450465bfda6f",
+   "does": "RampBand for the passed-in rampRate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::init RampBand(tssPerDayPerWeek:)": "74140b75347b9801"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.body",
+   "hash": "0a6e86d43b69197d",
+   "does": "ScrollView of trajectoryStack with title 'Load & Trajectory' and a confirmation dialog shown while pendingMode is set: 'Turn On' calls confirm(mode), 'Cancel' dismisses.",
+   "entry": "SwiftUI body",
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryStack",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirmTitle(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirmMessage(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirm(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LoadTrajectoryView.pendingMode"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "pendingMode.map(confirmTitle) ?? \"\"",
+     "effect": "no pending mode: empty title (dialog hidden)"
+    },
+    {
+     "at": "+9",
+     "cond": "isPresented binding: pendingMode != nil; setter clears pendingMode when dismissed",
+     "effect": "dialog visible only while a mode awaits confirmation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirm(_:)": "2e5358e2667f2b8f",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirmMessage(_:)": "49c64d9a30ee443e",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.confirmTitle(_:)": "611ac44b73277e6d",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryStack": "f7f846d6d4053cef",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.trajectoryStack",
+   "hash": "7be8543a70d99321",
+   "does": "Shows the empty state when no sample carries any load, otherwise the trajectory cards; Modes section always shown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.hasAnyLoad",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.noTrainingDataState",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryCards",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.modesSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!hasAnyLoad",
+     "effect": "true: 'No training data yet' empty state; false: verdict/chart/stats cards"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.hasAnyLoad": "61538a663977af09",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.modesSection": "96f63bd177cb508a",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.noTrainingDataState": "fcd00885bfc0fcf2",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryCards": "471ae8c00f04be40"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.hasAnyLoad",
+   "hash": "dbd16fb23da0f790",
+   "does": "True if any sample has trimp>0, ctl>0 or atl>0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.noTrainingDataState",
+   "hash": "f5e120a9670098c8",
+   "does": "EmptyState 'No training data yet' telling the user a workout from Apple Health is needed.",
+   "entry": null,
+   "calls": [
+    "ext:EmptyState (repo view, no unit)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.trajectoryCards",
+   "hash": "2b8a501ae1fae5e0",
+   "does": "Verdict header, chart, stat row, ramp row, monotony card when flagged, recent workouts when non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdictHeader",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.fitnessChart",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.statRow",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampRow",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.monotonyCard",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.recentWorkoutsSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "monotonyFlagged",
+     "effect": "true: show monotony card; false: omitted"
+    },
+    {
+     "at": "+7",
+     "cond": "!recentWorkouts.isEmpty",
+     "effect": "true: recent workouts section; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.fitnessChart": "c399e4df0c1188c6",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.monotonyCard": "7099ec5fc0932b32",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampRow": "aa526d808e3c071a",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.recentWorkoutsSection": "df968569051fda6e",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.statRow": "ea6dda99eaae02e2",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdictHeader": "fa6ec1df02638bc2"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.verdictHeader",
+   "hash": "6f1376e9f856e22e",
+   "does": "Verdict chip label and narrative text; VoiceOver reads the verdict's accessibility label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdict",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedAccessibilityLabel": "93152eabbe94cb38",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedChipLabel": "ea430bb87835689d",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var TrajectoryVerdict.localizedNarrative": "e8cb5b70455ae7fe",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.verdict": "7dfb2488400d57e2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.fitnessChart",
+   "hash": "953a227b8084a356",
+   "does": "Legend above the load chart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.chartLegend",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadChart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.chartLegend": "019797017df84188",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadChart": "22f8bd9aeefd339c"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.chartLegend",
+   "hash": "09b909c64e4dd4f6",
+   "does": "Three legend dots: CTL fitness, ATL fatigue, TSB form.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.legendDot(color:label:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.legendDot(color:label:)": "99c32b5c3e20bacf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.loadChart",
+   "hash": "df4e486ea66f6ebb",
+   "does": "240-pt high chart with long-press overlay, card background and current-value chips at top-right.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryChart",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressCapture(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.currentValueChips"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressCapture(_:)": "3a2cef93504715cd",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.currentValueChips": "01b9ebe83459f415",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.trajectoryChart": "bcd0892196f1852b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.trajectoryChart",
+   "hash": "1b6ada31d0b2698d",
+   "does": "Swift Charts chart of TSB area + ATL line + CTL line per sample, leading Y axis, and an audio-graph descriptor of CTL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.tsbArea(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.atlLine(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.ctlLine(_:)",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.atlLine(_:)": "9629661e3672f3f3",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.ctlLine(_:)": "c9bbf7007e2f3d62",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.tsbArea(_:)": "a3aedd1686934e9f"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.tsbArea(_:)",
+   "hash": "21eab41725971e2a",
+   "does": "AreaMark from 0 to the day's TSB, green when TSB ≥ 0 and neutral grey when negative.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sample.tsb >= 0",
+     "effect": "true: wongOptimal 18% opacity; false: textTertiary 12% opacity (never red)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.atlLine(_:)",
+   "hash": "5b015f5c0f560e2c",
+   "does": "Solid amber monotone ATL LineMark, 2.5 pt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.ctlLine(_:)",
+   "hash": "91f57a37eb6f7b97",
+   "does": "Solid CTL LineMark in wongGood, 2.5 pt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LoadTrajectoryView.currentValueChips",
+   "hash": "f7f6c5ac0907692d",
+   "does": "Overlay chips with the latest CTL and ATL values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.valueChip(label:value:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "samples non-empty",
+     "effect": "true: CTL/ATL chips; false: nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Chips are pushed down 24 pt to 'clear the legend row', but the overlay is attached to loadChart, which does not contain the legend (chartLegend is a sibling above it in fitnessChart), so the offset clears nothing and just moves the chips into the plot area.",
+     "evidence": [
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:319",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:217",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:245"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.valueChip(label:value:color:)": "612eb41cd99b5c3c",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.longPressCapture(_:)",
+   "hash": "653efb0b53206040",
+   "does": "Adds the long-press surface only when an onChartLongPress handler exists.",
+   "entry": "chartOverlay closure",
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressSurface(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onChartLongPress != nil",
+     "effect": "true: long-press capture layer; false: no gesture"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressSurface(_:)": "e6febcab12086aa5"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.longPressSurface(_:)",
+   "hash": "9b11343f85bc3ff6",
+   "does": "GeometryReader wrapper passing geometry to longPressTarget.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressTarget(_:geo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.longPressTarget(_:geo:)": "54946b4af2223f5d"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.longPressTarget(_:geo:)",
+   "hash": "470b8776c7a4a845",
+   "does": "Clear hit-testable rectangle with a 0.4 s LongPress sequenced before a zero-distance Drag; on end calls onChartLongPress with the resolved day.",
+   "entry": "SwiftUI gesture onEnded",
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.resolveLongPressDate(_:proxy:geo:)",
+    "closure:onChartLongPress → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:81"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "gesture ended in .second(true, drag) with a drag value",
+     "effect": "false: ignore (long press not completed or no location); true: resolve date and call handler"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.resolveLongPressDate(_:proxy:geo:)": "ea7340c29feea59c",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.resolveLongPressDate(_:proxy:geo:)",
+   "hash": "03ca39b7d980e1a0",
+   "does": "Converts the press x-position to a date via the chart proxy and returns the nearest sample's date; falls back to the last sample date (or now) when unresolved.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "proxy.plotFrame is nil",
+     "effect": "return samples.last?.date"
+    },
+    {
+     "at": "+1",
+     "cond": "samples.last?.date ?? Date()",
+     "effect": "no samples: now"
+    },
+    {
+     "at": "+4",
+     "cond": "proxy.value(atX:) resolves a date AND a nearest sample exists",
+     "effect": "true: return nearest sample's date"
+    },
+    {
+     "at": "+9",
+     "cond": "else branch fallback",
+     "effect": "samples.last?.date ?? Date()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LoadTrajectoryView.legendDot(color:label:)",
+   "hash": "61c2083a71e923cd",
+   "does": "Colored dot + label HStack.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.valueChip(label:value:color:)",
+   "hash": "bd16784a3172d367",
+   "does": "Capsule chip '<label> <value %.1f>' in the series color.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.loadStatCard",
+   "hash": "a31b261b1eaff1d9",
+   "does": "LOAD stat card: rounded weekly load and the delta-vs-last-week subline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCard(title:value:subline:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadLabel",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.weeklyTrimpDeltaSubline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCard(title:value:subline:)": "d2cf1441836cc50d",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadLabel": "594612c7e76c6a31",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.weeklyTrimpDeltaSubline": "522245a29d24c6f0"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.statRow",
+   "hash": "918fda3ae330cc44",
+   "does": "Row of four stat cards: LOAD (weekly), CTL with ramp-band word, ATL with relation-to-CTL, TSB (signed) with form word.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadStatCard",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCard(title:value:subline:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedWord",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.atlSubline",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.form",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.localizedWord"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "current ?? '—'",
+     "effect": "no samples: CTL '—'"
+    },
+    {
+     "at": "+10",
+     "cond": "current ?? '—'",
+     "effect": "no samples: ATL '—'"
+    },
+    {
+     "at": "+15",
+     "cond": "current ?? '—'",
+     "effect": "no samples: TSB '—'"
+    },
+    {
+     "at": "+16",
+     "cond": "form?.localizedWord ?? '—'",
+     "effect": "no samples: subline '—'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "With Intentional overreach on, the CTL card subline still reads RampBand 'Rapid increase' and the ramp row says 'Load is jumping fast — easy days help you absorb it.', although the overreach card footer says it suppresses 'rapid increase' messaging and the confirmation says those warnings are hidden until turned off. Likewise with peaking detected the CTL subline/ramp row still say 'Easing down … fitness will drift lower' while the Peaking footer claims it suppresses 'detraining' messaging. Only the verdict header honours the modes (TrajectoryVerdict.compute); rampBand ignores them.",
+     "evidence": [
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:433",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:536",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:688",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:733",
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:698",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:310",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:321",
+      "Emuqu/Sources/Analysis/TrajectoryVerdict.swift:198"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var FormDescriptor.localizedWord": "23eb719065d9f72a",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedWord": "98bb747d0912f1e2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCard(title:value:subline:)": "d2cf1441836cc50d",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.atlSubline": "d795383c8f235837",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current": "f7e859ce24c77ce1",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.form": "47af1bc1286cc2bb",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadStatCard": "0d6123725210821f",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "ee1c33c1914ed6c7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.atlSubline",
+   "hash": "4cac2b8af373569b",
+   "does": "ATL subline: 'near CTL' when |ATL−CTL|<1, else 'above CTL' / 'below CTL'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "current is nil",
+     "effect": "return '—'"
+    },
+    {
+     "at": "+3",
+     "cond": "|ATL−CTL| < 1",
+     "effect": "'near CTL'"
+    },
+    {
+     "at": "+4",
+     "cond": "ATL−CTL > 0",
+     "effect": "'above CTL'; else 'below CTL'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.current": "f7e859ce24c77ce1",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.weeklyTrimpDeltaSubline",
+   "hash": "3dffd95332697efc",
+   "does": "'+N vs last' / '-N vs last' subline for the weekly load delta.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "weeklyTrimpDelta >= 0",
+     "effect": "prefix '+'; else the negative number as is"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.statCard(title:value:subline:)",
+   "hash": "be4a29735274c5c0",
+   "does": "Generic stat card: uppercase title, large rounded value, subline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCardSubline(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.statCardSubline(_:)": "6ce5bb6228035621",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.statCardSubline(_:)",
+   "hash": "1a5af42567db2a13",
+   "does": "Two-line, shrinkable subline text.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.rampRow",
+   "hash": "a8632a58fbc9825c",
+   "does": "Ramp-rate card with icon and rampRateSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampRateSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampRateSection": "3b2ddd94cbfe371c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.rampRateSection",
+   "hash": "e7cc1f47804515ca",
+   "does": "'Ramp rate' title and rampSentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampSentence"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampSentence": "66a024fcdf7f39d7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.rampSentence",
+   "hash": "3b7b0e720b4fb266",
+   "does": "'Ramp: ±x.x load/day/week. <band sentence>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedSentence"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::var RampBand.localizedSentence": "91ff42c9e3ef5b2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.rampBand": "ee1c33c1914ed6c7"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.monotonyCard",
+   "hash": "33aa8272faf73aa7",
+   "does": "Amber-bordered card: 'Your training has been unusually similar day-to-day this week. Consider varying intensity.'",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.recentWorkoutsSection",
+   "hash": "57207f18011a6f9a",
+   "does": "'Recent workouts' header plus rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.recentWorkoutRows"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.recentWorkoutRows": "f08a3c9804eeb886",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.recentWorkoutRows",
+   "hash": "f709caf533148316",
+   "does": "First 8 recent workouts as rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.recentWorkoutRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.recentWorkoutRow(_:)": "fe819f47202e49df"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.recentWorkoutRow(_:)",
+   "hash": "59076169e90602d7",
+   "does": "Row Button calling onWorkoutTap(id); disabled when onWorkoutTap is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.sportBadge(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowCaption(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowMetrics(_:)",
+    "closure:onWorkoutTap — never set in production (LoadTrajectoryLoader passes nil)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The Button action is unreachable in the app: the only production caller passes onWorkoutTap: nil, so .disabled(true) always applies.",
+     "evidence": [
+      "Emuqu/Sources/Views/LoadTrajectoryView.swift:604",
+      "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:72"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.sportBadge(_:)": "ca288a0e43615a27",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowCaption(_:)": "ed59051821eca213",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.workoutRowMetrics(_:)": "cd2ef67aa0390179",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.sportBadge(_:)",
+   "hash": "e4116d77c0f10fac",
+   "does": "Sport SF symbol in a tinted rounded square.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.workoutRowCaption(_:)",
+   "hash": "c794e14b1dc8f1f8",
+   "does": "Sport label and relative date ('2 days ago').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.relativeWorkoutDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.relativeWorkoutDate(_:)": "cc7097e40af9a3fc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.workoutRowMetrics(_:)",
+   "hash": "0f5f2c3ebd262306",
+   "does": "Duration ('N min') and, when present, rounded load with its unit label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.loadUnitLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "row.trimp non-nil",
+     "effect": "true: '<load> LOAD|TRIMP' line; false: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::func LoadTrajectoryView.loadUnitLabel(_:)": "7fc292e2bebaa06c",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.loadLabel",
+   "hash": "40f225f152712f70",
+   "does": "Localized 'LOAD'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.loadUnitLabel(_:)",
+   "hash": "934a25eba3f44b5d",
+   "does": "Unit label by load source: 'TRIMP' for .banister/.routeHistory, localized 'LOAD' for power/hr/mets/nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "source is .banister or .routeHistory",
+     "effect": "'TRIMP'"
+    },
+    {
+     "at": "+3",
+     "cond": "source .power/.hr/.mets/nil",
+     "effect": "'LOAD'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.loadLabel": "594612c7e76c6a31"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.relativeWorkoutDate(_:)",
+   "hash": "84201405e4a0e2b8",
+   "does": "RelativeDateTimeFormatter string for the date relative to now in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.modesSection",
+   "hash": "9a34d9b66eadbcd9",
+   "does": "'Modes' header with Comeback, Peaking and Overreach cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.comebackModeCard",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.peakingModeCard",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.overreachModeCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.comebackModeCard": "f496ca11a9e193ec",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.overreachModeCard": "b69dfb1b9dcdd689",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.peakingModeCard": "507ded4519851264",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.overreachModeCard",
+   "hash": "64e6898293fe1034",
+   "does": "Intentional overreach ModeToggleCard; tap turns it off directly when active, otherwise sets pendingMode=.overreach to ask confirmation.",
+   "entry": null,
+   "calls": [
+    "ext:ModeToggleCard (repo view, no unit)",
+    "closure:onOverreachTap → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:298"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LoadTrajectoryView.pendingMode"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "overreachActive",
+     "effect": "status .on / .off"
+    },
+    {
+     "at": "+6",
+     "cond": "overreachActive on tap",
+     "effect": "true: onOverreachTap() (switch off); false: pendingMode = .overreach (confirmation dialog)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.peakingModeCard",
+   "hash": "2c44f34936c2acb2",
+   "does": "Peaking detection ModeToggleCard; tap calls onPeakingTap with no confirmation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.peakingStatus",
+    "ext:ModeToggleCard (repo view, no unit)",
+    "closure:onPeakingTap → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:291"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.peakingStatus": "0c13d0bd1c907b9c"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.comebackModeCard",
+   "hash": "aa15f5924b7172d5",
+   "does": "Comeback ModeToggleCard; tap turns it off directly when active, else asks confirmation via pendingMode=.comeback.",
+   "entry": null,
+   "calls": [
+    "ext:ModeToggleCard (repo view, no unit)",
+    "closure:onComebackTap → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:283"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LoadTrajectoryView.pendingMode"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "comebackActive",
+     "effect": "status .on / .off"
+    },
+    {
+     "at": "+6",
+     "cond": "comebackActive on tap",
+     "effect": "true: onComebackTap() (switch off); false: pendingMode = .comeback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var LoadTrajectoryView.peakingStatus",
+   "hash": "2db2c510fecda213",
+   "does": "Peaking card status: .autoDetected while a taper is detected, else .on/.off from the setting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "peakingDetected",
+     "effect": "return .autoDetected"
+    },
+    {
+     "at": "+2",
+     "cond": "peakingDetectionEnabled",
+     "effect": "true .on; false .off"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LoadTrajectoryView.confirmTitle(_:)",
+   "hash": "e465a11ea4596b3c",
+   "does": "Confirmation dialog title per mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mode == .comeback",
+     "effect": "'Turn on Comeback mode?'"
+    },
+    {
+     "at": "+3",
+     "cond": "mode == .overreach",
+     "effect": "'Turn on Intentional overreach?'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.confirmMessage(_:)",
+   "hash": "baf1bf98b6f9e365",
+   "does": "Confirmation dialog message per mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mode == .comeback",
+     "effect": "21-day HRV-weighting message"
+    },
+    {
+     "at": "+4",
+     "cond": "mode == .overreach",
+     "effect": "'warnings hidden until you turn this off'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func LoadTrajectoryView.confirm(_:)",
+   "hash": "3d5e9c59d8fd5752",
+   "does": "Runs the toggle closure for the confirmed mode.",
+   "entry": "confirmationDialog 'Turn On' button",
+   "calls": [
+    "closure:onComebackTap → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:283",
+    "closure:onOverreachTap → Emuqu/Sources/Views/LoadTrajectoryLoader.swift:298"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "mode == .comeback",
+     "effect": "onComebackTap()"
+    },
+    {
+     "at": "+3",
+     "cond": "mode == .overreach",
+     "effect": "onOverreachTap()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

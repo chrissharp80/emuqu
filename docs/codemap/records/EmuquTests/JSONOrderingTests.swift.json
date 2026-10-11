@@ -1,0 +1,132 @@
+{
+ "file": "EmuquTests/JSONOrderingTests.swift",
+ "hash": "14e1d183daa6c0ff",
+ "role": "XCTest suite asserting Foundation's JSONEncoder with .sortedKeys is byte-deterministic over 100 encodes of a local payload and a local cache_control struct; it does not touch any provider encoder.",
+ "types": [
+  "JSONOrderingTests: class — XCTestCase",
+  "JSONOrderingTests.Payload: struct — local Encodable test payload",
+  "JSONOrderingTests.Payload.Nested: struct — nested Encodable",
+  "CacheControl: struct (local to testCacheControlSerializationIsStable)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "The doc claims this is the regression net for the provider request encoders ('If anyone ever drops .sortedKeys in a refactor, this fails'), but every test encodes only private local structs with a locally configured JSONEncoder; removing .sortedKeys from AnthropicProvider/GeminiProvider (GeminiProvider.swift:338) or any other encoder cannot fail it.",
+   "evidence": [
+    "EmuquTests/JSONOrderingTests.swift:16",
+    "EmuquTests/JSONOrderingTests.swift:18",
+    "EmuquTests/JSONOrderingTests.swift:46",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift:338"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says 'All four provider request encoders' but names three (AnthropicProvider, OpenAICompatibleStreamer, GeminiProvider).",
+   "evidence": [
+    "EmuquTests/JSONOrderingTests.swift:14",
+    "EmuquTests/JSONOrderingTests.swift:15"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func JSONOrderingTests.testEncoderWithSortedKeysIsDeterministic()",
+   "hash": "2a7ef712f4ed3a45",
+   "does": "Encodes a local Payload 100 times with a .sortedKeys JSONEncoder and asserts exactly one distinct Data.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for 100 iterations",
+     "effect": "encodes and inserts into a Set"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Tests Foundation's own determinism, not app code; synthesized Encodable for a struct already encodes keys in declaration order, so it would pass without .sortedKeys too.",
+     "evidence": [
+      "EmuquTests/JSONOrderingTests.swift:47",
+      "EmuquTests/JSONOrderingTests.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func JSONOrderingTests.testEncoderWithoutSortedKeysMayVary()",
+   "hash": "e15fc258f98a1abc",
+   "does": "Encodes the payload once without .sortedKeys and only asserts the UTF-8 string is non-empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "String(data:encoding:) ?? \"\"",
+     "effect": "fallback empty string when the data is not UTF-8, which fails the non-empty assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "No meaningful assertion: only checks the encoder produced non-empty output; the comment admits it asserts nothing about ordering.",
+     "evidence": [
+      "EmuquTests/JSONOrderingTests.swift:84",
+      "EmuquTests/JSONOrderingTests.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func JSONOrderingTests.testCacheControlSerializationIsStable()",
+   "hash": "22bf9e399aca95cc",
+   "does": "Encodes a local CacheControl(type:'ephemeral', ttl:'1h') 100 times with .sortedKeys and asserts one distinct Data.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for 100 iterations",
+     "effect": "encodes and inserts into a Set"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Uses a struct declared inside the test, not the app's Anthropic cache_control type, so it cannot catch a change in the real request body.",
+     "evidence": [
+      "EmuquTests/JSONOrderingTests.swift:99"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f"
+   }
+  }
+ ],
+ "deps": {}
+}

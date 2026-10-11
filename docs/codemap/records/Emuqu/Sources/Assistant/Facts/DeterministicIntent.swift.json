@@ -1,0 +1,404 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift",
+ "hash": "df937aae665424a0",
+ "role": "On-device regex shortcut for voice turns: a hand-authored list of 14 patterns whose handlers answer common factual questions (recovery, RHR, HRV, sleep, last workout, weight, max HR, LTHR, etc.) from the session archive and settings without calling an LLM.",
+ "types": [
+  "DeterministicIntent: enum (@MainActor) — pattern catalog + matcher + spoken-reply helpers",
+  "DeterministicIntent.MatchContext: struct — now, SessionArchive, UserSettings handed to handlers",
+  "DeterministicIntent.Pattern: struct — id, regex triggers, handler closure"
+ ],
+ "state": [
+  "mem:DeterministicIntent.compiledCache (private static [String:[NSRegularExpression]], per-pattern compiled triggers)",
+  "mem:DeterministicIntent.patterns (static let [Pattern], 14 entries)"
+ ],
+ "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieve(entry) → vitalsSnapshot.restingHeartRate; try? swallows retrieve errors → nil → LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; endDate-date minutes; 0/no endDate → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); first .workout in same day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieve, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "trained_recently answers with the duration of only the FIRST (newest) workout on the asked day; a user who did two workouts hears 'Yes — you trained for 30 minutes' for a 90-minute day.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:224",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:229",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:230"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Every apostrophe character class is written ['']: both characters are ASCII U+0027 (verified with od), so a typographic ’ (U+2019) or a transcript 'whats' never matches and the turn falls through to the LLM; the duplicated class shows the curly apostrophe was intended.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:115",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:142",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:160"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "sleep_stages_last_night triggers on 'how much light sleep' but the reply reports only total, deep and REM — light sleep is never stated.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:276",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:295"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "DeterministicIntentTests only exercise matching against an empty archive and dayStart; no test seeds an archive to check any handler's spoken numbers (e.g. the ×10 recovery scaling).",
+   "evidence": [
+    "EmuquTests/DeterministicIntentTests.swift:31",
+    "EmuquTests/DeterministicIntentTests.swift:159"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header (lines 31-32, 42-43) and docs/VOICE_AND_TOOL_USE.md:149-150 say each pattern maps 1:1 to a fact-catalog read; no handler touches FactResolverRegistry - they re-read SessionArchive/UserSettings directly, so the voice path duplicates catalog logic (e.g. 0-10 to 0-100 score conversion also in AppFactResolver+Live.swift:193) and can drift from what the LLM tools report.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:31",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:122",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:129",
+    "docs/VOICE_AND_TOOL_USE.md:149",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Live.swift:193"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "Handlers use 'try? ctx.archive.retrieve' so a decrypt/read error is swallowed without any log (SessionArchive.retrieveOrLog exists for this); the turn silently falls through to the LLM and the failure is invisible in debug exports.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:148",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:180",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:254",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:282",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:351",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:370",
+    "Emuqu/Sources/Storage/Archive.swift:521"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The '<50 ms' voice path does a full archive.retrieve (lock + decrypt + hash verify of the whole session) synchronously on the main actor for RHR/sleep/breakdown/latency/efficiency; retrieveLightweight exists for perf-only reads.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:148",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:10",
+    "Emuqu/Sources/Storage/Archive.swift:513",
+    "Emuqu/Sources/Storage/Archive.swift:581"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "docs/FLOWCHART.md:1434 says a hit emits 'telemetry: deterministic_hit'; no such event exists in Swift (grep deterministic_hit) - servedDeterministically only debugLogs.",
+   "evidence": [
+    "docs/FLOWCHART.md:1434",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:460"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DeterministicIntent.Pattern.compiled",
+   "hash": "0b9361ea0292f1c7",
+   "does": "Returns the cached compiled regexes for this pattern via compiledTriggers(forPatternID:triggers:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+   ],
+   "reads": [
+    "mem:DeterministicIntent.compiledCache"
+   ],
+   "writes": [
+    "mem:DeterministicIntent.compiledCache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.compiledTriggers(forPatternID:triggers:)",
+   "hash": "d56241203741eb7b",
+   "does": "Returns the cached [NSRegularExpression] for a pattern id, compiling each trigger case-insensitively and caching on first use; triggers that fail to compile are silently dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeterministicIntent.compiledCache"
+   ],
+   "writes": [
+    "mem:DeterministicIntent.compiledCache"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cache already has the id",
+     "effect": "returns cached regexes; otherwise compiles (try? → invalid patterns dropped), stores and returns"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "try? NSRegularExpression drops a malformed trigger without any log; the pattern then silently never matches that phrasing.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift:98"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func DeterministicIntent.tryMatch(_:in:)",
+   "hash": "d857f272e8c76710",
+   "does": "Normalizes the utterance, finds the first pattern whose any trigger matches, runs its handler and returns the reply; returns nil (send to LLM) when empty, no match, or handler returned nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:Pattern.handler — the 14 handler closures in DeterministicIntent.patterns"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve",
+    "ud:fitness.unitsPreference (App Group suite via UnitsPreferenceStore.current, legacy standard-suite fallback; body_weight handler)",
+    "mem:UserSettings.bodyWeightKg/maxHR/lactateThresholdHR (via MatchContext.userSettings)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "normalized utterance empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no pattern matches",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "matched handler returned nil (data not ready)",
+     "effect": "logs 'match=<id> but no data' and returns nil; otherwise logs 'served' and returns the answer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "77a1eda622a4fe77",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "b1c043197a492fd5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.matches(_:_:)",
+   "hash": "8a9581cc0ce3eb6f",
+   "does": "True when any compiled trigger of the pattern finds a match anywhere in the full normalized string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "4c62d89861c70e1f"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.normalize(_:)",
+   "hash": "97810d408622f958",
+   "does": "Lowercases, trims whitespace/newlines, then trims '.?!,' from both edges.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DeterministicIntent.dayStart(isYesterday:now:calendar:)",
+   "hash": "1445aca8a8e46520",
+   "does": "Start of the current day for now, or start of the previous calendar day when isYesterday, using calendar.date(byAdding:.day,-1) (DST-safe).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isYesterday false",
+     "effect": "returns startOfDay(now)"
+    },
+    {
+     "at": "+3",
+     "cond": "calendar.date(byAdding:) returns nil",
+     "effect": "?? falls back to today's start (not reachable for Gregorian input); otherwise the previous day's start"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.todaysOvernightEntry(now:archive:)",
+   "hash": "b876d846508a144d",
+   "does": "Returns the newest reliable (isReliableForHRVAggregates) overnight archive entry whose midpoint (date + (endDate??date - date)/2) lies within the local day containing now; nil if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "calendar cannot compute dayEnd",
+     "effect": "returns nil (not reachable for Gregorian)"
+    },
+    {
+     "at": "+12",
+     "cond": "entry.endDate nil",
+     "effect": "?? uses entry.date → duration 0, midpoint = start date; an open session is matched by its start day"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.dayStart(isYesterday:now:calendar:)": "c301b14ed244493c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.relativeDay(_:now:)",
+   "hash": "5793194d1c6ad972",
+   "does": "Spoken day label: RelativeDateTimeFormatter named/full ('today', 'yesterday', '3 days ago') for <14 days, else a localized 'MMMMd' date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "dateComponents.day nil",
+     "effect": "?? Int.max → falls to the absolute date format"
+    },
+    {
+     "at": "+4",
+     "cond": "days < 14",
+     "effect": "relative phrase with -max(0,days) (future dates say 'today'); otherwise MMMMd date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.spokenDuration(minutes:)",
+   "hash": "d4aad7c485934924",
+   "does": "Formats minutes as a full spelled-out duration ('7 hours, 12 minutes') in the app locale; negative input clamped to 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "minutes >= 60",
+     "effect": "allowed units hour+minute; else minute only"
+    },
+    {
+     "at": "+7",
+     "cond": "minutes >= 60",
+     "effect": "zeroFormattingBehavior .dropAll; else .default"
+    },
+    {
+     "at": "+9",
+     "cond": "formatter returns nil",
+     "effect": "?? LocalizedDuration.minutes(minutes) fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.spokenWeight(kg:imperial:)",
+   "hash": "1504d91c5a67c8f8",
+   "does": "Formats body weight with the long unit name: whole pounds when imperial, one-decimal kilograms otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "imperial",
+     "effect": "0 fraction digits; else 1"
+    },
+    {
+     "at": "+7",
+     "cond": "imperial",
+     "effect": "converts to pounds; else kilograms"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.trainedReply(minutes:)",
+   "hash": "c632df41e0d4ab75",
+   "does": "Reply for trained_recently: 'Yes — you logged a workout.' when minutes <= 0, else 'Yes — you trained for <spoken duration>.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.spokenDuration(minutes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "minutes <= 0",
+     "effect": "returns the duration-less sentence; otherwise the duration sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.spokenDuration(minutes:)": "1e59dd60957352c5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

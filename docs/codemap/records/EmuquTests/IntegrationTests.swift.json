@@ -1,0 +1,503 @@
+{
+ "file": "EmuquTests/IntegrationTests.swift",
+ "hash": "fccf8b4702460b24",
+ "role": "Mixed 'acceptance criteria' XCTest suite: reconciliation blocks a duplicate session, archive integrity hash, RRSeries duration, WindowSelector temporal band (8 h vs 2 h), full time/frequency/nonlinear pipeline on seeded data, sleep fetch window extension/chaining, SleepData effective split-night segments, and SessionArchive.normalizedSplitNightSegments collapsing duplicates.",
+ "types": [
+  "IntegrationTests: class — XCTestCase; class setUp/tearDown pin and restore NSTimeZone.default to UTC"
+ ],
+ "state": [
+  "mem:IntegrationTests.savedDefaultTimeZone (static OSAllocatedUnfairLock<TimeZone?>)",
+  "mem:NSTimeZone.default (process-global, set to UTC for the class)"
+ ],
+ "toplevel": "static savedDefaultTimeZone lock holds the process time zone between class setUp and tearDown.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func IntegrationTests.setUp()",
+   "hash": "aaf67210658fbccf",
+   "does": "Saves NSTimeZone.default and sets it to TestTimeZone.utc for the whole class.",
+   "entry": "XCTest class setUp (once before the class's tests)",
+   "calls": [],
+   "reads": [
+    "mem:NSTimeZone.default"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:IntegrationTests.savedDefaultTimeZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func IntegrationTests.tearDown()",
+   "hash": "8eabd0f83edd2a18",
+   "does": "Restores the saved NSTimeZone.default if one was saved, then clears the saved value.",
+   "entry": "XCTest class tearDown (once after the class's tests)",
+   "calls": [],
+   "reads": [
+    "mem:IntegrationTests.savedDefaultTimeZone"
+   ],
+   "writes": [
+    "mem:NSTimeZone.default",
+    "mem:IntegrationTests.savedDefaultTimeZone"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a time zone was saved",
+     "effect": "restores it; otherwise leaves NSTimeZone.default as is"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IntegrationTests.testReconciliationBlocksDuplicateSession()",
+   "hash": "69e85b031812f172",
+   "does": "Archives a completed quick session into a temp-dir archive, asserts ReconciliationManager.sessionExists(id) is true and queueForSync(session) throws a ReconciliationError.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "file:Documents/HRVOffline (ReconciliationManager pending sessions)"
+   ],
+   "writes": [
+    "file:temp ReconciliationTest-<UUID> archive",
+    "file:Documents/HRVOffline (directory created)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "ReconciliationManager(archive:) always uses the host's real Documents/HRVOffline directory (Reconciliation.swift:24-31) and loads its pending sessions, so only the archive is hermetic; leftover pending sessions from the app or other suites are shared state.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:41",
+      "Emuqu/Sources/Storage/Reconciliation.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "fc2191e2b7d8fc89",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "6e8e2fed6dd8bc4d"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testArchiveHashMatchesFileBytes()",
+   "hash": "92b61f20e26238c2",
+   "does": "Archives a completed 200-beat session into a temp-dir archive, asserts verifyIntegrity()[id] == true and retrieve(id) returns the same id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:temp ArchiveHashTest-<UUID> archive"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'HashMatchesFileBytes' but never compares a hash to the file bytes itself; it trusts verifyIntegrity()'s boolean and checks only the retrieved id.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:88",
+      "EmuquTests/IntegrationTests.swift:97"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "0ef85a6a572c5c4c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "6e8e2fed6dd8bc4d"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testDurationCalculation()",
+   "hash": "fa1be50c18295476",
+   "does": "Asserts RRSeries.durationMs for points (0/800, 800/850, 1650/750) is 2400 ms (last t_ms + rr − first t_ms).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testRecoveryWindowSelectionWithTemporalConstraints()",
+   "hash": "6eb3581c07566710",
+   "does": "Builds an 8 h seeded synthetic RR series (two sine waves + seeded noise), detects artifacts, runs WindowSelector.findBestWindow with wake at the end, asserts a window is found and, if it has a relativePosition, that it lies in 0.30…0.70.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for i in 0..<28800",
+     "effect": "appends one synthetic beat per index"
+    },
+    {
+     "at": "+35",
+     "cond": "window non-nil and relativePosition non-nil",
+     "effect": "asserts 0.30 ≤ position ≤ 0.70; when relativePosition is nil the band check is skipped silently"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 30-70% band assertions run only inside `if let window, let relativePosition`; a window without relativePosition passes without any band check.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:161"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testNoRepresentativeWindowForShortSleep()",
+   "hash": "d4d5c1e83d9dad1a",
+   "does": "Builds a 2 h series and asserts WindowSelector.findBestWindow returns nil (no window inside the 30-70% band).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Fixture t_ms advances 1000 ms per beat while rr_ms is 1000 + i%50, so beat timestamps disagree with the intervals the analyzers read.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:183"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testFullAnalysisPipeline()",
+   "hash": "5a9f3c413b214fb0",
+   "does": "On a 300-beat seeded ±100 ms series asserts artifact % < 20, RMSSD and SDNN > 0, total power > 0, SD1 and SD2 > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each of 300 beats",
+     "effect": "appends a seeded random RR"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only asserts metrics are positive; any non-zero output (including wrong values) passes, so it is a smoke test, not a check of the pipeline's numbers.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:239",
+      "EmuquTests/IntegrationTests.swift:250",
+      "EmuquTests/IntegrationTests.swift:260"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func IntegrationTests.createTestSeries(beatCount:sessionId:)",
+   "hash": "11fc520876ef5fb0",
+   "does": "Fixture: RRSeries of beatCount uniform 800 ms beats for a session id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testSleepFetchWindowExtendsToMorningCutoffForOvernight()",
+   "hash": "21d8f494f08e99a1",
+   "does": "Builds an overnight session and asserts sleepFetchWindow keeps the start, ends at schedule.morningCutoff(relativeTo: start) and ends after the session end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The fixture ends before it starts: start = anchor+23 h, end = anchor+3 h (same day), so the session has a negative duration and 'window.end > end' holds trivially; the post-recording extension case it names is never really exercised.",
+     "evidence": [
+      "EmuquTests/IntegrationTests.swift:281",
+      "EmuquTests/IntegrationTests.swift:282",
+      "EmuquTests/IntegrationTests.swift:295"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testSleepFetchWindowUsesChainStartAndExtendsBeyondRecoveryWindow()",
+   "hash": "9eba4baac322d72a",
+   "does": "With overnight segments 22-23 h, 23-25 h (target) and 27-28 h, asserts recoveryPeriodWindow chains to first.start…continuation.end and sleepFetchWindow keeps that start and extends the end to the morning cutoff, beyond the chained end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "4a8f97c3e296dfd5",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(relativeTo:)": "7ac0de5624e8f303",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testSleepFetchWindowDoesNotExtendNonOvernightSessions()",
+   "hash": "2ebe325018ff40eb",
+   "does": "Asserts sleepFetchWindow for a 10-minute quick session at 14:00 returns the session's own start and end (no morning-cutoff extension).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.recoveryPeriodWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "0c8c8d81222f9ca5",
+    "Emuqu/Sources/Models/SessionMetadata+RecoveryPeriod.swift::func HRVSession.sleepFetchWindow(for:allSessions:sleepSchedule:mergeGapSeconds:)": "50e00d94698b0f93",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/IntegrationTests.swift::func IntegrationTests.makeSession(start:end:state:type:)": "6bcd0d6f5fcebab0"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testEffectiveSegmentsKeepValidSplitNight()",
+   "hash": "3eb7d9b74a790f71",
+   "does": "Builds SleepData with two 3 h HealthKit segments an hour apart and asserts effectiveSegments keeps both and nightSleepMinutes is 360.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testNormalizedSplitNightSegmentsCollapsesDuplicateCurrentAndTinyArtifacts()",
+   "hash": "688f54988f61d5c8",
+   "does": "Asserts normalizedSplitNightSegments collapses a full-range duplicate link and a 2-minute tiny link to one segment for a 10 h 5 m current session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testNormalizedSplitNightSegmentsPreservesRealSplitNight()",
+   "hash": "af29501f7c826aed",
+   "does": "Asserts a 22:00-03:00 linked segment plus a 03:40-08:00 current segment remain 2 segments.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func IntegrationTests.testNormalizedSplitNightSegmentsCollapsesHighOverlapLegacyPairs()",
+   "hash": "f3e508b60e4b2a4c",
+   "does": "Asserts two heavily overlapping linked ranges (22:00-07:00 and 22:20-07:30) with a 5-minute current segment collapse to one segment.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "3b3f57d2c5dc60b3",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func IntegrationTests.makeSession(start:end:state:type:)",
+   "hash": "0a6472fa3e8fcb5c",
+   "does": "Fixture: HRVSession with given start, optional end, state and type, no RR or analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  }
+ ],
+ "deps": {}
+}

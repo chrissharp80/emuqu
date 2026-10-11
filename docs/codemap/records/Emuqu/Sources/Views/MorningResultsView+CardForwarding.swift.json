@@ -1,0 +1,196 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift",
+ "hash": "569a99888c36aef6",
+ "role": "MorningResultsView extension that builds a MorningDetailCards value from the view's current state and forwards each detail-card accessor to it; also holds toggleTag.",
+ "types": [
+  "MorningResultsView: extension — forwarders to MorningDetailCards and tag toggling"
+ ],
+ "state": [],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningResultsView.toggleTag(_:)",
+   "hash": "f0c81e4a235df3c6",
+   "does": "Toggles a ReadingTag in vm.selectedTags (remove if present, else insert).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedTags"
+   ],
+   "writes": [
+    "mem:MorningResultsViewModel.selectedTags"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vm.selectedTags contains tag",
+     "effect": "true → removed; false → inserted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningResultsView.cards",
+   "hash": "cf7a5a6e992ccb74",
+   "does": "Constructs MorningDetailCards from vm, session, result, recentSessions, collector, morningCoordination, linkedSegments, onUnlinkSegment, a toggleTag closure, size metrics and bindings (notes, score explainer, unlink confirmation, pending unlink id, removed ids). Rebuilt on every access.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::func MorningResultsView.toggleTag(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::func MorningResultsView.toggleTag(_:)": "f0e17d22e74d1135"
+   }
+  },
+  {
+   "key": "func MorningResultsView.recoveryScoreCard(breakdownMessage:)",
+   "hash": "bfae1cc3eddbcc7e",
+   "does": "Forwards to MorningDetailCards.recoveryScoreCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.recoveryScoreCard(breakdownMessage:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.recoveryScoreCard(breakdownMessage:)": "83e496639d8743e9"
+   }
+  },
+  {
+   "key": "var MorningResultsView.trainingReadinessCard",
+   "hash": "c77493b4eb7d962a",
+   "does": "Forwards to MorningDetailCards.trainingReadinessCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.trainingReadinessCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.trainingReadinessCard": "f089c654f12d23e4"
+   }
+  },
+  {
+   "key": "func MorningResultsView.scoreBreakdownSection(breakdown:)",
+   "hash": "da46cc4a9efcc452",
+   "does": "Forwards to MorningDetailCards.scoreBreakdownSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.scoreBreakdownSection(breakdown:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.scoreBreakdownSection(breakdown:)": "d406704d13e09eb8"
+   }
+  },
+  {
+   "key": "var MorningResultsView.tagsAndNotesSection",
+   "hash": "e006014d184f123b",
+   "does": "Forwards to MorningDetailCards.tagsAndNotesSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.tagsAndNotesSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.tagsAndNotesSection": "8ac1f93a157439a2"
+   }
+  },
+  {
+   "key": "func MorningResultsView.trainingLoadCard(_:)",
+   "hash": "a7aec19cc71261d4",
+   "does": "Forwards to MorningDetailCards.trainingLoadCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.trainingLoadCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.trainingLoadCard(_:)": "d2ea16ee35e15e3f"
+   }
+  },
+  {
+   "key": "var MorningResultsView.hrvMetricCard",
+   "hash": "1cd3e632830e48ea",
+   "does": "Forwards to MorningDetailCards.hrvMetricCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.hrvMetricCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.hrvMetricCard": "5fb846298d731b53"
+   }
+  },
+  {
+   "key": "var MorningResultsView.sleepMetricCardCompact",
+   "hash": "df8d5204f5c989a3",
+   "does": "Forwards to MorningDetailCards.sleepMetricCardCompact.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.sleepMetricCardCompact"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.sleepMetricCardCompact": "c0a875445b997419"
+   }
+  },
+  {
+   "key": "func MorningResultsView.dataSourceSummaryCard(_:)",
+   "hash": "58ce6ad1cbbeb2af",
+   "does": "Forwards to MorningDetailCards.dataSourceSummaryCard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.dataSourceSummaryCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift::var MorningResultsView.cards": "e7e8bbaefdd23d0c",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.dataSourceSummaryCard(_:)": "7b9b4b2e7f805fcc"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,2041 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutPreflightView.swift",
+ "hash": "666705a306d1631d",
+ "role": "Fitness tab pre-flight surface: sport chips + strap status pill, Start button that resolves HR source and hands the plan to FitnessTabView.startWorkout, route disclosure (bound route summary or saved-route/GPX/trail picker), and coaching disclosure (intervals, target zone, smart cues). Also defines Sport.themeColor.",
+ "types": [
+  "WorkoutPreflightView: struct View — plan + start surface reading WorkoutPlanModel from environment",
+  "SportChip: private struct View — selectable sport capsule",
+  "StrapStatusPill: private struct View — Polar connection pill opening the sensor sheet",
+  "BoundRouteSummary: private struct View — map preview + stats for the picked route",
+  "RoutePicker: private struct View — saved-route carousel, Find-a-trail sheet, GPX file importer",
+  "SavedRouteCarouselCard: private struct View — saved route card",
+  "IntervalsRow / TargetZoneRow / ThresholdsRow: private struct View — coaching option rows",
+  "Sport: extension — themeColor for the Start button"
+ ],
+ "state": [
+  "@State RoutePicker.showingDiscoverSheet/showingGPXImporter/gpxImportError",
+  "@State ThresholdsRow.plainText/cueUnrecognized",
+  "global private func preflightAscent",
+  "accessibility identifiers fitness.start, fitness.sport.<raw>, fitness.strapPill, fitness.findTrail"
+ ],
+ "toplevel": "Stored properties collector, recorder, onStart set by FitnessTabView.swift:327 (onStart → FitnessTabView.startWorkout → recorder.start) and UncoveredScreenSnapshotTests.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header and runStartSequence doc say the start sequence waits briefly for the strap and falls back to Watch if it cannot reconnect; the code never waits or falls back — it passes .strap through and only fires connectToLastDevice (as the later comment at 322-335 says).",
+   "evidence": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift:23",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift:296",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift:336"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WorkoutPreflightView.body",
+   "hash": "4a4f4dc9c417b68b",
+   "does": "VStack: sport row, Start button, route disclosure, coaching disclosure.",
+   "entry": "SwiftUI body; built by FitnessTabView.swift:327 when recorderBox.recorder exists, and UncoveredScreenSnapshotTests.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportRow",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startButton",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosure",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingDisclosure"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingDisclosure": "1d66451a11a96b88",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosure": "ac90cd0bda46a9bd",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportRow": "a1cbe471f7832d05",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startButton": "42ba7160c85bce08"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.sportRow",
+   "hash": "567a7e9483433874",
+   "does": "Sport chip scroller plus StrapStatusPill with collector.polarManager injected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChips",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.body": "a88ac154d6a5695c",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChips": "3806627e7f7b267a"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.sportChips",
+   "hash": "93c27d5e2ba752e0",
+   "does": "Horizontal scroll of the chip row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChipRow": "b8c9923bc4fc080d"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.sportChipRow",
+   "hash": "56905de49a2182c7",
+   "does": "HStack of the chip list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChipList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.sportChipList": "0ec4669ca858aff0"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.sportChipList",
+   "hash": "b5b74f4358cd38de",
+   "does": "ForEach Sport.allCases → sportChip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.sportChip(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.sportChip(_:)": "1427551abc88baad"
+   }
+  },
+  {
+   "key": "func WorkoutPreflightView.sportChip(_:)",
+   "hash": "f61f4af851e3303a",
+   "does": "SportChip selected when plan.selectedSport matches; tap sets plan.selectedSport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SportChip.body"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedSport"
+   ],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedSport"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Changing sport does not clear plan.selectedRoute; the picker filters saved routes by sport (556) but a route bound for another sport stays bound (including for treadmill/indoor sports) and is passed to onStart.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:91",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:556",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:318"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SportChip.body": "309cd0e9e968818e"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.routeDisclosure",
+   "hash": "b69381b930638f52",
+   "does": "DisclosureGroup expanded when routeExpanded or a route is selected (setter writes routeExpanded), with body and label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosureBody",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosureLabel",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.routeExpanded",
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "writes": [
+    "mem:WorkoutPlanModel.routeExpanded"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "isExpanded getter ORs in selectedRoute != nil, so while a route is selected the user's collapse tap only clears routeExpanded and the group stays open.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:112",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosureBody": "992ee0bec844da58",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeDisclosureLabel": "15725e4f6baa5b35"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.routeDisclosureBody",
+   "hash": "69841cc5d07c8ead",
+   "does": "BoundRouteSummary when a route is picked, else RoutePicker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.body",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.body"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "plan.selectedRoute non-nil",
+     "effect": "BoundRouteSummary; else RoutePicker"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.body": "297ce33b5ef60e41",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.body": "4e95df822b71120f"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.routeDisclosureLabel",
+   "hash": "b34869651091566c",
+   "does": "Map icon, 'Today's route', route summary text and clear button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeSummary",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.clearRouteButton",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.clearRouteButton": "44bef3c3d93ae8ab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.routeSummary": "c5e4f61c6411fa37"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.clearRouteButton",
+   "hash": "45845fee73b585c8",
+   "does": "'Clear' button that nils plan.selectedRoute, shown only when a route is picked.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedRoute non-nil",
+     "effect": "button; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.routeSummary",
+   "hash": "ecafe2db99a66590",
+   "does": "Selected route name or localized 'None'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "route selected",
+     "effect": "route.name; else 'None'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.coachingRows",
+   "hash": "11b205e8d942148a",
+   "does": "VStack of IntervalsRow, TargetZoneRow, ThresholdsRow separated by dividers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.body",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var TargetZoneRow.body",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.body": "7651cd025327df47",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var TargetZoneRow.body": "3239638daaddcbf6",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.body": "12b36d313b441da7"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.coachingDisclosure",
+   "hash": "ff50143e8b80f04b",
+   "does": "DisclosureGroup bound to plan.coachingExpanded with coaching rows and label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingRows",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingDisclosureLabel",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.coachingExpanded"
+   ],
+   "writes": [
+    "mem:WorkoutPlanModel.coachingExpanded"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingDisclosureLabel": "1e9dc8aa8e96587e",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingRows": "e345611a269c5f02"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.coachingDisclosureLabel",
+   "hash": "68292c2702c570a8",
+   "does": "Ear icon, 'Coaching' title and coaching summary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingSummary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.coachingSummary": "cd3262ae383d00f3"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.coachingSummary",
+   "hash": "695be31170c76645",
+   "does": "Joins 'Z<n>', plan name and '<n> cues' with ' · ', or 'Off' when nothing set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalPlan.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedTargetZone",
+    "mem:WorkoutPlanModel.selectedPlan",
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selectedTargetZone set",
+     "effect": "append 'Z<n>'"
+    },
+    {
+     "at": "+3",
+     "cond": "selectedPlan set",
+     "effect": "append plan displayName"
+    },
+    {
+     "at": "+4",
+     "cond": "thresholds non-empty",
+     "effect": "append '<count> cues'"
+    },
+    {
+     "at": "+7",
+     "cond": "parts empty",
+     "effect": "'Off'; else joined parts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalPlan.displayName": "adf09c42a925f1a0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.startButton",
+   "hash": "0507aa024ec1b77c",
+   "does": "Start button: on tap records the tap time on the latency tracker and launches runStartSequence in a Task; disabled when canStart is false.",
+   "entry": "Button tap (accessibility id fitness.start).",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.canStart(recorderPhase:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.workoutStartLatencyTracker",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordTap()",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.runStartSequence()",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.startButtonLabel(canTap:)"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.phase",
+    "mem:WorkoutPlanModel.startInProgress"
+   ],
+   "writes": [
+    "mem:WorkoutStartLatencyTracker.tapAt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Collection/WorkoutStartLatencyTracker.swift::func WorkoutStartLatencyTracker.recordTap()": "03c95851d5e736e7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.workoutStartLatencyTracker": "62600c830085eac9",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.canStart(recorderPhase:)": "fc5c4ec69e21a196",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.runStartSequence()": "562e73e4d299c3fa",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.startButtonLabel(canTap:)": "b3680ba5715e0d4b",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "func WorkoutPreflightView.startButtonLabel(canTap:)",
+   "hash": "d5decd9fa830870b",
+   "does": "Label: spinner + progress text while startInProgress, else play icon + CTA; sport colour background when tappable, grey otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startCTALabel",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.startInProgress",
+    "mem:WorkoutPlanModel.startProgressLabel"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "plan.startInProgress",
+     "effect": "spinner and progress text; else play icon + startCTALabel"
+    },
+    {
+     "at": "+4",
+     "cond": "startProgressLabel empty",
+     "effect": "'Starting…' (always: nothing writes startProgressLabel); else that label"
+    },
+    {
+     "at": "+17",
+     "cond": "canTap",
+     "effect": "sport themeColor background; else grey 40%"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "runStartSequence sets startInProgress, calls the synchronous onStart and resets it with no suspension point on the main actor, so SwiftUI never renders the in-progress label/spinner.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:256",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:307",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:308",
+      "Emuqu/Sources/Views/FitnessTabView.swift:699"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor": "347367fe9bb26a06",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startCTALabel": "18bd4bb336030c02"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.startCTALabel",
+   "hash": "ac25e72b2c5096d1",
+   "does": "Localized 'Start <sport>' CTA; treadmill and row use fixed strings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "walk/hike",
+     "effect": "'Start <name>'"
+    },
+    {
+     "at": "+4",
+     "cond": "run/trailRun",
+     "effect": "'Start <name>'"
+    },
+    {
+     "at": "+5",
+     "cond": "bike/indoorBike",
+     "effect": "'Start <name>'"
+    },
+    {
+     "at": "+6",
+     "cond": "treadmill",
+     "effect": "'Start Treadmill'"
+    },
+    {
+     "at": "+7",
+     "cond": "row",
+     "effect": "'Start Row'"
+    },
+    {
+     "at": "+8",
+     "cond": "airBike/crossFit",
+     "effect": "'Start <name>'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Four switch arms return the identical interpolated string; the switch only exists to special-case treadmill/row.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:280",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:281",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:282",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:285"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutPreflightView.runStartSequence()",
+   "hash": "efa7aebd91c255f1",
+   "does": "If canStart, marks startInProgress, resolves HR source (kicking a strap reconnect if needed) and calls onStart with sport, target zone, source, plan, thresholds, route; resets startInProgress on exit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.canStart(recorderPhase:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.resolveSourceAndReconnect()",
+    "closure:onStart set by FitnessTabView.swift:330 → FitnessTabView.startWorkout (recorder.start)"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedSport",
+    "mem:WorkoutPlanModel.selectedTargetZone",
+    "mem:WorkoutPlanModel.selectedPlan",
+    "mem:WorkoutPlanModel.selectedThresholds",
+    "mem:WorkoutPlanModel.selectedRoute",
+    "mem:WorkoutRecorder.phase"
+   ],
+   "writes": [
+    "mem:WorkoutPlanModel.startInProgress"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "canStart false (in progress, no phase, recording/finalizing)",
+     "effect": "silent return; else start"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "startInProgress is set, the synchronous onStart runs (FitnessTabView.startWorkout → recorder.start flips phase synchronously) and the defer clears it with no suspension point, so the 'prevents double-fire during the strap-reconnect window' gate (comments 63-66, 298-299) never holds across a render; double taps are stopped only by recorder.phase.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:307",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:308",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:312",
+      "Emuqu/Sources/Views/FitnessTabView.swift:716",
+      "Emuqu/Sources/Views/WorkoutPlanModel.swift:63"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Nothing resets WorkoutPlanModel after a start (created once at FitnessTabView.swift:46, no other writer), so the bound route, interval plan, target zone and smart cues carry into the next workout started from the tab.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:312",
+      "Emuqu/Sources/Views/FitnessTabView.swift:46"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.canStart(recorderPhase:)": "fc5c4ec69e21a196",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.resolveSourceAndReconnect()": "7d9ae69ab1fa4863"
+   }
+  },
+  {
+   "key": "func WorkoutPreflightView.resolveSourceAndReconnect()",
+   "hash": "31dc22f2f53c1e1c",
+   "does": "Resolves HR source from polar state and fires connectToLastDevice (no wait) when the source is strap, not connected and a strap is known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [
+    "ble:Polar last known device (connect attempt)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "source == .strap, not connected, knownDevices non-empty",
+     "effect": "kick reconnect; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "fd314598290b94f0",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)": "3f8da8ee31fa0dfc"
+   }
+  },
+  {
+   "key": "var SportChip.body",
+   "hash": "2d2252c88342778b",
+   "does": "Plain button calling onTap with chipLabel; isSelected trait; id fitness.sport.<raw>.",
+   "entry": "SwiftUI body; Button tap → closure from sportChip.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SportChip.chipLabel",
+    "closure:onTap set by WorkoutPreflightView.sportChip (sets plan.selectedSport)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isSelected",
+     "effect": "add .isSelected trait; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SportChip.chipLabel": "f17ff646040b92a8"
+   }
+  },
+  {
+   "key": "var SportChip.chipLabel",
+   "hash": "0b177d5bc9a478a7",
+   "does": "Icon + localized name capsule; accent fill when selected, outlined otherwise; 44pt min height.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "isSelected",
+     "effect": "accent background; else card background"
+    },
+    {
+     "at": "+11",
+     "cond": "isSelected",
+     "effect": "white text; else primary"
+    },
+    {
+     "at": "+15",
+     "cond": "isSelected",
+     "effect": "clear stroke; else accent 30% stroke"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.icon": "ddc62fcbe71995cf",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.body",
+   "hash": "34a93a8c42e11b7b",
+   "does": "Button setting plan.sensorSheetPresented=true, with pill label and accessibility text.",
+   "entry": "SwiftUI body; tap opens the sensor sheet presented by FitnessTabView.swift:383.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.pillLabel",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.accessibilityText"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.sensorSheetPresented"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.accessibilityText": "9f5c421f03afe907",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.pillLabel": "0eb343d099131345"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.pillLabel",
+   "hash": "9937c5998d3ce0c1",
+   "does": "Capsule with icon and label in the state colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.icon",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.color": "d4975602e422b214",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.icon": "55faa1b3963f30eb",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.icon",
+   "hash": "11447719298d1be6",
+   "does": "SF symbol for connection/feed state.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connected",
+     "effect": "see 437"
+    },
+    {
+     "at": "+3",
+     "cond": "feedStatus == .live",
+     "effect": "radiowaves sensor icon; else warning triangle"
+    },
+    {
+     "at": "+4",
+     "cond": "any other state",
+     "effect": "see 439"
+    },
+    {
+     "at": "+5",
+     "cond": "knownDevices empty",
+     "effect": "antenna slash; else antenna"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.accessibilityText",
+   "hash": "929c07a457063a6e",
+   "does": "Label, plus ConnectionStatusBadge text when connected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager.currentHeartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not connected",
+     "effect": "return label only; else label + ', ' + badge text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.label",
+   "hash": "54f29ae3095f3138",
+   "does": "Short pill text by connection state and device type.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connected",
+     "effect": "switch on connectedDeviceType"
+    },
+    {
+     "at": "+8",
+     "cond": "h10",
+     "effect": "'H10'"
+    },
+    {
+     "at": "+9",
+     "cond": "veritySense",
+     "effect": "'Verity'"
+    },
+    {
+     "at": "+10",
+     "cond": "type nil",
+     "effect": "'Strap'"
+    },
+    {
+     "at": "+12",
+     "cond": "connecting",
+     "effect": "'Connecting…'"
+    },
+    {
+     "at": "+13",
+     "cond": "scanning",
+     "effect": "'Scanning…'"
+    },
+    {
+     "at": "+14",
+     "cond": "disconnected",
+     "effect": "see 467"
+    },
+    {
+     "at": "+15",
+     "cond": "knownDevices empty",
+     "effect": "'No strap'; else 'Tap to connect'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var StrapStatusPill.color",
+   "hash": "2dd4f4718cc569c2",
+   "does": "Pill colour by state; connected uses ConnectionStatusBadge colour (green only when live).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "connected",
+     "effect": "badge colour (green live / orange otherwise)"
+    },
+    {
+     "at": "+6",
+     "cond": "connecting or scanning",
+     "effect": "blue"
+    },
+    {
+     "at": "+7",
+     "cond": "disconnected",
+     "effect": "see 481"
+    },
+    {
+     "at": "+8",
+     "cond": "knownDevices empty",
+     "effect": "gray; else orange"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "a77b7c306fd36c01"
+   }
+  },
+  {
+   "key": "var BoundRouteSummary.body",
+   "hash": "d815c08d8e4f54b5",
+   "does": "Map preview, distance/ascent/climb-count labels and route name.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.mapPreview",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.distanceLabel",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.ascentLabel",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.ascentLabel": "7f548d5dc133b4bc",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.distanceLabel": "c70fcc84e8fcc7da",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var BoundRouteSummary.mapPreview": "bb33aba2575b89e6"
+   }
+  },
+  {
+   "key": "var BoundRouteSummary.distanceLabel",
+   "hash": "21b845ae774840eb",
+   "does": "Route distance formatted in the user's units.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group; getter copies a legacy standard-suite value across once)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var BoundRouteSummary.ascentLabel",
+   "hash": "474c9084a7e9b3a8",
+   "does": "'↑' + ascent in user units.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func preflightAscent(meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func preflightAscent(meters:)": "0b3dd2405ad88ef9"
+   }
+  },
+  {
+   "key": "var BoundRouteSummary.mapPreview",
+   "hash": "719b9788fdd5e304",
+   "does": "Non-interactive MapKit map with the route polyline when it has >=2 trackpoints, else grey placeholder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func BoundRouteSummary.region(for:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "coords.count >= 2",
+     "effect": "Map with polyline; else grey box"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func BoundRouteSummary.region(for:)": "68dd6a10f13d4fbc"
+   }
+  },
+  {
+   "key": "func BoundRouteSummary.region(for:)",
+   "hash": "73ccfe997e895b7c",
+   "does": "Region fitting coords with 1.4 padding and 0.005 minimum span.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe"
+   }
+  },
+  {
+   "key": "var RoutePicker.savedStore",
+   "hash": "c5d353fda24fb518",
+   "does": "dependencies.location.savedRouteStore (SavedRouteStore.shared unless overridden).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9"
+   }
+  },
+  {
+   "key": "var RoutePicker.body",
+   "hash": "e4d81db97f92bec8",
+   "does": "pickerStack wrapped with the trail sheet, GPX importer and error alert.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.withRouteImporters(_:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.pickerStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.withRouteImporters(_:)": "a9dfbd32b5cfe476",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.pickerStack": "27f0a08ec23d45d4"
+   }
+  },
+  {
+   "key": "var RoutePicker.pickerStack",
+   "hash": "0ded722e91c6c5be",
+   "does": "Saved routes for the selected sport, action buttons and 'Or just go' hint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.savedStore",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRoutesSection(_:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.routeActionButtons",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes (file-backed)",
+    "mem:WorkoutPlanModel.selectedSport"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRoutesSection(_:)": "3fa3ff2359daa4a8",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.routeActionButtons": "d8219dafb3e43a62",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.savedStore": "33a539d0a2320314"
+   }
+  },
+  {
+   "key": "func RoutePicker.withRouteImporters(_:)",
+   "hash": "16364ef301047a6b",
+   "does": "Attaches DiscoverTrailsView sheet (selected route → plan.selectedRoute), .gpx/.xml/.data file importer calling importGPX, and an 'Import failed' alert bound to gpxImportError.",
+   "entry": "SwiftUI sheet/fileImporter/alert presentation callbacks.",
+   "calls": [
+    "closure:DiscoverTrailsView.onTrailPicked set here (sets plan.selectedRoute)",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.body",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.importGPX(_:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.gpxErrorDismiss",
+    "ext:fileImporter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "UTType(filenameExtension:'gpx') nil",
+     "effect": "falls back to .data; else gpx type"
+    },
+    {
+     "at": "+16",
+     "cond": "gpxImportError non-nil",
+     "effect": "alert shown; setter false clears error"
+    },
+    {
+     "at": "+17",
+     "cond": "gpxImportError nil",
+     "effect": "message ''; else error text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.body": "8add271da25f437e",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.importGPX(_:)": "3dc76cf05928b184",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.gpxErrorDismiss": "a506183f3823b907"
+   }
+  },
+  {
+   "key": "var RoutePicker.gpxErrorDismiss",
+   "hash": "c81b63b3822c1853",
+   "does": "Cancel 'OK' button clearing gpxImportError.",
+   "entry": "Alert button tap.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RoutePicker.importGPX(_:)",
+   "hash": "55a094331e8409f1",
+   "does": "Reads the picked GPX under security-scoped access, parses it, and binds a Route named after the file to plan.selectedRoute; on any error logs and shows a localized alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:URL.startAccessingSecurityScopedResource",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "file:user-picked .gpx (security scoped)"
+   ],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result is failure or no URL",
+     "effect": "silent return (picker error not shown); else continue"
+    },
+    {
+     "at": "+3",
+     "cond": "access granted",
+     "effect": "stop access on exit; else nothing to stop"
+    },
+    {
+     "at": "+9",
+     "cond": "read/parse throws",
+     "effect": "debugLog + gpxImportError alert; route unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A .failure result from the file importer is dropped by the guard with no log or alert, unlike read/parse errors which show 'Import failed'.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:594",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:602"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var RoutePicker.routeActionButtons",
+   "hash": "1405e5fd50a5aeda",
+   "does": "Find-a-trail and GPX buttons side by side.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.findTrailButton",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.gpxImportButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.findTrailButton": "9d2723cc96ebe641",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var RoutePicker.gpxImportButton": "10e7272e257834b4"
+   }
+  },
+  {
+   "key": "var RoutePicker.gpxImportButton",
+   "hash": "05fae0e53e44f457",
+   "does": "Button that presents the GPX file importer.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var RoutePicker.findTrailButton",
+   "hash": "430df67cd692e345",
+   "does": "Button that presents the trail discovery sheet.",
+   "entry": "Button tap (id fitness.findTrail).",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "USERS_MANUAL calls this 'Discover trails near me (the big terracotta button)'; the button reads 'Find a trail' and is fitnessAccent-tinted, sitting beside a GPX button.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1055",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:644",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:649"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "func RoutePicker.savedRoutesSection(_:)",
+   "hash": "aaebd963da8de3b4",
+   "does": "Header + carousel when saved routes exist, else an empty-state hint naming the sport.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCarousel(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "saved non-empty",
+     "effect": "header + carousel; else empty-state text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCarousel(_:)": "2f2fcc8e2fdd2301"
+   }
+  },
+  {
+   "key": "func RoutePicker.savedRouteCarousel(_:)",
+   "hash": "63ad912d653c578c",
+   "does": "Horizontal scroll of saved route row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteRow(_:)": "45db28e7c8186bbc"
+   }
+  },
+  {
+   "key": "func RoutePicker.savedRouteRow(_:)",
+   "hash": "b00290a8a25a0ab1",
+   "does": "LazyHStack of cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCards(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCards(_:)": "5f27570e7edc302b"
+   }
+  },
+  {
+   "key": "func RoutePicker.savedRouteCards(_:)",
+   "hash": "d6427ded34ddf07b",
+   "does": "First 8 saved routes as cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func RoutePicker.savedRouteCard(_:)": "47353e26ea3595a0"
+   }
+  },
+  {
+   "key": "func RoutePicker.savedRouteCard(_:)",
+   "hash": "e3bd730d214144c5",
+   "does": "Card whose tap binds savedRoute.toRoute() to plan.selectedRoute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.body",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedRoute"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.body": "b92e72521df5fde4"
+   }
+  },
+  {
+   "key": "var SavedRouteCarouselCard.body",
+   "hash": "33f0afb7ce3790f8",
+   "does": "Plain button calling onTap.",
+   "entry": "SwiftUI body; Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.cardBody",
+    "closure:onTap set by RoutePicker.savedRouteCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.cardBody": "f53c17bed810aa7d"
+   }
+  },
+  {
+   "key": "var SavedRouteCarouselCard.cardBody",
+   "hash": "9588fe20d8809da0",
+   "does": "Name and metrics line in a 140pt bordered card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.metricsLine",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.metricsLine": "d5cbad72cc91dca5"
+   }
+  },
+  {
+   "key": "var SavedRouteCarouselCard.metricsLine",
+   "hash": "bf33ceddbd0dbeba",
+   "does": "distance · ascent caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.distanceLabel",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.ascentLabel",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.ascentLabel": "9dab6b2079bcd332",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var SavedRouteCarouselCard.distanceLabel": "35d1e5f8e6554ad8"
+   }
+  },
+  {
+   "key": "var SavedRouteCarouselCard.distanceLabel",
+   "hash": "3606d5bb0b09cd8f",
+   "does": "Saved route distance in user units.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group; getter copies a legacy standard-suite value across once)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "var SavedRouteCarouselCard.ascentLabel",
+   "hash": "06ccba17768bb695",
+   "does": "'↑' + ascent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func preflightAscent(meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func preflightAscent(meters:)": "0b3dd2405ad88ef9"
+   }
+  },
+  {
+   "key": "func preflightAscent(meters:)",
+   "hash": "7a043c8d62424282",
+   "does": "Formats ascent meters as feet when imperial else meters, localized.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [
+    "ud:fitness.unitsPreference (App Group; getter copies a legacy standard-suite value across once)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "resolved units == imperial",
+     "effect": "feet (meters×feetPerMeter); else meters"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements UnitsPreference.formatElevation (feet when imperial else meters via the same localized measurement formatter), minus its rounding.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:748",
+      "Emuqu/Sources/Models/UnitsPreference.swift:45"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)": "540942cff4253f1a"
+   }
+  },
+  {
+   "key": "var IntervalsRow.body",
+   "hash": "11a81b0dd3e6d6d1",
+   "does": "'Structured intervals' caption and chips.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalChips",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalChips": "05aaaa00a702c2f8"
+   }
+  },
+  {
+   "key": "var IntervalsRow.intervalChips",
+   "hash": "d2082189f87974fc",
+   "does": "Horizontal scroll of interval chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalChipRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalChipRow": "053f59f95beff23f"
+   }
+  },
+  {
+   "key": "var IntervalsRow.intervalChipRow",
+   "hash": "744a086553a40c2b",
+   "does": "'Free-form' chip (clears plan) plus preset chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func IntervalsRow.chip(label:isSelected:action:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalPresetChips",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedPlan"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func IntervalsRow.chip(label:isSelected:action:)": "166a558197c136b2",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var IntervalsRow.intervalPresetChips": "6b8d0605dcef8d7f"
+   }
+  },
+  {
+   "key": "var IntervalsRow.intervalPresetChips",
+   "hash": "00cae7be636b624e",
+   "does": "Chip per IntervalPlan.presets; tap selects that preset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func IntervalsRow.chip(label:isSelected:action:)",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalPlan.displayName"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedPlan"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalPlan.displayName": "adf09c42a925f1a0",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func IntervalsRow.chip(label:isSelected:action:)": "166a558197c136b2"
+   }
+  },
+  {
+   "key": "func IntervalsRow.chip(label:isSelected:action:)",
+   "hash": "c6c3c6058abfc75d",
+   "does": "Capsule chip button running the action; accent when selected.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isSelected",
+     "effect": "accent background; else faint"
+    },
+    {
+     "at": "+7",
+     "cond": "isSelected",
+     "effect": "white text; else secondary"
+    },
+    {
+     "at": "+13",
+     "cond": "isSelected",
+     "effect": "add .isSelected trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var TargetZoneRow.body",
+   "hash": "8e73c0dc5c9dcf02",
+   "does": "'Target HR zone' caption and zone chips.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var TargetZoneRow.zoneChipRow",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var TargetZoneRow.zoneChipRow": "e03f801505241d1b"
+   }
+  },
+  {
+   "key": "var TargetZoneRow.zoneChipRow",
+   "hash": "981da7806e1781fd",
+   "does": "'Off' chip and Z1..Z5 chips.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func TargetZoneRow.chip(label:zone:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func TargetZoneRow.chip(label:zone:)": "c6dda22d9b1031c4"
+   }
+  },
+  {
+   "key": "func TargetZoneRow.chip(label:zone:)",
+   "hash": "f73b33389c0ab7a2",
+   "does": "Chip that sets plan.selectedTargetZone to its zone (nil for Off).",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedTargetZone"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "isSelected",
+     "effect": "accent background; else faint"
+    },
+    {
+     "at": "+10",
+     "cond": "isSelected",
+     "effect": "white text; else secondary"
+    },
+    {
+     "at": "+16",
+     "cond": "isSelected",
+     "effect": "add .isSelected trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var ThresholdsRow.body",
+   "hash": "88ccf0595288d510",
+   "does": "'Smart cues' caption, cue list, entry row and unrecognised note; clears cueUnrecognized whenever text changes.",
+   "entry": "SwiftUI body; .onChange(of: plainText).",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.cueList",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.cueEntryRow",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.unrecognizedCueNote",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.cueEntryRow": "6fe507af1c7d1615",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.cueList": "eeb4124366599204",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.unrecognizedCueNote": "6e5b2001486361f5"
+   }
+  },
+  {
+   "key": "var ThresholdsRow.unrecognizedCueNote",
+   "hash": "5149528a4ed05b52",
+   "does": "Attention-coloured hint when the last cue text could not be parsed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cueUnrecognized",
+     "effect": "hint shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText": "bf5f36a9592e827c"
+   }
+  },
+  {
+   "key": "var ThresholdsRow.cueEntryRow",
+   "hash": "bfe7a3c04dbd0459",
+   "does": "Cue TextField bound to plainText plus add button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.addCueButton",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var ThresholdsRow.addCueButton": "76fa0b90727116a9"
+   }
+  },
+  {
+   "key": "var ThresholdsRow.addCueButton",
+   "hash": "ba76562f6b99c9ba",
+   "does": "Plus button calling addThreshold; disabled and grey when text is blank.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.addThreshold()",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trimmed text empty",
+     "effect": "tertiary colour (and disabled); else accent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.addThreshold()": "f1c6a6b6801378d8",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "var ThresholdsRow.cueList",
+   "hash": "5a643156d794c43a",
+   "does": "Rows for plan.selectedThresholds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.cueRow(_:)"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.cueRow(_:)": "5681e7efcbc3c403"
+   }
+  },
+  {
+   "key": "func ThresholdsRow.cueRow(_:)",
+   "hash": "aa986d09aa6eb900",
+   "does": "Cue summary text and remove button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.summary(of:)",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.removeCueButton(_:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.removeCueButton(_:)": "6e1e5082b0682dcc",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func ThresholdsRow.summary(of:)": "fc75ca975a5d08fc"
+   }
+  },
+  {
+   "key": "func ThresholdsRow.removeCueButton(_:)",
+   "hash": "3fe30d3516ad393d",
+   "does": "Button removing the threshold by id from plan.selectedThresholds.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "45e217d6e1c20982"
+   }
+  },
+  {
+   "key": "func ThresholdsRow.addThreshold()",
+   "hash": "a211090ee65527fb",
+   "does": "Parses the trimmed text into a WorkoutThreshold; appends it and clears the field, or flags it unrecognised.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPlanModel.selectedThresholds"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimmed text empty",
+     "effect": "return"
+    },
+    {
+     "at": "+3",
+     "cond": "parsePlainText returns nil",
+     "effect": "cueUnrecognized=true, text kept; else append + clear"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "USERS_MANUAL step 5 says cues on HR-zone, pace, DFA α1 and cadence are supported (e.g. 'pace below 9:00/mi'); parsePlainText only has heart-rate, %FTP, elevation, grade, elapsed, distance and k-shorthand parsers, so such text is rejected as unrecognised (the UI hint itself lists only time/distance/climb/grade/HR).",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1049",
+      "docs/USERS_MANUAL.md:1053",
+      "Emuqu/Sources/Models/WorkoutThreshold.swift:324",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:872"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "b5c317f9b7480dd1"
+   }
+  },
+  {
+   "key": "func ThresholdsRow.summary(of:)",
+   "hash": "54b1d6ed2784b8a5",
+   "does": "Cue display text: userCue, else '🗣 <text>' for natural-language cues, else the metric's default cue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userCue non-nil and non-empty",
+     "effect": "return it (always the case: every parsePlainText parser sets userCue to the typed text)"
+    },
+    {
+     "at": "+2",
+     "cond": "metric == .naturalLanguage",
+     "effect": "return '🗣 ' + text (never reached from the preflight); else fall to line 951 defaultCue(currentValue: value)"
+    },
+    {
+     "at": "+3",
+     "cond": "naturalLanguageText nil (??)",
+     "effect": "interpolates '' after the 🗣"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Thresholds only enter selectedThresholds via addThreshold → parsePlainText, whose parsers all set userCue to the typed text and never produce .naturalLanguage, so lines 948-951 never run.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:948",
+      "Emuqu/Sources/Models/WorkoutThreshold.swift:231",
+      "Emuqu/Sources/Models/WorkoutThreshold.swift:327"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)": "41a82986b765de44"
+   }
+  },
+  {
+   "key": "var Sport.themeColor",
+   "hash": "2d0d6d9bdcc0647a",
+   "does": "Per-sport Start-button colour from AppTheme.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run",
+     "effect": "terracotta"
+    },
+    {
+     "at": "+3",
+     "cond": "trailRun",
+     "effect": "wongAttention"
+    },
+    {
+     "at": "+4",
+     "cond": "walk",
+     "effect": "sage"
+    },
+    {
+     "at": "+5",
+     "cond": "hike",
+     "effect": "wongOptimal"
+    },
+    {
+     "at": "+6",
+     "cond": "bike",
+     "effect": "primary"
+    },
+    {
+     "at": "+7",
+     "cond": "indoorBike",
+     "effect": "primaryDark"
+    },
+    {
+     "at": "+8",
+     "cond": "treadmill",
+     "effect": "primaryLight"
+    },
+    {
+     "at": "+9",
+     "cond": "row",
+     "effect": "dustyRose"
+    },
+    {
+     "at": "+10",
+     "cond": "airBike",
+     "effect": "primaryDark"
+    },
+    {
+     "at": "+11",
+     "cond": "crossFit",
+     "effect": "dustyRose"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "startButtonLabel comment says the background falls back to fitnessAccent for a sport with no colour; themeColor is an exhaustive switch with no fallback.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:269",
+      "Emuqu/Sources/Views/WorkoutPreflightView.swift:962"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,403 @@
+{
+ "file": "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift",
+ "hash": "8ef2c387d97d3853",
+ "role": "Computation half of HRVAnalysisPipeline: wrappers over the time/frequency/nonlinear analyzers, daytime resting HR fetch, ANS metric assembly (stress/PNS/SNS indices, readiness, respiration, nocturnal HR dip), and the whole-night HR summary (30 s rolling-mean nadir, max, mean) over artifact-clean beats.",
+ "types": [
+  "HRVAnalysisPipeline: extension — metric computation",
+  "HRVAnalysisPipeline.CleanBeat: struct (private) — time + HR of a clean beat"
+ ],
+ "state": [
+  "mem:HRVAnalysisPipeline.nadirWindowMs = 30_000"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "nocturnalMedianHR (and from it nocturnalHRDip) is computed from the clean RR of the analysis window passed in, which on the main overnight path is the selected recovery window (the calmest slice) or a peak-capacity slice, not the whole night; the stored 'nocturnal HR dip' compares daytime resting HR with that slice's median and is larger than the whole-night dip it is named after.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:88",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:94",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:101",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:64",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:136"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HRVAnalysisPipeline.nocturnalMedianHR(from:)",
+   "hash": "423d438cde42e0f8",
+   "does": "Median HR (60000/RR) of positive RR values; nil when input or valid values are empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cleanRRs non-empty",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+2",
+     "cond": "rr > 0 ?:",
+     "effect": "non-positive RR dropped"
+    },
+    {
+     "at": "+4",
+     "cond": "any valid HR",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+5",
+     "cond": "even count",
+     "effect": "true: mean of middle two; false: middle value"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Hand-rolled median. The same median-of-sorted logic also exists as RecurrenceClassifier.median, BeatConsistency.median, HealthKitManager+HeartRate median, AppFactResolver+WorkoutDetail median and ArtifactDetector.medianOf.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift:20",
+      "Emuqu/Sources/Services/RecurrenceClassifier.swift:322",
+      "Emuqu/Sources/Analysis/BeatConsistency.swift:536",
+      "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift:233"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)",
+   "hash": "9f8384e223afe091",
+   "does": "Nocturnal dip % = (daytimeHR - nocturnalMedian)/daytimeHR*100; nil when daytime HR <= 0. Can be negative.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "daytimeHR > 0",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)",
+   "hash": "d0251b59d16e4593",
+   "does": "Returns RR (ms) of non-artifact points in [windowStart, windowEnd); no bounds check (callers have already passed TimeDomainAnalyzer's bounds guard).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each index where !flags[i].isArtifact",
+     "effect": "appends RR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)",
+   "hash": "75e94775d52d60ae",
+   "does": "Delegates to TimeDomainAnalyzer.computeTimeDomain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.computeFrequencyDomain(series:flags:start:end:)",
+   "hash": "bbf792ec993070b6",
+   "does": "Delegates to FrequencyDomainAnalyzer.computeFrequencyDomain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.computeNonlinear(series:flags:start:end:)",
+   "hash": "315eb43b8cd7e140",
+   "does": "Delegates to NonlinearAnalyzer.computeNonlinear.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)",
+   "hash": "c9446060355f32a2",
+   "does": "Awaits healthKit.fetchDaytimeRestingHR(for:) (median HealthKit heart-rate samples in the configured awake window before sleep); logs on success, logs .healthKitFetchFailed and returns nil on any thrown error.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchDaytimeRestingHR → Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift:19|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchDaytimeRestingHR(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hr != nil",
+     "effect": "true: debug log 'found'; false: no log, returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "catch",
+     "effect": "error logged at warning level, returns nil — ANS metrics proceed without a dip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.logPipelineError(_:)": "0c1ad38b9671776e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)",
+   "hash": "b6ffaf4a0b856314",
+   "does": "Assembles ANSMetrics from the window's clean RR: Baevsky stress index, PNS index, SNS index (only when stress index exists), readiness score, respiration rate, nocturnal median HR and dip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "52f14825fad851f7",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)": "ca85a19034299ab3",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "77131ad0c4ed2e97",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "d059fbbf3d28f7d3",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e69392b38c207528",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "5884d2ca78926361",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "e8298f96faf8b9fa",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "adf90ec69698848d"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
+   "hash": "e365aaf20ac4ee9b",
+   "does": "Delegates readiness to StressAnalyzer.computeReadinessScore with RMSSD, config baseline RMSSD, DFA alpha1, PNS/SNS, training load adjustment and VO2max.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "98cf8ae21289221d"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)",
+   "hash": "8c383c2a00eaccab",
+   "does": "Nocturnal dip only when both daytime HR and median exist; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "daytimeRestingHR and nocturnalMedian non-nil",
+     "effect": "false: nil; true: nocturnalHRDip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.logPipelineError(_:)",
+   "hash": "fab525acbd9396f1",
+   "does": "Writes the PipelineError description to the debug log at warning level.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription": "8705d307c25baebe"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.attachOvernightHRStats(_:series:flags:)",
+   "hash": "b85bc14177aeb00e",
+   "does": "Sets overnightNadirHR/MinHR (smoothed nadir), nadir time, max and mean HR on the result from the whole series' clean beats; leaves them unset for an empty series or no plausible beats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "points non-empty",
+     "effect": "false: returns unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "overnightHRStats non-nil",
+     "effect": "nil: returns unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)": "6d82ac4491404cf8"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.overnightHRStats(points:flags:)",
+   "hash": "74063f068753160c",
+   "does": "Collects non-artifact beats with plausible HR, returns max, mean and the smoothed 30 s nadir (falling back to the slowest single beat when the recording cannot fill half a window); nil when no beat survives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "idx < flags.count && flags[idx].isArtifact",
+     "effect": "true: beat skipped; beats past the end of flags are kept"
+    },
+    {
+     "at": "+10",
+     "cond": "max and min exist",
+     "effect": "false (no beats): nil"
+    },
+    {
+     "at": "+12",
+     "cond": "smoothedNadir ?? slowest beat",
+     "effect": "nil smoothed nadir: uses the single slowest beat"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)": "3c157b4f140af9fd",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)": "760724051b5fb33c"
+   }
+  },
+  {
+   "key": "func HRVAnalysisPipeline.smoothedNadir(_:)",
+   "hash": "b40f2abd036c079c",
+   "does": "Sliding 30 s window over clean beats: the lowest mean HR among windows spanning >= 15 s, with the midpoint time; nil when no window spans 15 s.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each beat",
+     "effect": "extends window"
+    },
+    {
+     "at": "+6",
+     "cond": "while span > 30 s",
+     "effect": "drops oldest beats"
+    },
+    {
+     "at": "+12",
+     "cond": "span >= 15 s && mean < best",
+     "effect": "true: records new best"
+    },
+    {
+     "at": "+12",
+     "cond": "best?.hr ?? .infinity",
+     "effect": "no best yet: any qualifying window wins"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisPipeline.plausibleHR(of:)",
+   "hash": "13b45dc94cccaaab",
+   "does": "HR of a beat: stored strap HR when 20 < hr < 220, else 60000/RR when RR > 0, else nil; then rejects values outside 25...220.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stored hr in (20,220)",
+     "effect": "true: uses stored HR"
+    },
+    {
+     "at": "+4",
+     "cond": "else rr_ms > 0",
+     "effect": "true: derives from RR; false: nil"
+    },
+    {
+     "at": "+9",
+     "cond": "25 <= hr <= 220",
+     "effect": "false: nil; true: returns"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

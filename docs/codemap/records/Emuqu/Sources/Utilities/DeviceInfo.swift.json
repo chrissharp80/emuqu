@@ -1,0 +1,88 @@
+{
+ "file": "Emuqu/Sources/Utilities/DeviceInfo.swift",
+ "hash": "855cbc18a42335fb",
+ "role": "Isolation-free device facts (family, machine id, OS name/version) for logs, crash reports and trace headers.",
+ "types": [
+  "DeviceInfo: enum — static device facts"
+ ],
+ "state": [
+  "static systemName = 'iOS'"
+ ],
+ "toplevel": "static let systemName = \"iOS\" (constant).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DeviceInfo.model",
+   "hash": "bb903d57e23a81ad",
+   "does": "Maps the uname machine identifier to 'iPad', 'iPhone', 'iPod touch', or returns the raw identifier (e.g. 'arm64' in Simulator).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.machineIdentifier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id starts with iPad",
+     "effect": "'iPad'"
+    },
+    {
+     "at": "+3",
+     "cond": "id starts with iPhone",
+     "effect": "'iPhone'"
+    },
+    {
+     "at": "+4",
+     "cond": "id starts with iPod",
+     "effect": "'iPod touch'; else raw id"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.machineIdentifier": "4ef8ef603f47c603"
+   }
+  },
+  {
+   "key": "var DeviceInfo.machineIdentifier",
+   "hash": "9bd4e7e194098653",
+   "does": "Reads utsname.machine via uname() and returns it as a String.",
+   "entry": null,
+   "calls": [
+    "ext:uname"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "bytes not valid UTF-8",
+     "effect": "'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DeviceInfo.systemVersion",
+   "hash": "c6c6c46e1eba347b",
+   "does": "Returns 'major.minor' or 'major.minor.patch' from ProcessInfo.operatingSystemVersion.",
+   "entry": null,
+   "calls": [
+    "ext:ProcessInfo.operatingSystemVersion"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "patchVersion == 0",
+     "effect": "'major.minor'; else includes patch"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

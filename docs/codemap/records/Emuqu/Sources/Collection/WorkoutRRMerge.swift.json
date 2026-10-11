@@ -1,0 +1,108 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRRMerge.swift",
+ "hash": "519b812dd19e2633",
+ "role": "Pure merge of a finishing workout's strap-streamed RR buffer with Watch-routed RR into one ordered series.",
+ "types": [
+  "WorkoutRRMerge: enum — namespace"
+ ],
+ "state": [],
+ "toplevel": "None.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
+   "hash": "b47e175678f511b5",
+   "does": "Starts from the streaming buffer only when source is .strap. With no Watch-routed points returns it as-is; if any point lacks wallClockMs, appends Watch points and sorts by t_ms; otherwise interleaves both by wall clock and rebuilds t_ms as a running RR sum. Called by snapshotAndMergeRRBuffers (WorkoutRecorder+Stop.swift:173).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.interleaved(_:_:)",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.retimed(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "source == .strap",
+     "effect": "starts from streaming points; else empty (stale strap buffer ignored)"
+    },
+    {
+     "at": "+6",
+     "cond": "watchRouted empty",
+     "effect": "returns points unchanged"
+    },
+    {
+     "at": "+7",
+     "cond": "some point lacks wallClockMs",
+     "effect": "appends watch points and sorts by t_ms (phone t_ms omits BLE gaps, so watch beats can land in the wrong place); otherwise interleave+retime"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.interleaved(_:_:)": "326269338099d009",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.retimed(_:)": "d344901165c1c21c"
+   }
+  },
+  {
+   "key": "func WorkoutRRMerge.interleaved(_:_:)",
+   "hash": "7237f175f8c69b16",
+   "does": "Two-pointer merge of phone and watch lists by wallClockMs, preserving each list's order; ties go to phone.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "either list has remaining points",
+     "effect": "loops"
+    },
+    {
+     "at": "+6",
+     "cond": "watch exhausted, or phone has a point with wallClock <= watch wallClock",
+     "effect": "takes phone; else takes watch. ?? 0 fallbacks are unreachable because the caller guarantees all wallClockMs non-nil"
+    },
+    {
+     "at": "+7",
+     "cond": "takePhone",
+     "effect": "appends phone[p] else watch[w]"
+    },
+    {
+     "at": "+8",
+     "cond": "takePhone",
+     "effect": "advances p else w"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "7e1894cd589db307"
+   }
+  },
+  {
+   "key": "func WorkoutRRMerge.retimed(_:)",
+   "hash": "211ace5ac4b40572",
+   "does": "Rebuilds t_ms as the running sum of rr_ms starting at the first point's t_ms, keeping rr, wallClock and hr.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "?? 0 starting clock (map over empty returns [])"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,664 @@
+{
+ "file": "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift",
+ "hash": "fa8c5c94c9e306fd",
+ "role": "Three record-tab cards for strap data handling: RecoverableDataCard (offer to recover or discard a recording left on the strap), FetchProgressCard (stage/progress/cancel UI for a strap download) and RetryFetchCard (failed-download card with retry/cancel/dismiss). Pure presentation; all actions arrive as closures.",
+ "types": [
+  "RecoverableDataCard: struct — View; recover / discard prompt for data found on the strap",
+  "FetchProgressCard: struct — View; shows StrapFetchProgress stage, attempt, bar, percentage, Cancel",
+  "RetryFetchCard: struct — View; failed fetch card with humanised reason, Retry, Cancel retry, Dismiss"
+ ],
+ "state": [],
+ "toplevel": "No global state. Stored lets/vars are view inputs only (deviceName, closures, progress, isRetrying, isConnected, errorReason).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoverableDataCard.body",
+   "hash": "f2ba4120496b625a",
+   "does": "Lays out the recoverable-data card: header, explanatory text that recovering keeps the data and a new recording clears it, Recover button and Discard & Start Fresh button on a primary-tinted rounded card.",
+   "entry": "SwiftUI view body; RecoverableDataCard is built by RecordView.recoverableDataSection (RecordView+Sections.swift:109) and ComponentSnapshotTests.swift:43",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoveryPromptHeader",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoverDataButton",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.discardStartFreshButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.discardStartFreshButton": "291cb5e544a6b6c1",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoverDataButton": "107f8d48445be332",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoveryPromptHeader": "5082cdead4ddf482",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoverableDataCard.recoveryPromptHeader",
+   "hash": "dca895609b0fbf4f",
+   "does": "Header row: drive-badge icon, 'Data Found on <deviceName>' headline and 'Previous recording available to recover' caption.",
+   "entry": "SwiftUI subview of RecoverableDataCard.body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecoverableDataCard.recoverDataButton",
+   "hash": "441f455cdf570f2f",
+   "does": "Prominent 'Recover Data' button that invokes the onRecover closure (RecordView.recoverStoredData → RecordPanels.recoverStoredData → collector.recoverFromDevice).",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onRecover set by RecordView+Sections.swift:111 to RecordView.recoverStoredData (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var RecoverableDataCard.discardStartFreshButton",
+   "hash": "bb4e439745f90f78",
+   "does": "Bordered red 'Discard & Start Fresh' button that invokes onDiscard (RecordView.discardAndStartFresh → PolarManager.discardStoredExercises), deleting the strap's stored recordings.",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onDiscard set by RecordView+Sections.swift:112 to RecordView.discardAndStartFresh (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.body",
+   "hash": "b8290ae5f6755268",
+   "does": "Stacks status row, progress bar, percentage row and Cancel button on a background colour chosen by stage (progressBackgroundColor).",
+   "entry": "SwiftUI view body; FetchProgressCard built by RecordPanels.fetchProgressSection (RecordView+Panels.swift:51) when deviceStatus.fetchProgress != nil, and by ComponentSnapshotTests.swift:54/71",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.statusRow",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.progressBar",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.percentageRow",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.cancelFetchButton",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressBackgroundColor(for:)"
+   ],
+   "reads": [
+    "mem:DeviceStatus.fetchProgress (via progress input)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressBackgroundColor(for:)": "2266bd7e45a3510e",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.cancelFetchButton": "46c9b8dfc3345fac",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.percentageRow": "9cc9e6ac626913a7",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.progressBar": "61362b2cd12d682a",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.statusRow": "dddc1f68f9276d4c",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.statusRow",
+   "hash": "f598325a1114a8a9",
+   "does": "Row with the stage icon tinted by stage colour, the stage text block and an in-flight spinner.",
+   "entry": "SwiftUI subview of FetchProgressCard.body",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressIcon(for:)",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressColor(for:)",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.statusText",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.inFlightSpinner"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressColor(for:)": "ff00d5465fbaa7e3",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressIcon(for:)": "3ad0cb3ca286e2fb",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.inFlightSpinner": "72c84e37ee6fb766",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.statusText": "6ca78b38880a6e3e"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.statusText",
+   "hash": "80857d22197ecaa0",
+   "does": "Shows the localized stage text and, from the second attempt on, an orange 'Attempt N of M' caption.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.stageText(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "progress.attempt > 1",
+     "effect": "true: shows orange 'Attempt <attempt> of <maxAttempts>' caption; false: only the stage text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.stageText(_:)": "3e2b35a3c8a349a6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func FetchProgressCard.stageText(_:)",
+   "hash": "69ed00b276773966",
+   "does": "Maps each StrapFetchProgress.Stage to its localized user-facing sentence instead of the English raw value/statusMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".stopping",
+     "effect": "'Stopping recording…'"
+    },
+    {
+     "at": "+3",
+     "cond": ".finalizing",
+     "effect": "'Waiting for the device to finish saving…'"
+    },
+    {
+     "at": "+4",
+     "cond": ".listingExercises",
+     "effect": "'Finding recorded data…'"
+    },
+    {
+     "at": "+5",
+     "cond": ".fetchingData",
+     "effect": "'Downloading from the device…'"
+    },
+    {
+     "at": "+6",
+     "cond": ".reconnecting",
+     "effect": "'Reconnecting to the device…'"
+    },
+    {
+     "at": "+7",
+     "cond": ".retrying",
+     "effect": "'Retrying…'"
+    },
+    {
+     "at": "+8",
+     "cond": ".complete",
+     "effect": "'Download complete'"
+    },
+    {
+     "at": "+9",
+     "cond": ".failed",
+     "effect": "'Download failed'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Stages .listingExercises, .retrying and .failed are never published in production: every updateProgress call uses .stopping/.finalizing/.reconnecting/.fetchingData/.complete, and a failed transfer sets fetchProgress = nil instead of .failed. Only ComponentSnapshotTests builds a .retrying card. The 'Finding recorded data…', 'Retrying…' and 'Download failed' texts (and matching icon/colour cases) are never shown to users.",
+     "evidence": [
+      "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:125",
+      "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:128",
+      "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:130",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:132",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:153",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:226",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:283",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:400",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:428",
+      "EmuquTests/ComponentSnapshotTests.swift:73"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.inFlightSpinner",
+   "hash": "a397655707506786",
+   "does": "Small ProgressView while the fetch is in flight.",
+   "entry": "SwiftUI subview",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stage is neither .complete nor .failed",
+     "effect": "true: shows a 0.8-scaled spinner; false: renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FetchProgressCard.progressBar",
+   "hash": "a131eee6bd2afbec",
+   "does": "8pt-high GeometryReader wrapping progressTrack with the available width.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressTrack(width:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressTrack(width:)": "b4beebfc4f441237"
+   }
+  },
+  {
+   "key": "func FetchProgressCard.progressTrack(width:)",
+   "hash": "537e176dea32246a",
+   "does": "Grey 8pt track with a stage-coloured fill of width width*progress.progress, animated on progress changes. progress.progress is not clamped, so a value outside 0…1 draws a fill wider than the track or a negative width.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressColor(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::func FetchProgressCard.progressColor(for:)": "ff00d5465fbaa7e3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.percentageRow",
+   "hash": "68773e1828cf3bc2",
+   "does": "Shows integer percentage (progress*100) and, while retrying or failed, the reassurance 'Data is safe on <deviceName>'.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "stage == .retrying || stage == .failed",
+     "effect": "true: adds 'Data is safe on <deviceName>' caption; false: percentage only"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The 'Data is safe on <device>' reassurance (stage == .retrying || .failed) never shows in production because neither stage is ever set; on failure fetchProgress becomes nil and the card disappears.",
+     "evidence": [
+      "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift:173",
+      "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift:132",
+      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:203"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FetchProgressCard.cancelFetchButton",
+   "hash": "52680e8470f63f3a",
+   "does": "Bordered Cancel button calling onCancel (RecordPanels sets it to collector.polarManager.cancelFetch()) for every stage except complete.",
+   "entry": "SwiftUI subview; button tap by user",
+   "calls": [
+    "closure:onCancel set by RecordView+Panels.swift:54 to PolarManager.cancelFetch (Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stage != .complete",
+     "effect": "true: Cancel button shown (including .failed); false: nothing rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FetchProgressCard.progressIcon(for:)",
+   "hash": "09b8b22d7526d7ca",
+   "does": "Maps stage to an SF Symbol image.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".stopping",
+     "effect": "stop.circle"
+    },
+    {
+     "at": "+4",
+     "cond": ".finalizing",
+     "effect": "externaldrive"
+    },
+    {
+     "at": "+6",
+     "cond": ".listingExercises",
+     "effect": "magnifyingglass"
+    },
+    {
+     "at": "+8",
+     "cond": ".fetchingData",
+     "effect": "arrow.down.circle"
+    },
+    {
+     "at": "+10",
+     "cond": ".reconnecting",
+     "effect": "antenna.radiowaves.left.and.right"
+    },
+    {
+     "at": "+12",
+     "cond": ".retrying",
+     "effect": "arrow.clockwise"
+    },
+    {
+     "at": "+14",
+     "cond": ".complete",
+     "effect": "checkmark.circle.fill"
+    },
+    {
+     "at": "+16",
+     "cond": ".failed",
+     "effect": "exclamationmark.triangle.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FetchProgressCard.progressColor(for:)",
+   "hash": "e7e28e7ff2fbccd7",
+   "does": "Maps stage to tint colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".stopping/.finalizing/.listingExercises/.fetchingData",
+     "effect": "AppTheme.primary"
+    },
+    {
+     "at": "+4",
+     "cond": ".reconnecting/.retrying",
+     "effect": "orange"
+    },
+    {
+     "at": "+6",
+     "cond": ".complete",
+     "effect": "AppTheme.sage"
+    },
+    {
+     "at": "+8",
+     "cond": ".failed",
+     "effect": "red"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func FetchProgressCard.progressBackgroundColor(for:)",
+   "hash": "ed61294171177386",
+   "does": "Maps stage to card background colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".reconnecting/.retrying",
+     "effect": "orange 10% opacity"
+    },
+    {
+     "at": "+4",
+     "cond": ".complete",
+     "effect": "sage 10%"
+    },
+    {
+     "at": "+6",
+     "cond": ".failed",
+     "effect": "red 10%"
+    },
+    {
+     "at": "+8",
+     "cond": "default (stopping/finalizing/listingExercises/fetchingData)",
+     "effect": "AppTheme.sectionTint"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.body",
+   "hash": "2fba8e395e7516fd",
+   "does": "Stacks failure header, reason text, data-stays-on-strap note, Retry, Cancel (only while retrying) and Dismiss buttons on an orange-tinted card.",
+   "entry": "SwiftUI view body; RetryFetchCard built by RecordView.retryFetchSection (RecordView+Sections.swift:140) when fetchFailed is true",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.fetchFailedHeader",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.failureReasonText",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.dataStaysOnStrapNote",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.retryFetchButton",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.cancelRetryButton",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.dismissFailureButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.cancelRetryButton": "428c9acb55757c1d",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.dataStaysOnStrapNote": "75ef3dfcf759fd93",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.dismissFailureButton": "4f5b10c590bf98fd",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.failureReasonText": "03242605d4f4a2fe",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.fetchFailedHeader": "18f56d7c92fd4bdb",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.retryFetchButton": "6a6123fec0e9b590",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.fetchFailedHeader",
+   "hash": "d3b2e77a2a39591a",
+   "does": "Orange warning icon with 'Data Fetch Failed' headline and 'Your recording data is still on the device' caption.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.failureReasonText",
+   "hash": "a0746977efce213f",
+   "does": "Shows the humanised error reason when present, else a generic 'not retrieved successfully… data is still stored on your device' paragraph.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SessionState.lastError (via errorReason input)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "errorReason is non-nil and non-empty",
+     "effect": "true: shows the reason (RecordView passes PolarErrorMessages.humanize(sessionState.lastError)); false: generic copy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "errorReason is whatever sessionState.lastError last held. RecordView.stopInternalRecording sets fetchFailed = true on the notConnected throw without writing lastError, so the card can show an older, unrelated error as the reason for this failure.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordView+Sections.swift:146",
+      "Emuqu/Sources/Views/RecordView+Actions.swift:125",
+      "Emuqu/Sources/Views/RecordView+Actions.swift:127",
+      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:87"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.dataStaysOnStrapNote",
+   "hash": "df494613f08241af",
+   "does": "Static caption explaining the data stays on the strap until a new recording starts.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.retryFetchButton",
+   "hash": "23e4daa65791e993",
+   "does": "Prominent orange Retry button calling onRetry (RecordView.retryFetch); disabled while a retry is in flight or the strap is not connected.",
+   "entry": "Button tap by user",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.retryFetchLabel",
+    "closure:onRetry set by RecordView+Sections.swift:147 to RecordView.retryFetch (Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.retryFetch())"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.retryFetchLabel": "6ce969dffc34431e"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.retryFetchLabel",
+   "hash": "c7f53af5eac17fce",
+   "does": "Retry button label: spinner plus 'Fetching...' while retrying, otherwise 'Retry Fetch Data'.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRetrying",
+     "effect": "true: shows white spinner; false: no spinner"
+    },
+    {
+     "at": "+7",
+     "cond": "isRetrying ? :",
+     "effect": "true: label 'Fetching...'; false: 'Retry Fetch Data'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.cancelRetryButton",
+   "hash": "272b96bfd97b6df7",
+   "does": "Red Cancel button calling onCancelRetry (RecordView.cancelFetchRetry → polarManager.cancelFetch, isRetrying=false), shown only while retrying.",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onCancelRetry set by RecordView+Sections.swift:148 to RecordView.cancelFetchRetry (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.cancelFetchRetry())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isRetrying",
+     "effect": "true: Cancel button shown; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RetryFetchCard.dismissFailureButton",
+   "hash": "7ed7cab7b00c9f03",
+   "does": "Bordered Dismiss button calling onDismiss (RecordView.dismissFailedFetch: fetchFailed=false, collector.resetSession(), selectedSessionType=nil).",
+   "entry": "Button tap by user",
+   "calls": [
+    "closure:onDismiss set by RecordView+Sections.swift:149 to RecordView.dismissFailedFetch (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissFailedFetch())",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}
