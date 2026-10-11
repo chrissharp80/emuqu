@@ -1,0 +1,1335 @@
+{
+ "file": "Emuqu/Sources/Views/ThresholdCards+Cards.swift",
+ "hash": "2ffd130961790f4c",
+ "role": "Builds the post-workout summary's LT1 estimate card, α1 threshold-crossings card (crossing detector state machine), derived-metrics card (moving time, VAM, grade-adjusted pace, calorie rate, stride length, power:HR) and HR-zone distribution card; also declares UserSettingsBridge (settings snapshot) and Alpha1StatsCache (single-slot cache used by Alpha1ReportCards).",
+ "types": [
+  "ThresholdCards: extension — card builders and crossing detection",
+  "ThresholdCards.Alpha1Crossing: struct (+ Kind enum downAT1/upAT1/downAT2/upAT2) — one crossing event",
+  "ThresholdCards.BandTracker: struct — pending/sustain state per α1 band",
+  "ThresholdCards.DerivedRow: struct — label/value/sub row",
+  "UserSettingsBridge: struct — userMaxHR + weightKg snapshot",
+  "Alpha1StatsCache: final class (@MainActor) — LRU(1) cache of FitnessPostSummaryView.Alpha1Stats",
+  "Alpha1StatsCache.Key: struct — sessionId + sample-shape fingerprint"
+ ],
+ "state": [
+  "mem:Alpha1StatsCache.shared (singleton, served via AppDependencies UtilityServices.alpha1StatsCache)",
+  "mem:Alpha1StatsCache.cachedKey/cachedValue",
+  "ThresholdCards.alpha1WarmupSec = 120 (static)",
+  "ThresholdCards.alpha1SustainSec = 180 (static)"
+ ],
+ "toplevel": "File header notes the removed LTHR-update suggestion (LT1 ≠ LTHR). File-scope private helpers: gradeAdjustedSecondsPerMetre, lt1Readout, arm, derivedMetricsList/Row/Sublabel, movingTimeRow, stepCount, movingSeconds, isMoving, hasMovementSignal, zoneCardHeader.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ThresholdCards.alpha1LT1EstimateCard",
+   "hash": "a9f1fa25af8c6f11",
+   "does": "Runs the crossing detector on the session's workout samples and, if a downward AT1 crossing with HR exists, shows a card with that HR as the α1-estimated LT1, its time offset and an accuracy caveat (±10 bpm); otherwise renders nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.workoutMetadata?.samples ?? []",
+     "effect": "no metadata: empty samples → no crossings → no card"
+    },
+    {
+     "at": "+5",
+     "cond": "first .downAT1 crossing with non-nil hr exists",
+     "effect": "true: LT1 card; false: empty"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/FLOWCHART.md:1405-1406 still says the UI surfaces the α1 LT1 estimate as a suggested LTHR override; the code (and ARCHITECTURE.md:1446+) deliberately shows it only as an estimate with no suggestion.",
+     "evidence": [
+      "docs/FLOWCHART.md:1405",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:8",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func lt1Readout(lt1HR:offsetSec:)": "835a6d74d7727411",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "df033a3e5a600785"
+   }
+  },
+  {
+   "key": "var ThresholdCards.lt1CardHeader",
+   "hash": "cd5adf44ac35d753",
+   "does": "Header 'α1-estimated aerobic threshold (LT1)' with 'estimate' tag.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var ThresholdCards.alpha1CrossingsCard",
+   "hash": "6b763bc409c4a242",
+   "does": "Detects crossings and shows the 'Threshold crossings' list, or EmptyView when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.workoutMetadata?.samples ?? []",
+     "effect": "no metadata: empty"
+    },
+    {
+     "at": "+4",
+     "cond": "crossings.isEmpty",
+     "effect": "true: EmptyView; false: list card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingsList(_:)": "1256f2aea963f9de",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8"
+   }
+  },
+  {
+   "key": "func ThresholdCards.crossingsList(_:)",
+   "hash": "2e96ca8742756de9",
+   "does": "Card listing each crossing row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.alpha1CrossingRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.alpha1CrossingRow(_:)": "5d6292eef6027b72"
+   }
+  },
+  {
+   "key": "func ThresholdCards.detectAlpha1Crossings(samples:)",
+   "hash": "3f8fcb75df5e4937",
+   "does": "Walks α1 samples: per sample dt = max(1, offset − previous α1 offset), skips the first 120 s, and feeds AT1 (0.75) and AT2 (0.50) BandTrackers; a down-crossing commits after 180 s of accumulated sub-threshold time and an up-crossing is emitted on recovery after a committed down. Returns at most 6 events.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each sample",
+     "effect": "loop over all workout samples"
+    },
+    {
+     "at": "+7",
+     "cond": "s.alpha1 is nil",
+     "effect": "skip sample (prevOff not advanced)"
+    },
+    {
+     "at": "+12",
+     "cond": "offsetSec < 120 OR no previous α1 value",
+     "effect": "skip as warm-up/priming (last still updated via defer)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "high",
+     "text": "dt is the raw gap since the previous α1 sample with no cap, so after a strap dropout one sub-0.75 sample is credited the whole gap and can satisfy the 180 s sustain alone, committing a 'Through AT1' crossing and an LT1 HR. Alpha1ReportCards fixed exactly this by capping each sample at 5 s (sampleSeconds/maxSampleGapSec) and excluding ectopic-shadow samples; this detector does neither, contradicting its own comment that one ectopic 'can no longer drive a crossing event'.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:137",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:125",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:451",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:421"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "Second AT1-crossing detector alongside Alpha1ReportCards.AT1CrossDetector.step / alpha1BandTotals (used by the α1 report, snapshot builder and PDF). Rules differ (gap cap, shadow exclusion), so the LT1 card's crossing time/HR can disagree with the α1 report's firstAT1Crossing for the same workout.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:129",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:400",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:432"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test calls detectAlpha1Crossings (grep of EmuquTests finds only derivedMetricRows), so the detector that produces the LT1 HR estimate and the crossings card has no coverage, including the dropout-gap case.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:129",
+      "EmuquTests/ViewSnapshotTests.swift:103"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.advance(_:prev:current:sample:dt:into:)": "09c803422060c406"
+   }
+  },
+  {
+   "key": "func ThresholdCards.advance(_:prev:current:sample:dt:into:)",
+   "hash": "db398fd64e258d33",
+   "does": "Feeds one sample to one band: below threshold → arm (start pending on the crossing sample, accumulate time); at/above → release; then try to commit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func arm(_:current:sample:dt:crossedNow:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.release(_:current:sample:into:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.commitIfSustained(_:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "current < threshold",
+     "effect": "true: arm with crossedNow = prev ≥ threshold; false: release (emit up-crossing if a committed down existed, reset)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.commitIfSustained(_:into:)": "f39d4a4380b41546",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.release(_:current:sample:into:)": "916e3d301b9872d3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func arm(_:current:sample:dt:crossedNow:)": "da457ad62556e2a5"
+   }
+  },
+  {
+   "key": "func ThresholdCards.release(_:current:sample:into:)",
+   "hash": "fb59cbc2138b6578",
+   "does": "Emits the up-crossing event if a pending down-crossing had been sustained ≥180 s, then clears pending and the sustain counter.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "pending != nil AND sustained ≥ 180 s",
+     "effect": "true: append up-kind event at this sample; false: nothing emitted (short dip discarded)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ThresholdCards.commitIfSustained(_:into:)",
+   "hash": "d0570617d93e8d5c",
+   "does": "Appends the pending down-crossing once sustained ≥180 s and not already emitted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pending exists, sustained ≥ 180, not already in out",
+     "effect": "true: append; false: return"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ThresholdCards.unitsPref",
+   "hash": "0a455c8493554faf",
+   "does": "Current units preference from UnitsPreferenceStore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "func ThresholdCards.alpha1CrossingRow(_:)",
+   "hash": "15dd5aed93f14cf2",
+   "does": "Row: colored dot, crossing label, mm:ss offset, then HR/pace detail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingColor(_:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingLabel(_:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingDetail(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingColor(_:)": "e29fa4bddf58cc5a",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingDetail(_:)": "1d4e4d5e865fa1b9",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.crossingLabel(_:)": "b838163356c26bbf",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ThresholdCards.crossingDetail(_:)",
+   "hash": "8e8c04eec1a10f3b",
+   "does": "HR '<n> bpm' when present and pace formatted per units preference when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "c.hr non-nil",
+     "effect": "show HR"
+    },
+    {
+     "at": "+7",
+     "cond": "c.paceSecPerKm non-nil and formatPace returns a string",
+     "effect": "show pace; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+   }
+  },
+  {
+   "key": "func ThresholdCards.crossingLabel(_:)",
+   "hash": "954e9f9a4d09d113",
+   "does": "Localized label per crossing kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".downAT1",
+     "effect": "'Through AT1 ↓'"
+    },
+    {
+     "at": "+3",
+     "cond": ".upAT1",
+     "effect": "'Back above AT1 ↑'"
+    },
+    {
+     "at": "+4",
+     "cond": ".downAT2",
+     "effect": "'Through AT2 ↓ (hard)'"
+    },
+    {
+     "at": "+5",
+     "cond": ".upAT2",
+     "effect": "'Back above AT2 ↑'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ThresholdCards.crossingColor(_:)",
+   "hash": "bbed680d7c1eb75e",
+   "does": "Dot color per crossing kind.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".downAT1",
+     "effect": "yellow"
+    },
+    {
+     "at": "+3",
+     "cond": ".upAT1",
+     "effect": "sage"
+    },
+    {
+     "at": "+4",
+     "cond": ".downAT2",
+     "effect": "orange"
+    },
+    {
+     "at": "+5",
+     "cond": ".upAT2",
+     "effect": "yellow"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ThresholdCards.derivedMetricsCard",
+   "hash": "19448c78f70cf006",
+   "does": "Builds derived rows from the session's samples and shows the card only when at least one row exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricsList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "samples ?? []",
+     "effect": "no metadata: empty"
+    },
+    {
+     "at": "+3",
+     "cond": "samples.isEmpty",
+     "effect": "true: no rows; false: derivedMetricRows"
+    },
+    {
+     "at": "+4",
+     "cond": "!bodyRows.isEmpty",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.derivedMetricRows(samples:)": "10171a0c6657e0f3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricsList(_:)": "5fc6b9571989d703"
+   }
+  },
+  {
+   "key": "func ThresholdCards.derivedMetricRows(samples:)",
+   "hash": "b0fe4d19aae7f030",
+   "does": "Computes moving time, VAM, grade-adjusted pace, calorie rate, stride length and power:HR rows, dropping nils.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingTimeRow(samples:duration:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.duration ?? 0",
+     "effect": "no endDate: duration 0 → every duration-gated row returns nil (only power:HR can appear)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.calorieRateRow(samples:duration:)": "60a1b612ca4695c1",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)": "f172433a0b1cf20b",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.powerToHRRow(meta:)": "2930e40a31d83190",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.strideLengthRow(samples:meta:duration:)": "f160b56ded349420",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.vamRow(meta:duration:)": "fd369e379e51d5ef",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingTimeRow(samples:duration:)": "ff51b95756bf7e32"
+   }
+  },
+  {
+   "key": "func ThresholdCards.vamRow(meta:duration:)",
+   "hash": "61132a1bb6c19210",
+   "does": "VAM = elevation gain ÷ hours, shown as ft/h (imperial) or m/h.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "gain present and >10 m and duration >60 s",
+     "effect": "false: nil (no row)"
+    },
+    {
+     "at": "+5",
+     "cond": "resolved == .imperial",
+     "effect": "ft/h"
+    },
+    {
+     "at": "+7",
+     "cond": "resolved .metric/.auto",
+     "effect": "m/h"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+   }
+  },
+  {
+   "key": "func ThresholdCards.gradeAdjustedPaceRow(samples:meta:duration:)",
+   "hash": "9d4712e11de4e653",
+   "does": "Grade-adjusted pace from elapsed duration ÷ distance minus 2 s/km per % net grade, when ≥30 paced samples, duration >300 s and distance >500 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paceSecPerKm ?? 0 > 0",
+     "effect": "samples without pace excluded from count"
+    },
+    {
+     "at": "+2",
+     "cond": "≥30 paced samples, duration>300, distance>500",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+4",
+     "cond": "formatPace returns nil",
+     "effect": "nil (no row)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The 'average pace' being grade-adjusted is total elapsed duration ÷ distance (gradeAdjustedSecondsPerMetre), so stops/pauses inflate it; a workout with a long stop shows a grade-adjusted pace slower than any pace actually run.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:304",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:575"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)": "fc68e56f56166fcf",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f"
+   }
+  },
+  {
+   "key": "func ThresholdCards.calorieRateRow(samples:duration:)",
+   "hash": "8a5742925a807259",
+   "does": "Calorie rate = arithmetic mean of sample METs × user body weight (kcal/h).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "duration > 60",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+3",
+     "cond": "any sample has METs",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+   }
+  },
+  {
+   "key": "func ThresholdCards.strideLengthRow(samples:meta:duration:)",
+   "hash": "d42ef1ce862cec99",
+   "does": "Stride length = distance ÷ steps from cadence integration, in ft (imperial, 1 dp) or m (2 dp).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance >100 m and duration >60 s",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+3",
+     "cond": "totalSteps > 0",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+7",
+     "cond": "resolved == .imperial",
+     "effect": "feet"
+    },
+    {
+     "at": "+9",
+     "cond": "resolved .metric/.auto",
+     "effect": "metres"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.unitsPref": "830b1ee930df0d0f",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.format(_:_:fractionDigits:)": "540942cff4253f1a"
+   }
+  },
+  {
+   "key": "func ThresholdCards.powerToHRRow(meta:)",
+   "hash": "963c24e0b65e1aa5",
+   "does": "Power:HR = average power ÷ session mean HR (RR-derived) in W/bpm.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "averagePowerWatts >0 and session.meanHR >0",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "var ThresholdCards.hrZoneDistributionCard",
+   "hash": "c07299c219f55f39",
+   "does": "Computes per-zone seconds with the user's max HR and shows the zone card when any zone time exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "samples ?? []",
+     "effect": "no metadata: empty → all zeros"
+    },
+    {
+     "at": "+5",
+     "cond": "total > 0",
+     "effect": "true: card; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)": "3b2322044d015c0d",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneDistributionBody(zoneSecs:total:)": "5387d514dc82b206",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneDistributionBody(zoneSecs:total:)",
+   "hash": "995bc3b0c33633e0",
+   "does": "Card with header (dominant zone and its %), stacked bar, legend and narrative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func zoneCardHeader(dominantZone:dominantPct:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneStackedBar(zoneSecs:total:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegend(zoneSecs:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneNarrative(zoneSecs:dominant:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "max(...)?.offset ?? 0",
+     "effect": "empty array impossible here (5 zones); fallback zone 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegend(zoneSecs:)": "8dd4f0036d163d42",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneNarrative(zoneSecs:dominant:)": "d408575fcddfb066",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneStackedBar(zoneSecs:total:)": "72d39c3db33890e3",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func zoneCardHeader(dominantZone:dominantPct:)": "c3bf2673a55906f7",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneStackedBar(zoneSecs:total:)",
+   "hash": "e7a12cecbf580dde",
+   "does": "GeometryReader 14-pt bar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneBarSegments(zoneSecs:total:width:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneBarSegments(zoneSecs:total:width:)": "deb33706c85b59ab"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneBarSegments(zoneSecs:total:width:)",
+   "hash": "98e23a72371ff3c5",
+   "does": "One colored segment per non-empty zone, widths proportional to seconds after subtracting 2-pt gaps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "total > 0",
+     "effect": "width proportional; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "181abb094e1cfeae",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneLegend(zoneSecs:)",
+   "hash": "5edfc9434b59a40d",
+   "does": "Legend rows for zones 1-5 using the user's max HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegendRow(idx:secs:maxHR:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneLegendRow(idx:secs:maxHR:)": "8e39189bc80f67ff",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "147cb8362c0717f8"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneLegendRow(idx:secs:maxHR:)",
+   "hash": "84e488129fc64d5e",
+   "does": "Zone legend row: dot, 'Zn', bpm range and 'Xm Ys', only when the zone has time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneRangeLabel(idx:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "secs > 0",
+     "effect": "true: row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneColor(idx:)": "181abb094e1cfeae",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.zoneRangeLabel(idx:maxHR:)": "d8f086c6a1644880",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ThresholdCards.zoneNarrative(zoneSecs:dominant:)",
+   "hash": "0a6a209ea79f0493",
+   "does": "Narrative sentence for the dominant zone.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dominant 1",
+     "effect": "recovery/warm-up text"
+    },
+    {
+     "at": "+3",
+     "cond": "2",
+     "effect": "zone-2 base text"
+    },
+    {
+     "at": "+4",
+     "cond": "3",
+     "effect": "tempo text"
+    },
+    {
+     "at": "+5",
+     "cond": "4",
+     "effect": "threshold text"
+    },
+    {
+     "at": "+6",
+     "cond": "5",
+     "effect": "VO2max text"
+    },
+    {
+     "at": "+7",
+     "cond": "other",
+     "effect": "empty string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ThresholdCards.hrZoneSeconds(samples:maxHR:)",
+   "hash": "565e2493bcaba443",
+   "does": "Per-zone seconds by HR/maxHR: 50-60/60-70/70-80/80-90/90+ %, each sample credited max(1, offset − previous offset) seconds; samples without HR still advance the clock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each sample",
+     "effect": "loop"
+    },
+    {
+     "at": "+8",
+     "cond": "heartRate nil or maxHR ≤ 0",
+     "effect": "skip sample (time not credited)"
+    },
+    {
+     "at": "+11",
+     "cond": "frac < 0.50",
+     "effect": "not counted"
+    },
+    {
+     "at": "+12",
+     "cond": "0.50..<0.60",
+     "effect": "Z1"
+    },
+    {
+     "at": "+13",
+     "cond": "0.60..<0.70",
+     "effect": "Z2"
+    },
+    {
+     "at": "+14",
+     "cond": "0.70..<0.80",
+     "effect": "Z3"
+    },
+    {
+     "at": "+15",
+     "cond": "0.80..<0.90",
+     "effect": "Z4"
+    },
+    {
+     "at": "+16",
+     "cond": "≥0.90",
+     "effect": "Z5"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "Zone time is computed four ways: here and in WorkoutAnalysisSnapshotBuilder (uncapped dt, first sample credited its full offset), WorkoutPDFReport.hrZoneSeconds (each sample capped at 5 s, first sample 1 s) and WorkoutZoneBreakdown.compute (max(0,dt)). After a strap dropout the summary card credits the whole gap to the next sample's zone while the exported PDF credits 5 s, so the on-screen and PDF zone minutes for the same workout differ.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:463",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:345",
+      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:73",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:273"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ThresholdCards.zoneColor(idx:)",
+   "hash": "1ca639dcdf85345c",
+   "does": "Fixed RGB color per zone index (green, lime, yellow, orange, red).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "0",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": "1",
+     "effect": "lime"
+    },
+    {
+     "at": "+4",
+     "cond": "2",
+     "effect": "yellow"
+    },
+    {
+     "at": "+5",
+     "cond": "3",
+     "effect": "orange"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "red"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Zone colours disagree with the app's HRZone.color: this card paints Z1 with the RGB HRZone uses for Z2 (0.40,0.80,0.55) and Z2 lime, whereas HRZone paints Z1 blue; the zone bins in hrZoneSeconds also re-implement HRZone.classify. The same zone shows different colours on this card and other zone UI.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:481",
+      "Emuqu/Sources/Views/HRZone.swift:66",
+      "Emuqu/Sources/Views/HRZone.swift:67",
+      "Emuqu/Sources/Views/HRZone.swift:37"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ThresholdCards.zoneRangeLabel(idx:maxHR:)",
+   "hash": "8b26dd8f40bf5453",
+   "does": "'lo–hi bpm' from maxHR × zone fractions; Z5 is '≥lo bpm'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "idx >= 4 (no upper bound)",
+     "effect": "return '≥lo bpm'; else 'lo–hi bpm'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsBridge.snapshot()",
+   "hash": "4e89c8dcadc3b099",
+   "does": "Returns effectiveMaxHR and effectiveBodyWeightKg from the lock-backed SettingsManager.settingsSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func Alpha1StatsCache.lookup(key:)",
+   "hash": "342059e658576bfd",
+   "does": "Returns the cached Alpha1Stats when the key matches the single stored key, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Alpha1StatsCache.cachedKey",
+    "mem:Alpha1StatsCache.cachedValue"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cachedKey == key",
+     "effect": "true: cachedValue; false: nil (miss)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Alpha1StatsCache.store(key:value:)",
+   "hash": "4e111750a376c2c9",
+   "does": "Replaces the single cached key/value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:Alpha1StatsCache.cachedKey",
+    "mem:Alpha1StatsCache.cachedValue"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func gradeAdjustedSecondsPerMetre(distanceMetres:duration:meta:)",
+   "hash": "d982b7cd7d2c59ec",
+   "does": "Seconds per metre: (elapsed duration ÷ km − 2 × net-grade-%) ÷ 1000, with gain/loss default 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "elevationGainMeters ?? 0",
+     "effect": "missing gain → 0"
+    },
+    {
+     "at": "+8",
+     "cond": "elevationLossMeters ?? 0",
+     "effect": "missing loss → 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func lt1Readout(lt1HR:offsetSec:)",
+   "hash": "7c1a4ab7da1649c8",
+   "does": "LT1 HR in large text, 'bpm', and 'at m:ss'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func arm(_:current:sample:dt:crossedNow:)",
+   "hash": "730ecf5c2609d337",
+   "does": "On the crossing sample (prev ≥ threshold) with nothing pending, records a pending down-crossing; always adds dt to the sustain counter.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "crossedNow AND no pending",
+     "effect": "true: create pending event at this sample; false: keep existing/none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func derivedMetricsList(_:)",
+   "hash": "b6ee98c97d155f4c",
+   "does": "'Derived metrics' card listing rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricRow(_:)": "e169dc4093e7f5f7"
+   }
+  },
+  {
+   "key": "func derivedMetricRow(_:)",
+   "hash": "9b21a38219983e44",
+   "does": "Label, value and optional sublabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricSublabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func derivedMetricSublabel(_:)": "a6d0e789a32ae3dd"
+   }
+  },
+  {
+   "key": "func derivedMetricSublabel(_:)",
+   "hash": "79af431c699b1dc5",
+   "does": "Sublabel text when non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sub non-nil",
+     "effect": "Text shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func movingTimeRow(samples:duration:)",
+   "hash": "c86abf7b90183e88",
+   "does": "Moving-time % = moving seconds ÷ duration (clamped 0-100) plus 'N min active', when ≥10 samples, duration >10 s and some sample carries pace/cadence/power.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func hasMovementSignal(_:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples ≥10, duration >10, any movement signal",
+     "effect": "false: nil (no row)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func hasMovementSignal(_:)": "e7d9310489d5c73b",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func movingSeconds(samples:)": "386762caa0eef914"
+   }
+  },
+  {
+   "key": "func stepCount(samples:)",
+   "hash": "51bd2bc096b44272",
+   "does": "Integrates cadence (steps/min) × dt/60 over samples; dt = max(1, offset − previous offset).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "loop"
+    },
+    {
+     "at": "+6",
+     "cond": "cadence present and >0",
+     "effect": "adds steps; else none"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "dt is uncapped and starts from offset 0, so the first sample and any sample after a dropout are credited the whole preceding gap of steps (and moving time in movingSeconds), skewing stride length and Moving time; the PDF path caps each sample at 5 s.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:687",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:698",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift:340"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c"
+   }
+  },
+  {
+   "key": "func movingSeconds(samples:)",
+   "hash": "4872db511432c290",
+   "does": "Sums dt of samples that isMoving.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "loop"
+    },
+    {
+     "at": "+6",
+     "cond": "isMoving(s)",
+     "effect": "adds dt; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func isMoving(_:)": "30ec5a019c6877eb"
+   }
+  },
+  {
+   "key": "func isMoving(_:)",
+   "hash": "1e52842ac05c0e79",
+   "does": "Moving if pace>0 or cadence ≥50 spm or power>0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pace>0 || cadence≥50 || power>0",
+     "effect": "true moving; false not"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical rule to WorkoutAnalysisSnapshotBuilder.isMoving; two copies must stay in sync for card and stored snapshot moving time.",
+     "evidence": [
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:705",
+      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:132"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func hasMovementSignal(_:)",
+   "hash": "6883684567013fb0",
+   "does": "True if any of pace, cadence, power is non-nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func zoneCardHeader(dominantZone:dominantPct:)",
+   "hash": "2c8d0f1e2a3063df",
+   "does": "Header: icon, 'HR ZONE DISTRIBUTION', 'mostly Zn · p%'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

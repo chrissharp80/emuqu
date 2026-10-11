@@ -1,0 +1,317 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift",
+ "hash": "3601ef7d8d06e4be",
+ "role": "In-memory, MainActor @Observable singleton that accumulates per-turn LLM token usage (input, output, cache read, cache create) and exposes cumulative/recent/per-provider cache hit ratios for Settings → Troubleshooting → AI cache health.",
+ "types": [
+  "LLMCacheTelemetry: final class (@Observable @MainActor) — rolling token counters",
+  "LLMCacheTelemetry.Totals: struct — five summed counters, one observation per record",
+  "LLMCacheTelemetry.TurnRecord: private struct — one turn's usage with hitRatio"
+ ],
+ "state": [
+  "mem:LLMCacheTelemetry.shared (singleton)",
+  "mem:LLMCacheTelemetry.totals (observable)",
+  "mem:LLMCacheTelemetry.recent (last 50 TurnRecords)",
+  "mem:LLMCacheTelemetry.recentCap = 50"
+ ],
+ "toplevel": "Singleton `shared`; stored totals = .init(), recent = [], recentCap 50. Not persisted; reset by DataPurgeService.purgeHealthCaches and the diagnostics Reset button.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LLMCacheTelemetry.totalInputTokens",
+   "hash": "16a45048a1434696",
+   "does": "Returns totals.inputTokens.",
+   "entry": "read by SwiftUI body of the AI cache health card (SettingsPages+Diagnostics.swift)",
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.totalOutputTokens",
+   "hash": "3de57418522e0ad5",
+   "does": "Returns totals.outputTokens.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "totalOutputTokens is never read anywhere in the repo (grep finds only its declaration); output tokens are summed but not displayed.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:45"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.totalCachedReadTokens",
+   "hash": "5d75e2c9921bb4b0",
+   "does": "Returns totals.cachedReadTokens.",
+   "entry": "read by SwiftUI body of the AI cache health card (SettingsPages+Diagnostics.swift)",
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.totalCacheCreateTokens",
+   "hash": "a2de323f3d097bf8",
+   "does": "Returns totals.cacheCreateTokens.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.totalTurns",
+   "hash": "6138c12fe6ced405",
+   "does": "Returns totals.turns.",
+   "entry": "read by SwiftUI body of the AI cache health card (SettingsPages+Diagnostics.swift)",
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.TurnRecord.hitRatio",
+   "hash": "de4e53c731273546",
+   "does": "Per-turn cache hit ratio = cachedRead / (input + cachedRead + cacheCreate), 0 when the denominator is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "totalProcessed > 0",
+     "effect": "false: returns 0; true: returns ratio"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "TurnRecord.hitRatio is never used: recentHitRatio and perProviderSummary re-implement the same formula inline.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:59",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:123",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:134"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init LLMCacheTelemetry()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private initializer for the singleton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)",
+   "hash": "9ec559d3bac7a9f9",
+   "does": "Adds one turn's token counts to totals in a single assignment, appends a TurnRecord stamped now to `recent`, and trims `recent` to the newest 50.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [
+    "mem:LLMCacheTelemetry.totals",
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "recent.count > 50",
+     "effect": "drops oldest entries to keep 50; otherwise no trim"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "record() runs once per provider request, not once per user turn. AssistantViewModel records a `.usage` event for every streamed round, and each tool round is its own request. The 'Total turns' row and the per-provider 'Turns:' counts on the cache-health card therefore overcount tool-using turns (a turn with 3 rounds counts as 3).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:87",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:194",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:276",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:317",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:233"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var LLMCacheTelemetry.cumulativeHitRatio",
+   "hash": "1a476f6fb86d7629",
+   "does": "Cumulative hit ratio = totalCachedRead / (input + cachedRead + cacheCreate); 0 when nothing recorded.",
+   "entry": "read by SwiftUI body of the AI cache health card",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCacheCreateTokens"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "totalProcessed > 0",
+     "effect": "false: 0; true: ratio"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The cached/(input+cached+create) hit-ratio formula is written out six times: TurnRecord.hitRatio, cumulativeHitRatio, recentHitRatio, perProviderSummary, AssistantViewModel.recordUsage and LLMPromptAuditView. The comments on this formula record that an earlier version divided by the wrong denominator. A future fix has to touch all six.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:70",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:115",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:128",
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:140",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:314",
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:102"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCacheCreateTokens": "060d3ea0c0e0a32c",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens": "92a0a2ca961b6aeb",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens": "5ab0ae44dfa8191b"
+   }
+  },
+  {
+   "key": "func LLMCacheTelemetry.recentHitRatio(turns:)",
+   "hash": "4c57779f6ae4e4bc",
+   "does": "Hit ratio over the last `turns` (default 10) records in `recent`; 0 when the slice processed no tokens.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "totalProcessed > 0",
+     "effect": "false: 0; true: cached/total"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMCacheTelemetry.perProviderSummary()",
+   "hash": "98d9f0149b34c1eb",
+   "does": "Groups `recent` by provider and returns (provider, turn count, hit ratio) tuples sorted by turn count descending. Only covers the last 50 turns, not the session.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "totalProcessed > 0 (ternary)",
+     "effect": "true: cached/total; false: 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.TurnRecord.hitRatio": "25bed2eb08f1d8e4"
+   }
+  },
+  {
+   "key": "func LLMCacheTelemetry.reset()",
+   "hash": "e728e5b6d78c1b74",
+   "does": "Resets totals to zero and empties `recent`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LLMCacheTelemetry.totals",
+    "mem:LLMCacheTelemetry.recent"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::init LLMCacheTelemetry()": "01157b15b0699441"
+   }
+  },
+  {
+   "key": "var LLMCacheTelemetry.debugSummary",
+   "hash": "93611ccc8b114f72",
+   "does": "One-line summary string 'turns=… inputs=… cached=… (NN%)'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.cumulativeHitRatio",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens"
+   ],
+   "reads": [
+    "mem:LLMCacheTelemetry.totals"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "debugSummary is documented as 'for the runtime logger' but nothing calls LLMCacheTelemetry.debugSummary (the only .debugSummary uses are CapabilityClassifier.Requirement's).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:153",
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:67"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.cumulativeHitRatio": "6a65acdd9382e0bb",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens": "92a0a2ca961b6aeb",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens": "5ab0ae44dfa8191b",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalTurns": "cff0eea845a1ec32"
+   }
+  }
+ ],
+ "deps": {}
+}

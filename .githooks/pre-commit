@@ -90,3 +90,19 @@ if command -v swiftformat >/dev/null 2>&1; then
 else
     echo "pre-commit: note — swiftformat not on PATH, formatting check skipped." >&2
 fi
+
+# ------------------------------------------------------------------ codemap --
+# Every unit has a current record in docs/codemap (see docs/codemap/README.md).
+# CI enforces the same check; this stops a missing or stale record before it is
+# committed instead of after it is pushed. Missing tooling fails, like above.
+
+if [[ ! -x .venv-codemap/bin/python ]]; then
+    fail "the code map tooling is not installed.
+
+  Run: make codemap-setup"
+fi
+
+if ! CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh; then
+    fail "code map records are missing or stale (listed above). Update them as
+  docs/codemap/README.md describes, or \`git commit --no-verify\` for a genuine emergency."
+fi

@@ -1,0 +1,362 @@
+{
+ "file": "EmuquTests/AssistantProviderReplyTests.swift",
+ "hash": "60f2173720c0db37",
+ "role": "Three XCTest suites for what reaches the user from an AI provider: out-of-credit detection and purchase-free error text (App Store 3.1.1), Apple Intelligence tool ranking/fitting within a 1,024-token tool budget, and trimming of Apple replies that hit the token cap (AppleReplyTrimmer/AppleReplyRelay).",
+ "types": [
+  "ProviderAccountReplyTests: class — XCTestCase for credit-failure detection and error copy",
+  "AppleToolRankingTests: class — XCTestCase for ToolRetriever ranking/fitting",
+  "AppleReplyTrimmerTests: class — XCTestCase for AppleReplyTrimmer and AppleReplyRelay"
+ ],
+ "state": [],
+ "toplevel": "AppleToolRankingTests.budget = 1024; AppleReplyTrimmerTests.longBody = a sentence repeated 60 times. appleCost has an #if canImport(FoundationModels) / #available(iOS 26) branch.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ProviderAccountReplyTests.testEveryVendorsCreditFailureIsRecognised()",
+   "hash": "1d7d60e4ec59e20a",
+   "does": "Asserts Anthropic 400, OpenAI 429 insufficient_quota, a 402 'Insufficient Balance' and a 403 'no credits' body are all recognised as credit exhaustion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each (status, body)",
+     "effect": "asserts isCreditExhausted true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb"
+   }
+  },
+  {
+   "key": "func ProviderAccountReplyTests.testOtherFailuresAreNotCreditFailures()",
+   "hash": "119dc608f0d8a914",
+   "does": "Asserts a 429 rate-limit and a 400 max_tokens body are not credit failures.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb"
+   }
+  },
+  {
+   "key": "func ProviderAccountReplyTests.testOutOfCreditMessageHasNoPurchaseCallToAction()",
+   "hash": "b22b200712a6df8c",
+   "does": "For every non-Apple provider asserts the outOfCredit message names the vendor, contains no '.com' and carries no purchase prompt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each ProviderID except .apple",
+     "effect": "checks the message"
+    },
+    {
+     "at": "+2",
+     "cond": "errorDescription is nil",
+     "effect": "uses '' (then the vendor-name assertion fails)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)": "5f44af92700ff614",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef"
+   }
+  },
+  {
+   "key": "func ProviderAccountReplyTests.testVendorPurchasePromptIsReplaced()",
+   "hash": "1e5cdbf419b22d5c",
+   "does": "Asserts vendor text pointing to Google AI Studio billing is replaced (no 'aistudio', non-empty) for invalidResponse/modelUnavailable/unknown, while a plain modelUnavailable message is shown verbatim.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 3 error kinds",
+     "effect": "checks the shown text"
+    },
+    {
+     "at": "+3",
+     "cond": "errorDescription is nil",
+     "effect": "uses '' (then non-empty assertion fails)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.carriesPurchasePrompt(_:)": "5f44af92700ff614",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189"
+   }
+  },
+  {
+   "key": "func ProviderAccountReplyTests.testOutOfCreditIsFallbackable()",
+   "hash": "a5d6d3b35db970d7",
+   "does": "Asserts outOfCredit(.openai) is fallbackable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "70f5deff0c698e49"
+   }
+  },
+  {
+   "key": "func AppleToolRankingTests.appleCost(_:)",
+   "hash": "0beb7ea10b622446",
+   "does": "Returns a tool's Apple token cost: AppleToolCatalog.estimatedTokens on iOS 26 with FoundationModels, else estimateTokens(name+description)+10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "FoundationModels importable and iOS 26 available",
+     "effect": "uses AppleToolCatalog.estimatedTokens; otherwise the compactor estimate + 10"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)": "2ba3edb0ca807e9e"
+   }
+  },
+  {
+   "key": "func AppleToolRankingTests.testSleepQuestionKeepsTheSleepToolWithinBudget()",
+   "hash": "659d0031e7463571",
+   "does": "Ranks name-sorted read tools for 'How did I sleep last night?', fits them to 1,024 tokens and asserts get_sleep leads, the total is within budget and equals the summed costs, and name order alone would not lead with it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)",
+    "EmuquTests/AssistantProviderReplyTests.swift::func AppleToolRankingTests.appleCost(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "50bf36aa302a1f5f",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5",
+    "EmuquTests/AssistantProviderReplyTests.swift::func AppleToolRankingTests.appleCost(_:)": "c754b8ace5810410"
+   }
+  },
+  {
+   "key": "func AppleToolRankingTests.testRankingKeepsEveryToolAndPutsEssentialsBeforeTheRest()",
+   "hash": "2d56f27ba3fb2ed6",
+   "does": "Asserts ranking for 'ok thanks' keeps every tool exactly once and leads with get_session (essentials in schema order).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "e799060c3c4e6da6"
+   }
+  },
+  {
+   "key": "func AppleToolRankingTests.testFittingSkipsWhatDoesNotFit()",
+   "hash": "ea77177bf0d4f1d3",
+   "does": "Fits tools a(30), b(80), c(30) into 70 tokens and asserts b is skipped, kept [a,c] totalling 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "tool name is 'b'",
+     "effect": "cost 80; else 30"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "50bf36aa302a1f5f",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testCompletePrefixEndsAtTheLastSentenceOrLine()",
+   "hash": "04a2fa4135ac2ddf",
+   "does": "Asserts completePrefix ends at the last sentence or line (English, list lines, Japanese 。, closing quote).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testDecimalIsNotASentenceEnd()",
+   "hash": "b7741bf6132ac45e",
+   "does": "Asserts a streaming decimal ('3.5', '3.') is not treated as a sentence end (prefix '').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.completePrefix(of:)": "dcddb2c3420e3ede"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testShortReplyIsShownWhole()",
+   "hash": "81e98a8626e39a20",
+   "does": "Asserts finalText leaves a short reply whole.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "4ea55ff5c65a36da"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testCappedReplyEndsAtItsLastCompleteSentence()",
+   "hash": "4a4bb9166db9a151",
+   "does": "Asserts a long reply ending mid-word may have hit the cap and finalText trims it to the last complete sentence.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "4ea55ff5c65a36da",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.mayHaveReachedCap(_:)": "52d47c071a28e714"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testLongReplyThatEndsCleanlyIsKept()",
+   "hash": "1aabd6494d181643",
+   "does": "Asserts a long reply that ends with a full sentence is kept whole.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyTrimmer.finalText(_:)": "4ea55ff5c65a36da"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testRelayHoldsTheUnfinishedSentenceUntilTheEnd()",
+   "hash": "37ec05cbcdb2e2e8",
+   "does": "Feeds the relay two snapshots and asserts it emits only 'Nice run.' first, then the unfinished sentence on finish, and shown equals the full text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()": "a34ed89a01fd5b9d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)": "e2dd33e357dd9b18",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)": "cd689fbf81ee2594"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testRelayDropsTheTailOfACappedReply()",
+   "hash": "278d275bb2408e56",
+   "does": "Feeds a capped reply and asserts finish emits only up to the last complete sentence while generated keeps the full text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.finish()": "a34ed89a01fd5b9d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleReplyRelay.receive(_:)": "e2dd33e357dd9b18",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleReplyRelay(emit:)": "cd689fbf81ee2594",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleReplyRelay.generated": "7486babec43c89df"
+   }
+  },
+  {
+   "key": "func AppleReplyTrimmerTests.testLengthRuleAsksForShortAnswers()",
+   "hash": "c9132a0f1985fe71",
+   "does": "Asserts lengthRule mentions '150 words' and costs under 60 estimated tokens.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+   }
+  }
+ ],
+ "deps": {}
+}

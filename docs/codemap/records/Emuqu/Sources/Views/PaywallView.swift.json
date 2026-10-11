@@ -1,0 +1,1449 @@
+{
+ "file": "Emuqu/Sources/Views/PaywallView.swift",
+ "hash": "f214655b1b3c0f3c",
+ "role": "The paywall screen (launch gate or from Settings/More) offering the 30-day free trial and the one-time unlock, restore, legal links and data export/deletion; plus PurchaseStatusView, the Settings row showing Owned or a link to the paywall.",
+ "types": [
+  "PaywallView: struct (View) — paywall UI; isGate true when presented as the launch fullScreenCover (EmuquApp.swift:352), false from Settings (PaywallView.swift:686) and More (MoreMenuView.swift:78)",
+  "PaywallView (private extension) — offer-state helpers offersTrial/offersUnlock/trialHasEnded/trialTermsText/trialButtonTitle",
+  "PurchaseStatusView: struct (View) — Settings 'Purchase' section (SettingsView.swift:318)"
+ ],
+ "state": [
+  "mem:PaywallView.showPrivacyPolicy/showTermsOfUse/showYourData (@State, view-local)",
+  "mem:PaywallView.restoreNotice (@State String?, view-local)",
+  "mem:PaywallView.isGate (init param, default true)"
+ ],
+ "toplevel": "Two #Preview blocks (lines 719-731) build PaywallView and PurchaseStatusView with AppDependencies.current.services.storeKitManager injected; preview-only. The `skipDebugButton` body is wrapped in #if DEBUG (lines 355-363), so release builds render nothing there.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "Only one default-state snapshot (ChartScreenSnapshotTests.swift:157) and three UI tests (privacy button, features, restore button) touch PaywallView; no test drives its per-offer mapping (trialAndUnlock/unlockOnly/unlocked buttons, trialHasEnded caption, retry button). docs/MAINTAINERS.md:903 credits EntitlementAnchorTests with the paywall's logic, while the offer logic is in PaywallGatePolicyTests.",
+   "evidence": [
+    "EmuquTests/ChartScreenSnapshotTests.swift:157",
+    "EmuquUITests/EmuquUITests.swift:1264",
+    "Emuqu/Sources/Views/PaywallView.swift:475",
+    "docs/MAINTAINERS.md:903",
+    "EmuquTests/PaywallGatePolicyTests.swift:55"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "var PaywallView.offer",
+   "hash": "f75746ff70259f0d",
+   "does": "Computes the PaywallOffer (.trialAndUnlock/.unlockOnly/.unlocked) from storeKit.hasPurchasedProduct and PaywallGatePolicy.canStartTrial(storeKit.hasTrialTransaction, StoreKitManager.hasTrialStarted, storeKit.hasPermanentAccess).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess"
+   ],
+   "reads": [
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "mem:StoreKitManager.hasTrialTransaction",
+    "ud:entitlement.anchor.v1 (EntitlementAnchor.cached, via hasTrialStarted/localTrialStart and isGrandfatheredBetaTester)",
+    "mem:SettingsManager.settings.trialStartDate (via hasTrialStarted)",
+    "ud:storekit.verifiedProductionInstall (via hasPermanentAccess -> isGrandfatheredBetaTester)",
+    "ud:debug_isPurchased (DEBUG, via hasPermanentAccess -> hasPermanentGrant)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "fd2d5588ff40eff0"
+   }
+  },
+  {
+   "key": "var PaywallView.body",
+   "hash": "4ad437dcf50f923f",
+   "does": "Returns paywallStack wrapped by withPaywallChrome (background, dismiss lock, product load task, error alert).",
+   "entry": "SwiftUI body of PaywallView",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "28f58a8ce6b593f4",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "089af9a3698a9979"
+   }
+  },
+  {
+   "key": "var PaywallView.paywallStack",
+   "hash": "9158328c802014f0",
+   "does": "Chooses layout by Dynamic Type: whole page in one ScrollView at accessibility sizes, otherwise the pinned layout (scrolling features with buttons pinned below).",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.wholePage",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pinnedLayout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dynamicTypeSize.isAccessibilitySize",
+     "effect": "true: ScrollView{wholePage} so everything scrolls together; false: pinnedLayout with bottomSection fixed under the scrolling content"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pinnedLayout": "2ea9ce628eb09f97",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.wholePage": "f4360c1e465f5e27"
+   }
+  },
+  {
+   "key": "var PaywallView.pinnedLayout",
+   "hash": "2d9ff27b96044254",
+   "does": "VStack of a ScrollView around paywallContent and bottomSection with layoutPriority(1) so the buttons stay pinned.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomSection": "338cf3e258b0ee3e",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "1adad2ffac73e7cd"
+   }
+  },
+  {
+   "key": "var PaywallView.wholePage",
+   "hash": "f546cc76ea37b6a4",
+   "does": "VStack of paywallContent followed by bottomContent, used inside a single ScrollView at accessibility sizes.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "35576d4fdcac44e6",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallContent": "1adad2ffac73e7cd"
+   }
+  },
+  {
+   "key": "var PaywallView.paywallContent",
+   "hash": "d130d5361697a005",
+   "does": "Stacks header, features, recovery features, more features and pricing with 24pt horizontal / 40pt top / 24pt bottom padding.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.headerSection",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.featuresSection",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.recoveryFeatures",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.moreFeatures",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pricingSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.featuresSection": "1756c63031fe9ff6",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.headerSection": "cdfa275bc7b1e9c8",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.moreFeatures": "cd85e4b9d0c61e43",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pricingSection": "61e432303b484dc8",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.recoveryFeatures": "df5b9419a1e24486"
+   }
+  },
+  {
+   "key": "func PaywallView.withPaywallChrome(_:)",
+   "hash": "d1e3e8e7570b32b8",
+   "does": "Applies the paywall chrome: theme background, interactiveDismissDisabled when isGate and the user has no active access, an onAppear NSLog, a .task that loads products, and an 'Error' alert bound to storeKit.errorMessage whose dismissal clears it.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); .onAppear and .task fire on presentation; alert binding setter fires on alert dismissal",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.isPurchased",
+    "ud:entitlement.anchor.v1 (EntitlementAnchor.cached, via hasActiveAccess -> isTrialActive)",
+    "mem:SettingsManager.settings.trialStartDate (via isTrialActive)",
+    "ud:storekit.verifiedProductionInstall (via isGrandfatheredBetaTester)",
+    "ud:debug_isPurchased (DEBUG, via hasPermanentGrant)"
+   ],
+   "writes": [
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "alert binding set with false (alert dismissed)",
+     "effect": "clears storeKit.errorMessage = nil; set with true does nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "interactiveDismissDisabled only affects sheet swipe-dismiss, but the gate is presented as a fullScreenCover (cannot be swiped away anyway) and the Settings/More entries push it with NavigationLink; the comment at lines 76-82 describes a non-dismissible 'sheet'. The modifier is a no-op in every current presentation; the real escape is continueWithAccessButton.",
+     "evidence": [
+      "Emuqu/Sources/Views/PaywallView.swift:86",
+      "Emuqu/Sources/Views/PaywallView.swift:76",
+      "Emuqu/EmuquApp.swift:332",
+      "Emuqu/EmuquApp.swift:352",
+      "Emuqu/Sources/Views/PaywallView.swift:686",
+      "Emuqu/Sources/Views/MoreMenuView.swift:78"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Unconditional NSLog calls (onAppear here, two in loadProducts) ship in release builds and write to the unified log on every paywall show, unlike the rest of the store code which uses debugLog.",
+     "evidence": [
+      "Emuqu/Sources/Views/PaywallView.swift:87",
+      "Emuqu/Sources/Views/PaywallView.swift:103",
+      "Emuqu/Sources/Views/PaywallView.swift:105",
+      "Emuqu/Sources/Services/StoreKitManager.swift:262"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "4e04365b5f1743db",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions": "c7168d7015e1e77e",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage": "d71bc591e785c853",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "func PaywallView.loadProducts()",
+   "hash": "9ddff5b563dbe3b0",
+   "does": "NSLogs, awaits storeKit.loadProducts() (fetches the unlock and trial Products; no-op when paywallEnabled is false), NSLogs again.",
+   "entry": ".task on the paywall chrome (line 88)",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct",
+    "mem:StoreKitManager.productsUnavailable",
+    "mem:StoreKitManager.trialUnavailable",
+    "net:App Store (Product.products)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+   }
+  },
+  {
+   "key": "var PaywallView.paywallErrorMessage",
+   "hash": "a60d28e365757684",
+   "does": "Alert message: Text(storeKit.errorMessage) when non-nil, otherwise empty.",
+   "entry": "SwiftUI alert message builder",
+   "calls": [],
+   "reads": [
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.errorMessage is non-nil",
+     "effect": "shows the message text; nil: empty view"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PaywallView.paywallErrorActions",
+   "hash": "4dd0e7f194bd19a0",
+   "does": "Alert action: an 'OK' button that sets storeKit.errorMessage = nil.",
+   "entry": "SwiftUI alert actions; button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.errorMessage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.headerSection",
+   "hash": "f14f9379c64a3416",
+   "does": "Header: logo, 'Emuqu' title, 'Professional HRV Recovery Tracking' subtitle.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallLogo",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallLogo": "35fb74b416b4c5a4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PaywallView.paywallLogo",
+   "hash": "c47224d131b7b850",
+   "does": "Decorative 80pt gradient circle with a waveform.path.ecg symbol, hidden from accessibility.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var PaywallView.featuresSection",
+   "hash": "3753782397b98747",
+   "does": "Feature row 'Overnight HRV Recording' (Polar H10 / Verity Sense).",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var PaywallView.recoveryFeatures",
+   "hash": "efb1e3c2135083ac",
+   "does": "Feature rows 'Recovery & Readiness Scores' and 'Sleep Stage Analysis'.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a"
+   }
+  },
+  {
+   "key": "var PaywallView.moreFeatures",
+   "hash": "39b4d45c3c6f6e8a",
+   "does": "Card with feature rows 'Training Load Tracking' and 'Optional Encrypted Sync' (off by default, private iCloud).",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureRow(icon:color:title:subtitle:)": "3f7b7e1ee15a184a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func PaywallView.featureRow(icon:color:title:subtitle:)",
+   "hash": "e12634bacacf98f5",
+   "does": "One feature row: fixed-size icon plus semibold title and caption subtitle, combined into one accessibility element with title as label and subtitle as value.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureIcon(_:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureIcon(_:color:)": "a3561618288c1b40",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func PaywallView.featureIcon(_:color:)",
+   "hash": "362a104c6442296e",
+   "does": "SF Symbol at title3 in the given colour in a 32x32 frame, accessibility-hidden.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PaywallView.pricingSection",
+   "hash": "d607bfdbcc1a8ebd",
+   "does": "Shows unlockPricing only when the offer is not .unlocked.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockPricing"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offersUnlock (offer != .unlocked)",
+     "effect": "true: unlock pricing block; false (buyer): nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "065c6321a18c935c",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockPricing": "b865a27235db8fbf"
+   }
+  },
+  {
+   "key": "var PaywallView.unlockPricing",
+   "hash": "c977af5cab1e219a",
+   "does": "'Unlock Emuqu' heading, priceLine, and 'Pay once, own it forever. No subscriptions.' caption.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.priceLine",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.priceLine": "3aa7fa4495a1239e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PaywallView.priceLine",
+   "hash": "66713df0f633fe9e",
+   "does": "Shows '<displayPrice> — one-time purchase' when the unlock product is loaded, a retry button when products are unavailable, else a small spinner.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.productsUnavailable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.product is loaded",
+     "effect": "shows price text"
+    },
+    {
+     "at": "+6",
+     "cond": "storeKit.productsUnavailable (fetch failed or unlock product missing)",
+     "effect": "shows retryProductsButton; otherwise (still loading) a ProgressView"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "5850c9a62c390f52",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PaywallView.retryProductsButton",
+   "hash": "5adae1117427f709",
+   "does": "Button 'Purchases aren't available right now. Try Again' that re-runs storeKit.loadProducts() in a Task; disabled while purchasing.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing"
+   ],
+   "writes": [
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct",
+    "mem:StoreKitManager.productsUnavailable",
+    "mem:StoreKitManager.trialUnavailable",
+    "net:App Store (Product.products)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+   }
+  },
+  {
+   "key": "var PaywallView.trialTerms",
+   "hash": "90eef2d9cefb2f7a",
+   "does": "Caption above the trial button: full trial terms (30 days, locks after, price, never charges) when the trial is offered and both products are loaded; otherwise, if the trial has ended, the 'Your free trial has ended…' caption; otherwise nothing.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialHasEnded"
+   ],
+   "reads": [
+    "mem:StoreKitManager.trialProduct",
+    "mem:StoreKitManager.product"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offersTrial && trialProduct loaded && unlock product price available",
+     "effect": "shows trialTermsText(price) caption (id paywall.trialTerms)"
+    },
+    {
+     "at": "+5",
+     "cond": "else trialHasEnded (no active access and a local trial start exists)",
+     "effect": "shows the trial-ended caption; otherwise nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When the offer is .trialAndUnlock (StoreKit says this Apple ID has no trial transaction) but trialProduct failed to load and a local trial start from an earlier build/Apple ID has expired, the screen shows 'Your free trial has ended' while the trial slot offers a retry that, once it succeeds, offers a fresh trial — contradictory messaging in that narrow case.",
+     "evidence": [
+      "Emuqu/Sources/Views/PaywallView.swift:311",
+      "Emuqu/Sources/Views/PaywallView.swift:314",
+      "Emuqu/Sources/Views/PaywallView.swift:478",
+      "Emuqu/Sources/Services/PaywallGatePolicy.swift:70"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)": "fb1757a57cf04d78",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)": "498416c8a7dc73d8",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialHasEnded": "cd2f8008c45bca8f"
+   }
+  },
+  {
+   "key": "func PaywallView.bottomCaption(_:)",
+   "hash": "e39316d9d6344e28",
+   "does": "Centered caption-sized secondary text that wraps without a line limit.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PaywallView.bottomSection",
+   "hash": "73fbd39e2c430bc3",
+   "does": "ViewThatFits(vertical): bottomContent if it fits, otherwise bottomContent inside a ScrollView.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.bottomContent": "35576d4fdcac44e6"
+   }
+  },
+  {
+   "key": "var PaywallView.bottomContent",
+   "hash": "e97f3b03c43c53e7",
+   "does": "VStack of unlockedNote, trialTerms, trialButton, purchaseButtons, skipDebugButton, legalLinks with padding.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockedNote",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/ARCHITECTURE.md says the paywall's first button is 'Start 30-Day Free Trial' above the required terms, but bottomContent renders trialTerms (line 342) before trialButton (line 343), so the terms sit above the button (which matches the code comment at lines 298-308, not the doc).",
+     "evidence": [
+      "docs/ARCHITECTURE.md:767",
+      "Emuqu/Sources/Views/PaywallView.swift:342",
+      "Emuqu/Sources/Views/PaywallView.swift:343"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks": "99714d8d4af10a9c",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons": "a8179d2a24d3fd5a",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton": "a11dcdf4fa2e5535",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton": "600448ed2d189c2f",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialTerms": "3faeed22e6626be4",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.unlockedNote": "d6c61af6d1ec8345"
+   }
+  },
+  {
+   "key": "var PaywallView.skipDebugButton",
+   "hash": "6e8e792f51904111",
+   "does": "DEBUG builds only: 'Skip (Debug)' button that calls storeKit.debugGrantAccess() (sets isPurchased and UserDefaults debug_isPurchased) and dismisses. Release builds: empty.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func debugGrantAccess()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.isPurchased",
+    "ud:debug_isPurchased"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func debugGrantAccess()": "fcca6572c01240f8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PaywallView.legalLinks",
+   "hash": "f296d071710b13fb",
+   "does": "Row of legal links (Terms of Use, Privacy Policy, Your Data on the gate) with three sheets bound to showTermsOfUse/showPrivacyPolicy/showYourData.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); link taps",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "289a9fef543a54b7",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "4f1e09a505c350bd",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "c5023553918b6c23",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink": "ff1a79017beeb4c3",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "c34848cb1775ab51"
+   }
+  },
+  {
+   "key": "var PaywallView.yourDataLink",
+   "hash": "52b5a5f9af9007dd",
+   "does": "On the gate only, a 'Your Data' link that opens the export/delete sheet.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isGate",
+     "effect": "true: shows the Your Data link; false (opened from Settings/More where those pages are reachable): nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "289a9fef543a54b7"
+   }
+  },
+  {
+   "key": "func PaywallView.legalLink(_:id:action:)",
+   "hash": "c82332789b157fc0",
+   "does": "Caption2 button with a 44pt minimum hit height and the given accessibility identifier.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var PaywallView.yourDataSheet",
+   "hash": "64e0891f9f32c42d",
+   "does": "NavigationStack sheet titled 'Your Data' containing yourDataList and a Done toolbar item.",
+   "entry": "sheet content (showYourData)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataList",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataDoneItem",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataDoneItem": "a5bd28316311c379",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataList": "f9f26f1c10b1a7af"
+   }
+  },
+  {
+   "key": "var PaywallView.yourDataList",
+   "hash": "2fa73743b204c900",
+   "does": "List with NavigationLinks to ExportDataView ('Export Data') and DeleteAllDataPage ('Delete All My Data').",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "2d6308bb50fa86bd",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8"
+   }
+  },
+  {
+   "key": "var PaywallView.yourDataDoneItem",
+   "hash": "196452d9534f0886",
+   "does": "Cancellation toolbar 'Done' button that sets showYourData = false.",
+   "entry": "toolbar button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.termsOfUseSheet",
+   "hash": "6560c47cf87a10b3",
+   "does": "NavigationStack sheet with TermsOfUseView and a Done toolbar item.",
+   "entry": "sheet content (showTermsOfUse)",
+   "calls": [
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissTermsToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissTermsToolbarItem": "ce8ca7e9a8300917",
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "d4ae309fd1691a30"
+   }
+  },
+  {
+   "key": "var PaywallView.dismissTermsToolbarItem",
+   "hash": "741c7bcb9bcab28a",
+   "does": "Cancellation toolbar 'Done' button that sets showTermsOfUse = false.",
+   "entry": "toolbar button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.privacyPolicySheet",
+   "hash": "83a7f700717c5d05",
+   "does": "NavigationStack sheet with PrivacyPolicyView and a Done toolbar item.",
+   "entry": "sheet content (showPrivacyPolicy)",
+   "calls": [
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissPrivacyToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissPrivacyToolbarItem": "bbc304be891fd531",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "5f196c1466c5c7b8"
+   }
+  },
+  {
+   "key": "var PaywallView.dismissPrivacyToolbarItem",
+   "hash": "5599ae5b426de670",
+   "does": "Cancellation toolbar 'Done' button (id paywall.privacyDone) that sets showPrivacyPolicy = false.",
+   "entry": "toolbar button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.unlockedNote",
+   "hash": "b7e985d990a5849c",
+   "does": "'Full access is already active on this device.' note when storeKit.hasPermanentAccess (purchase, beta tester, developer install, debug grant).",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.hasPermanentAccess",
+     "effect": "true: shows the note (id paywall.accessNote); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+   }
+  },
+  {
+   "key": "var PaywallView.trialButton",
+   "hash": "72e229bb0073fb17",
+   "does": "When the trial is on offer: a retry button if only the trial product failed to load, otherwise the Start Trial button.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.startTrialButton"
+   ],
+   "reads": [
+    "mem:StoreKitManager.trialUnavailable",
+    "mem:StoreKitManager.productsUnavailable"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offersTrial (offer == .trialAndUnlock)",
+     "effect": "true: inner choice below; false: nothing"
+    },
+    {
+     "at": "+3",
+     "cond": "storeKit.trialUnavailable && !storeKit.productsUnavailable",
+     "effect": "true: retryProductsButton in the trial slot; false: startTrialButton (disabled if either product is missing, the unlock retry then sits in priceLine)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.retryProductsButton": "5850c9a62c390f52",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.startTrialButton": "9a068c5d84e019ef"
+   }
+  },
+  {
+   "key": "var PaywallView.startTrialButton",
+   "hash": "b6a6344e8f5d997a",
+   "does": "Prominent zen-style button running startTrial() in a Task; disabled while purchasing or until both the unlock and trial products are loaded.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonLabel",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()": "7242c8d447b1cc56",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonLabel": "1ee5d11b95468a18",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var PaywallView.trialButtonLabel",
+   "hash": "b313bc9aa1c7177b",
+   "does": "Text of trialButtonTitle, centered, full width.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonTitle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonTitle": "8d09096214b95af1"
+   }
+  },
+  {
+   "key": "func PaywallView.purchaseAndLeave()",
+   "hash": "6e5ec84eba552fda",
+   "does": "Awaits storeKit.purchase() and dismisses the paywall if a purchase is now recorded.",
+   "entry": "purchaseButton tap (line 529)",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()"
+   ],
+   "reads": [
+    "mem:StoreKitManager.hasPurchasedProduct"
+   ],
+   "writes": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:StoreKitManager.isPurchased",
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "net:App Store (purchase)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "mem:StoreKitManager.hasTrialTransaction",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.hasPurchasedProduct after purchase",
+     "effect": "true: dismiss(); false (cancelled, pending, failed): stays, errors/notices are shown by the alerts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "8b7618dd90500267"
+   }
+  },
+  {
+   "key": "func PaywallView.startTrial()",
+   "hash": "7778cefee85ecaf7",
+   "does": "Awaits storeKit.startFreeTrial() (buys the $0 trial product) and dismisses if the user now has active access.",
+   "entry": "startTrialButton tap (line 488)",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:StoreKitManager.isPurchased",
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "mem:StoreKitManager.product",
+    "mem:StoreKitManager.trialProduct (loadedTrialProduct reload when nil)",
+    "net:App Store (trial purchase)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "mem:StoreKitManager.hasTrialTransaction",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.hasActiveAccess after the trial purchase",
+     "effect": "true: dismiss(); false: stays (failure/pending/ended-trial notice already set by StoreKitManager)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()": "afe1230dd9809cdc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+   }
+  },
+  {
+   "key": "var PaywallView.purchaseButtons",
+   "hash": "64cea4a2decc7d28",
+   "does": "Purchase button when the unlock is on offer, then always the Restore button and the continue/done button.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "offersUnlock",
+     "effect": "true: purchaseButton shown; false (buyer): omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton": "71deb1d41ab558e4",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "065c6321a18c935c",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "48eb22ec601307e9",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "4d32fb2f74d64cde"
+   }
+  },
+  {
+   "key": "var PaywallView.purchaseButton",
+   "hash": "d7421ea7b2cbca88",
+   "does": "Zen button running purchaseAndLeave(); darker colour when the trial is also offered; disabled while purchasing; carries an alert titled 'Purchase' bound to storeKit.purchaseNotice (Ask to Buy pending, trial ended) whose OK/dismiss clears it.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap; alert dismissal",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.purchaseNotice"
+   ],
+   "writes": [
+    "mem:StoreKitManager.purchaseNotice"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "offersTrial",
+     "effect": "true: AppTheme.primaryDark (secondary to Start Trial); false: AppTheme.primary"
+    },
+    {
+     "at": "+15",
+     "cond": "alert binding set with false",
+     "effect": "clears storeKit.purchaseNotice; set true does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "b14d98870061715d",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "c856ebfb83af27fb",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel": "8240f2e56aa62510",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6"
+   }
+  },
+  {
+   "key": "var PaywallView.purchaseButtonLabel",
+   "hash": "3b129695efbe1c07",
+   "does": "Label: spinner while purchasing, else 'Unlock for <price>' when the product is loaded, else plain 'Purchase'.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.product"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.isPurchasing",
+     "effect": "white ProgressView"
+    },
+    {
+     "at": "+5",
+     "cond": "storeKit.product loaded",
+     "effect": "'Unlock for <displayPrice>'; else 'Purchase'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.restoreButton",
+   "hash": "066f526a6233fa81",
+   "does": "'Restore Purchases' button that stores the String returned by storeKit.restore() (AppStore.sync + refreshStatus) in restoreNotice and shows it in an alert; disabled while purchasing.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap; alert dismissal",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchasing"
+   ],
+   "writes": [
+    "mem:StoreKitManager.isPurchasing",
+    "mem:StoreKitManager.isPurchased",
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "net:App Store (AppStore.sync)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "mem:StoreKitManager.hasTrialTransaction",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "alert binding set with false",
+     "effect": "sets restoreNotice = nil; a nil return from restore() (user cancelled / paywall disabled) shows no alert"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()": "c5c666c132945459",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PaywallView.continueWithAccessButton",
+   "hash": "27d58c1c50644380",
+   "does": "For anyone with active access (trial, purchase, beta, developer, debug), a 'Continue'/'Done' button that dismisses the paywall.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueTitle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchased",
+    "ud:entitlement.anchor.v1 (EntitlementAnchor.cached, via hasActiveAccess -> isTrialActive)",
+    "mem:SettingsManager.settings.trialStartDate (via isTrialActive)",
+    "ud:storekit.verifiedProductionInstall (via isGrandfatheredBetaTester)",
+    "ud:debug_isPurchased (DEBUG, via hasPermanentGrant)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.hasActiveAccess",
+     "effect": "true: shows the button; false: nothing (only purchase/restore/legal remain)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueTitle": "4b479a29bf82722d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PaywallView.continueTitle",
+   "hash": "ceafe35354403371",
+   "does": "'Done' when the offer is .unlocked (buyer), otherwise 'Continue'.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "offer == .unlocked",
+     "effect": "'Done'; else 'Continue'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+   }
+  },
+  {
+   "key": "var PaywallView.offersTrial",
+   "hash": "56de46b439ae454d",
+   "does": "True when the offer is .trialAndUnlock.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+   }
+  },
+  {
+   "key": "var PaywallView.offersUnlock",
+   "hash": "0b4e2274745f8b5a",
+   "does": "True unless the offer is .unlocked.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offer": "7e951f49e656327a"
+   }
+  },
+  {
+   "key": "var PaywallView.trialHasEnded",
+   "hash": "d5ab0ab22f320592",
+   "does": "True when the user has no active access and this device keeps a trial start.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted"
+   ],
+   "reads": [
+    "mem:StoreKitManager.isPurchased",
+    "mem:EntitlementAnchor.trialStartDate",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasTrialStarted": "fd2d5588ff40eff0"
+   }
+  },
+  {
+   "key": "func PaywallView.trialTermsText(price:)",
+   "hash": "0ed365150a3c9388",
+   "does": "Localized trial terms with TrialPolicy.durationDays (30, EntitlementAnchor.swift:460) and the unlock price.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PaywallView.trialButtonTitle",
+   "hash": "ca30594310514a39",
+   "does": "Localized 'Start <durationDays>-Day Free Trial'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.body",
+   "hash": "da5d6914ed6092dd",
+   "does": "Settings 'Purchase' section with the status row, only when StoreKitManager.paywallEnabled.",
+   "entry": "SwiftUI body; embedded in SettingsView (SettingsView.swift:318)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "StoreKitManager.paywallEnabled",
+     "effect": "true: section shown; false: nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "paywallEnabled is `static let paywallEnabled = true`, so the hidden-section path is compile-time unreachable in the shipped code.",
+     "evidence": [
+      "Emuqu/Sources/Views/PaywallView.swift:645",
+      "Emuqu/Sources/Services/StoreKitManager.swift:138"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow": "a27a41a48d613d9c"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.purchaseStatusRow",
+   "hash": "e7550e0f96d1b19d",
+   "does": "Owned row when a real purchase is recorded (hasPurchasedProduct), otherwise a link to the paywall — trial, beta and developer users are not shown Owned.",
+   "entry": "SwiftUI view-body evaluation (composed into PurchaseStatusView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.ownedRow",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLink"
+   ],
+   "reads": [
+    "mem:StoreKitManager.hasPurchasedProduct"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "storeKit.hasPurchasedProduct",
+     "effect": "true: ownedRow; false: purchaseLink"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.ownedRow": "a8ceb99a6506a5ae",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLink": "d3f009eb90ce50d0"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.ownedRow",
+   "hash": "ea58de41b05d43c9",
+   "does": "HStack: 'Purchase' label with checkmark seal and 'Owned' text.",
+   "entry": "SwiftUI view-body evaluation (composed into PurchaseStatusView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.purchaseLink",
+   "hash": "c45b9b31320dc051",
+   "does": "NavigationLink pushing PaywallView(isGate: false).",
+   "entry": "SwiftUI view-body evaluation (composed into PurchaseStatusView.body); tap",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLinkLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.body": "2fb7c7ea6f946bfd",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseLinkLabel": "73620efb21a7cfdd"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.purchaseLinkLabel",
+   "hash": "b76b128e1ec474ff",
+   "does": "'Purchase' star label with the trial-remaining note under it.",
+   "entry": "SwiftUI view-body evaluation (composed into PurchaseStatusView.body)",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.trialRemainingNote",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.trialRemainingNote": "5bb7b9dc74b13683"
+   }
+  },
+  {
+   "key": "var PurchaseStatusView.trialRemainingNote",
+   "hash": "5ef0a5946c1466cc",
+   "does": "'Free Trial · N days remaining' caption when PaywallGatePolicy.showsTrialClock(hasPermanentAccess, isTrialActive) is true.",
+   "entry": "SwiftUI view-body evaluation (composed into PurchaseStatusView.body)",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:StoreKitManager.hasPurchasedProduct",
+    "mem:EntitlementAnchor.trialStartDate",
+    "mem:SettingsManager.settings.trialStartDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no permanent access and the trial is active",
+     "effect": "shows the days-remaining caption (StoreKitManager.trialDaysRemaining); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "9d98b479d65683fa",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "5ca802411d5702e4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "225bcd4fa8d3d525",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining": "05d8a0b6c96fd72d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,229 @@
+{
+ "file": "EmuquTests/PaywallGatePolicyTests.swift",
+ "hash": "7ed3cfa4f8d57187",
+ "role": "XCTest suite for PaywallGatePolicy: launch modal (paywall / trial reminder only in final 7 days, once per day, never for permanent access), trial-clock visibility, paywall offer states, StoreKit-vs-local trial eligibility, and beta-tester access only on verified production installs.",
+ "types": [
+  "PaywallGatePolicyTests: class — XCTestCase over PaywallGatePolicy"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PaywallGatePolicyTests.testNoAccessMeansThePaywall()",
+   "hash": "c04f0c15516bed60",
+   "does": "Asserts no access yields the .paywall modal.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "2757e3476c4b6f58"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testPermanentAccessNeverSeesTheTrialReminder()",
+   "hash": "848d78c1725948d1",
+   "does": "Asserts permanent access never gets a trial reminder (even with 1 day left) and never shows the trial clock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "2757e3476c4b6f58",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "9d98b479d65683fa"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testATrialUserIsRemindedOncePerDayInTheFinalWeek()",
+   "hash": "e87fd4e2548ea965",
+   "does": "Asserts a trial user with 5 days left gets .trialReminder when not yet shown today, nil once shown today, and sees the trial clock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "2757e3476c4b6f58",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "9d98b479d65683fa"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testNoReminderUntilTheFinalWeek()",
+   "hash": "ffb4925bfe8cc456",
+   "does": "Asserts no reminder at 30 or 8 days remaining and a reminder at exactly 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "2757e3476c4b6f58"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testAccessOutsideTheTrialShowsNothing()",
+   "hash": "55292ea6ec06ad74",
+   "does": "Asserts access outside a trial shows no modal.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "2757e3476c4b6f58"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testANewUserIsOfferedTheTrialAndTheUnlock()",
+   "hash": "b65d8d974eb2e549",
+   "does": "Asserts offer(no purchase, can start trial) is .trialAndUnlock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testOnceTheTrialHasStartedOnlyTheUnlockIsOffered()",
+   "hash": "c464a0585284d453",
+   "does": "Asserts offer(no purchase, cannot start trial) is .unlockOnly.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testABuyerIsShownAsUnlockedWithNothingOnOffer()",
+   "hash": "7495a30d399d7216",
+   "does": "Asserts a purchase yields .unlocked whether or not a trial could start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testStoreKitsTrialRecordDecidesOverALocalTrialStart()",
+   "hash": "122dc7f4a4c46ead",
+   "does": "Asserts once StoreKit answered, canStartTrial is true exactly when there is no trial transaction, regardless of a local trial start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testUntilStoreKitAnswersTheLocalTrialStartDecides()",
+   "hash": "8104c5953df903b6",
+   "does": "Asserts with StoreKit unanswered (nil) a local trial start blocks the trial and its absence allows it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testPermanentFreeAccessIsOfferedTheUnlockButNotTheTrial()",
+   "hash": "942b335b9717420b",
+   "does": "Asserts permanent access never can start a trial for nil/false/true StoreKit answers, and the offer is then .unlockOnly.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each StoreKit answer nil/false/true",
+     "effect": "asserts canStartTrial is false with permanent access"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The offer assertion hard-codes canStartTrial: false rather than feeding the value canStartTrial(…hasPermanentAccess: true) returned, so it repeats the assertion at line 60 and does not connect permanent access to the offered state the doc comment describes.",
+     "evidence": [
+      "EmuquTests/PaywallGatePolicyTests.swift:101",
+      "EmuquTests/PaywallGatePolicyTests.swift:60"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)": "53db48015154fb2e",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.offer(hasPurchasedProduct:canStartTrial:)": "dd296d738a126262"
+   }
+  },
+  {
+   "key": "func PaywallGatePolicyTests.testABetaAnchorGrantsNothingOutsideAProductionInstall()",
+   "hash": "9b498eb8f0763622",
+   "does": "Asserts grantsBetaTesterAccess is true only for an anchored beta tester on a verified production install.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)": "41b659749437d085"
+   }
+  }
+ ],
+ "deps": {}
+}

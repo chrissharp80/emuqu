@@ -1,0 +1,250 @@
+{
+ "file": "Emuqu/Sources/Views/AvatarPickerView.swift",
+ "hash": "aebc802d8dcd4ac8",
+ "role": "Profile-photo picker: PhotosPicker over a circular avatar; downsizes and JPEG-compresses the chosen image and stores it in UserSettings.avatarImageData.",
+ "types": [
+  "AvatarPickerView: struct View — picker + caption + error",
+  "AvatarCircleLabel: struct View (private) — circular image/placeholder with processing scrim"
+ ],
+ "state": [
+  "file:user_settings.json (UserSettings.avatarImageData via SettingsManager)"
+ ],
+ "toplevel": "File-private free function downscale.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AvatarPickerView.body",
+   "hash": "4b070e400197e289",
+   "does": "Shows PhotosPicker with an AvatarCircleLabel built from plain values, a 'Tap to add photo'/'Tap to change' caption and any error; on pickerItem change calls pick().",
+   "entry": "SwiftUI body; .onChange(of: pickerItem) fires after the user picks in PhotosPicker. Shown in SettingsView+Pages.swift:43.",
+   "calls": [
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.body",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarPickerView.errorText",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.pick(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.avatarImageData"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "avatarImageData == nil",
+     "effect": "caption 'Tap to add photo'; otherwise 'Tap to change'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.pick(_:)": "340c29efec69a9af",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.body": "eea56a26253d03d4",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarPickerView.errorText": "67b3ef88f4d24a9f",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var AvatarPickerView.errorText",
+   "hash": "9774e672eb877308",
+   "does": "Shows lastError in caution colour when set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lastError non-nil",
+     "effect": "shows the text; otherwise empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512"
+   }
+  },
+  {
+   "key": "func AvatarPickerView.pick(_:)",
+   "hash": "38ca10ef85f2418b",
+   "does": "Sets processing=true and starts a Task that loads/stores the picked image then clears processing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.loadAndStoreImage(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "newItem is nil",
+     "effect": "returns (nothing picked); otherwise processes"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "pickerItem is never reset to nil, so re-selecting the same PhotosPickerItem does not change the binding and .onChange does not fire (e.g. retry after 'Photo load failed').",
+     "evidence": [
+      "Emuqu/Sources/Views/AvatarPickerView.swift:13",
+      "Emuqu/Sources/Views/AvatarPickerView.swift:49"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.loadAndStoreImage(from:)": "0b5eeb25ccc19e54"
+   }
+  },
+  {
+   "key": "func AvatarPickerView.loadAndStoreImage(from:)",
+   "hash": "59331d293e098c2b",
+   "does": "Loads the item as Data, decodes UIImage, compresses to JPEG via compressedAvatar, and on the main actor stores it in settings.avatarImageData and clears the error; sets a localized error string on any failure.",
+   "entry": null,
+   "calls": [
+    "ext:PhotosPickerItem.loadTransferable",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.compressedAvatar(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.avatarImageData",
+    "file:user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loadTransferable returned nil or data is not a UIImage",
+     "effect": "lastError 'Couldn't read that image.' and return"
+    },
+    {
+     "at": "+7",
+     "cond": "JPEG encoding returned nil",
+     "effect": "lastError 'Couldn't compress that image.' and return; otherwise stores"
+    },
+    {
+     "at": "+15",
+     "cond": "catch: loadTransferable threw",
+     "effect": "lastError 'Photo load failed.'; error detail discarded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func AvatarPickerView.compressedAvatar(_:)": "0e1a7c6406f56ea4"
+   }
+  },
+  {
+   "key": "func AvatarPickerView.compressedAvatar(_:)",
+   "hash": "0578596d98e63a0c",
+   "does": "Downscales off the main actor (Task.detached) to a 256×256-point aspect-fill square and JPEG-encodes at quality 0.7.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func downscale(_:to:)",
+    "ext:UIImage.jpegData"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comments say the avatar is downscaled to 256×256 (~15–60 KB); UIGraphicsImageRenderer(size:) uses the default format whose scale is the screen scale, so on a 3× iPhone the stored JPEG is 768×768 px, about 9× the pixels the comment states, all inside user_settings.json.",
+     "evidence": [
+      "Emuqu/Sources/Views/AvatarPickerView.swift:6",
+      "Emuqu/Sources/Views/AvatarPickerView.swift:78",
+      "Emuqu/Sources/Views/AvatarPickerView.swift:91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AvatarPickerView.swift::func downscale(_:to:)": "a52fac54f5547f0b"
+   }
+  },
+  {
+   "key": "func downscale(_:to:)",
+   "hash": "e136d82903acecc2",
+   "does": "Draws the image aspect-fill centred into a UIGraphicsImageRenderer of the target size and returns the result.",
+   "entry": null,
+   "calls": [
+    "ext:UIGraphicsImageRenderer.image"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AvatarCircleLabel.body",
+   "hash": "27930cde75d8cad7",
+   "does": "ZStack of avatarImage and processingScrim with a thin primary-colour ring and accessibility label/hint.",
+   "entry": "SwiftUI body (PhotosPicker label).",
+   "calls": [
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.avatarImage",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.processingScrim",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.avatarImage": "e916d456c59c508a",
+    "Emuqu/Sources/Views/AvatarPickerView.swift::var AvatarCircleLabel.processingScrim": "bd318053e1844e83",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var AvatarCircleLabel.avatarImage",
+   "hash": "7d1c9c3c2b0a064f",
+   "does": "Shows the stored image clipped to a circle, or a tinted circle with person.fill placeholder.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "imageData present and decodes to UIImage",
+     "effect": "shows the photo; otherwise placeholder (corrupt data silently shows placeholder)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var AvatarCircleLabel.processingScrim",
+   "hash": "5931347e366fcda7",
+   "does": "Dark circle plus white ProgressView while processing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "processing",
+     "effect": "shows scrim + spinner; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

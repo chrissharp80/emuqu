@@ -1,0 +1,309 @@
+{
+ "file": "EmuquUITests/MorningResultsUITests.swift",
+ "hash": "70a1012099cc0fea",
+ "role": "XCUITest of MorningResultsView with one synthetic night seeded through RRCollector.processOvernightData (-UITests-SeedArchive): open from History, score ring, numeric score, explainer sheet, scroll all cards, and Dashboard showing the reading instead of the Day-1 checklist.",
+ "types": [
+  "MorningResultsUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/MorningResultsUITests.swift:35",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func MorningResultsUITests.setUp()",
+   "hash": "04e5374b6db01da3",
+   "does": "Launches with -UITests, -UITests-FreshInstall, -UITests-SeedArchive and English, waits up to 60s for the disclaimer (the seed is scored before the first screen), then walks gates.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "2b754ae9ec1519fb",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningResultsUITests.openSeededReading()",
+   "hash": "dda82969efbdc0c3",
+   "does": "Asserts History opens, a history.entryRow appears, tapSafely on it was sent, and morning.root appears within 40s.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "1c1ff9e3f23f61f1",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+   }
+  },
+  {
+   "key": "var MorningResultsUITests.resultsRoot",
+   "hash": "0352df9444958777",
+   "does": "Computed: first descendant with identifier morning.root.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testTappingAReadingOpensItsResults()",
+   "hash": "05494de45a530265",
+   "does": "Opens the seeded reading and asserts morning.root still exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testResultsShowTheRecoveryScoreCard()",
+   "hash": "e4b8c676c26a7aef",
+   "does": "Opens the seeded reading and asserts morning.scoreRing appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "41690cc8f3fd0531"
+   }
+  },
+  {
+   "key": "var MorningResultsUITests.scoreRing",
+   "hash": "1cbe6583786ec48a",
+   "does": "Computed: first descendant with identifier morning.scoreRing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testTheScoreCardShowsANumericScore()",
+   "hash": "d1ecc37051a46ac5",
+   "does": "Opens the seeded reading, asserts the score ring exists, and asserts its accessibility label matches '.*[0-9]+.*'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Tautological: the ring's label is always 'Recovery score: <score> out of 100, <verdict>' (MorningResultsView+DetailCards.swift:82), so the literal '100' satisfies the digit regex whatever the score renders as; a missing or placeholder score still passes, defeating the NaN check the doc describes",
+     "evidence": [
+      "EmuquUITests/MorningResultsUITests.swift:115",
+      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:82",
+      "EmuquUITests/MorningResultsUITests.swift:98"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.scoreRing": "41690cc8f3fd0531"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testScoreExplainerOpensAndCloses()",
+   "hash": "e4538f752104cc94",
+   "does": "Opens the seeded reading, asserts morning.scoreExplainer exists and tapSafely was sent, swipes down to dismiss, and asserts morning.root is still present.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.dismissExplainer()",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Never asserts the explainer sheet actually opened; it passes if the tap did nothing as long as the following swipe-down does not dismiss the results sheet",
+     "evidence": [
+      "EmuquUITests/MorningResultsUITests.swift:131",
+      "EmuquUITests/MorningResultsUITests.swift:132"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.dismissExplainer()": "befc3be91b2d0bfa",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.dismissExplainer()",
+   "hash": "c146a4ea5ff9da82",
+   "does": "Waits up to 10s for any scroll view, then swipes the app down fast to dismiss the explainer sheet.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testResultsScrollThroughEveryCardWithoutCrashing()",
+   "hash": "7f289f4a43336e3e",
+   "does": "Opens the seeded reading, asserts a scroll view, swipes it up 10 times and asserts morning.root still exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "10 iterations",
+     "effect": "swipe up"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/MorningResultsUITests.swift::func MorningResultsUITests.openSeededReading()": "a9c7b9ba456e8024",
+    "EmuquUITests/MorningResultsUITests.swift::var MorningResultsUITests.resultsRoot": "01941767d1c0265b"
+   }
+  },
+  {
+   "key": "func MorningResultsUITests.testDashboardShowsTheReadingRatherThanTheDay1Checklist()",
+   "hash": "c1687604c4698e24",
+   "does": "Selects the Dashboard tab (result ignored), asserts dashboard.root appears, then asserts no 'first recovery score' Day-1 checklist text appears within 6s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Negative-only assertion: passes on any Dashboard that lacks the checklist phrase, including one that rendered no reading at all; selectTab's result is ignored",
+     "evidence": [
+      "EmuquUITests/MorningResultsUITests.swift:183",
+      "EmuquUITests/MorningResultsUITests.swift:174"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "5fdc71f029ac6f55",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

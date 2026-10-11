@@ -1,0 +1,1221 @@
+{
+ "file": "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift",
+ "hash": "2b4099ee2353e1b2",
+ "role": "All sentence builders for the template Coach Report email body: headline, effort verdict, physiology (decoupling, HR drift, cadence drift), history comparison (sport baseline pace×HR matrix and same-route laps), HRR recovery, and next-day advice (ACWR band, TSB, HR drift), every string localized via LanguageManager.appBundle.",
+ "types": [
+  "CoachReportGenerator: extension — conversational summary sentences",
+  "CoachReportGenerator.PaceDelta: struct — signed pace difference with user-unit text",
+  "CoachReportGenerator.ComparisonDeltas: struct — today's pace/HR deltas vs sport baseline"
+ ],
+ "state": [
+  "mem:CoachReportGenerator.historyLimit (static let 120; also read by WorkoutRecorder+Metrics.coachReportInputs)"
+ ],
+ "toplevel": "historyLimit = 120 static constant. Production entry is renderConversationalSummary(session:pastWorkouts:...) called from WorkoutRecorder.renderAndStageCoachReport.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func CoachReportGenerator.renderConversationalSummary(session:archive:units:userMaxHR:userRestingHR:)",
+   "hash": "b11d05c616d9d3fb",
+   "does": "Archive-taking overload: decodes recent past workouts via recentPastWorkouts (or [] when archive is nil) and forwards to the pastWorkouts overload.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recentPastWorkouts(in:excluding:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "archive nil",
+     "effect": "pastWorkouts = [] → no comparison paragraph; else recentPastWorkouts(in:excluding:)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo (production or tests) uses the archive: overload; WorkoutRecorder and CoachReportGeneratorTests call the pastWorkouts: overload. grep 'renderConversationalSummary(' shows only Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:397 and tests with pastWorkouts:.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:23",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:397",
+      "EmuquTests/CoachReportGeneratorTests.swift:49"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recentPastWorkouts(in:excluding:)": "4b63ae1d501dede9",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.recentPastWorkouts(in:excluding:)",
+   "hash": "28ac7d9771ee52ea",
+   "does": "Filters archive index entries to workouts other than the given id, sorts newest first, keeps historyLimit (120), and decodes each lightweight (RR series skipped), dropping failures (logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is the dead archive overload at line 23; repo grep finds no other use.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:32"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "WorkoutRecorder+Metrics.coachReportInputs re-implements the same filter/sort/prefix(historyLimit) on the index and decodes in its detached task instead of calling this.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:333",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:395"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)",
+   "hash": "ca9a3288186aeb4c",
+   "does": "Builds the email body: if the session has no workoutMetadata returns a 'Coach Report / no workout data' text; otherwise joins non-nil paragraphs (headline, verdict, physiology, comparison, recovery, tomorrow) with blank lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session.workoutMetadata nil",
+     "effect": "returns the fixed 'Coach Report\\n\\nNo workout data...' text; else builds paragraphs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "b85ede29ccef3fa7",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "519221ea1f6a8226",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "734cd0c003875cc4",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)",
+   "hash": "d87613cdd65a47f9",
+   "does": "Returns nil when pastWorkouts is empty, else comparisonParagraph's result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonParagraph(session:meta:pastWorkouts:units:userMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "pastWorkouts empty",
+     "effect": "returns nil (no comparison paragraph); else delegates"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonParagraph(session:meta:pastWorkouts:units:userMaxHR:)": "7657108c1dab338b"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.summaryHeadline(session:meta:units:)",
+   "hash": "91ecadcb842e8ce8",
+   "does": "Builds '# <localized sport> — <full date, short time>' plus a line '<distance>, <duration>.' or '<distance> on **<route>**, <duration>.' when a recognized route name exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "session.duration nil",
+     "effect": "duration formatted as 0:00"
+    },
+    {
+     "at": "+11",
+     "cond": "recognizedRouteName non-nil and non-empty",
+     "effect": "route variant; else plain distance/duration line"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Emits a Markdown H1 ('# Run — …') at the top of the 'prose' email body; CoachReportGeneratorTests asserts 'no section headings' but only checks for '## ' and '# Coach Report', so the H1 passes unnoticed.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:111",
+      "EmuquTests/CoachReportGeneratorTests.swift:58"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "b1e24f20e5137617",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDuration(_:)": "b5a55eb1bbb8f892",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)",
+   "hash": "2ca6825511909776",
+   "does": "Computes average HR from samples and %max, average DFA α1, then returns '**Verdict:** <intensity label>.' plus an 'averaged X bpm, Y% of max' sentence when HR exists and maxHR>0, plus the α1 verdict when α1 exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.intensityLabel(percentOfMax:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.alpha1Verdict(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meta.samples nil",
+     "effect": "treated as []"
+    },
+    {
+     "at": "+2",
+     "cond": "no HR samples",
+     "effect": "avgHR nil; else arithmetic mean (zero HR values are included)"
+    },
+    {
+     "at": "+3",
+     "cond": "avgHR nil or userMaxHR <= 0",
+     "effect": "pct = 0 → intensity label 'Easy aerobic effort'; else avg/maxHR"
+    },
+    {
+     "at": "+4",
+     "cond": "meta.samples nil",
+     "effect": "no α1 values"
+    },
+    {
+     "at": "+5",
+     "cond": "no α1 values",
+     "effect": "avgAlpha nil; else mean"
+    },
+    {
+     "at": "+8",
+     "cond": "avgHR exists and userMaxHR > 0",
+     "effect": "appends bpm/%max sentence; else omitted"
+    },
+    {
+     "at": "+12",
+     "cond": "alpha1Verdict non-nil",
+     "effect": "appends α1 sentence"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "With no HR samples (or maxHR ≤ 0) pct defaults to 0 and the email still states '**Verdict:** Easy aerobic effort.' — a fabricated intensity verdict for a session with no heart-rate data.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:117",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:120",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:131"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.alpha1Verdict(_:)": "1c6e5b916ad0b3c0",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.intensityLabel(percentOfMax:)": "374f3569711b4bff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.intensityLabel(percentOfMax:)",
+   "hash": "49a500f0cb883f6c",
+   "does": "Maps fraction of max HR to an intensity label: <0.65 easy, <0.75 moderate endurance, <0.85 tempo, <0.92 threshold, else VO2max-level.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pct < 0.65",
+     "effect": "'Easy aerobic effort'"
+    },
+    {
+     "at": "+2",
+     "cond": "pct < 0.75",
+     "effect": "'Moderate endurance effort'"
+    },
+    {
+     "at": "+3",
+     "cond": "pct < 0.85",
+     "effect": "'Tempo effort'"
+    },
+    {
+     "at": "+4",
+     "cond": "pct < 0.92",
+     "effect": "'Threshold effort'; fall-through returns 'VO2max-level effort'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.alpha1Verdict(_:)",
+   "hash": "c9f90c15eb04faff",
+   "does": "Returns an α1 sentence: ≥0.75 below-AT1, ≥0.50 between AT1 and AT2, else hard day; nil without α1.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "avgAlpha nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "a >= 0.75",
+     "effect": "below-AT1 sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "a >= 0.50",
+     "effect": "AT1–AT2 tempo sentence; else 'below 0.50 … hard day'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)",
+   "hash": "c71f1c5485d4bf16",
+   "does": "Joins non-nil decoupling, HR-drift and cadence-drift sentences under '**What your body did:**'; nil when none apply.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decouplingSentence(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateDriftSentence(meta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.cadenceDriftSentence(meta:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no sentences",
+     "effect": "returns nil; else the paragraph"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.cadenceDriftSentence(meta:)": "9db5d9dd2ccb7538",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decouplingSentence(meta:)": "4889cd3ec73e3b67",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateDriftSentence(meta:)": "7b73508829f98709",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.decouplingSentence(meta:)",
+   "hash": "d5051eb7d16384ac",
+   "does": "Decoupling sentence: ≥5% is a fueling/heat/fatigue signal, otherwise 'well coupled' with signed percent; nil when decouplingPercent is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "decouplingPercent nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "dec >= 5",
+     "effect": "drift-warning sentence; else 'well coupled' sentence (any value <5, including large negatives)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.heartRateDriftSentence(meta:)",
+   "hash": "927cee589be3ae78",
+   "does": "HR-drift sentence from WorkoutLiveTrends.hrDriftPercent (last vs first quarter): >5% warns of dehydration/heat/glycogen, 0–5% says normal; nil when samples/drift missing or drift ≤ 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil, drift nil, or drift <= 0",
+     "effect": "returns nil (negative drift is never mentioned)"
+    },
+    {
+     "at": "+4",
+     "cond": "drift > 5",
+     "effect": "warning sentence; else 'within normal range'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.cadenceDriftSentence(meta:)",
+   "hash": "7d37a28f103a7467",
+   "does": "Cadence-drift sentence: average of positive cadence values and WorkoutLiveTrends.cadenceDriftSpm; rising vs falling wording when |drift| ≥ 3; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meta.samples nil",
+     "effect": "treated as []"
+    },
+    {
+     "at": "+2",
+     "cond": "no positive cadence values",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "cadenceDriftSpm nil or |drift| < 3",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "drift > 0",
+     "effect": "'rose by' sentence; else 'dropped by' sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.paceVsHeartRateSentences(paceDeltaSecPerKm:hrDelta:todayPaceSecPerKm:todayAvgHR:sport:units:)",
+   "hash": "6006c5f773766a4b",
+   "does": "Pace×HR matrix entry: no pace delta → []; pace but no HR delta → pace-only sentence; otherwise the combination sentence (0 or 1 element).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlySentence(_:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.combinationSentence(pace:hrDelta:todayPaceSecPerKm:todayAvgHR:units:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "paceDeltaSecPerKm nil",
+     "effect": "returns []"
+    },
+    {
+     "at": "+9",
+     "cond": "hrDelta nil",
+     "effect": "returns [paceOnlySentence]"
+    },
+    {
+     "at": "+14",
+     "cond": "combinationSentence nil",
+     "effect": "[] else [sentence]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.combinationSentence(pace:hrDelta:todayPaceSecPerKm:todayAvgHR:units:)": "9332478a64cdc445",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlySentence(_:units:)": "240b6fec30ca950b",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a"
+   }
+  },
+  {
+   "key": "init CoachReportGenerator.PaceDelta(secPerKm:units:)",
+   "hash": "8ad20c9ff0dc87f7",
+   "does": "Stores the signed sec/km delta and formats |delta| as whole 'N sec/mi' (×1.609344) for imperial or 'N sec/km' otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "units == .imperial",
+     "effect": "converts to sec/mi before rounding; else sec/km"
+    },
+    {
+     "at": "+3",
+     "cond": "units == .imperial",
+     "effect": "'sec/mi' text else 'sec/km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachReportGenerator.PaceDelta.isFaster",
+   "hash": "2c9509687b6396f8",
+   "does": "True when the pace delta is negative (faster than baseline).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CoachReportGenerator.paceOnlySentence(_:units:)",
+   "hash": "332bac24d53bf4cf",
+   "does": "Pace-only sentence: faster or slower than usual for the sport by the PaceDelta text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pd < 0",
+     "effect": "'faster' sentence; else 'slower' (including exactly 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.combinationSentence(pace:hrDelta:todayPaceSecPerKm:todayAvgHR:units:)",
+   "hash": "61a032186c1e14e8",
+   "does": "Six-way matrix: |pace|<5 s/km and |HR|<2 bpm → 'right on usual numbers' with today's pace/HR; both changed → bothChangedSentence; pace only → paceOnlyChangedSentence; HR only → heartRateOnlyChangedSentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.bothChangedSentence(pace:hrDelta:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlyChangedSentence(pace:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateOnlyChangedSentence(hrDelta:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "|pd| < 5 and |hd| < 2",
+     "effect": "'right on your usual numbers' sentence"
+    },
+    {
+     "at": "+9",
+     "cond": "formatPace returns nil",
+     "effect": "pace text '—'; todayPaceSecPerKm nil → 0 is passed"
+    },
+    {
+     "at": "+10",
+     "cond": "todayAvgHR nil",
+     "effect": "bpm printed as 0"
+    },
+    {
+     "at": "+13",
+     "cond": "|pd| >= 5 and |hd| >= 2",
+     "effect": "bothChangedSentence"
+    },
+    {
+     "at": "+14",
+     "cond": "|pd| >= 5",
+     "effect": "paceOnlyChangedSentence"
+    },
+    {
+     "at": "+15",
+     "cond": "|hd| >= 2",
+     "effect": "heartRateOnlyChangedSentence; else returns nil (only reachable when a delta is NaN)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.bothChangedSentence(pace:hrDelta:)": "9586bfba261a1faa",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.heartRateOnlyChangedSentence(hrDelta:)": "493fd3d0a69c6c19",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceOnlyChangedSentence(pace:)": "e7878fca5934ac57",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.bothChangedSentence(pace:hrDelta:)",
+   "hash": "a4787f1e20cfb12c",
+   "does": "Both pace and HR changed: picks one of four sentences by (faster?, HR higher?).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "slower and HR higher",
+     "effect": "freshness/environment signal sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "slower and HR lower/equal",
+     "effect": "deliberate-easy sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "faster and HR lower/equal",
+     "effect": "clean fitness signal sentence"
+    },
+    {
+     "at": "+9",
+     "cond": "faster and HR higher",
+     "effect": "pushed harder than usual sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.paceOnlyChangedSentence(pace:)",
+   "hash": "06c56369b2df4f5e",
+   "does": "Pace changed but HR within ±2 bpm: faster/slower 'intentional pacing' sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pace.isFaster",
+     "effect": "faster sentence; else slower"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.heartRateOnlyChangedSentence(hrDelta:)",
+   "hash": "2434e5a9299f67ac",
+   "does": "HR changed but pace within ±5 s/km: higher HR → fatigue/heat/fuel sentence, lower HR → fresher sentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hd > 0",
+     "effect": "'HR higher' sentence; else 'HR lower'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.routeComparisonSentences(session:meta:pastWorkouts:units:)",
+   "hash": "e676bfa5e98f7c81",
+   "does": "Same-route comparison: if a recognized route exists, takes up to 20 past workouts (any sport) with the same route name; <2 peers → 'first (or near-first) outing' sentence; else compares today's average pace to the distance-weighted route pace via routeLapSentence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.averageRoutePace(_:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeLapSentence(routeName:pace:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no recognized route name",
+     "effect": "returns []"
+    },
+    {
+     "at": "+8",
+     "cond": "fewer than 2 route peers",
+     "effect": "returns the first-outing sentence"
+    },
+    {
+     "at": "+11",
+     "cond": "distance <= 100 m, duration nil/<= 60 s, or no route average",
+     "effect": "returns []; else one routeLapSentence"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Route peers are filtered by route name only, not sport; pastWorkouts contains every workout sport (recentPastWorkouts / coachReportInputs filter only sessionType == .workout), so a run on a route also ridden by bike is compared against bike lap paces.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:302",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:333"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 'up to 20 prior workouts with the same recognizedRouteName' selection as FitnessSummaryCards.priorRuns, implemented separately.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:302",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:274"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.averageRoutePace(_:)": "42e122bb4d2fd849",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeLapSentence(routeName:pace:)": "b46883dff425eaef",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::init CoachReportGenerator.PaceDelta(secPerKm:units:)": "ecfc7c76022ed82a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.averageRoutePace(_:)",
+   "hash": "b29c3865431d9904",
+   "does": "Distance-weighted mean pace (total duration × 1000 / total distance) over route peers with >100 m and >60 s; nil if total distance ≤100 m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each peer",
+     "effect": "accumulates qualifying peers"
+    },
+    {
+     "at": "+4",
+     "cond": "peer distance <=100, nil, or duration nil/<=60",
+     "effect": "skip peer"
+    },
+    {
+     "at": "+9",
+     "cond": "totalDist <= 100",
+     "effect": "returns nil; else sec/km"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Line-for-line the same distance-weighted pace (>100 m, >60 s, totalDur*1000/totalDist, nil when totalDist<=100) as WorkoutHistoryBaselines.distanceWeightedPace and FitnessSummaryCards.accumulatePace.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:318",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:602",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:297"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.routeLapSentence(routeName:pace:)",
+   "hash": "bdfd1dfc46e6e178",
+   "does": "Route lap sentence: |delta| <5 s/km → 'within seconds of your typical lap'; else faster/slower by the delta text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "|pace.secPerKm| < 5",
+     "effect": "'within seconds' sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "pace.isFaster",
+     "effect": "faster sentence; else slower"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::var CoachReportGenerator.PaceDelta.isFaster": "24dd3fe5753df041",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.comparisonParagraph(session:meta:pastWorkouts:units:userMaxHR:)",
+   "hash": "0517ab0443fee84b",
+   "does": "Comparison paragraph: takes up to 30 same-sport past workouts; with <2 returns a 'first time on <route>' note (if a route) or nil; otherwise computes WorkoutHistoryBaselines, deltas, the pace×HR sentence and route sentences under '**How it compared:**'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonDeltas(session:meta:baselines:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceVsHeartRateSentences(paceDeltaSecPerKm:hrDelta:todayPaceSecPerKm:todayAvgHR:sport:units:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeComparisonSentences(session:meta:pastWorkouts:units:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "fewer than 2 same-sport peers",
+     "effect": "goes to the route fallback"
+    },
+    {
+     "at": "+9",
+     "cond": "no recognized route name",
+     "effect": "returns nil; else 'first time on <route> in your archive' text"
+    },
+    {
+     "at": "+13",
+     "cond": "baselines.sampleCount < 2",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+20",
+     "cond": "no sentences",
+     "effect": "returns nil; else the paragraph"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When sport history is thin the text asserts 'first time on <route> in your archive' without checking route peers; a route already run before (or ridden in another sport) is still called a first time.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:351",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:353"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.comparisonDeltas(session:meta:baselines:)": "cd217424ab597f0f",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.paceVsHeartRateSentences(paceDeltaSecPerKm:hrDelta:todayPaceSecPerKm:todayAvgHR:sport:units:)": "b586524ba7800704",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.routeComparisonSentences(session:meta:pastWorkouts:units:)": "1eadfcdfb1ea2ddb",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "00cb8c98bacae6b7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.comparisonDeltas(session:meta:baselines:)",
+   "hash": "bb5dfbf0f7cc4acb",
+   "does": "Computes today's mean HR (samples, zeros included), today's pace (duration×1000/distance) when baseline pace exists, distance>100 m and duration>60 s, the pace delta vs baseline, and HR delta vs baseline HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "meta.samples nil",
+     "effect": "treated as []"
+    },
+    {
+     "at": "+6",
+     "cond": "no HR samples",
+     "effect": "todayAvgHR nil; else mean"
+    },
+    {
+     "at": "+9",
+     "cond": "baseline pace exists, distance > 100, duration > 60",
+     "effect": "sets todayPace and paceDelta; else both nil"
+    },
+    {
+     "at": "+13",
+     "cond": "todayPace nil",
+     "effect": "?? 0 fallback, unreachable because todayPace was just assigned"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Today's mean HR includes zero heartRate samples while the baseline (WorkoutHistoryBaselines.sampleWeightedAverages) filters zeros, so dropout zeros bias hrDelta downward.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:383",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:618"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Today's mean HR is computed with the same two lines in openingVerdict and again here.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:115",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:116",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:383",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:384"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.recoveryParagraph(meta:)",
+   "hash": "9dc7cb0a16c880bc",
+   "does": "Recovery paragraph from HRR samples: one-minute drop with peak→after and, when present, the two-minute drop, followed by the HRR band sentence; nil without HRR samples or a 1-min sample.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.hrrRecoverySentence(oneMinuteDrop:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrrSamples nil or no 1-min sample",
+     "effect": "returns nil (no paragraph, no 'not captured' line)"
+    },
+    {
+     "at": "+5",
+     "cond": "two-minute sample exists",
+     "effect": "sentence includes 2-min drop; else 1-min only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.hrrRecoverySentence(oneMinuteDrop:)": "57c5263cd8b778b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.hrrRecoverySentence(oneMinuteDrop:)",
+   "hash": "474f196d63033de8",
+   "does": "Maps a 1-min HRR drop to excellent (≥25), solid (18–24), moderate (12–17) or limited (<12) wording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "drop >= 25",
+     "effect": "excellent"
+    },
+    {
+     "at": "+4",
+     "cond": "18..<25",
+     "effect": "solid"
+    },
+    {
+     "at": "+6",
+     "cond": "12..<18",
+     "effect": "moderate"
+    },
+    {
+     "at": "+8",
+     "cond": "default (<12)",
+     "effect": "limited recovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.tomorrowParagraph(session:meta:)",
+   "hash": "ed6e863a3c50ea78",
+   "does": "'**For tomorrow:**' paragraph: ACWR band advice and TSB advice from session.trainingSnapshot, an HR-drift hydration line when drift >5%, or a 'no flags' line when nothing applies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.loadRangeAdvice(acwr:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.freshnessAdvice(tsb:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.trainingSnapshot nil",
+     "effect": "skips ACWR/TSB advice"
+    },
+    {
+     "at": "+3",
+     "cond": "acuteChronicRatio nil (ctl <= 0)",
+     "effect": "no load advice"
+    },
+    {
+     "at": "+4",
+     "cond": "freshnessAdvice nil (TSB in -10…5)",
+     "effect": "no TSB line"
+    },
+    {
+     "at": "+6",
+     "cond": "drift > 5",
+     "effect": "appends hydration/carb line"
+    },
+    {
+     "at": "+10",
+     "cond": "no bits",
+     "effect": "appends 'No load-management flags' line"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "HR drift >5% is narrated twice in the same email: in heartRateDriftSentence and again here.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:175",
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:431"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.freshnessAdvice(tsb:)": "48471e7748eada23",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.loadRangeAdvice(acwr:)": "1729a56d995e3f93",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.percent(_:digits:signed:)": "f43714477d6c0441",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "9bfe7fd09d8324ea",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.loadRangeAdvice(acwr:)",
+   "hash": "160228d35c5a512a",
+   "does": "Maps ACWR via ACWRBand(ratio:) to advice text: sharpIncrease → easy/rest, aboveUsual → one more easy day, maintenance/inRange → sustainable, belowUsual → room to add.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": ".sharpIncrease (>1.5)",
+     "effect": "easy day or rest"
+    },
+    {
+     "at": "+6",
+     "cond": ".aboveUsual (1.3–1.5]",
+     "effect": "one more easy day"
+    },
+    {
+     "at": "+8",
+     "cond": ".maintenance or .inRange (0.8–1.3]",
+     "effect": "sustainable"
+    },
+    {
+     "at": "+10",
+     "cond": ".belowUsual (<0.8)",
+     "effect": "room to add quality"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.freshnessAdvice(tsb:)",
+   "hash": "b3e58b29153ff4dc",
+   "does": "TSB advice: < -10 'meaningfully tired, recovery only'; > 5 'fresh'; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tsb < -10",
+     "effect": "tired → recovery only"
+    },
+    {
+     "at": "+5",
+     "cond": "tsb > 5",
+     "effect": "fresh sentence; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Email tells a user with TSB below −10 that tomorrow should be aerobic recovery only, while the PDF deep dive labels −10…−30 the productive 'adaptive zone' (tsbRow explanation, interpretTSB) — the two reports give opposite advice for the same TSB.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:463",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:200",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:383"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.decimal(_:digits:signed:)": "c0097d431bcafed9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.decimal(_:digits:signed:)",
+   "hash": "e1054e51d460edcd",
+   "does": "Formats a number with fixed fraction digits in the app locale, optionally always signed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "signed",
+     "effect": "sign strategy .always(); else .automatic"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func CoachReportGenerator.percent(_:digits:signed:)",
+   "hash": "cfc64d33cef56d12",
+   "does": "Formats a value that is already a percentage (5.2 → 5.2 %) with fraction digits in the app locale, optionally always signed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "signed",
+     "effect": "sign strategy .always(); else .automatic"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

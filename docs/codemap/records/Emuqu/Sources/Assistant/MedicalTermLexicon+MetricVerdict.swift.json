@@ -1,0 +1,36 @@
+{
+ "file": "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift",
+ "hash": "75a54e67e65f2f3b",
+ "role": "Extension defining the unsupportedMetricVerdict Concept (metric-authority, illness-forecast and evidence-superlative phrasing in 17 locales), consumed by CoachVoiceGuard via scrubFromOutput and listed in MedicalTermLexicon.all.",
+ "types": [
+  "MedicalTermLexicon: extension — unsupportedMetricVerdict concept"
+ ],
+ "state": [
+  "mem:MedicalTermLexicon.unsupportedMetricVerdict"
+ ],
+ "toplevel": "One static let Concept with latin alternatives (HF power claims, 'strongly suggests', illness forecasting, 'stay home', 'fully recovered', 'gold standard', ...) and CJK/Arabic unbounded strings.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Broad output-scrub alternatives 'stay(?:ing)? home', 'fully recovered', 'is a sign that', 'strongly suggests' rewrite any model sentence containing them into a deflection whether or not a metric verdict is made (e.g. 'stay home and rest if it rains').",
+   "evidence": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift:46",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift:57",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift:62"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "'syst[èe]me d'alerte pr[ée]coce' requires an ASCII apostrophe, so model output with a typographic ’ escapes the scrub.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift:84"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

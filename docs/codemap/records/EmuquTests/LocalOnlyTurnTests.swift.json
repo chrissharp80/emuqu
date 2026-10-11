@@ -1,0 +1,208 @@
+{
+ "file": "EmuquTests/LocalOnlyTurnTests.swift",
+ "hash": "d5df0e7e7482931b",
+ "role": "XCTest suite pinning that ChatTurn.localOnly (set on locally refused medical turns) defaults to false, decodes from legacy transcripts, survives Codable round-trip, and that AssistantViewModel.truncateForSend withholds local-only turns from both kept and dropped (summarisation) lists, under truncation too.",
+ "types": [
+  "LocalOnlyTurnTests: class — @MainActor XCTestCase over ChatTurn.localOnly and AssistantViewModel.truncateForSend"
+ ],
+ "state": [
+  "mem:LocalOnlyTurnTests.secret ('do I have AFib?')"
+ ],
+ "toplevel": "Stored fixture secret string.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+   "hash": "393ba6776ee1c415",
+   "does": "Fixture: ChatTurn(role:text:localOnly:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testTurnsAreSendableByDefault()",
+   "hash": "9a3344efcd465e39",
+   "does": "Asserts an ordinary turn has localOnly false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testTranscriptsWrittenBeforeTheFieldDecodeAsSendable()",
+   "hash": "598d4027496f9e0f",
+   "does": "Decodes a legacy ChatTurn JSON without localOnly and asserts it decodes as sendable with text 'hello'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "4f9bc6406c876d19"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testThePolicySurvivesARoundTripThroughStorage()",
+   "hash": "2ad7465b843ca7ee",
+   "does": "Asserts a localOnly turn keeps localOnly true after JSONEncoder/JSONDecoder round-trip.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "4f9bc6406c876d19",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testRefusedTurnsAreWithheldFromTheOutboundHistory()",
+   "hash": "a5745cbbc8a81fa1",
+   "does": "With a refused user/assistant pair followed by an ordinary exchange, asserts the secret text is in neither kept nor dropped and the ordinary question is kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "9d410088c4361723",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "0fa0cbb8f8659442",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testWithheldTurnsAreNotReportedAsDropped()",
+   "hash": "f649a415474d9add",
+   "does": "Asserts a history of only local-only turns yields empty kept and empty dropped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "9d410088c4361723",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "0fa0cbb8f8659442",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testExclusionHoldsUnderTruncation()",
+   "hash": "27675b80044273f3",
+   "does": "Prepends the secret local-only turn to 800 ordinary turns (400 padded ~330-char user turns, 400 short replies), calls truncateForSend for Anthropic, asserts the secret is in neither kept nor dropped and kept is non-empty. The history totals about 36k estimated tokens, under Anthropic's 80k budget, so nothing is actually truncated.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for i in 0..<400",
+     "effect": "appends one padded user and one assistant turn"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Named 'ExclusionHoldsUnderTruncation' but the history never reaches the budget: each padded user turn is ~330 chars = 82+4 estimated tokens and each reply 1+4, so 400 pairs total ~36,400 tokens against conversationTokenBudget(.anthropic) = 80,000; the token-budget break never fires and dropped is always empty, so the truncation path is not exercised.",
+     "evidence": [
+      "EmuquTests/LocalOnlyTurnTests.swift:94",
+      "EmuquTests/LocalOnlyTurnTests.swift:95",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:103",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:129",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:151"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "9d410088c4361723",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "0fa0cbb8f8659442",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  },
+  {
+   "key": "func LocalOnlyTurnTests.testOrdinaryHistoryIsUnaffected()",
+   "hash": "f4c78494cccbc30c",
+   "does": "Asserts six ordinary turns are all in kept + dropped (none lost).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index is even",
+     "effect": "user role; odd → assistant"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "9d410088c4361723",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "0fa0cbb8f8659442",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "EmuquTests/LocalOnlyTurnTests.swift::func LocalOnlyTurnTests.turn(_:_:localOnly:)": "14a955923dc99f45"
+   }
+  }
+ ],
+ "deps": {}
+}

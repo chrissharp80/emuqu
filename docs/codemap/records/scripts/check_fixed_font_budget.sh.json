@@ -1,0 +1,56 @@
+{
+ "file": "scripts/check_fixed_font_budget.sh",
+ "hash": "876fc44dc8b3bd46",
+ "role": "CI gate: counts `.font(.system(size: <numeric literal>))` in the app target and in the watch target and fails above .ci/fixed_font_budget.txt (13) / .ci/fixed_font_watch_budget.txt (0).",
+ "types": [],
+ "state": [
+  "file:.ci/fixed_font_budget.txt",
+  "file:.ci/fixed_font_watch_budget.txt",
+  "env:FIXED_FONT_BUDGET_FILE",
+  "env:FIXED_FONT_WATCH_BUDGET_FILE",
+  "env:GITHUB_STEP_SUMMARY"
+ ],
+ "toplevel": "set -euo pipefail; no cd. BUDGET_FILE env or .ci/fixed_font_budget.txt; missing -> 66; non-integer -> 65. SOURCE_ROOT=$1 or Emuqu; WATCH_ROOT=$2 or 'EmuquWatch Watch App'. count=measure(app), watch_count=measure(watch). Watch budget missing -> 66, non-integer -> 65. Fails if either exceeds; prints below-budget hints; on success appends app count (not watch) to GITHUB_STEP_SUMMARY. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "No cd to repo root and os.walk on a missing directory yields nothing. Run from any other directory, both counts are 0 and the gate passes (the budget-file check fails first only if .ci/ is also missing relative to cwd).",
+   "evidence": [
+    "scripts/check_fixed_font_budget.sh:34",
+    "scripts/check_fixed_font_budget.sh:86"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn measure",
+   "hash": "c2532af1e9b1e303",
+   "does": "Runs embedded Python over root $1: walks *.swift files, skips lines starting with //, and counts `.font(.system(size: X` occurrences whose first argument is a numeric literal; prints the count.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "dir:Emuqu",
+    "dir:EmuquWatch Watch App"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Only the `.font(.system(size:` spelling is counted; `Font.system(size: 14)` passed through a variable or `.font(Font.system(size:))` is not.",
+     "evidence": [
+      "scripts/check_fixed_font_budget.sh:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_fixed_font_budget.sh::fn measure": "4d1a1fa1b937bd36"
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "file": "Emuqu/Sources/Collection/ArchiveSignal.swift",
+ "hash": "f652edc01df15914",
+ "role": "Observable signal whose `version` Int bumps (coalesced over 80 ms) whenever `.flowRecoveryArchiveChanged` is posted, so SwiftUI views refresh on archive mutations without observing the whole RRCollector.",
+ "types": [
+  "ArchiveSignal: class (@MainActor @Observable) — coalesced archive-change version counter"
+ ],
+ "state": [
+  "mem:ArchiveSignal.version (private(set), observed by MainTabView, HistoryView, TrendsV2View, MorningResultsView, FitnessPostSummaryView, CoachHomeV2View, LoadTrajectoryLoader, SettingsPages+Data, FitnessTabView+Strap)",
+  "static ArchiveSignal.coalesceWindow = 0.08 s",
+  "pendingBump: Bool, coalesceTask: Task (ObservationIgnored)",
+  "observers: NotificationTokens",
+  "center: NotificationCenter (default .default)",
+  "notif:.flowRecoveryArchiveChanged (observed and posted; name declared elsewhere)"
+ ],
+ "toplevel": "Stored-property initializers only (version=0, pendingBump=false).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc comment says consumers react via `$version`, but an @Observable class has no `$version` projection; consumers actually use `.onChange(of: archiveSignal.version)`.",
+   "evidence": [
+    "Emuqu/Sources/Collection/ArchiveSignal.swift:29",
+    "Emuqu/Sources/Views/MainTabView.swift:314"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ArchiveSignal(center:)",
+   "hash": "7b8940c9a5309289",
+   "does": "Stores the notification center and registers a queue:nil observer for `.flowRecoveryArchiveChanged` (any object) whose block hops to the main actor and calls scheduleCoalescedBump().",
+   "entry": "Constructed only by RRCollector.init when no signal is injected (RRCollector.swift:701, `archiveSignal ?? ArchiveSignal()`) and by snapshot tests (e.g. EmuquTests/TabScreenSnapshotTests.swift:43); there is no separate dependency-container construction. The observer block is invoked by NotificationCenter on the posting thread (SessionArchive.archive, notifyChanged, other posters).",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.scheduleCoalescedBump()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.scheduleCoalescedBump()": "86ebc4bd060192b3",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "deinit ArchiveSignal",
+   "hash": "c6406ff1b32da773",
+   "does": "Cancels any pending coalesce task and removes the notification observer from the injected center.",
+   "entry": "Swift deinit when the signal is released.",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "func ArchiveSignal.scheduleCoalescedBump()",
+   "hash": "f4ac29ecee9a0c61",
+   "does": "Sets pendingBump, cancels the previous coalesce task and starts a new main-actor task that sleeps 80 ms and, if not cancelled and the object still exists, clears pendingBump and increments version (wrapping add). Trailing debounce: a stream of posts closer than 80 ms apart postpones the bump until 80 ms after the last.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "task cancelled after sleep, or self deallocated",
+     "effect": "returns without bumping (the newer task, if any, will bump); otherwise continues"
+    },
+    {
+     "at": "+6",
+     "cond": "pendingBump is true",
+     "effect": "clears it and bumps version by 1; false branch does nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "pendingBump is set true on line 101 immediately before every task is created and is cleared only inside the surviving (non-cancelled) task, so the `if self.pendingBump` false path never executes; the flag is redundant with task cancellation.",
+     "evidence": [
+      "Emuqu/Sources/Collection/ArchiveSignal.swift:101",
+      "Emuqu/Sources/Collection/ArchiveSignal.swift:106"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func ArchiveSignal.notifyChanged()",
+   "hash": "10c11b0d29f623ae",
+   "does": "Posts `.flowRecoveryArchiveChanged` (object nil) on the injected center; the bump itself happens via the observer registered in init, and every other raw observer of that name (TrainingMetricsCache, HeatAcclimationCache, BeatConsistencyPriorsCache) also fires.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

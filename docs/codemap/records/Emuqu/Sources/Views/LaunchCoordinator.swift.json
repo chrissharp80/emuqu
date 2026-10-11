@@ -1,0 +1,308 @@
+{
+ "file": "Emuqu/Sources/Views/LaunchCoordinator.swift",
+ "hash": "64a0723fc85faf9b",
+ "role": "Main-actor singleton that orders cold-launch background jobs: interactive-phase jobs run right away, housekeeping-phase jobs wait until the dashboard's first data load (or a 6 s ceiling), and at most 2 jobs run concurrently.",
+ "types": [
+  "LaunchCoordinator: final class (@MainActor) — phase gate + concurrency limiter for launch jobs",
+  "LaunchCoordinator.Phase: enum — interactive | housekeeping"
+ ],
+ "state": [
+  "mem:LaunchCoordinator.shared (static singleton, reached via AppDependencies.app.launchCoordinator)",
+  "mem:LaunchCoordinator.didBegin",
+  "mem:LaunchCoordinator.housekeepingOpen",
+  "mem:LaunchCoordinator.housekeepingWaiters",
+  "mem:LaunchCoordinator.dashboardReady",
+  "mem:LaunchCoordinator.dashboardReadyWaiter",
+  "mem:LaunchCoordinator.maxConcurrent (=2)",
+  "mem:LaunchCoordinator.inFlight",
+  "mem:LaunchCoordinator.slotWaiters"
+ ],
+ "toplevel": "Callers: AppLaunchTasks.scheduleLaunchHousekeeping calls begin() (AppLaunchTasks.swift:406) then run(...) for migration/training/sync jobs (AppLaunchTasks.swift:428,481,523,557); MainTabView.applyDashboardLoad calls signalDashboardReady (MainTabView+Tabs.swift:126).",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references LaunchCoordinator; the 6 s ceiling, the housekeeping gate and the slot limiter (whose earlier task-group version is documented as having hung housekeeping forever, LaunchCoordinator.swift:63-67) have no coverage.",
+   "evidence": [
+    "Emuqu/Sources/Views/LaunchCoordinator.swift:68",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift:123"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init LaunchCoordinator()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private initializer for the singleton; no work.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.begin()",
+   "hash": "e8266d8457317833",
+   "does": "Once only: spawns a main-actor Task that waits for dashboard-ready or the 6 s ceiling, then opens the housekeeping gate and resumes every parked housekeeping waiter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadyOrTimeout()"
+   ],
+   "reads": [
+    "mem:LaunchCoordinator.didBegin"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.didBegin",
+    "mem:LaunchCoordinator.housekeepingOpen",
+    "mem:LaunchCoordinator.housekeepingWaiters"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "didBegin already true",
+     "effect": "return (idempotent); false: set it and start the gate task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadyOrTimeout()": "bab197ba6f9ba31b"
+   }
+  },
+  {
+   "key": "func LaunchCoordinator.signalDashboardReady()",
+   "hash": "6f9076911e8517fd",
+   "does": "Marks the dashboard ready and resumes the parked ready-waiter, if any. Idempotent.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.dashboardReady"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.dashboardReady",
+    "mem:LaunchCoordinator.dashboardReadyWaiter"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dashboardReady already true",
+     "effect": "return; false: set true, resume and clear dashboardReadyWaiter"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.awaitDashboardReadyOrTimeout()",
+   "hash": "f5ed384d164291a0",
+   "does": "Returns when the dashboard signals ready or after 6 s, whichever first: starts a ceiling task that sleeps 6 s then releases the waiter, parks on the ready continuation, then cancels the ceiling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseDashboardWaiter()",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadySignal()",
+    "ext:Task.sleep"
+   ],
+   "reads": [
+    "mem:LaunchCoordinator.dashboardReady"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.dashboardReadyWaiter"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dashboardReady already true",
+     "effect": "return immediately; false: start ceiling and park"
+    },
+    {
+     "at": "+4",
+     "cond": "ceiling task was cancelled (ready arrived first)",
+     "effect": "return without releasing; not cancelled after 6 s: releaseDashboardWaiter()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitDashboardReadySignal()": "6b14cbb7340a1b4e",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseDashboardWaiter()": "8a56fa5f1a587350",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func LaunchCoordinator.releaseDashboardWaiter()",
+   "hash": "4907878d800b9e4c",
+   "does": "Resumes and clears the parked dashboard-ready waiter without setting dashboardReady (timeout path).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LaunchCoordinator.dashboardReadyWaiter"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.awaitDashboardReadySignal()",
+   "hash": "66f7bd1ca56732ee",
+   "does": "Parks on a checked continuation stored in dashboardReadyWaiter, resuming at once if already ready.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.dashboardReady"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.dashboardReadyWaiter"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "dashboardReady",
+     "effect": "true: resume immediately; false: store continuation for signalDashboardReady/releaseDashboardWaiter"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.run(phase:priority:skipInLowPower:lowPower:_:)",
+   "hash": "f544843abd8ee77c",
+   "does": "Schedules a launch job on a detached task at the given priority that goes through runCoordinated; skipped entirely when skipInLowPower and lowPower are both true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.runCoordinated(phase:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "skipInLowPower && lowPower",
+     "effect": "return without scheduling (job dropped for this launch); otherwise Task.detached runs it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.runCoordinated(phase:_:)": "3e4a2f13a7c11620"
+   }
+  },
+  {
+   "key": "func LaunchCoordinator.runCoordinated(phase:_:)",
+   "hash": "10c400dd4940f5c6",
+   "does": "Static: for housekeeping jobs waits for the gate, then acquires a concurrency slot, runs the work, and releases the slot — each step on AppDependencies.current.app.launchCoordinator.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitHousekeepingOpen()",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "closure:work — job closure passed to run() by AppLaunchTasks (archive migrations, training rebuild, iCloud sync, etc.)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "phase == .housekeeping",
+     "effect": "await awaitHousekeepingOpen() first; interactive: go straight to slot acquisition"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.acquireSlot()": "0d3b365ca4b90035",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.awaitHousekeepingOpen()": "391a52a7510b3d58",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.releaseSlot()": "60c31dd33dfeaa9d"
+   }
+  },
+  {
+   "key": "func LaunchCoordinator.awaitHousekeepingOpen()",
+   "hash": "5bddbf48173396f5",
+   "does": "Waits until the housekeeping gate opens (begin()'s task resumes the stored continuations).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.housekeepingOpen"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.housekeepingWaiters"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "housekeepingOpen already true",
+     "effect": "return immediately; false: park"
+    },
+    {
+     "at": "+3",
+     "cond": "housekeepingOpen inside continuation body",
+     "effect": "true: resume at once; false: append to housekeepingWaiters"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.acquireSlot()",
+   "hash": "9b2d33d89003c020",
+   "does": "Loops parking on a continuation while inFlight >= 2, then increments inFlight.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.inFlight"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.inFlight",
+    "mem:LaunchCoordinator.slotWaiters"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "inFlight >= maxConcurrent (2)",
+     "effect": "true: append continuation and wait, re-check after resume; false: take the slot (inFlight += 1)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "releaseSlot resumes the oldest waiter without reserving the slot for it; a job arriving between the resume and the waiter's re-check takes the slot, and the woken waiter re-parks at the tail, so ordering is not FIFO and a waiter can be passed over repeatedly.",
+     "evidence": [
+      "Emuqu/Sources/Views/LaunchCoordinator.swift:124",
+      "Emuqu/Sources/Views/LaunchCoordinator.swift:135"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LaunchCoordinator.releaseSlot()",
+   "hash": "1f13bf64bddbb21d",
+   "does": "Decrements inFlight and resumes the first slot waiter, if any.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchCoordinator.slotWaiters"
+   ],
+   "writes": [
+    "mem:LaunchCoordinator.inFlight",
+    "mem:LaunchCoordinator.slotWaiters"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "slotWaiters non-empty",
+     "effect": "resume and remove the first; empty: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

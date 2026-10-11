@@ -1,0 +1,821 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/FactCatalog.swift",
+ "hash": "867bfcb05c0421e3",
+ "role": "Declares the fact-catalog primitives: ActionParam, sync/async body enums, the FactEntry enum (fixed / parameterized / composite / action), its convenience factories, and the FactNamespaceResolver protocol with default sync and async key-matching resolution.",
+ "types": [
+  "ActionParam: struct — named argument declaration for action entries",
+  "FactResolveBody: enum — .sync / .awaitable resolver body",
+  "FactExecuteBody: enum — .sync / .awaitable action body",
+  "FactEntry: enum — one catalog entry (fixed, parameterized, composite, action)",
+  "FactEntry: extension — factories fixed/fixedAsync/parameterized/composite/action/actionAsync",
+  "FactNamespaceResolver: protocol — namespace + entries",
+  "FactNamespaceResolver: extension — resolve/resolveAsync/matchPattern default implementations"
+ ],
+ "state": [],
+ "toplevel": "Only type declarations and protocol extension defaults; conditional '#if canImport(CryptoKit) import CryptoKit' (unused in this file).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init ActionParam(_:_:required:)",
+   "hash": "a4822a19cd9244cd",
+   "does": "Memberwise init storing name, description and required (default true).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
+   }
+  },
+  {
+   "key": "var FactEntry.display",
+   "hash": "61064cc84f9a7249",
+   "does": "Catalog display string: the key for fixed/composite/action; for parameterized, the pattern with $date/$ordinal/$id/$period/$namespace replaced by the example.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed",
+     "effect": "returns key"
+    },
+    {
+     "at": "+3",
+     "cond": "case .parameterized",
+     "effect": "replaces five named placeholders with the example"
+    },
+    {
+     "at": "+9",
+     "cond": "case .composite",
+     "effect": "returns key"
+    },
+    {
+     "at": "+10",
+     "cond": "case .action",
+     "effect": "returns key"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "display substitutes only $date/$ordinal/$id/$period/$namespace; catalog patterns also use $n, $tag, $sport, $params, $seconds, $topic, $daily_trimp (which stay raw), and $namespace is used by no entry. Only caller is a test label.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:184",
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:188",
+      "EmuquTests/FactCatalogValidationTests.swift:134"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var FactEntry.description",
+   "hash": "ffd84b34ac61ae15",
+   "does": "Returns the entry's description string for every case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed or .parameterized",
+     "effect": "description d"
+    },
+    {
+     "at": "+3",
+     "cond": "case .composite",
+     "effect": "d"
+    },
+    {
+     "at": "+4",
+     "cond": "case .action",
+     "effect": "d"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller of FactEntry.description in app or tests (toolSpec(for:) pattern-matches the case instead).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:194",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:457"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var FactEntry.valueType",
+   "hash": "5721a95927e268fd",
+   "does": "Value-type label: stored valueType for fixed/composite, 'Record' for parameterized and action.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed",
+     "effect": "stored t"
+    },
+    {
+     "at": "+3",
+     "cond": "case .parameterized",
+     "effect": "'Record'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .composite",
+     "effect": "stored t"
+    },
+    {
+     "at": "+5",
+     "cond": "case .action",
+     "effect": "'Record'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller of .valueType anywhere in the repo, so the valueType strings every entry declares are never read.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:202"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var FactEntry.currentAvailability",
+   "hash": "483d2e134678b717",
+   "does": "Invokes the entry's availability closure and returns the Availability.",
+   "entry": null,
+   "calls": [
+    "closure:availability — set by each namespace entry declaration (default { .alwaysAvailable } via the factories)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed",
+     "effect": "calls a()"
+    },
+    {
+     "at": "+3",
+     "cond": "case .parameterized",
+     "effect": "calls a()"
+    },
+    {
+     "at": "+4",
+     "cond": "case .composite",
+     "effect": "calls a()"
+    },
+    {
+     "at": "+5",
+     "cond": "case .action",
+     "effect": "calls a()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FactEntry.dependencies",
+   "hash": "7461ddc5bcb5a59b",
+   "does": "Declared dependency keys for composites; [] for other cases.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fixed/parameterized/action",
+     "effect": "[]"
+    },
+    {
+     "at": "+3",
+     "cond": "composite",
+     "effect": "deps"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the CI validation suite uses this property; FactCatalogValidationTests pattern-matches .composite(...deps...) directly and nothing calls .dependencies.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:222",
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:225",
+      "EmuquTests/FactCatalogValidationTests.swift:101"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var FactEntry.isAction",
+   "hash": "0f64901333db9ffd",
+   "does": "True for .action entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "self is .action",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says isAction is used by the schema builder and prompt overlay; no code references .isAction (dead).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:232",
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:236"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b"
+   }
+  },
+  {
+   "key": "func FactEntry.syncPathUnavailable(key:)",
+   "hash": "10715e705737e751",
+   "does": "Builds the .missing(.internalError) envelope saying the fact resolves asynchronously and must go through resolveTool.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactEntry.fixed(key:description:valueType:resolve:)",
+   "hash": "ffca4ee68a4a804e",
+   "does": "Factory: .fixed entry with alwaysAvailable availability and a .sync body.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+   }
+  },
+  {
+   "key": "func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+   "hash": "305283a71acf1423",
+   "does": "Factory: .fixed entry with caller availability and a .sync body.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+   }
+  },
+  {
+   "key": "func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+   "hash": "73a7080ae7558da8",
+   "does": "Factory: .fixed entry with alwaysAvailable availability and an .awaitable @MainActor body.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+   }
+  },
+  {
+   "key": "func FactEntry.parameterized(pattern:paramExample:description:resolve:)",
+   "hash": "f25b29176e1f4714",
+   "does": "Factory: .parameterized entry with alwaysAvailable availability.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
+   }
+  },
+  {
+   "key": "func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+   "hash": "94c4351bfea71fad",
+   "does": "Factory: .composite entry with alwaysAvailable availability, default valueType 'Record'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.dependencies": "9a30e9aee8cc5980",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.valueType": "cbcb9ac297f40af4"
+   }
+  },
+  {
+   "key": "func FactEntry.action(key:description:parameters:execute:)",
+   "hash": "7671bf0bab019d4c",
+   "does": "Factory: .action entry with alwaysAvailable availability and a .sync execute body.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
+   }
+  },
+  {
+   "key": "func FactEntry.actionAsync(key:description:parameters:execute:)",
+   "hash": "385e722a1f090821",
+   "does": "Factory: .action entry with alwaysAvailable availability and an .awaitable execute body.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.description": "74081e170e07f5b1"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.resolve(_:)",
+   "hash": "8e17968598b24872",
+   "does": "Sync resolve without a registry: walks entries and returns the first non-nil resolveEntry (composites skipped because registry is nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each entry",
+     "effect": "iterates entries in order"
+    },
+    {
+     "at": "+3",
+     "cond": "resolveEntry returned a value",
+     "effect": "returns it; nil after all entries"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller: the registry and tests always call resolve(_:registry:) (FactResolverRegistry.swift:126,129).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:423",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:126"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)": "d69565c0c9ccb59e",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered": "8cf4f8bb456d2ce2"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.syncValue(of:key:)",
+   "hash": "9bc20557093a2861",
+   "does": "Sync value of a fixed body: runs a .sync closure; an .awaitable body returns FactEntry.syncPathUnavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.syncPathUnavailable(key:)",
+    "closure:FactResolveBody.sync — entry resolver set by namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "body .sync",
+     "effect": "returns r()"
+    },
+    {
+     "at": "+3",
+     "cond": "body .awaitable",
+     "effect": "returns syncPathUnavailable envelope (internalError)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.syncPathUnavailable(key:)": "53002119b3c0e33b"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.resolve(_:registry:)",
+   "hash": "2a60818954750065",
+   "does": "Sync composite-aware resolve: walks entries and returns the first non-nil resolveEntry with the registry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each entry",
+     "effect": "iterates entries"
+    },
+    {
+     "at": "+3",
+     "cond": "entry produced a value",
+     "effect": "returns it; nil when none matched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)": "d69565c0c9ccb59e",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered": "8cf4f8bb456d2ce2"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)",
+   "hash": "ee0c4cb3f2573f50",
+   "does": "Matches one entry against a key on the sync path: fixed exact-match → syncValue; parameterized pattern-match → closure(param, tail); composite only when registry is non-nil; actions never.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.syncValue(of:key:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)",
+    "closure:FactEntry.parameterized resolve — set by namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "case .fixed",
+     "effect": "see 470"
+    },
+    {
+     "at": "+8",
+     "cond": "key string != rendered",
+     "effect": "returns nil; else syncValue"
+    },
+    {
+     "at": "+10",
+     "cond": "case .parameterized",
+     "effect": "see 473"
+    },
+    {
+     "at": "+11",
+     "cond": "pattern does not match",
+     "effect": "nil; else calls r(param, tail)"
+    },
+    {
+     "at": "+13",
+     "cond": "case .composite",
+     "effect": "see 476"
+    },
+    {
+     "at": "+14",
+     "cond": "registry nil",
+     "effect": "nil; else compositeValue"
+    },
+    {
+     "at": "+16",
+     "cond": "case .action",
+     "effect": "nil — actions only via resolveTool"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "86e9844148fa04b2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.syncValue(of:key:)": "c7c08efe669907df"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)",
+   "hash": "f51038a1fd528288",
+   "does": "Sync composite value: literal key exact-match runs body(nil); parameterized key pattern-matches and runs body(param).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)",
+    "closure:FactEntry.composite resolve — set by namespace declarations (AppFactResolver+Live etc.)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "key has no '('",
+     "effect": "literal: exact-match runs body(nil, registry), else nil"
+    },
+    {
+     "at": "+7",
+     "cond": "literal key == rendered (ternary)",
+     "effect": "body(nil) when equal, nil otherwise"
+    },
+    {
+     "at": "+8",
+     "cond": "pattern does not match",
+     "effect": "nil; else body(param) — tail tokens after the pattern are ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.resolveAsync(_:registry:)",
+   "hash": "12f0dca46cce1998",
+   "does": "Async walk of entries returning the first non-nil resolveEntryAsync.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntryAsync(_:key:rendered:registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each entry",
+     "effect": "iterates entries in order"
+    },
+    {
+     "at": "+4",
+     "cond": "entry produced a value",
+     "effect": "returns it; nil when none matched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntryAsync(_:key:rendered:registry:)": "755791a73c39ad57",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::var FactKey.rendered": "8cf4f8bb456d2ce2"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.resolveEntryAsync(_:key:rendered:registry:)",
+   "hash": "3436b9375bda9296",
+   "does": "Async per-entry match: fixed exact-match awaits the body; parameterized pattern-match runs closure; composite goes through compositeValueAsync; action returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.awaitedValue(of:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)",
+    "closure:FactEntry.parameterized resolve — namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "case .fixed",
+     "effect": "see 524"
+    },
+    {
+     "at": "+9",
+     "cond": "k != rendered",
+     "effect": "nil; else awaitedValue(body)"
+    },
+    {
+     "at": "+11",
+     "cond": "case .parameterized",
+     "effect": "see 527"
+    },
+    {
+     "at": "+12",
+     "cond": "pattern does not match",
+     "effect": "nil; else r(param, tail)"
+    },
+    {
+     "at": "+14",
+     "cond": "case .composite",
+     "effect": "compositeValueAsync"
+    },
+    {
+     "at": "+16",
+     "cond": "case .action",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.awaitedValue(of:)": "8fb3b56126f6a366",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)": "f0b3d56418ecd00f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.compositeValueAsync(_:dependencies:rendered:key:registry:body:)",
+   "hash": "fe9e9a738a7ad22e",
+   "does": "Async composite value: matches literal/parameterized key, substitutes the captured param into each declared dependency, prefetches them via registry.withPrefetchedChildren, then runs the sync body.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.substitutingPlaceholder(in:with:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.withPrefetchedChildren(_:run:)",
+    "closure:FactEntry.composite resolve — namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "composite key contains '('",
+     "effect": "pattern-match path (see 551); else literal path (554)"
+    },
+    {
+     "at": "+11",
+     "cond": "pattern does not match",
+     "effect": "nil; else param = captured (tail ignored)"
+    },
+    {
+     "at": "+14",
+     "cond": "literal key != rendered",
+     "effect": "nil; else param nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A parameterized composite matched by prefix ignores the tail: 'x.y(7d).anything' returns the whole composite rather than missing, so a mistyped nested key gets a plausible but unrequested record.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:551",
+      "Emuqu/Sources/Assistant/Facts/FactCatalog.swift:589"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchPattern(_:against:)": "c6623fdcef3ec69d",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.substitutingPlaceholder(in:with:)": "0859c864be046b81",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.dependencies": "9a30e9aee8cc5980",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.withPrefetchedChildren(_:run:)": "f41e63eb78c43b1d"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.substitutingPlaceholder(in:with:)",
+   "hash": "ea80865b60a01f56",
+   "does": "Replaces every $placeholder token in a dependency key with the captured param (regex-template-escaped); returns the dependency unchanged when param is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "param nil",
+     "effect": "returns dependency unchanged; else regex replacement"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNamespaceResolver.awaitedValue(of:)",
+   "hash": "ac87362956db85fa",
+   "does": "Awaited value of a fixed body: runs .sync inline or awaits .awaitable.",
+   "entry": null,
+   "calls": [
+    "closure:FactResolveBody — namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "body .sync",
+     "effect": "r()"
+    },
+    {
+     "at": "+4",
+     "cond": "body .awaitable",
+     "effect": "await r()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNamespaceResolver.matchPattern(_:against:)",
+   "hash": "d98d08fd73ca7ff7",
+   "does": "Matches pattern tokens against the key's leading tokens; returns the captured $-argument and remaining tail tokens, or nil if names/args differ, the pattern is longer, or nothing was captured.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchToken(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pattern unparseable or longer than key",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "for each pattern token",
+     "effect": "compares token i"
+    },
+    {
+     "at": "+6",
+     "cond": "matchToken returned outer nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+7",
+     "cond": "token captured a value",
+     "effect": "param = captured (last capture wins)"
+    },
+    {
+     "at": "+9",
+     "cond": "no capture at all",
+     "effect": "nil (literal-only patterns never match here)"
+    },
+    {
+     "at": "+11",
+     "cond": "no tail tokens",
+     "effect": "tail nil; else FactKey of remaining tokens"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.matchToken(_:_:)": "97f9c3309930fcf8",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)": "fe40b9e4cdfbd158",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func FactNamespaceResolver.matchToken(_:_:)",
+   "hash": "21ef87f597b032a6",
+   "does": "Token matcher: names must equal; a $-argument captures the key's argument (requires one); otherwise arguments must be equal.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "names differ",
+     "effect": "nil (no match)"
+    },
+    {
+     "at": "+2",
+     "cond": "pattern arg absent or not $-prefixed",
+     "effect": "see 602"
+    },
+    {
+     "at": "+3",
+     "cond": "pattern arg == key arg",
+     "effect": "matched with no capture; else nil"
+    },
+    {
+     "at": "+5",
+     "cond": "key token has no argument",
+     "effect": "nil; else captures kArg"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

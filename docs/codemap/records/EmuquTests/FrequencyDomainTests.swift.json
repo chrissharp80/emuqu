@@ -1,0 +1,436 @@
+{
+ "file": "EmuquTests/FrequencyDomainTests.swift",
+ "hash": "03381f5c62eefa1d",
+ "role": "XCTest suite validating FrequencyDomainAnalyzer's Welch/single-window PSD: band placement of 0.1/0.25 Hz sines, A²/2 power magnitudes, VLF gating on usable window and long-segment length, detrending, short-window scaling, DFT cache, numerical edge cases and computeFromCleanPairs resampling/rejection.",
+ "types": [
+  "FrequencyDomainTests: class — XCTestCase for Analysis/FrequencyDomainAnalysis.swift"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FrequencyDomainTests.tearDown()",
+   "hash": "385b162111d8324d",
+   "does": "tearDown: calls FrequencyDomainAnalyzer.teardownDFTCache(), which is an intentional no-op (FrequencyDomainAnalysis.swift:99-101: setups are never destroyed), then super.tearDown(). Nothing is reset between tests.",
+   "entry": "XCTest runner: tearDown after each test method",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "tearDown calls teardownDFTCache expecting cleanup, but the function body is empty by design (FrequencyDomainAnalysis.swift:100 \"Intentionally no-op\"), contradicting the type doc at :68 that says it \"provides explicit cleanup\"; the DFT setup cache persists across all tests.",
+     "evidence": [
+      "EmuquTests/FrequencyDomainTests.swift:7",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:68",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testSpectralWith025HzSine()",
+   "hash": "c32e0ddca979577b",
+   "does": "5-min 4 Hz 0.25 Hz sine (A=50): asserts HF > 10×LF, HF > 90% of total, and HF ≈ 1250 ms² ±25%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each sample index (5 min at 4 Hz)",
+     "effect": "fills the synthetic signal"
+    },
+    {
+     "at": "+25",
+     "cond": "metrics.vlf ?? 0",
+     "effect": "VLF nil (default window <10 min) counts as 0 in total"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testSpectralWith01HzSine()",
+   "hash": "3d78efed2fe8c0ee",
+   "does": "5-min 0.1 Hz sine: asserts LF > 10×HF and LF > 90% of total.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each sample index (0.1 Hz sine)",
+     "effect": "fills the synthetic signal"
+    },
+    {
+     "at": "+23",
+     "cond": "metrics.vlf ?? 0",
+     "effect": "nil VLF counts as 0 in total"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testMixedFrequencySignal()",
+   "hash": "b0f9a8e77d67941d",
+   "does": "0.1 Hz (A=30) + 0.25 Hz (A=40) sine: asserts LF ≈ 450 and HF ≈ 800 (±30%) and LF/HF ≈ 0.5625 ±0.2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each sample index (mixed sine)",
+     "effect": "fills the synthetic signal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testVLFGatingShortWindow()",
+   "hash": "039700a7e428c02b",
+   "does": "5-min 0.02 Hz sine with usableWindowMin 5: asserts VLF is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each sample index (0.02 Hz sine)",
+     "effect": "fills the synthetic signal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testVLFGatingLongWindow()",
+   "hash": "01c541cf1335c2d5",
+   "does": "10-min 0.02 Hz sine with usableWindowMin 10: asserts VLF present and > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each sample index (0.02 Hz sine, 10 min)",
+     "effect": "fills the synthetic signal"
+    },
+    {
+     "at": "+14",
+     "cond": "metrics.vlf ?? 0",
+     "effect": "nil VLF compared as 0 so the >0 assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testVLFPowerMatchesASineInTheBand()",
+   "hash": "063d846e02778569",
+   "does": "10-min 0.02 Hz sine (A=50): asserts VLF ≈ 1250 ms² ±25% from the long-segment pass.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testLinearDriftDoesNotReadAsVLF()",
+   "hash": "c57ec5cf4ff426ff",
+   "does": "10-min 0.25 Hz sine plus a 200 ms linear ramp: asserts VLF < 1% of HF and HF ≈ 1250 ±25% (per-segment detrending).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "metrics.vlf ?? -1",
+     "effect": "only used in the failure message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testShortWindowPowerIsScaledToTheSignalNotThePadding()",
+   "hash": "84905e43926e5e92",
+   "does": "140-sample (35 s) 0.25 Hz sine on the single-window path: asserts HF ≈ 1250 ±10% (taper/normalisation over signal not padding).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testLinearDetrendRemovesOffsetAndSlope()",
+   "hash": "7226eac97b02c617",
+   "does": "Asserts linearlyDetrended of a 64-sample straight line is all zeros (±1e-9).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each detrended value",
+     "effect": "asserts ≈ 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testDCComponentRemoval()",
+   "hash": "017e575d83e7bbb4",
+   "does": "0.25 Hz sine on a 1000 ms DC offset: asserts HF ≈ 1250 ±25%.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each sample index (DC + sine)",
+     "effect": "fills the synthetic signal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testDFTCaching()",
+   "hash": "d480265a367838c7",
+   "does": "Computes PSD for sizes 256,512,1024,512,256 and asserts totalPower > 0 for each, then calls teardownDFTCache, which is a no-op (FrequencyDomainAnalysis.swift:100).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each size",
+     "effect": "builds a sine and computes PSD"
+    },
+    {
+     "at": "+8",
+     "cond": "for each sample index (per size)",
+     "effect": "fills the synthetic signal"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'DFT cache is properly managed' but asserts only totalPower > 0 and that teardown does not crash; cache reuse/eviction is not observed.",
+     "evidence": [
+      "EmuquTests/FrequencyDomainTests.swift:256",
+      "EmuquTests/FrequencyDomainTests.swift:271",
+      "EmuquTests/FrequencyDomainTests.swift:275"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The final \"Teardown should not crash\" step calls a function whose body is empty (FrequencyDomainAnalysis.swift:99-101), so it verifies nothing about cache management.",
+     "evidence": [
+      "EmuquTests/FrequencyDomainTests.swift:275",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testSmallAmplitudes()",
+   "hash": "2f0b45529ac7e4ad",
+   "does": "0.001-amplitude sine: asserts HF > 0 and finite.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each sample index (tiny sine)",
+     "effect": "fills the synthetic signal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testZeroSignal()",
+   "hash": "2fce973626b0f923",
+   "does": "1024 zeros: asserts totalPower ≈ 0 and lfHfRatio nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testVLFIsNilBelowOneLongSegment()",
+   "hash": "21b2953ed4aabb97",
+   "does": "1000-sample sine with usableWindowMin 10: asserts VLF nil (under the 1024-sample VLF segment) and HF > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testSingleWindowPathGatesVLFOnTheUsableWindow()",
+   "hash": "de0a31dd8112e232",
+   "does": "200-sample sine (single-window path): asserts with usableWindowMin 10 VLF is reported (finite ≥ 0), with 5 VLF is nil, and HF > LF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Pins a single-window VLF report from a 50-s (200-sample) signal whenever the caller passes usableWindowMin ≥ 10 (FrequencyDomainAnalysis.swift:455), which the Welch path refuses below one 1024-sample segment (:233-238). No production caller can reach this combination (only caller :185 derives usableWindowMin from the signal length), so the test locks in an unreachable, physically unresolvable VLF figure.",
+     "evidence": [
+      "EmuquTests/FrequencyDomainTests.swift:335",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:455",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:185"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testComputeFromCleanPairsPlacesRespiratoryModulationInHF()",
+   "hash": "3cad5b14d7e6323f",
+   "does": "Builds 400 beats of 800 ms RR modulated at 0.25 Hz (cumulative times) and asserts computeFromCleanPairs returns metrics with HF > LF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for 400 beats",
+     "effect": "appends time and RR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testComputeFromCleanPairsRejectsTooLittleData()",
+   "hash": "3a35e0470c497bf8",
+   "does": "Asserts computeFromCleanPairs returns nil for 59 pairs and for 100 pairs with zero elapsed time.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,144 @@
+{
+ "file": "EmuquTests/SleepDataLatencyTests.swift",
+ "hash": "3c9f322ba540af67",
+ "role": "XCTest suite for SleepData.sleepLatencyMinutes: latency from awake stages before onset, clipped at onset, and the no-stages fallback capped by in-bed minus asleep.",
+ "types": [
+  "SleepDataLatencyTests: class — XCTestCase for SleepData.sleepLatencyMinutes"
+ ],
+ "state": [
+  "t0: Date(timeIntervalSinceReferenceDate: 0) fixture anchor"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepDataLatencyTests.interval(_:_:_:)",
+   "hash": "911645cc0b618804",
+   "does": "Builds a SleepStageInterval of the given stage between startMin and endMin minutes after t0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+   "hash": "d11f15ea2fe77e67",
+   "does": "Builds a SleepData with inBedStart at recordingStartMin, sleepStart, sleepEnd=start+totalSleep, awake=inBed−total, efficiency 90, source .healthKit and the given stages.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.testLatencyIsTheAwakeStageBeforeFirstSleep()",
+   "hash": "1fa40fa6013eef2b",
+   "does": "Asserts latency is 7 (awake 150–157 before core at 157), not 157 minutes from recording start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)": "ddedc308ae3f369f",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)": "336fc905272e29f8"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.testLatencyIsNilWhenStagesBeginWithSleep()",
+   "hash": "9eea98bc99a0902d",
+   "does": "Asserts latency is nil when stages begin with core sleep.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)": "ddedc308ae3f369f",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)": "336fc905272e29f8"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.testAwakeStageThatStraddlesSleepOnsetIsClippedAtIt()",
+   "hash": "eb157ab2c81207cd",
+   "does": "Asserts an awake stage 150–170 straddling onset 160 counts only 10 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.interval(_:_:_:)": "ddedc308ae3f369f",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)": "336fc905272e29f8"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.testWithoutStagesLatencyIsCappedAtTheAwakeTimeInBedContains()",
+   "hash": "5c76194711a900b3",
+   "does": "Asserts with no stages latency = min(157 from in-bed start, inBed−total 7) = 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)": "336fc905272e29f8"
+   }
+  },
+  {
+   "key": "func SleepDataLatencyTests.testWithoutStagesShortGapSurvives()",
+   "hash": "e92f7ecb7abda54d",
+   "does": "Asserts with no stages a 12-minute gap below the 30-minute in-bed slack yields 12.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79",
+    "EmuquTests/SleepDataLatencyTests.swift::func SleepDataLatencyTests.sleepData(recordingStartMin:sleepStartMin:totalSleep:inBed:stages:)": "336fc905272e29f8"
+   }
+  }
+ ],
+ "deps": {}
+}

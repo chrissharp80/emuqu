@@ -1,0 +1,572 @@
+{
+ "file": "EmuquTests/LiveDFAAnalyzerStreamTests.swift",
+ "hash": "5a75d1811c6572e1",
+ "role": "XCTest suite streaming synthetic strap notifications at 1 Hz into LiveDFAAnalyzer to pin α1 behaviour over time: recomputes after a short Bluetooth dropout, clears when the strap dies, works at 60 bpm, never publishes α1 without .ok, and BeatClock equals WorkoutAnalyzer.gapCorrectedOffsetsMs.",
+ "types": [
+  "LiveDFAAnalyzerStreamTests: class — @MainActor XCTestCase",
+  "StrapScenario: struct — synthetic heart (correlated easy HR, then uncorrelated hard HR) with dropout/death times",
+  "StrapScenario.Feed: struct — 1 Hz notification feeder that drops beats in the dropout or after death",
+  "SeededNormal: struct — Box-Muller normal draws over a 64-bit LCG"
+ ],
+ "state": [
+  "mem:LiveDFAAnalyzerStreamTests.start (Date 1_000_000)"
+ ],
+ "toplevel": "Private helper types StrapScenario, Feed, SeededNormal.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.testAlpha1KeepsUpdatingAfterAShortDropout()",
+   "hash": "c319bb866b2467f3",
+   "does": "Streams a 140→165 bpm scenario with a 2.5 s dropout at 300 s for 500 ticks; asserts status .ok, last compute ≥ 480 s after start, and current α1 < 0.9.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lastComputeAt?.timeIntervalSince(start) ?? 0",
+     "effect": "0 when no compute ever happened, which fails the ≥ 480 assertion"
+    },
+    {
+     "at": "+6",
+     "cond": "currentAlpha1 ?? .nan",
+     "effect": "NaN when no α1, which makes the < 0.9 assertion fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()": "67562f0e82e53a56",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)": "bfe4abdbb8c93406",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()": "53403e3e17d89336",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "a0c0acc4d1deb5e2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "89d7d6237164c629",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "e8ccd5c479639db2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)": "eb4ca12be1665e93",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.testAlpha1ClearsWhenTheStrapDiesAfterADropout()",
+   "hash": "22f8eaff819c12d4",
+   "does": "Streams a scenario whose strap dies at 300 s for 400 ticks; asserts α1 nil, band .unknown and status .stalled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "status is .stalled",
+     "effect": "passes; any other status fails via XCTFail with its label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()": "67562f0e82e53a56",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)": "bfe4abdbb8c93406",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()": "53403e3e17d89336",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "a0c0acc4d1deb5e2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "89d7d6237164c629",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label": "10bfaf49e728454a",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "e8ccd5c479639db2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)": "eb4ca12be1665e93",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.testAlpha1IsProducedAtSlowHeartRates()",
+   "hash": "a94534c932dc671e",
+   "does": "Streams a 60→75 bpm scenario without dropout for 600 ticks; asserts status .ok, α1 present and last compute ≥ 580 s after start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "lastComputeAt?.timeIntervalSince(start) ?? 0",
+     "effect": "0 when never computed, failing the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()": "67562f0e82e53a56",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)": "bfe4abdbb8c93406",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()": "53403e3e17d89336",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "a0c0acc4d1deb5e2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "89d7d6237164c629",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "e8ccd5c479639db2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)": "eb4ca12be1665e93",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.testAPublishedAlpha1AlwaysHasAnOKStatus()",
+   "hash": "f3acea828e70c156",
+   "does": "Streams the dropout-then-death scenario for 400 ticks and on every tick asserts status == .ok whenever currentAlpha1 is non-nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "currentAlpha1 != nil on this tick",
+     "effect": "asserts status .ok; ticks without α1 assert nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Conditional assertion only: if α1 were never published the test passes with zero assertions.",
+     "evidence": [
+      "EmuquTests/LiveDFAAnalyzerStreamTests.swift:57"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()": "67562f0e82e53a56",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)": "bfe4abdbb8c93406",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()": "53403e3e17d89336",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "a0c0acc4d1deb5e2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "89d7d6237164c629",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "e8ccd5c479639db2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)": "eb4ca12be1665e93",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.testTheBeatClockMatchesTheOfflineGapCorrection()",
+   "hash": "e3870420c6ad486c",
+   "does": "Collects delivered beats for 200 s of a scenario with a 3 s dropout, stamps each with a fresh BeatClock, and asserts the t_ms sequence equals WorkoutAnalyzer.gapCorrectedOffsetsMs(points).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.deliveredBeats(until:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.gapCorrectedOffsetsMs(_:)": "97b2a35ced5bf004",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.deliveredBeats(until:)": "078052073c671ac7",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzerStreamTests.stream(_:until:eachTick:)",
+   "hash": "d1f305ab0df34f43",
+   "does": "Harness: new LiveDFAAnalyzer reset at start; for each 1 s tick delivers due beats and calls ingest(points:now:) or tick(now:) when none, then runs eachTick; returns the analyzer.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for tick in 1...seconds",
+     "effect": "one 1 Hz tick per second"
+    },
+    {
+     "at": "+9",
+     "cond": "batch is empty",
+     "effect": "calls analyzer.tick(now:); otherwise analyzer.ingest(points:now:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "72768c5fc7fd1f49",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "80da582be8268d18",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "84bb81d01db736b2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.clearPublishedValue()": "67562f0e82e53a56",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "84349768cbd1c3d8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "f81bd872a5279e60",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)": "5fd6a5c4372ef4d3",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "cf056a41dae131f1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "bb855bed11817cb0",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markStalled(silentFor:)": "bfe4abdbb8c93406",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "5434fae75e089ec7",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markWarmingUp()": "53403e3e17d89336",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "3c21475549b7b653",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "8599a8464eda98c5",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "6ce5130c0a2465b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.reset(sessionStart:)": "af308ed521ae53fa",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "a0c0acc4d1deb5e2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "3b3d77adbb10c4b1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "89d7d6237164c629",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "e8ccd5c479639db2",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "fd297dd9b534680b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed"
+   }
+  },
+  {
+   "key": "func StrapScenario.Feed.deliver(through:)",
+   "hash": "7b1bfb3373b7710b",
+   "does": "Feed: for every notification time ≤ tick (every 1 s starting 0.32 s), moves beats that ended by then into RRPoints stamped with interval-sum t_ms and wallClockMs of the notification, dropping them when the notification is inside the dropout or after dieAt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "while a notification is due by this tick",
+     "effect": "processes it and advances by 1 s"
+    },
+    {
+     "at": "+5",
+     "cond": "while the next beat ended by this notification",
+     "effect": "consumes it"
+    },
+    {
+     "at": "+8",
+     "cond": "notification is lost (in dropout or after death)",
+     "effect": "beat consumed but not delivered and cumulativeMs not advanced"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  },
+  {
+   "key": "func StrapScenario.feed()",
+   "hash": "0f0a07fc68af7767",
+   "does": "Generates beats from t=-3 s to 1000 s: AR(1)-drifting RR at hrEasy until dropAt+30 s, then white-noise RR at hrHard; keeps beats ending after 0; returns a Feed.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::init SeededNormal(seed:)",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func SeededNormal.next()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "while t < 1000",
+     "effect": "generates one beat per iteration"
+    },
+    {
+     "at": "+7",
+     "cond": "t < dropAt + 30",
+     "effect": "correlated easy-phase RR; else uncorrelated hard-phase RR"
+    },
+    {
+     "at": "+15",
+     "cond": "t > 0",
+     "effect": "keeps the beat; earlier beats are discarded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func SeededNormal.next()": "d041f0b5e8a99f33",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::init SeededNormal(seed:)": "0a743538f64dfd2c"
+   }
+  },
+  {
+   "key": "func StrapScenario.deliveredBeats(until:)",
+   "hash": "b5c6a635e5706e03",
+   "does": "Runs a fresh feed through ticks 1…seconds and returns all delivered beats.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.Feed.deliver(through:)": "3e86ae5123d45c4b",
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func StrapScenario.feed()": "6e947f8dd74f77ed"
+   }
+  },
+  {
+   "key": "init SeededNormal(seed:)",
+   "hash": "eb0e8850d2da6c48",
+   "does": "Seeds the LCG state.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SeededNormal.next()",
+   "hash": "fe7f78796b64218f",
+   "does": "Returns a standard-normal draw via Box-Muller from two uniforms (u floored at 1e-12).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func SeededNormal.uniform()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/LiveDFAAnalyzerStreamTests.swift::func SeededNormal.uniform()": "d47ca05be617a135"
+   }
+  },
+  {
+   "key": "func SeededNormal.uniform()",
+   "hash": "3f0b449aa0855a40",
+   "does": "Advances the 64-bit LCG and returns its top 53 bits as a uniform in [0,1).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

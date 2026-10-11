@@ -1,0 +1,351 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapHeartRateFeed.swift",
+ "hash": "ab383fea2b357dfc",
+ "role": "The single long-lived heart-rate subscription per strap link: HR from the standard Heart Rate Service (or Verity PPI during a session), re-opened on a backoff while the link generation is current, delivering samples to PolarManager.ingestHeartRate/ingestPpi.",
+ "types": [
+  "StrapHRSample: struct — one HR sample (hr, rrsMs, rrAvailable)",
+  "StrapPPIReading: struct — one Verity PPI reading",
+  "StrapHeartRateFeed: struct (@MainActor) — stateless, holds PolarManager; task lives in manager.linkRuntime.feedTask",
+  "StrapHeartRateFeed.Kind: enum — heartRate/ppi",
+  "StrapHeartRateFeed.Pass: struct — samples count + ending error for one opened subscription"
+ ],
+ "state": [],
+ "toplevel": "ppiReadings is compiled only under #if canImport(PolarBleSdk); without the SDK openAndDrain returns an empty Pass, so the run loop spins on the backoff with no data.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapHeartRateFeed.start(generation:)",
+   "hash": "5340362c0ca01cbd",
+   "does": "Cancels any existing feed task and starts a new Task (holding the manager strongly) running the subscription loop for link `generation`.",
+   "entry": "Called from StrapLinkCoordinator.linkEstablished (StrapLinkCoordinator.swift:104) and restart().",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)",
+    "ext:Task"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StrapLinkRuntime.feedTask"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)": "bd37f1584e0bf2b7"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.restart()",
+   "hash": "edea68595be46551",
+   "does": "Restarts the subscription on the current link generation if linked.",
+   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (resubscribe), PolarManager+Streaming.swift:28 (Verity session start) and :50 (Verity session end); tests StrapNightTests.swift:231,265.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)"
+   ],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "readiness.isLinked",
+     "effect": "false: returns, no subscription opened; true: start(generation)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "cad30d50a80cd551"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.stop()",
+   "hash": "fb792b89558bb1a6",
+   "does": "Cancels and clears the feed task.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StrapLinkRuntime.feedTask"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "stop() has no caller anywhere in the repo, tests included (grep for feed.stop / .stop() finds none on StrapHeartRateFeed); feed tasks are cancelled through StrapLinkRuntime.cancelLinkTasks instead.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:75",
+      "Emuqu/Sources/Collection/StrapLinkRuntime.swift:96"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)",
+   "hash": "cb9f3f459413daa6",
+   "does": "Returns .ppi only for a Verity Sense with a session active, else .heartRate.",
+   "entry": "Called from resolveKind; tests StreamForwardingTests.swift:35-38.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviceType == .veritySense && sessionActive",
+     "effect": "true: .ppi; false: .heartRate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapHeartRateFeed.isCurrent(_:generation:)",
+   "hash": "ca5ab6f65436835e",
+   "does": "True when the manager is linked and its readiness generation equals `generation`.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapHeartRateFeed.run(generation:manager:)",
+   "hash": "7fdd89af4fdc6320",
+   "does": "Loop while not cancelled and the link generation is current: pick kind, open and drain the subscription, count consecutive empty passes, log changed outcomes / every 10th, then wait on the link signal for the backoff delay (1/2/3/5 s) before re-opening.",
+   "entry": "Body of the Task started by start(generation:).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.resolveKind(manager:generation:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
+   ],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "while: not cancelled, manager non-nil, generation current",
+     "effect": "false: loop ends; true: another pass"
+    },
+    {
+     "at": "+6",
+     "cond": "cancelled or generation superseded after resolving kind",
+     "effect": "true: return; false: open subscription"
+    },
+    {
+     "at": "+8",
+     "cond": "cancelled after the pass",
+     "effect": "true: return; false: bookkeeping"
+    },
+    {
+     "at": "+9",
+     "cond": "pass delivered samples (ternary)",
+     "effect": "true: failures reset to 0; false: failures+1"
+    },
+    {
+     "at": "+10",
+     "cond": "pass.error nil (?? fallback)",
+     "effect": "no error → failure text 'stream ended'"
+    },
+    {
+     "at": "+11",
+     "cond": "outcome text changed or failures % 10 == 0",
+     "effect": "true: logs the pass (also every pass after a successful one, since failures==0 satisfies %10); false: silent"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "logPass's comment says only a changed outcome or every tenth identical one is logged, but `failures % 10 == 0` is also true when a pass delivered samples (failures reset to 0), so every successful pass that ends is logged even when its outcome text repeats.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:97",
+      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:99",
+      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:107"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "61f3f2d049fb2a7f",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "09258ce982b3435d",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)": "1c7ed9219751e74d",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)": "8e1b5d7c2807699d",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.resolveKind(manager:generation:)": "a55929b4e9895a96",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)",
+   "hash": "977737598ad41e16",
+   "does": "Logs the subscription kind, samples delivered, ending reason, attempt count and seconds since the link came up.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.resolveKind(manager:generation:)",
+   "hash": "78ef0cb3b4c30e40",
+   "does": "Resolves the kind to open: .heartRate unless desiredKind is .ppi; for .ppi waits (no deadline, while the generation is current) for the onlineStreaming feature and falls back to .heartRate only if the strap reports it unavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.isStreaming"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "desired kind is .ppi",
+     "effect": "false: returns .heartRate; true: waits for onlineStreaming"
+    },
+    {
+     "at": "+6",
+     "cond": "awaitFeature outcome == .unavailable",
+     "effect": "true: .heartRate; false (ready/unconfirmed/timedOut — timedOut when generation superseded or cancelled): .ppi"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "fb318ac17b3c3e6e",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "09258ce982b3435d",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.openAndDrain(kind:manager:)",
+   "hash": "4901cc9580b07459",
+   "does": "Opens the HR (standard Heart Rate Service on linkedPeripheralId) or PPI stream for the connected device and drains it into manager.ingestHeartRate / ingestPpi; returns an empty Pass when there is no SDK handle or device id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
+    "dyn:StrapRadio.startHrStreaming → Emuqu/Sources/Collection/StrapRadio.swift:85|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startHrStreaming(_:peripheralId:)",
+    "dyn:StrapRadio.startPpiStreaming → Emuqu/Sources/Collection/StrapRadio.swift:91|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startPpiStreaming(_:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:StrapLinkRuntime.linkedPeripheralId",
+    "ble:Heart Rate Measurement 2A37",
+    "ble:Polar PMD PPI"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapAPI and connectedDeviceId both non-nil",
+     "effect": "false: returns Pass() with 0 samples (counted as a failure by run); true: switch"
+    },
+    {
+     "at": "+4",
+     "cond": "kind .heartRate",
+     "effect": "opens StandardHeartRateLink samples on the linked peripheral; each batch → ingestHeartRate"
+    },
+    {
+     "at": "+7",
+     "cond": "kind .ppi",
+     "effect": "opens SDK PPI stream; each batch mapped by ppiReadings → ingestPpi"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)": "9fb7ab25e595695f",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)": "336f8c189a273045"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.ppiReadings(_:)",
+   "hash": "c7feb4cb1191026a",
+   "does": "Maps a PolarPpiData's samples to StrapPPIReading (ppInMs, ppErrorEstimate, blockerBit, hr).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapHeartRateFeed.drain(_:_:)",
+   "hash": "bafbf4e07b6d80d5",
+   "does": "Runs forward over the stream, recording the sample count and any thrown error in a Pass; never throws.",
+   "entry": "Also tested directly by EmuquTests/StreamForwardingTests.swift:45-117.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "forward throws",
+     "effect": "catch: error stored in pass.error; no throw: error nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)": "48034ce5c544a8ab",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+   }
+  },
+  {
+   "key": "func StrapHeartRateFeed.forward(_:counting:_:)",
+   "hash": "a20120e06fe6fb68",
+   "does": "For each element of the stream, stops if the task is cancelled, otherwise increments the count and calls the handler.",
+   "entry": null,
+   "calls": [
+    "closure:handle passed by openAndDrain (ingestHeartRate / ingestPpi) or tests"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for-await over the stream",
+     "effect": "each element processed; stream errors propagate to drain"
+    },
+    {
+     "at": "+6",
+     "cond": "Task.isCancelled",
+     "effect": "true: returns without handling the element; false: count+1 and handle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+   }
+  }
+ ],
+ "deps": {}
+}

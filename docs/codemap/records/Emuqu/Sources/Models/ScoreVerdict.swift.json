@@ -1,0 +1,520 @@
+{
+ "file": "Emuqu/Sources/Models/ScoreVerdict.swift",
+ "hash": "d8df311f3af61dac",
+ "role": "The 6-tier Recovery Score verdict ladder (0–100): tier selection from a rounded/clamped score, English and localized words/subverdicts, SF Symbol glyph, Wong colours, tier bounds, and the non-finite-safe display clamp.",
+ "types": [
+  "ScoreVerdict: enum — excellent/good/fair/payAttention/low/veryLow tiers with display properties",
+  "ScoreVerdict: extension — clampedDisplayScore/safeDisplayScore static helpers"
+ ],
+ "state": [],
+ "toplevel": "CaseIterable/Sendable/String raw values synthesized; no stored state.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init ScoreVerdict(score:)",
+   "hash": "586a1fc5ae778949",
+   "does": "Maps a score to a tier after clamping to 0…100 (NaN/Inf → 0) and rounding: ≥90 excellent, 75–<90 good, 60–<75 fair, 45–<60 payAttention, 30–<45 low, else veryLow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rounded score in 90...100",
+     "effect": "excellent"
+    },
+    {
+     "at": "+3",
+     "cond": "75..<90",
+     "effect": "good"
+    },
+    {
+     "at": "+4",
+     "cond": "60..<75",
+     "effect": "fair"
+    },
+    {
+     "at": "+5",
+     "cond": "45..<60",
+     "effect": "payAttention"
+    },
+    {
+     "at": "+6",
+     "cond": "30..<45",
+     "effect": "low"
+    },
+    {
+     "at": "+7",
+     "cond": "anything else (<30, incl. NaN clamped to 0)",
+     "effect": "veryLow"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204"
+   }
+  },
+  {
+   "key": "var ScoreVerdict.word",
+   "hash": "abe45eac0497b0b6",
+   "does": "English single-word verdict per tier. Used by AnalysisSummaryGenerator+Interpretation.swift:124 (analysisTitle when the narrative language is English). HRVDetailV2View's hero pill uses HRVDetailV2View.HRVVerdict.word, not this (HRVDetailV2View.swift:430).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .excellent",
+     "effect": "\"Excellent\""
+    },
+    {
+     "at": "+3",
+     "cond": "self == .good",
+     "effect": "\"Good\""
+    },
+    {
+     "at": "+4",
+     "cond": "self == .fair",
+     "effect": "\"Fair\""
+    },
+    {
+     "at": "+5",
+     "cond": "self == .payAttention",
+     "effect": "\"Pay attention\""
+    },
+    {
+     "at": "+6",
+     "cond": "self == .low",
+     "effect": "\"Low\""
+    },
+    {
+     "at": "+7",
+     "cond": "self == .veryLow",
+     "effect": "\"Very low\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreVerdict.subverdict",
+   "hash": "4d1093876f6c0b86",
+   "does": "English one-sentence subverdict per tier.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .excellent",
+     "effect": "well above usual range, train hard if you want"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .good",
+     "effect": "above usual range, normal training fine"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .fair",
+     "effect": "normal range, listen to how you feel"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .payAttention",
+     "effect": "below usual, easy day worth considering"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .low",
+     "effect": "well below, worth easing off"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .veryLow",
+     "effect": "far below, worth a rest day"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ScoreVerdict.subverdict (English) has no references anywhere in app or tests; only localizedSubverdict is used.",
+     "evidence": [
+      "Emuqu/Sources/Models/ScoreVerdict.swift:56"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreVerdict.localizedWord",
+   "hash": "c4c2778da154e5bb",
+   "does": "Localized single-word verdict via LanguageManager.appBundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "self == .excellent",
+     "effect": "localized Excellent"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .good",
+     "effect": "localized Good"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .fair",
+     "effect": "localized Fair"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .payAttention",
+     "effect": "localized Pay attention"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .low",
+     "effect": "localized Low"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .veryLow",
+     "effect": "localized Very low"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ScoreVerdict.localizedSubverdict",
+   "hash": "1028c22620872743",
+   "does": "Localized subverdict sentence per tier.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "self == .excellent",
+     "effect": "localized excellent sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .good",
+     "effect": "localized good sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .fair",
+     "effect": "localized fair sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .payAttention",
+     "effect": "localized payAttention sentence"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .low",
+     "effect": "localized low sentence"
+    },
+    {
+     "at": "+8",
+     "cond": "self == .veryLow",
+     "effect": "localized veryLow sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ScoreVerdict.glyphName",
+   "hash": "d5cf4e7a9c6794e8",
+   "does": "SF Symbol name paired with the tier colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .excellent",
+     "effect": "checkmark.seal.fill"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .good",
+     "effect": "checkmark.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .fair",
+     "effect": "circle.fill"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .payAttention",
+     "effect": "exclamationmark.circle.fill"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .low",
+     "effect": "exclamationmark.triangle.fill"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .veryLow",
+     "effect": "exclamationmark.octagon.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreVerdict.color",
+   "hash": "49845273e32660b0",
+   "does": "Tier fill colour from AppTheme Wong palette (two tiers share each of optimal and attention).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "excellent or good",
+     "effect": "AppTheme.wongOptimal"
+    },
+    {
+     "at": "+3",
+     "cond": "fair",
+     "effect": "AppTheme.wongGood"
+    },
+    {
+     "at": "+4",
+     "cond": "payAttention",
+     "effect": "AppTheme.wongCaution"
+    },
+    {
+     "at": "+5",
+     "cond": "low or veryLow",
+     "effect": "AppTheme.wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreVerdict.textColor",
+   "hash": "f0f07ef330447e20",
+   "does": "Text-contrast variant of the tier colour (MainActor).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "excellent or good",
+     "effect": "wongOptimalText"
+    },
+    {
+     "at": "+3",
+     "cond": "fair",
+     "effect": "wongGoodText"
+    },
+    {
+     "at": "+4",
+     "cond": "payAttention",
+     "effect": "wongCautionText"
+    },
+    {
+     "at": "+5",
+     "cond": "low or veryLow",
+     "effect": "wongAttentionText"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongAttentionText": "bf5f36a9592e827c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongCautionText": "86bb825991469512",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongGoodText": "9f317eb65bc7d6b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.wongOptimalText": "6e537adbf549c0ed"
+   }
+  },
+  {
+   "key": "var ScoreVerdict.lowerBound",
+   "hash": "1ca9ac929dc01524",
+   "does": "Inclusive lower score bound of the tier (90/75/60/45/30/0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .excellent",
+     "effect": "90"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .good",
+     "effect": "75"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .fair",
+     "effect": "60"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .payAttention",
+     "effect": "45"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .low",
+     "effect": "30"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .veryLow",
+     "effect": "0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ScoreVerdict.lowerBound has no caller in app or tests although its doc says it drives progress arcs and confidence bands.",
+     "evidence": [
+      "Emuqu/Sources/Models/ScoreVerdict.swift:129",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:131"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var ScoreVerdict.upperBound",
+   "hash": "064825b25b2d8c55",
+   "does": "Exclusive upper score bound of the tier (100 inclusive for excellent; 90/75/60/45/30).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .excellent",
+     "effect": "100"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .good",
+     "effect": "90"
+    },
+    {
+     "at": "+4",
+     "cond": "self == .fair",
+     "effect": "75"
+    },
+    {
+     "at": "+5",
+     "cond": "self == .payAttention",
+     "effect": "60"
+    },
+    {
+     "at": "+6",
+     "cond": "self == .low",
+     "effect": "45"
+    },
+    {
+     "at": "+7",
+     "cond": "self == .veryLow",
+     "effect": "30"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ScoreVerdict.upperBound has no caller in app or tests; the arc math its comment describes does not exist.",
+     "evidence": [
+      "Emuqu/Sources/Models/ScoreVerdict.swift:145",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:147"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreVerdict.clampedDisplayScore(_:)",
+   "hash": "ddf7d32dc2f09bfc",
+   "does": "Clamps a score to 0…100, mapping NaN/Inf to 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is finite",
+     "effect": "min(max(value,0),100); otherwise 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ScoreVerdict.safeDisplayScore(_:)",
+   "hash": "0f1a69c3caf86444",
+   "does": "Int of the clamped score, rounded; never traps on NaN/Inf.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same clamp-and-round as RecoveryScoreCalculator.displayScore (finite check, clamp 0…100, round, Int), contradicting this extension's 'ONE place the raw→display clamp lives' comment; a test exists only to keep the two in sync.",
+     "evidence": [
+      "Emuqu/Sources/Models/ScoreVerdict.swift:170",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:59",
+      "EmuquTests/RecoveryScoreDisplayTests.swift:38"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204"
+   }
+  }
+ ],
+ "deps": {}
+}

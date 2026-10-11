@@ -1,0 +1,202 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift",
+ "hash": "257ac66a83f4aec0",
+ "role": "Two lock-protected Sendable singletons bridging live recording state to the AI context: LiveWorkoutBroker (push snapshot per tick plus pull sample provider from WorkoutRecorder, 12 s staleness gate) and LiveHRVBroker (pull provider registered by RRCollector).",
+ "types": [
+  "LiveWorkoutBroker: class — holds latest LiveWorkoutSnapshot, its timestamp and the recorder's samples provider",
+  "LiveWorkoutBroker.State: struct — snapshot, lastUpdate, samplesProvider",
+  "LiveHRVBroker: class — holds the RRCollector-installed provider closure for LiveHRVSnapshot"
+ ],
+ "state": [
+  "mem:LiveWorkoutBroker.shared",
+  "mem:LiveWorkoutBroker.staleAfterSec (12 s)",
+  "mem:LiveWorkoutBroker.lock (OSAllocatedUnfairLock<State>)",
+  "mem:LiveHRVBroker.shared",
+  "mem:LiveHRVBroker.provider (OSAllocatedUnfairLock<Provider?>)"
+ ],
+ "toplevel": "Static singletons and lock initializers only.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "LiveHRVBroker.Provider doc says the implementation hops to @MainActor as needed, but the installed provider reads a lock-protected mirror without any actor hop.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:121",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift:325"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init LiveWorkoutBroker()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private initializer for the singleton.",
+   "entry": "Static initializer of LiveWorkoutBroker.shared",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWorkoutBroker.publish(_:)",
+   "hash": "27c9a393cf0b53b7",
+   "does": "Under the lock, stores the latest live workout snapshot and stamps lastUpdate = now.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LiveWorkoutBroker.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWorkoutBroker.registerSamplesProvider(_:)",
+   "hash": "b493748fbfbefcb1",
+   "does": "Under the lock, stores the recorder's samples-provider closure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LiveWorkoutBroker.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWorkoutBroker.clear()",
+   "hash": "ff710a5fb4e661c1",
+   "does": "Under the lock, clears snapshot, lastUpdate and samples provider.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LiveWorkoutBroker.state"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says clear() is called at stop and on error, but its only caller is WorkoutRecorder.tearDownLiveWorkoutServices (stop path); no error path calls it, so after an aborted start the samples provider stays registered and only the 12 s snapshot gate hides stale state.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:74",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:143"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWorkoutBroker.currentSnapshot()",
+   "hash": "942d0180648d93d4",
+   "does": "Under the lock, returns the stored snapshot when it exists and was published within the last 12 s, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LiveWorkoutBroker.state"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snapshot and lastUpdate both set",
+     "effect": "false: nil (no workout); true: check age"
+    },
+    {
+     "at": "+3",
+     "cond": "age > 12 s",
+     "effect": "true: nil (stale); false: return snapshot"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveWorkoutBroker.currentSamples()",
+   "hash": "61fbe3625cec1c27",
+   "does": "Reads the samples provider under the lock and calls it outside the lock, returning the recorder's sample buffer, or [] when no provider is registered.",
+   "entry": null,
+   "calls": [
+    "closure:SamplesProvider installed by WorkoutRecorder.installLiveWorkoutSamplesProvider (WorkoutRecorder+Start.swift:349) returning recorder.samplesView via MainActor.assumeIsolated"
+   ],
+   "reads": [
+    "mem:LiveWorkoutBroker.state",
+    "mem:WorkoutRecorder.samplesView"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider?() ?? []",
+     "effect": "no provider registered: empty array"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The broker is Sendable and documented for any context, but the registered provider runs MainActor.assumeIsolated, which traps when currentSamples() is called off the main actor; ContextBuilder documents that context building usually runs off the main actor and AssistantContext.liveWorkoutHRHistoryLines calls currentSamples during rendering, so correctness depends on every caller happening to be on the main actor.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift:100",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:351",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:113",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:265"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init LiveHRVBroker()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private initializer for the singleton.",
+   "entry": "Static initializer of LiveHRVBroker.shared",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveHRVBroker.registerProvider(_:)",
+   "hash": "8168573ea1c2140c",
+   "does": "Stores the provider closure under the lock (replacing any previous one).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LiveHRVBroker.provider"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LiveHRVBroker.currentSnapshot()",
+   "hash": "c2917bae67ccd67c",
+   "does": "Reads the provider under the lock, then calls it outside, returning its LiveHRVSnapshot or nil when none registered/none active.",
+   "entry": null,
+   "calls": [
+    "closure:Provider installed by RRCollector.publishLiveHRVSnapshotsToAssistant (RRCollector+Bindings.swift:333) reading the collector's live HRV mirror"
+   ],
+   "reads": [
+    "mem:LiveHRVBroker.provider",
+    "mem:RRCollector._liveHRVSnapshotMirror"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

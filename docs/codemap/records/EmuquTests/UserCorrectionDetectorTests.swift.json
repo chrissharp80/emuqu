@@ -1,0 +1,1107 @@
+{
+ "file": "EmuquTests/UserCorrectionDetectorTests.swift",
+ "hash": "f20447d7d67b470e",
+ "role": "XCTest suite for UserCorrectionDetector (UserAssertedValuesParser.swift): metric=value extraction, spelled-number normalisation, alias folding, dashboard-contradiction and explicit-override phrase detection, and renderAssertedBlock formatting.",
+ "types": [
+  "UserCorrectionDetectorTests: class (XCTestCase) — pure-function tests of UserCorrectionDetector"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Every override/contradiction phrase is typed with a straight apostrophe; production isExplicitOverride does not fold U+2019 (unlike isDashboardContradiction), so 'don’t call'/'I don’t care what the dashboard' typed with iOS smart punctuation are missed and no test catches it.",
+   "evidence": [
+    "EmuquTests/UserCorrectionDetectorTests.swift:262",
+    "EmuquTests/UserCorrectionDetectorTests.swift:265",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:222",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift:297"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func UserCorrectionDetectorTests.testNoMessagesProducesNoSignals()",
+   "hash": "e755afbb09cd6592",
+   "does": "Asserts detect([]) yields no asserted values, both flags false, hasAnyCorrection false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testOrdinaryConversationIsNotACorrection()",
+   "hash": "99f241f7aeb15961",
+   "does": "Asserts two ordinary questions produce no correction.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testAskingAboutAMetricIsNotAssertingOne()",
+   "hash": "790083230d230d7b",
+   "does": "Asserts 'what is my ctl?' produces no asserted values (question sentence dropped, no adjacent number).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testExtractsASimpleAssertion()",
+   "hash": "60f69d6ebf85a130",
+   "does": "Asserts 'my ctl is 62' yields ctl=62 and hasAnyCorrection true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testAcceptsEveryConnectorForm()",
+   "hash": "b091c6799ed36df5",
+   "does": "Asserts each connector form (=, :, was, of, is, being, none) extracts the value for tsb/atl/rmssd/acwr/hr/ctl/sdnn.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each (text,key,expected) case",
+     "effect": "one detect + assertion per connector form"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testExtractionIsCaseInsensitive()",
+   "hash": "b8477bbd0afa37d1",
+   "does": "Asserts uppercase 'MY CTL IS 62 AND TSB IS -4.5' extracts ctl=62, tsb=-4.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testExtractsMultipleMetricsFromOneMessage()",
+   "hash": "e5ee5e61db6a23a5",
+   "does": "Asserts one message with ctl/atl/tsb/acwr extracts all four values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testAccumulatesMetricsAcrossSeparateMessages()",
+   "hash": "8dcdfe2676baf991",
+   "does": "Asserts values from two messages accumulate (atl=71, ctl=62).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testNewestMessageWinsWhenTheUserRestatesAMetric()",
+   "hash": "fbbe8c1e03f8b8a1",
+   "does": "Asserts the newest message's ctl (62) wins over an older 50.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testLastAssertionWinsWithinASingleMessage()",
+   "hash": "a8e2bcac2bc077c9",
+   "does": "Asserts within one message the last 'ctl is' (62) wins.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRequiresAWholeWordMetricName()",
+   "hash": "9c162ea8a00e22bb",
+   "does": "Asserts 'hrtss is 120' records hrtss=120 and no hr (whole-word match).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testMultiWordMetricBeatsItsBareSuffix()",
+   "hash": "e664b8ee694756a3",
+   "does": "Asserts 'my recovery score is 78' records 'recovery score'=78 and nothing for 'recovery'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testLongerHeartRateNameClaimsItsMatch()",
+   "hash": "dc8c6302ce4068b5",
+   "does": "Asserts 'my resting hr is 48' records 'resting hr'=48 and no 'hr' (longest-first blanking).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testMaxHeartRateIsNotReadAsHeartRate()",
+   "hash": "72d56870c2545b64",
+   "does": "Asserts 'my max hr 190' records 'max hr'=190 and no 'hr'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testClockTimesAreNotValues()",
+   "hash": "2ed166f97fc03eb4",
+   "does": "Asserts clock-time phrases ('at 5 am', 'sleep at 11', '5:30', '6 pm') yield no asserted values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each clock-time text",
+     "effect": "one detect + isEmpty assertion per text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testQuestionsAssertNothing()",
+   "hash": "92a793de209b5ed1",
+   "does": "Asserts a question 'Why is my rmssd 42 today?' asserts nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testNormalisesSpelledNegativeDecimal()",
+   "hash": "b7c0282638fb7597",
+   "does": "Asserts 'my tsb is negative thirteen point seven' normalises to tsb=-13.7 (±0.001).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "tsb missing (?? .nan)",
+     "effect": "NaN fallback makes the accuracy assertion fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testNormalisesSpelledCompoundTens()",
+   "hash": "c1b1f4625f1d91cf",
+   "does": "Asserts 'ctl is sixty two' normalises to ctl=62.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testDigitFormIsUnaffectedByNormalisation()",
+   "hash": "29444d5d167616d1",
+   "does": "Asserts digit form 'ctl is 62' still yields 62 after normalisation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testFoldsTranscriptionTyposIntoTheCanonicalMetric()",
+   "hash": "d9bde40280a20eee",
+   "does": "Asserts aliases bsb/tsp/tbs fold to tsb=-8.8, atrl→atl, clt→ctl, acrw→acwr.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each tsb typo",
+     "effect": "one detect + assertion per typo"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testCorrectSpellingOutranksATypoInTheSameMessage()",
+   "hash": "1faa8e48e72e8257",
+   "does": "Asserts 'tsb is -5 and bsb is -8.8' keeps the correctly spelled tsb=-5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testAliasDoesNotCreateItsOwnKey()",
+   "hash": "466c98668bb43aff",
+   "does": "Asserts an alias key ('bsb') is never stored itself.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testDetectsDashboardContradictionPhrases()",
+   "hash": "d64984501aa7e6de",
+   "does": "Asserts eight contradiction phrases (dashboard says, no it's not, actually it's different, you're wrong, that's incorrect, those are wrong, wrong value) set dashboardContradicted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each phrase",
+     "effect": "one detect + assertion per phrase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)": "44af5858bd414286",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)": "a71e358417173882",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testConversationalOpenersAreNotContradictions()",
+   "hash": "476b7edbbd45cf22",
+   "does": "Asserts conversational openers ('Actually it's been a rough week', 'No it's fine') are not contradictions while 'Actually, it's 62.' is.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each opener phrase",
+     "effect": "one detect + XCTAssertFalse per phrase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isCorrectionReply(_:)": "44af5858bd414286",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.startsWithCorrectionReply(_:)": "a71e358417173882",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testSleepAndRecoveryNeedAConnector()",
+   "hash": "73912c45d6f19519",
+   "does": "Asserts sleep/recovery without a connector ('recovery 45 seems low', 'sleep 8 hours') are not recorded, but 'my recovery is 45' records recovery=45.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testBareContradictionCountsEvenWithoutAFreshValue()",
+   "hash": "3217fa52c5896276",
+   "does": "Asserts 'no. you are wrong' sets dashboardContradicted, no values, hasAnyCorrection true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testContradictionDetectionIsCaseInsensitive()",
+   "hash": "2ce449f18e84b264",
+   "does": "Asserts 'YOU ARE WRONG' sets dashboardContradicted (lowercased match).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testDetectsExplicitOverridePhrases()",
+   "hash": "5847b5794445b308",
+   "does": "Asserts ten override phrases set explicitOverrideRequested.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each phrase",
+     "effect": "one detect + assertion per phrase"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRealNumbersPhraseTripsBothSignals()",
+   "hash": "8952fc8f573d2de1",
+   "does": "Asserts 'the real numbers are 62 and 71' sets both dashboardContradicted and explicitOverrideRequested.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testSignalsFromDifferentMessagesCombine()",
+   "hash": "e41fd1e07daf3a62",
+   "does": "Asserts signals from three messages combine: contradiction, override and ctl=62.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderReturnsNilWithoutAnyCorrection()",
+   "hash": "1e1ad617041c0aa4",
+   "does": "Asserts renderAssertedBlock on empty Signals returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::var UserCorrectionDetector.Signals.hasAnyCorrection": "955b5e2396ec412d"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderLeadsWithTheAuthoritativeHeader()",
+   "hash": "8d4a55c1b0136ae1",
+   "does": "Asserts the first rendered line is '# User-stated values (authoritative — fresher than any cache)'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "88aa0ccb2eb01c5a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.collectAssertedValues(text:into:)": "3712b0669320fc7a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.detect(userMessages:)": "c1aa49b930b8dde8",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.extractValue(for:in:connectorRequired:)": "b49fa68e7da650d3",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isDashboardContradiction(text:)": "6da1c9a7298e890a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.isExplicitOverride(text:)": "a9cbaa5e37be8b15",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.statementsOnly(_:)": "976ef15dee034179"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderIncludesTheStalenessNoticeOnlyWhenAFlagIsSet()",
+   "hash": "e1dd2ec759bfc32e",
+   "does": "Asserts the 'stale or wrong' notice appears with dashboardContradicted and is absent with values only.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "flagged block nil (?? false)",
+     "effect": "nil makes the true-assertion fail"
+    },
+    {
+     "at": "+9",
+     "cond": "plain block nil (?? true)",
+     "effect": "nil makes the false-assertion fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderOmitsTheValueListWhenOnlyAFlagIsSet()",
+   "hash": "cab56a76996670af",
+   "does": "Asserts with only explicitOverrideRequested the block contains no '- ' value lines.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "render returned nil (?? '')",
+     "effect": "empty string; the not-contains assertion then passes vacuously"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "If renderAssertedBlock wrongly returned nil for an override-only Signals, the ?? \"\" fallback makes XCTAssertFalse(contains) pass, so the test cannot detect that regression.",
+     "evidence": [
+      "EmuquTests/UserCorrectionDetectorTests.swift:328",
+      "EmuquTests/UserCorrectionDetectorTests.swift:329"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderOrdersPrioritisedMetricsFirstThenAlphabetically()",
+   "hash": "792fc95c5b42cf69",
+   "does": "Asserts value lines order prioritised keys (atl, ctl, tsb) first then the rest alphabetically (cadence, watts).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "render nil (?? '')",
+     "effect": "empty key list; equality assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderFormatsEachMetricInItsConventionalPrecision()",
+   "hash": "8ced935e1fe3e8c8",
+   "does": "Asserts precision: tsb %+.1f (-9.4), acwr %.2f (1.30), ctl %.1f (62.0), rmssd %.1f (41.6), unlisted cadence %g (172, not 172.0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "render nil (?? '')",
+     "effect": "empty block; contains assertions fail, not-contains passes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96"
+   }
+  },
+  {
+   "key": "func UserCorrectionDetectorTests.testRenderMarksAPositiveTsbWithItsSign()",
+   "hash": "bb0a73cb02bd0245",
+   "does": "Asserts a positive tsb renders with explicit sign '- tsb: +2.1'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "render nil (?? '')",
+     "effect": "empty string; assertion fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.assertedValueLines(_:)": "532e50b7438162c4",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.formatValue(key:value:)": "f3993432b569cf9a",
+    "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift::func UserCorrectionDetector.renderAssertedBlock(_:)": "65fe5b6ed8fdfb96"
+   }
+  }
+ ],
+ "deps": {}
+}

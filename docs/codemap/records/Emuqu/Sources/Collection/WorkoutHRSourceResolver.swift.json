@@ -1,0 +1,135 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift",
+ "hash": "345cacc9cda76073",
+ "role": "Pure decision cascade for which HR source a workout starts on (use requested / reconnect strap / refuse because strap is mid-recording / downgrade to watch or none), plus its log line and provenance mapping.",
+ "types": [
+  "WorkoutHRSourceResolver: enum — namespace",
+  "WorkoutHRSourceResolver.Resolution: enum (Equatable) — use(HRSource) | reconnectThenUseStrap | strapBusy"
+ ],
+ "state": [],
+ "toplevel": "None.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)",
+   "hash": "27b1d18f0ab60d2b",
+   "does": "Given the requested source and live strap/watch facts, returns: .use(requested) for non-strap requests; .strapBusy if the strap is recording on-device; .use(.strap) if connected; .reconnectThenUseStrap if any device is known; .use(.watch) if a Watch is paired; else .use(.none). Called by WorkoutSessionLifecycle.currentSourceResolution (WorkoutRecorder+Start.swift:211).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "requested != .strap",
+     "effect": "returns .use(requested) without consulting the strap"
+    },
+    {
+     "at": "+13",
+     "cond": "strapIsRecordingOnDevice",
+     "effect": "returns .strapBusy (start refused upstream)"
+    },
+    {
+     "at": "+14",
+     "cond": "strapIsConnected",
+     "effect": "returns .use(.strap)"
+    },
+    {
+     "at": "+15",
+     "cond": "hasKnownDevices",
+     "effect": "returns .reconnectThenUseStrap"
+    },
+    {
+     "at": "+16",
+     "cond": "isWatchPaired",
+     "effect": "returns .use(.watch); otherwise .use(.none)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutHRSourceResolver.log(_:)",
+   "hash": "07cc3ad97fbe44b3",
+   "does": "Logs the resolution via debugLog: warning for strapBusy, info for reconnect/watch downgrade, warning for downgrade to none, nothing for .use(.strap). Called at WorkoutRecorder+Start.swift:196.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .strapBusy",
+     "effect": "warning \"refusing to start over it\""
+    },
+    {
+     "at": "+4",
+     "cond": "case .reconnectThenUseStrap",
+     "effect": "logs reconnect/deferred streaming"
+    },
+    {
+     "at": "+6",
+     "cond": "case .use(.watch)",
+     "effect": "info log watch fallback"
+    },
+    {
+     "at": "+8",
+     "cond": "case .use(.none)",
+     "effect": "warning downgrade to .none"
+    },
+    {
+     "at": "+10",
+     "cond": "case .use(.strap)",
+     "effect": "no log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutHRSourceResolver.provenanceSource(for:)",
+   "hash": "5c709944161a0706",
+   "does": "Maps a Resolution to the provenance HRSource: .use(s)->s, reconnectThenUseStrap->.strap, strapBusy->nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .use(source)",
+     "effect": "returns source"
+    },
+    {
+     "at": "+3",
+     "cond": "case .reconnectThenUseStrap",
+     "effect": "returns .strap"
+    },
+    {
+     "at": "+4",
+     "cond": "case .strapBusy",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No production caller: grep finds provenanceSource only in EmuquTests/WorkoutHRSourceResolverTests.swift (lines 114-144); production resolveEffectiveSource returns the source directly (WorkoutRecorder+Start.swift:197-205).",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutHRSourceResolver.swift:91",
+      "EmuquTests/WorkoutHRSourceResolverTests.swift:114",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:197"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

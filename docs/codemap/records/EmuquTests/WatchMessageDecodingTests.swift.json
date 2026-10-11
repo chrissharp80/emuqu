@@ -1,0 +1,1158 @@
+{
+ "file": "EmuquTests/WatchMessageDecodingTests.swift",
+ "hash": "f89c96af157aa530",
+ "role": "XCTest suite for the phone→Watch message contract in WatchMessageDecoding (Watch target source compiled into the app tests): field decode and absent≠zero, wrong-type/out-of-range rejection, recording transitions and Save & Done banner, request clearing, command parsing, display-only gating, Watch-side wording of band/pace/refusals, phone refusal/voice-chat replies, WatchPayloadBounds, and the phone-silence/wrist-stop session rules.",
+ "types": [
+  "WatchMessageDecodingTests: class (XCTestCase) — pure decoder tests plus a few phone-side reply builders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Wrong-type tests box Swift-native Int/Bool literals in [String: Any]; WCSession delivers property-list NSNumbers, for which `as? Double` of an integer and `as? Bool` of 1 succeed, so 'treated as absent rather than coerced' is not what happens on the shipping path and the test cannot catch it.",
+   "evidence": [
+    "EmuquTests/WatchMessageDecodingTests.swift:89",
+    "EmuquTests/WatchMessageDecodingTests.swift:90",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift:101",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift:117"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WatchMessageDecodingTests.testDecodeReadsEveryKnownField()",
+   "hash": "75395d7fc0f62dd0",
+   "does": "Decodes a message with every known field and asserts each typed value (HR 142, %max 78, peak 171, elapsed 1845, distance 5012.5, pace text, α1 0.72, band 'aerobic', cadence, elevation, zone 2, units, displayOnly, paused flags, recording, voice state).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named 'decode reads every known field' but the payload omits bandCode, alpha1Status, paceSecPerKm, ts and type, and the test never asserts sportLabel/sportRaw although it sends 'sport'; sentAt, sportRaw and isLiveSnapshot decoding are not covered by it.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:25",
+      "EmuquTests/WatchMessageDecodingTests.swift:34",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:103",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:104",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:173",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:197"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testAbsentFieldsDecodeAsNilNotZero()",
+   "hash": "de554ab7d6a4db73",
+   "does": "Asserts decode([:]) yields nil for every field and equals a default StateUpdate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testWrongTypedValuesAreTreatedAsAbsent()",
+   "hash": "8f9e5877af5b0323",
+   "does": "Asserts String heartRate, Int distanceMeters, Int isRecording and Int band decode as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testOnlyALiveStateTickIsASnapshot()",
+   "hash": "6c3005be052028c5",
+   "does": "Asserts only type 'liveState' sets isLiveSnapshot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testSportRawIsCarriedForTheWatchSession()",
+   "hash": "cff9e314acdfe563",
+   "does": "Asserts 'sport' is carried raw as sportRaw and absent when missing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testSportRawIsHumanised()",
+   "hash": "eec6dcaa878bb35d",
+   "does": "Asserts sportLabel: trail_run→'Trail Run', 'ride'→'Ride' (title-case fallback), open_water_swim→'Open Water Swim', ''→''.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "'ride' is not a Sport raw value (the phone sends 'bike', mapped to 'Ride' at WatchMessageDecoding.swift:252); the assertion passes through the title-case default branch, so the real bike→'Ride' mapping is not exercised and the test would still pass if that case were removed.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:116",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:252",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:258"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testDecodeSurfacesSportThroughTheHumanisedLabel()",
+   "hash": "ac75f1bc986c0813",
+   "does": "Asserts decode of sport 'indoor_ride' surfaces sportLabel 'Indoor Ride'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Uses 'indoor_ride', which is not a Sport raw value (the phone sends 'indoor_bike'), so the label comes from the title-case fallback and the real indoor_bike→'Indoor Ride' mapping is never exercised.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:122",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:253",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:258",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:15"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testRecordingTransitionStartsOnFalseToTrue()",
+   "hash": "175ae817862688f0",
+   "does": "Asserts isRecording true after false is .started.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testRecordingTransitionStopsOnTrueToFalse()",
+   "hash": "badc72661aa56a00",
+   "does": "Asserts isRecording false after true is .stopped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testRepeatedSameStateIsNotATransition()",
+   "hash": "f48c1047a984e26a",
+   "does": "Asserts repeated true/true and false/false give .none.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testMessageWithoutRecordingFieldIsNotATransition()",
+   "hash": "8c6d68f085b706c3",
+   "does": "Asserts a message without isRecording gives .none.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testJustCompletedSetOnStopTransition()",
+   "hash": "8ab099b0ab57833e",
+   "does": "Asserts justCompleted is true on a stop transition.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testColdLaunchDoesNotRaiseCompletionBanner()",
+   "hash": "7b1a486a9cc9a716",
+   "does": "Asserts a cold launch (false→false) does not raise the banner.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testStartingANewWorkoutClearsALingeringBanner()",
+   "hash": "2664b8f4811522c7",
+   "does": "Asserts a start transition clears a lingering banner.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testBannerSurvivesAMessageThatDoesNotMentionRecording()",
+   "hash": "6585ba84db29d59b",
+   "does": "Asserts a message without isRecording keeps the banner (current true).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.justCompleted(current:wasRecording:update:)": "a2f239bf6b929b19",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testConfirmedRecordingClearsStartRequest()",
+   "hash": "e35113616c5471aa",
+   "does": "Asserts clearsStartWorkoutRequest only for isRecording true (not false, not absent).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsStartWorkoutRequest(update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsStartWorkoutRequest(update:)": "81e779662872474b",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testAnyNonIdleVoiceStateClearsVoiceRequest()",
+   "hash": "ecb14c501cd1c49e",
+   "does": "Asserts any non-idle voiceChatState clears the voice request; 'idle' and absent do not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of starting/listening/thinking/speaking",
+     "effect": "asserts the request is cleared"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.clearsVoiceChatRequest(update:)": "fd01a4e514ba4fab",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testCommandParsing()",
+   "hash": "4d1e69c6da886076",
+   "does": "Asserts command parsing for startWorkout, stopWorkout, liveState, voiceChatState, and nil without a type.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "b2e6bf57266faa4c",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testStrapStateCarriesItsPayload()",
+   "hash": "aaf4bb0583aa35fa",
+   "does": "Asserts strapState carries connected true and the device name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testStrapStateWithoutPayloadIsStillTheCommand()",
+   "hash": "881341fac78b526c",
+   "does": "Asserts strapState with no payload parses to strapState(nil, nil).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testUnknownVerbIsCarried()",
+   "hash": "38ebc005a8d0777e",
+   "does": "Asserts an unknown verb is carried as .unknown('teleport').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testStartWorkoutIsRefusedInDisplayOnlyMode()",
+   "hash": "b770a460e70cfafc",
+   "does": "Asserts startWorkout is refused when displayOnlyMode is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testStartWorkoutIsHonouredInLegacyMode()",
+   "hash": "ac849f6c060d53a9",
+   "does": "Asserts startWorkout is honoured when displayOnlyMode is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testOnlyStartWorkoutStartsAWorkout()",
+   "hash": "1c9a0fed259b28e3",
+   "does": "Asserts stopWorkout, strapState and unknown never start a workout.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "b2aa988307ccb4a7"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testDisplayOnlyModeIsAbsentRatherThanFalseInPartialUpdates()",
+   "hash": "3656335fe47ca63e",
+   "does": "Asserts displayOnlyMode is nil when absent and false when explicitly false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testRepresentativeLiveWorkoutPush()",
+   "hash": "aac3002c5c1357c8",
+   "does": "Decodes a hand-written 'state' message and asserts HR 148, label 'Trail Run', displayOnly true, transition .started from false, and command .unknown('state').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Called a representative live-workout push, but the dictionary is hand-written with type 'state' (the phone sends 'liveState' via liveStatePayload), so a schema change on the iOS side does not show up here as the comment claims.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:320",
+      "EmuquTests/WatchMessageDecodingTests.swift:324",
+      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:442"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testBandCodeIsNamedOnTheWatch()",
+   "hash": "add616a146f44aa3",
+   "does": "Asserts bandCode 'nearAeT' is named on the Watch ('Threshold') instead of the phone's 'Schwelle'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testUnknownBandCodeFallsBackToThePhonesWording()",
+   "hash": "059c484bb27f6b6c",
+   "does": "Asserts an unknown bandCode falls back to the phone's band wording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testEveryPhoneBandHasAWatchName()",
+   "hash": "2e04f7f974bead43",
+   "does": "Asserts each LiveDFAAnalyzer.Band raw value has a Watch label.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of the four bands",
+     "effect": "asserts bandLabel is non-nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testPaceNumberIsWrittenOnTheWatch()",
+   "hash": "9aa195bdbc0cd52b",
+   "does": "Asserts paceSecPerKm 312 renders '5:12 /km' metric and '8:22 /mi' imperial on the Watch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testPaceWithoutANumberFallsBackToThePhonesWording()",
+   "hash": "b4c261f2a282e696",
+   "does": "Asserts paceDisplay text is used when no number is sent and pace(0) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testLiveStateBandCodeFollowsAlpha1()",
+   "hash": "a571901c5b8548c5",
+   "does": "Asserts LiveState.bandCode follows α1: 0.9 belowAeT, 0.6 nearAeT, 0.3 aboveVT2, nil unknown.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "9d8412b3cbe19c3c",
+    "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.liveState(alpha1:)": "b2e6bf57266faa4c"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testEveryPhoneRefusalIsWordedOnTheWatch()",
+   "hash": "5c3e9d41a5c8ca81",
+   "does": "For phoneNotReady/unknownMessage/unknownSport/needsUnlock, asserts refusalReply has ok false, error == phoneText, and the Watch's refusalText(errorCode) equals phoneText; unknown code → nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each listed refusal",
+     "effect": "asserts reply fields and Watch wording"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Claims every phone refusal is worded on the Watch, but the hand-written list omits WatchControlRefusal.strapBusy (the enum is not CaseIterable), so a missing or mismatched strapBusy wording would pass.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:397",
+      "EmuquTests/WatchMessageDecodingTests.swift:400",
+      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:899"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Compares phoneText (LanguageManager.appBundle) with the Watch's refusalText (String(localized:) from the main bundle) without pinning the language, so it only agrees when the host language equals the app language.",
+     "evidence": [
+      "EmuquTests/WatchMessageDecodingTests.swift:406",
+      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:904",
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:216"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testUnlockRefusalShowsTheUnlockPromptWithoutPrefix()",
+   "hash": "03383d5c2232af1e",
+   "does": "Asserts the needsUnlock refusal reply yields the unlock prompt with no 'iPhone:' prefix.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testARefusedVoiceChatReplyCarriesTheUnlockPrompt()",
+   "hash": "a16f78c8a8722cdd",
+   "does": "Asserts a voice-chat reply refused for needsUnlock has ok false, no voiceChatState/needsDisclaimer, and words as the unlock prompt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testVoiceChatReplyForTheDisclaimerAndForAnAcceptedRequest()",
+   "hash": "6b4eda612e48e522",
+   "does": "Asserts voiceChatReply puts the unlock refusal before the disclaimer, returns needsDisclaimer when not accepted, and ok+state when accepted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "e0465c27131b9b06",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testControlReplyStatusForAcceptedAndOtherRefusals()",
+   "hash": "3867928068c2e321",
+   "does": "Asserts controlReplyStatus returns successStatus for ok, 'iPhone: Phone not ready' for phoneNotReady, and quotes the phone's error for an unknown code.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "a17315a2392299ee",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "aa253874ca28a90f",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "2ee1e5db3fee64e5",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testDecodeDropsNonFiniteAndImplausibleNumbers()",
+   "hash": "19bf769642f49858",
+   "does": "Asserts out-of-range and non-finite numbers (HR 9000, %max -5, peak 400, elapsed -1, inf distance, NaN α1, inf cadence, -inf elevation, zone 9) decode as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testDecodeKeepsTheEdgesOfEachRange()",
+   "hash": "ce253385198cb044",
+   "does": "Asserts range edges are kept: HR 250, peak 0, cadence 0, α1 3, zone 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testPhoneDropsNonFiniteAndImplausibleWatchBeats()",
+   "hash": "c0f7606a3ca67d4c",
+   "does": "Asserts WatchPayloadBounds keeps only finite RR in (300, 2500) ms ([812, 2499.4]) and plausible HR 25…250.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)",
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleHeartRate(_:)": "e1aa99799e5669d5",
+    "Emuqu/Sources/Collection/WatchPayloadBounds.swift::func WatchPayloadBounds.plausibleRRMillis(_:)": "6ec06394ea861658"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testWristStopEndsTheSessionOnlyWhenTheIPhoneIsUnreachable()",
+   "hash": "1a2d1531e9bca86d",
+   "does": "Asserts a wrist stop ends the Watch session only when the iPhone is unreachable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "be4fe8b4c5423c3f"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.testPhoneSilenceEndsTheSessionOnlyPastTheLimit()",
+   "hash": "fb2c80f94e1853fb",
+   "does": "Asserts phone silence exceeds only strictly past phoneSilenceLimit and the limit lies within 10–60 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "35bb96d6ebaabadf"
+   }
+  },
+  {
+   "key": "func WatchMessageDecodingTests.liveState(alpha1:)",
+   "hash": "524eab4cf91d43c7",
+   "does": "Fixture: a recording run LiveState with the given α1 (default warmup status).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

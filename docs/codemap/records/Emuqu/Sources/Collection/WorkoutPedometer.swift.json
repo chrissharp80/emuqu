@@ -1,0 +1,210 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutPedometer.swift",
+ "hash": "2deca0fc45bb9d76",
+ "role": "CMPedometer wrapper for workout distance/steps/cadence plus the Sendable PedometerSample value used to hop CoreMotion callbacks to the main actor with NaN/negative rejection.",
+ "types": [
+  "WorkoutPedometer: class (@Observable, @MainActor) — live pedometer distance/steps/cadence",
+  "PedometerSample: struct (Sendable) — raw CoreMotion values with publishable (validated) accessors"
+ ],
+ "state": [
+  "mem:WorkoutPedometer.distanceMeters",
+  "mem:WorkoutPedometer.stepCount",
+  "mem:WorkoutPedometer.cadenceStepsPerMin",
+  "mem:WorkoutPedometer.isAvailable",
+  "private: pedometer (CMPedometer), sessionStart"
+ ],
+ "toplevel": "isAvailable initialiser evaluates CMPedometer.isDistanceAvailable() && isStepCountingAvailable() at construction (line 21). Instance is WorkoutRecorder.pedometer.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutPedometer.start()",
+   "hash": "6eb989f4d1ff37a8",
+   "does": "If CMPedometer is available: stamps sessionStart=now, zeroes distance/steps/cadence and subscribes to updates from that time. Called deferred from WorkoutSessionLifecycle.deferPedometerStart (WorkoutRecorder+Start.swift:551).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPedometer.distanceMeters",
+    "mem:WorkoutPedometer.stepCount",
+    "mem:WorkoutPedometer.cadenceStepsPerMin"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pedometer unavailable",
+     "effect": "returns silently (no distance source)"
+    },
+    {
+     "at": "+6",
+     "cond": "sessionStart nil",
+     "effect": "?? Date() fallback; unreachable since sessionStart was just assigned on line 30"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)": "4cde2ec2c770e992",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  },
+  {
+   "key": "func WorkoutPedometer.subscribeToUpdates(from:)",
+   "hash": "cf73e14e8fe590ec",
+   "does": "Starts CMPedometer updates with a @Sendable handler that drops errored/nil data, copies values into PedometerSample on the CoreMotion thread, and hops to the MainActor to apply.",
+   "entry": null,
+   "calls": [
+    "ext:CMPedometer.startUpdates",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(_:)",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error non-nil or data nil",
+     "effect": "drops the update silently; otherwise builds sample and schedules apply"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)": "4760fe0d3c3215c7",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "b2d6e575543b2590",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(_:)": "4bb4ed1cffd9a675"
+   }
+  },
+  {
+   "key": "func WorkoutPedometer.apply(_:)",
+   "hash": "645c3504e1ad337a",
+   "does": "Applies a sample: sets distanceMeters only when publishable (finite, >=0), always sets stepCount, sets cadence only when publishable.",
+   "entry": "MainActor Task scheduled from the CMPedometer update handler",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPedometer.distanceMeters",
+    "mem:WorkoutPedometer.stepCount",
+    "mem:WorkoutPedometer.cadenceStepsPerMin"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "publishable distance present",
+     "effect": "updates distance; else keeps last value"
+    },
+    {
+     "at": "+4",
+     "cond": "publishable cadence present",
+     "effect": "updates cadence; else keeps last value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "14344690bf964b04",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  },
+  {
+   "key": "func WorkoutPedometer.stop()",
+   "hash": "1ae00e025a547f8b",
+   "does": "Stops CMPedometer updates. Called at workout stop (WorkoutRecorder+Stop.swift:130).",
+   "entry": null,
+   "calls": [
+    "ext:CMPedometer.stopUpdates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutPedometer.reset()",
+   "hash": "f8d296ac22f06193",
+   "does": "Zeroes distance and steps and clears cadence. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift:234).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutPedometer.distanceMeters",
+    "mem:WorkoutPedometer.stepCount",
+    "mem:WorkoutPedometer.cadenceStepsPerMin"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  },
+  {
+   "key": "init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)",
+   "hash": "0bba192918212cdd",
+   "does": "Memberwise initialiser storing raw distance, steps and raw cadence (steps/s).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PedometerSample.publishableDistanceMeters",
+   "hash": "1c9e919005199a80",
+   "does": "Returns rawDistanceMeters when finite and >=0, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil, non-finite or negative",
+     "effect": "returns nil; else the value"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PedometerSample.publishableCadenceStepsPerMin",
+   "hash": "c3ea18d04e6e68d5",
+   "does": "Returns raw cadence x 60 (steps/min) when finite and >=0, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil, non-finite or negative",
+     "effect": "returns nil; else cadence*60"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init PedometerSample(_:)",
+   "hash": "abf6f90eb7df2188",
+   "does": "Builds a PedometerSample from CMPedometerData (distance, numberOfSteps, currentCadence) on the CoreMotion callback thread.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e"
+   }
+  }
+ ],
+ "deps": {}
+}

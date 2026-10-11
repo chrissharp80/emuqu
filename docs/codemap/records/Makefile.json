@@ -1,0 +1,1246 @@
+{
+ "file": "Makefile",
+ "hash": "6cfdab5a71f174c2",
+ "role": "Developer entry point for every gate, test and build task; `make ci` is the local equivalent of ci.yml, and gates.yml invokes many targets on Linux.",
+ "types": [],
+ "state": [
+  "SHELL=/bin/bash",
+  "SCHEME ?= Emuqu",
+  "PROJECT ?= Emuqu.xcodeproj"
+ ],
+ "toplevel": "Sets SHELL=/bin/bash, overridable SCHEME/PROJECT defaults, and a .PHONY list naming every target (including codemap-setup, codemap-guard, codemap-report and codemap-impact) (localization-orphan-guard appears twice, harmless). All targets are thin wrappers around scripts/*.sh, Tools/copy_linter/lint.py, scripts/generate_sbom.py, swiftlint/swiftformat or xcodebuild; their behaviour is in the unit records.",
+ "flags": [],
+ "units": [
+  {
+   "key": "target lint",
+   "hash": "5afd16267995632e",
+   "does": "Runs `swiftlint lint --config .swiftlint.yml` over the repo; exits with SwiftLint's status (errors fail).",
+   "entry": "`make lint` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:swiftlint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "target lint-budget",
+   "hash": "9375e19a0c190d70",
+   "does": "Runs scripts/enforce_swiftlint_budget.sh: fails when the SwiftLint warning count exceeds .ci/swiftlint_warning_budget.txt.",
+   "entry": "`make lint-budget` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/enforce_swiftlint_budget.sh"
+   ],
+   "reads": [
+    "file:.ci/swiftlint_warning_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/enforce_swiftlint_budget.sh::": "4827a351792f7b9c"
+   }
+  },
+  {
+   "key": "target format",
+   "hash": "506d0726b0ad1cdf",
+   "does": "Runs `swiftformat Emuqu EmuquTests --config .swiftformat`, rewriting Swift files in place (the deliberate, manual reformat the pre-commit hook refuses to do). Does not touch EmuquUITests or the watch app.",
+   "entry": "`make format` from a developer shell",
+   "calls": [
+    "ext:swiftformat"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "target test",
+   "hash": "fc532a1e9bca29eb",
+   "does": "Resolves a simulator destination with scripts/select_simulator_destination.sh $(SCHEME) $(PROJECT) (defaults Emuqu / Emuqu.xcodeproj, overridable), echoes it, then runs `xcodebuild test` on the scheme with that destination. No coverage gate, no result bundle.",
+   "entry": "`make test` from a developer shell",
+   "calls": [
+    "ext:script scripts/select_simulator_destination.sh",
+    "ext:xcodebuild test"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5"
+   }
+  },
+  {
+   "key": "target test-coverage",
+   "hash": "018495e9c506a111",
+   "does": "Runs scripts/run_tests_with_coverage.sh (TEST_SCOPE defaults to full there): xcodebuild test with coverage into build/TestResults.xcresult, then scripts/check_coverage.sh against the .ci/min_coverage*.txt floors.",
+   "entry": "`make test-coverage` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/run_tests_with_coverage.sh",
+    "ext:script scripts/check_coverage.sh"
+   ],
+   "reads": [
+    "file:.ci/min_coverage.txt",
+    "file:.ci/min_coverage_logic.txt",
+    "file:.ci/min_coverage_views.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/run_tests_with_coverage.sh::": "55a77a5ba714a5ab"
+   }
+  },
+  {
+   "key": "target debt-budget",
+   "hash": "c5f932e57615745b",
+   "does": "Runs scripts/enforce_tech_debt_budgets.sh with no argument (SOURCE_ROOT defaults to Emuqu): `.shared` usage, `try?`, `try?`-on-write, >1500-line files and ObservableObject counts against their .ci budgets.",
+   "entry": "`make debt-budget` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/enforce_tech_debt_budgets.sh"
+   ],
+   "reads": [
+    "file:.ci/shared_usage_budget.txt",
+    "file:.ci/try_optional_budget.txt",
+    "file:.ci/try_optional_write_budget.txt",
+    "file:.ci/large_swift_files_1500_budget.txt",
+    "file:.ci/legacy_observable_object_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/enforce_tech_debt_budgets.sh::": "ced88e4bf81e4dc8"
+   }
+  },
+  {
+   "key": "target infoplist-guard",
+   "hash": "94f7b9e243976853",
+   "does": "Runs three scripts in sequence, stopping at the first failure: check_no_health_data_in_cloudkit.sh, check_privacy_manifest_vocabulary.sh (needs plutil), check_infoplist_key_drift.sh.",
+   "entry": "`make infoplist-guard` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/check_no_health_data_in_cloudkit.sh",
+    "ext:script scripts/check_privacy_manifest_vocabulary.sh",
+    "ext:script scripts/check_infoplist_key_drift.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e",
+    "scripts/check_privacy_manifest_vocabulary.sh::": "7dc3ba0ed289e862"
+   }
+  },
+  {
+   "key": "target shared-root-guard",
+   "hash": "2bfcd1df5b840035",
+   "does": "Runs scripts/check_no_shared_outside_root.sh: `.shared` singletons may be read only in the composition root.",
+   "entry": "`make shared-root-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_shared_outside_root.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091"
+   }
+  },
+  {
+   "key": "target dated-comment-budget",
+   "hash": "ec99ee6d70e42e57",
+   "does": "Runs scripts/check_dated_comment_budget.sh against .ci/dated_comment_budget.txt (0).",
+   "entry": "`make dated-comment-budget` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_dated_comment_budget.sh"
+   ],
+   "reads": [
+    "file:.ci/dated_comment_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_dated_comment_budget.sh::": "e5194e37497f904b"
+   }
+  },
+  {
+   "key": "target no-unowned-guard",
+   "hash": "a5ff40400f95cd61",
+   "does": "Runs scripts/check_no_unowned.sh (no `unowned` references in Swift sources).",
+   "entry": "`make no-unowned-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_unowned.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_unowned.sh::": "613c23141181c8ba"
+   }
+  },
+  {
+   "key": "target logger-self-reference-guard",
+   "hash": "a075086220339363",
+   "does": "Runs scripts/check_logger_self_reference.sh (the logger never logs through itself).",
+   "entry": "`make logger-self-reference-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_logger_self_reference.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "scripts/check_logger_self_reference.sh::": "b714e96b1ff9ad5d"
+   }
+  },
+  {
+   "key": "target coremotion-isolation-guard",
+   "hash": "22d93fee1e92c759",
+   "does": "Runs scripts/check_coremotion_handler_isolation.sh: every CoreMotion handler closure must name a queue or be @Sendable, preventing the main-actor executor-assert SIGTRAP on CoreMotion's thread.",
+   "entry": "`make coremotion-isolation-guard` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/check_coremotion_handler_isolation.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
+     "evidence": [
+      ".github/workflows/gates.yml:7-20",
+      ".github/workflows/gates.yml:60",
+      "Makefile:48-53",
+      "Makefile:272",
+      ".github/workflows/ci.yml:273-280",
+      "scripts/check_gates_wired.sh:17",
+      "scripts/check_coremotion_handler_isolation.sh:36-37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_coremotion_handler_isolation.sh::": "2c1d5dd8cf5073f2"
+   }
+  },
+  {
+   "key": "target hr-feed-link-guard",
+   "hash": "e1c3965cabe9ab8b",
+   "does": "Runs scripts/check_hr_feed_subscribes_on_link.sh (the Polar HR feed subscribes on link rather than waiting for a feature-ready report).",
+   "entry": "`make hr-feed-link-guard` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/check_hr_feed_subscribes_on_link.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
+     "evidence": [
+      ".github/workflows/gates.yml:7-20",
+      ".github/workflows/gates.yml:60",
+      "Makefile:48-53",
+      "Makefile:272",
+      ".github/workflows/ci.yml:273-280",
+      "scripts/check_gates_wired.sh:17",
+      "scripts/check_coremotion_handler_isolation.sh:36-37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_hr_feed_subscribes_on_link.sh::": "966820c0623915e2"
+   }
+  },
+  {
+   "key": "target license-header-guard",
+   "hash": "aac167c2ac56be2e",
+   "does": "Runs scripts/check_no_license_headers.sh (no licence text in source files).",
+   "entry": "`make license-header-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_license_headers.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_license_headers.sh::": "85097fb14eb2543d"
+   }
+  },
+  {
+   "key": "target sendable-guard",
+   "hash": "da67506e475a5e77",
+   "does": "Runs scripts/check_unchecked_sendable.sh: `@unchecked Sendable` count against .ci/unchecked_sendable_budget.txt (14).",
+   "entry": "`make sendable-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_unchecked_sendable.sh"
+   ],
+   "reads": [
+    "file:.ci/unchecked_sendable_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_unchecked_sendable.sh::": "c41e2a91a6664081"
+   }
+  },
+  {
+   "key": "target spec-conformance",
+   "hash": "2e5c54f3de700cc5",
+   "does": "Runs scripts/check_refactor_spec_conformance.sh against the .ci/spec_*_budget.txt ceilings (docs/REFACTOR_SPEC.md hard-gate items).",
+   "entry": "`make spec-conformance` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_refactor_spec_conformance.sh"
+   ],
+   "reads": [
+    "file:.ci/spec_commented_code_budget.txt",
+    "file:.ci/spec_deep_nesting_budget.txt",
+    "file:.ci/spec_deep_nesting_properties_budget.txt",
+    "file:.ci/spec_justified_long_budget.txt",
+    "file:.ci/spec_justified_nesting_budget.txt",
+    "file:.ci/spec_long_functions_budget.txt",
+    "file:.ci/spec_long_properties_budget.txt",
+    "file:.ci/spec_watch_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_refactor_spec_conformance.sh::": "9cfdce0d76783dc4"
+   }
+  },
+  {
+   "key": "target locale-format-guard",
+   "hash": "6017f41f82b6896a",
+   "does": "Runs scripts/check_locale_formatting.sh (user-facing decimal formatting must name a locale).",
+   "entry": "`make locale-format-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_locale_formatting.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_locale_formatting.sh::": "aca373d604e0631f"
+   }
+  },
+  {
+   "key": "target doc-counts-guard",
+   "hash": "c9d2d0c0154947a6",
+   "does": "Runs scripts/check_doc_file_counts.sh (file counts quoted in docs match the tree). Recipe not @-silenced, so the command is echoed.",
+   "entry": "`make doc-counts-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_doc_file_counts.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_doc_file_counts.sh::": "8c626a38aff199a4"
+   }
+  },
+  {
+   "key": "target date-ms-guard",
+   "hash": "a213b5d988efa718",
+   "does": "Runs scripts/check_date_ms_conversion.sh (Date→millisecond Int64 conversions must be guarded). Command echoed.",
+   "entry": "`make date-ms-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_date_ms_conversion.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_date_ms_conversion.sh::": "1434eda5b99ef460"
+   }
+  },
+  {
+   "key": "target empty-range-guard",
+   "hash": "6f647d22f16b5a7e",
+   "does": "Runs scripts/check_empty_range_loops.sh (`1 ..< xs.count` loops without an empty guard). Command echoed.",
+   "entry": "`make empty-range-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_empty_range_loops.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_empty_range_loops.sh::": "699901b1c19ac251"
+   }
+  },
+  {
+   "key": "target leaked-mutations-guard",
+   "hash": "685500748b4270b8",
+   "does": "Runs scripts/check_no_leaked_mutations.sh: detects production source left mutated by a killed verify_tests_fail.sh run.",
+   "entry": "`make leaked-mutations-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_leaked_mutations.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_leaked_mutations.sh::": "11ee1b28e94d42a3"
+   }
+  },
+  {
+   "key": "target eager-prompt-guard",
+   "hash": "fcce2deced9d58b1",
+   "does": "Runs scripts/check_no_eager_permission_prompts.sh (no eagerly constructed CBCentralManager/CBPeripheralManager that would prompt for Bluetooth).",
+   "entry": "`make eager-prompt-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_eager_permission_prompts.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_eager_permission_prompts.sh::": "496088f8cb679f6c"
+   }
+  },
+  {
+   "key": "target gates-wired-guard",
+   "hash": "bade413587219934",
+   "does": "Runs scripts/check_gates_wired.sh: every scripts/check_*.sh / enforce_*.sh name must appear in .github/workflows/ci.yml (check_coverage.sh exempt).",
+   "entry": "`make gates-wired-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_gates_wired.sh"
+   ],
+   "reads": [
+    "file:.github/workflows/ci.yml"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_gates_wired.sh::": "b223d96bf75376e4"
+   }
+  },
+  {
+   "key": "target snapshot-refs-guard",
+   "hash": "24adb4e685b12b85",
+   "does": "Runs scripts/check_snapshot_references.sh (snapshot reference images referenced by tests are committed). Command echoed.",
+   "entry": "`make snapshot-refs-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_snapshot_references.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_snapshot_references.sh::": "3af8d2a44ee0bf3d"
+   }
+  },
+  {
+   "key": "target sbom-guard",
+   "hash": "54e0862a19a19b6b",
+   "does": "Runs scripts/check_sbom_drift.sh: in-app acknowledgements list must match Package.resolved.",
+   "entry": "`make sbom-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_sbom_drift.sh"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_sbom_drift.sh::": "7233f619148a0f19"
+   }
+  },
+  {
+   "key": "target log-redaction-guard",
+   "hash": "e4fd30b583093ffc",
+   "does": "Runs scripts/check_log_redaction.sh: log calls must not interpolate raw health/identifying values.",
+   "entry": "`make log-redaction-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_log_redaction.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_log_redaction.sh::": "adc6b124cccb3a8d"
+   }
+  },
+  {
+   "key": "target localization-guard",
+   "hash": "03e82377c5003715",
+   "does": "Runs scripts/check_localization_coverage.sh four times: default catalogue, Emuqu/InfoPlist.xcstrings, \"EmuquWatch Watch App/InfoPlist.xcstrings\", Emuqu/Help.xcstrings, each against the .ci/min_localization_coverage.txt floor (100). Stops at the first failing catalogue.",
+   "entry": "`make localization-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_localization_coverage.sh"
+   ],
+   "reads": [
+    "file:.ci/min_localization_coverage.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_coverage.sh::": "9e1991807b12665d"
+   }
+  },
+  {
+   "key": "target localization-bundle-guard",
+   "hash": "23c5ac5b628cde8f",
+   "does": "Runs scripts/check_localization_bundle.sh: String(localized:) calls must pass the in-app language bundle.",
+   "entry": "`make localization-bundle-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_localization_bundle.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_bundle.sh::": "dc38eb0e596bc785"
+   }
+  },
+  {
+   "key": "target localization-resolution-guard",
+   "hash": "082a831d1b33c3ff",
+   "does": "Runs scripts/check_localization_resolution.sh: every localized literal in code must exist as a catalogue key.",
+   "entry": "`make localization-resolution-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_localization_resolution.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_resolution.sh::": "b3acce7afc250a11"
+   }
+  },
+  {
+   "key": "target uitest-reset-guard",
+   "hash": "35d0b6eac913b88a",
+   "does": "Runs scripts/check_uitest_fresh_install.sh: every UI suite must launch with -UITests-FreshInstall.",
+   "entry": "`make uitest-reset-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_uitest_fresh_install.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_uitest_fresh_install.sh::": "a2fe736d46ea7d35"
+   }
+  },
+  {
+   "key": "target skip-budget",
+   "hash": "d53f9f8133637a74",
+   "does": "Runs scripts/check_test_skip_budget.sh against .ci/test_skip_budget.txt (9).",
+   "entry": "`make skip-budget` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_test_skip_budget.sh"
+   ],
+   "reads": [
+    "file:.ci/test_skip_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target ci": "b679f3a8965b735e",
+    "scripts/check_test_skip_budget.sh::": "86d14e669b19a306"
+   }
+  },
+  {
+   "key": "target budget-monotonicity",
+   "hash": "1edabf4d98a565e6",
+   "does": "Runs scripts/check_budget_monotonicity.sh with baseline ${BUDGET_BASE_REF:-HEAD}: compares every integer .ci/*.txt in the working tree against the baseline commit; a raised ceiling or lowered min_* floor fails unless a `budget-raise-ok: <path>` trailer appears in the commits BASE..HEAD. With HEAD as baseline it catches uncommitted budget edits only.",
+   "entry": "`make budget-monotonicity` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/check_budget_monotonicity.sh",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "ext:git show/log"
+   ],
+   "reads": [
+    "file:.ci/*.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "BUDGET_BASE_REF env set and non-empty",
+     "effect": "that ref is the baseline; otherwise HEAD (working tree vs last commit)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": ".ci/min_coverage_views.txt holds 43.5, a non-integer; check_budget_monotonicity.sh read_int() rejects anything not ^[0-9]+$ and the loop `continue`s, so the views coverage floor is never compared and can be lowered with no budget-raise-ok trailer while the ratchet prints clean. Its header lists only three floors (min_coverage, min_coverage_logic, min_localization_coverage).",
+     "evidence": [
+      ".ci/min_coverage_views.txt:1",
+      "scripts/check_budget_monotonicity.sh:24-25",
+      "scripts/check_budget_monotonicity.sh:129-135",
+      "scripts/check_budget_monotonicity.sh:143",
+      "scripts/check_coverage.sh:43"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+   }
+  },
+  {
+   "key": "target fixed-font-budget",
+   "hash": "c950ba1edd5821bf",
+   "does": "Runs scripts/check_fixed_font_budget.sh: `.font(.system(size:))` counts against .ci/fixed_font_budget.txt (13) and .ci/fixed_font_watch_budget.txt (0).",
+   "entry": "`make fixed-font-budget` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_fixed_font_budget.sh"
+   ],
+   "reads": [
+    "file:.ci/fixed_font_budget.txt",
+    "file:.ci/fixed_font_watch_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_fixed_font_budget.sh::": "30d5e2746e069f6c"
+   }
+  },
+  {
+   "key": "target strict-concurrency-enabled",
+   "hash": "c96e2eafb645d368",
+   "does": "Runs scripts/check_strict_concurrency_enabled.sh: greps project.pbxproj to confirm Swift 6 mode and SWIFT_STRICT_CONCURRENCY=complete in every build configuration.",
+   "entry": "`make strict-concurrency-enabled` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_strict_concurrency_enabled.sh"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_strict_concurrency_enabled.sh::": "be05d3aac3d60d4e"
+   }
+  },
+  {
+   "key": "target thread-sanitizer",
+   "hash": "47076b2d2f1060c7",
+   "does": "Runs scripts/check_thread_sanitizer.sh: builds and runs the unit suite under TSan. Not part of `make ci`.",
+   "entry": "`make thread-sanitizer` from a developer shell",
+   "calls": [
+    "ext:script scripts/check_thread_sanitizer.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
+   }
+  },
+  {
+   "key": "target orphan-swift-guard",
+   "hash": "c8032d40798dc920",
+   "does": "Runs scripts/check_no_orphan_swift.sh: every Swift file on disk must be registered in the Xcode project.",
+   "entry": "`make orphan-swift-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_orphan_swift.sh"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_orphan_swift.sh::": "d55b2639d709991a"
+   }
+  },
+  {
+   "key": "target copy-perimeter",
+   "hash": "30f85f47fc2f471b",
+   "does": "Runs `python3 Tools/copy_linter/lint.py`, the FDA copy perimeter linter over user-facing strings.",
+   "entry": "`make copy-perimeter` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script Tools/copy_linter/lint.py"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Tools/copy_linter/lint.py::": "23a02988758cfb85"
+   }
+  },
+  {
+   "key": "target doc-links",
+   "hash": "1d230cd0581230eb",
+   "does": "Runs scripts/check_doc_links.sh: relative Markdown links resolve and documented .ci constants match.",
+   "entry": "`make doc-links` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_doc_links.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_doc_links.sh::": "e3bc412afabf1b5c"
+   }
+  },
+  {
+   "key": "target no-phone-home",
+   "hash": "03e20ac6dbdbc74c",
+   "does": "Runs scripts/check_no_developer_endpoint.sh: no developer-owned endpoint or analytics SDK in source/dependencies.",
+   "entry": "`make no-phone-home` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_no_developer_endpoint.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631"
+   }
+  },
+  {
+   "key": "target codemap-setup",
+   "hash": "7bfb22364380a2fe",
+   "does": "Ensures .venv-codemap has tree-sitter and tree-sitter-swift: if .venv-codemap/bin/python exists and imports both, does nothing; otherwise creates the venv with python3 -m venv and installs scripts/codemap/requirements.txt with pip --require-hashes.",
+   "entry": "make codemap-setup; prerequisite of codemap-guard, codemap-impact and codemap-report; first half of the \"Code map is current\" step in ci.yml and gates.yml",
+   "calls": [
+    "ext:python3 -m venv",
+    "ext:pip install --require-hashes"
+   ],
+   "reads": [
+    "file:scripts/codemap/requirements.txt",
+    "net:pypi.org (only when installing)"
+   ],
+   "writes": [
+    "file:.venv-codemap/"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "venv present and both modules import",
+     "effect": "nothing to do; otherwise venv created and wheels installed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "target codemap-guard",
+   "hash": "f353994f3ad52d9a",
+   "does": "Runs scripts/check_codemap.sh with CODEMAP_PYTHON=.venv-codemap/bin/python after codemap-setup.",
+   "entry": "make codemap-guard; part of make ci",
+   "calls": [
+    "Makefile::target codemap-setup"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "scripts/check_codemap.sh::": "7556633b3058e90d"
+   }
+  },
+  {
+   "key": "target codemap-impact",
+   "hash": "2362bee2a01039bb",
+   "does": "After codemap-setup, runs `codemap.py impact --base $BASE` (BASE defaults to origin/main): prints every unit the working tree changed against that ref with its callers, the triggers, tests and docs that reach it, the shared state it touches and the open findings. Not a gate; always exits 0 unless the ref is unknown.",
+   "entry": "make codemap-impact [BASE=<ref>]",
+   "calls": [
+    "Makefile::target codemap-setup",
+    "scripts/codemap/codemap.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
+    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+   }
+  },
+  {
+   "key": "target codemap-report",
+   "hash": "38d32da3ab2f517d",
+   "does": "After codemap-setup, builds the browsable report into build/codemap with `codemap.py report build/codemap`.",
+   "entry": "make codemap-report",
+   "calls": [
+    "Makefile::target codemap-setup",
+    "scripts/codemap/codemap.py::def main"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/codemap/"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
+    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+   }
+  },
+  {
+   "key": "target gate-preflight",
+   "hash": "cbaea7b797ce6721",
+   "does": "Runs scripts/check_gate_preflight.sh: each gate must fail closed when its input (e.g. mktemp) is missing.",
+   "entry": "`make gate-preflight` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_gate_preflight.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_gate_preflight.sh::": "022bce1a14ca644a"
+   }
+  },
+  {
+   "key": "target verify-gates",
+   "hash": "33afb596b3c0c05b",
+   "does": "Runs scripts/verify_gates_fail.sh: plants a violation per cheap gate and requires a non-zero exit.",
+   "entry": "`make verify-gates` from a developer shell; prerequisite of `make ci` (Makefile:272)",
+   "calls": [
+    "ext:script scripts/verify_gates_fail.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/verify_gates_fail.sh::": "6f091b6c9dfb0702"
+   }
+  },
+  {
+   "key": "target sbom",
+   "hash": "fd7657ad5d78ce4f",
+   "does": "Runs `python3 scripts/generate_sbom.py`, rewriting sbom.spdx.json from Package.resolved.",
+   "entry": "`make sbom` from a developer shell",
+   "calls": [
+    "ext:script scripts/generate_sbom.py"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/generate_sbom.py::": "1468a1f316fb0f1e"
+   }
+  },
+  {
+   "key": "target sbom-check",
+   "hash": "e9a55034e9ca34c6",
+   "does": "Runs `python3 scripts/generate_sbom.py --check`: fails if committed sbom.spdx.json differs from what Package.resolved generates.",
+   "entry": "`make sbom-check` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/generate_sbom.py --check"
+   ],
+   "reads": [
+    "file:sbom.spdx.json",
+    "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/generate_sbom.py::": "1468a1f316fb0f1e"
+   }
+  },
+  {
+   "key": "target perimeter-sync",
+   "hash": "af3ab99903fb72b1",
+   "does": "Runs scripts/check_perimeter_sync.sh: the runtime MedicalQueryGuard/CoachVoiceGuard lexicon covers every build-time copy-perimeter term.",
+   "entry": "`make perimeter-sync` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_perimeter_sync.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_perimeter_sync.sh::": "8fe9ffd70534bf49"
+   }
+  },
+  {
+   "key": "target science-register",
+   "hash": "7200dc33b57ae7fc",
+   "does": "Runs scripts/check_science_register.sh: every operative heuristic is classified in the science register, entry count ≥ .ci/min_science_register_entries.txt (19), cited tests exist.",
+   "entry": "`make science-register` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_science_register.sh"
+   ],
+   "reads": [
+    "file:.ci/min_science_register_entries.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_science_register.sh::": "788a8f29f19e0252"
+   }
+  },
+  {
+   "key": "target scoring-governance",
+   "hash": "22fc3bb8308a92d5",
+   "does": "Runs scripts/check_scoring_governance.sh: rankingWeight cannot surface as a confidence, and the scoring constants hash in .ci/scoring_constants_hash.txt changes only with a scoring-version bump.",
+   "entry": "`make scoring-governance` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_scoring_governance.sh"
+   ],
+   "reads": [
+    "file:.ci/scoring_constants_hash.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_scoring_governance.sh::": "1c354b851d30e71e"
+   }
+  },
+  {
+   "key": "target comment-citations",
+   "hash": "1de494356c90417b",
+   "does": "Runs scripts/check_comment_citations.sh: `File.swift:NNN` citations in comments must point within the named file.",
+   "entry": "`make comment-citations` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_comment_citations.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_comment_citations.sh::": "1b6badad361be5a9"
+   }
+  },
+  {
+   "key": "target aggregate-type-size",
+   "hash": "e83b8436e6854d53",
+   "does": "Runs scripts/check_aggregate_type_size.sh: total lines per type across extension files against .ci/aggregate_type_size_budget.txt and aggregate_type_excess_budget.txt (both 0). The comment's \"starts at the measured 19\" is history; the budget is now 0.",
+   "entry": "`make aggregate-type-size` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_aggregate_type_size.sh"
+   ],
+   "reads": [
+    "file:.ci/aggregate_type_size_budget.txt",
+    "file:.ci/aggregate_type_excess_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_aggregate_type_size.sh::": "7396aea18f3ef6aa"
+   }
+  },
+  {
+   "key": "target localization-orphan-guard",
+   "hash": "4845035f852c19b3",
+   "does": "Runs scripts/check_localization_orphans.sh: catalogue keys no code requests, against .ci/localization_orphan_budget.txt (35).",
+   "entry": "`make localization-orphan-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_localization_orphans.sh"
+   ],
+   "reads": [
+    "file:.ci/localization_orphan_budget.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_orphans.sh::": "6c11906399db0e5b"
+   }
+  },
+  {
+   "key": "target localization-format-guard",
+   "hash": "39c929322bd9923f",
+   "does": "Runs scripts/check_localization_format_args.sh: translations' format specifiers match the arguments code passes (positional when reordered).",
+   "entry": "`make localization-format-guard` from a developer shell; prerequisite of `make ci` (Makefile:272); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_localization_format_args.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_localization_format_args.sh::": "f35f257cb5811bb3"
+   }
+  },
+  {
+   "key": "target release-build",
+   "hash": "80cd1b1047542091",
+   "does": "mkdir build; `xcodebuild build` of the scheme in Release configuration for generic/platform=iOS with derived data build/release and CODE_SIGNING_ALLOWED=NO, all output to build/release-build.log. On failure prints the unique `error:` lines and \"release-build: FAILED\" and exits 1; on success prints \"release-build: OK\". Not part of `make ci`.",
+   "entry": "`make release-build` from a developer shell; invoked by ci.yml tests job step \"Release configuration compiles\" (ci.yml:487)",
+   "calls": [
+    "ext:xcodebuild build"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/release-build.log",
+    "file:build/release/"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "xcodebuild exits non-zero",
+     "effect": "grep error: lines from the log, sorted unique, print FAILED with log path, exit 1; on success fall through to \"release-build: OK\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The `ci` comment says it is \"the same set ci.yml runs\", but `ci` omits release-build while ci.yml's tests job runs `make release-build` (the optimizer-only diagnostics that once broke every Release archive), so a local `make ci` can pass on code whose Release build fails.",
+     "evidence": [
+      "Makefile:266-272",
+      ".github/workflows/ci.yml:482-488"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "target ci-local",
+   "hash": "4c3b4437b8396bec",
+   "does": "Runs scripts/simulate_ci.sh (default scope gates): parses .github/workflows/ci.yml and runs its job steps locally.",
+   "entry": "`make ci-local` from a developer shell",
+   "calls": [
+    "ext:script scripts/simulate_ci.sh"
+   ],
+   "reads": [
+    "file:.github/workflows/ci.yml"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/simulate_ci.sh::": "036afd9e5ce223a9"
+   }
+  },
+  {
+   "key": "target ci-local-unit",
+   "hash": "0793c5e3b8f0df78",
+   "does": "Runs `scripts/simulate_ci.sh --scope unit`: ci.yml gates plus the unit test job locally (thread-sanitizer job skipped in unit scope by simulate_ci).",
+   "entry": "`make ci-local-unit` from a developer shell",
+   "calls": [
+    "ext:script scripts/simulate_ci.sh"
+   ],
+   "reads": [
+    "file:.github/workflows/ci.yml"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The Makefile says ci-local runs 'what CI runs' and 'cannot drift', but simulate_ci.sh drops the thread-sanitizer job for --scope unit, while ci.yml runs that job on every scope except gates. A local `make ci-local-unit` therefore passes without the TSan run that a `unit` dispatch requires.",
+     "evidence": [
+      "Makefile:258-264",
+      "scripts/simulate_ci.sh:106-107",
+      ".github/workflows/ci.yml:417"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/simulate_ci.sh::": "036afd9e5ce223a9"
+   }
+  },
+  {
+   "key": "target ci",
+   "hash": "047c077d798810fb",
+   "does": "Aggregate target with no recipe: runs the 47 prerequisite targets left to right (static gates first, test-coverage last), stopping at the first failure. Excludes thread-sanitizer, release-build, format, test, sbom, ci-local*, clean-build, setup-hooks.",
+   "entry": "`make ci` from a developer shell",
+   "calls": [
+    "Makefile::target lint",
+    "Makefile::target lint-budget",
+    "Makefile::target debt-budget",
+    "Makefile::target budget-monotonicity",
+    "Makefile::target infoplist-guard",
+    "Makefile::target sendable-guard",
+    "Makefile::target no-unowned-guard",
+    "Makefile::target logger-self-reference-guard",
+    "Makefile::target coremotion-isolation-guard",
+    "Makefile::target hr-feed-link-guard",
+    "Makefile::target license-header-guard",
+    "Makefile::target dated-comment-budget",
+    "Makefile::target shared-root-guard",
+    "Makefile::target spec-conformance",
+    "Makefile::target locale-format-guard",
+    "Makefile::target sbom-guard",
+    "Makefile::target snapshot-refs-guard",
+    "Makefile::target empty-range-guard",
+    "Makefile::target leaked-mutations-guard",
+    "Makefile::target eager-prompt-guard",
+    "Makefile::target gates-wired-guard",
+    "Makefile::target date-ms-guard",
+    "Makefile::target doc-counts-guard",
+    "Makefile::target log-redaction-guard",
+    "Makefile::target localization-guard",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target localization-resolution-guard",
+    "Makefile::target localization-orphan-guard",
+    "Makefile::target localization-format-guard",
+    "Makefile::target uitest-reset-guard",
+    "Makefile::target skip-budget",
+    "Makefile::target fixed-font-budget",
+    "Makefile::target orphan-swift-guard",
+    "Makefile::target copy-perimeter",
+    "Makefile::target perimeter-sync",
+    "Makefile::target science-register",
+    "Makefile::target scoring-governance",
+    "Makefile::target comment-citations",
+    "Makefile::target aggregate-type-size",
+    "Makefile::target doc-links",
+    "Makefile::target strict-concurrency-enabled",
+    "Makefile::target no-phone-home",
+    "Makefile::target sbom-check",
+    "Makefile::target codemap-guard",
+    "Makefile::target gate-preflight",
+    "Makefile::target verify-gates",
+    "Makefile::target test-coverage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target codemap-guard": "86407f3ed9c5a020",
+    "Makefile::target comment-citations": "5d99132a7ed35a3d",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target coremotion-isolation-guard": "40fcf69e652a20c7",
+    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
+    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
+    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
+    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target hr-feed-link-guard": "870a10aaace9cd4e",
+    "Makefile::target infoplist-guard": "534a23e094558e6d",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
+    "Makefile::target lint": "ee78d83b950fa63a",
+    "Makefile::target lint-budget": "1a28f599153715e4",
+    "Makefile::target locale-format-guard": "3bc960e72737676f",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
+    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f",
+    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
+    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
+    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
+    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target sendable-guard": "16583da771b94003",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
+    "Makefile::target skip-budget": "5163df861fd66554",
+    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
+    "Makefile::target spec-conformance": "060f9ad7c55731da",
+    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
+    "Makefile::target test-coverage": "06ed85ce10572ea0",
+    "Makefile::target uitest-reset-guard": "4f60211274aafec3",
+    "Makefile::target verify-gates": "585e699b6307cf8d"
+   }
+  },
+  {
+   "key": "target clean-build",
+   "hash": "becc86aa3b99e96e",
+   "does": "Finds top-level directories under build/ with mtime older than 14 days; if none prints a \"nothing older than 14 days\" message, else prints their sizes with du -sh, deletes them with rm -rf, and prints a removal message.",
+   "entry": "`make clean-build` from a developer shell",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:build/*"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no build/ subdirectory older than 14 days (or build/ absent; find errors to /dev/null)",
+     "effect": "prints nothing-to-do message; else du -sh and rm -rf the unquoted list (word-split, so a directory name with spaces would be split) and print removed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "target setup-hooks",
+   "hash": "3358f3e78fe0d5ba",
+   "does": "Runs scripts/install-git-hooks.sh, which sets `git config core.hooksPath .githooks`, activating .githooks/pre-commit.",
+   "entry": "`make setup-hooks` from a developer shell",
+   "calls": [
+    "ext:script scripts/install-git-hooks.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/install-git-hooks.sh::": "ae500cc32ba0f539"
+   }
+  }
+ ],
+ "deps": {}
+}

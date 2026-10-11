@@ -1,0 +1,281 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+Trash.swift",
+ "hash": "90c5fb6319f56502",
+ "role": "Trash for deleted sessions: delete moves the session file to Trash/<uuid>.session; restore reads it back; files expire after keepDays (90).",
+ "types": [
+  "ArchiveStore: extension — trash directory, move, read, list, expire, discard"
+ ],
+ "state": [
+  "file:<archiveDirectory>/Trash/ (directory)",
+  "file:<archiveDirectory>/Trash/<uuid>.session"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ArchiveStore.trashDirectory",
+   "hash": "91b97b4ca2e6f1a8",
+   "does": "URL of <archiveDirectory>/Trash/.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveStore.trashURL(for:)",
+   "hash": "bdcdd02a29417fca",
+   "does": "URL of Trash/<uuid>.session for an id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669"
+   }
+  },
+  {
+   "key": "func ArchiveStore.moveToTrash(_:id:)",
+   "hash": "f22050a1f5c164c6",
+   "does": "Creates Trash/ if needed, removes any existing trash file for the id, and moves the session file there; on any failure logs and deletes the original file instead.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.moveItem"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "destination exists",
+     "effect": "remove it first"
+    },
+    {
+     "at": "+7",
+     "cond": "catch: create/remove/move threw",
+     "effect": "log warning, removeQuietly (file deleted, only the raw backup remains)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "76ab93b3b8e97508",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveStore.removeQuietly(_:id:)",
+   "hash": "ea1ea7f730b165e9",
+   "does": "Deletes the file; failure logged only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch: remove threw",
+     "effect": "log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveStore.trashedSession(_:)",
+   "hash": "c0ecc02b2515d7c4",
+   "does": "Reads Trash/<uuid>.session, converts to plaintext and decodes with the full sessionDecoder (no hash check); nil when absent or unreadable (logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trash file missing",
+     "effect": "return nil"
+    },
+    {
+     "at": "+6",
+     "cond": "catch: read/decrypt/decode threw",
+     "effect": "log warning, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "46c976f3cbac7ee0",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var ArchiveStore.trashedIds",
+   "hash": "91f019901551d1ae",
+   "does": "Lists Trash/ and returns UUIDs parsed from file names (extension stripped); [] when the directory is missing or listing fails (logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Trash/ missing",
+     "effect": "return []"
+    },
+    {
+     "at": "+5",
+     "cond": "catch: listing threw",
+     "effect": "log warning, return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "8647bc36e5d0a669",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func ArchiveStore.expireTrash(keepDays:)",
+   "hash": "83bfe7876db13f54",
+   "does": "Discards every trashed file whose age, measured from this device's recorded deletion time or else the file's modification date, exceeds keepDays (default 90). Called from launch housekeeping.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "ud:archive.deletionTimes"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each trashed id where its date < cutoff",
+     "effect": "discardTrashed"
+    },
+    {
+     "at": "+2",
+     "cond": "deletionTime nil (?? trashFileDate) and trashFileDate nil (?? Date())",
+     "effect": "fall back to file mtime; if that is unreadable use now, so the file is kept"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When no deletion time is recorded (deletions predating deletion times, or after unmarkAsDeleted/forgetDeletedSession forgot it), age falls back to the file's modificationDate, which moveItem preserves from the session's last write, not the deletion; such a file for an old session is discarded at the next launch rather than after 90 days.",
+     "evidence": [
+      "Emuqu/Sources/Storage/Archive+Trash.swift:75",
+      "Emuqu/Sources/Storage/Archive+Trash.swift:82",
+      "Emuqu/Sources/Storage/Archive+Trash.swift:27",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:705"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "ea01e6bb195f74f7",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)": "92307549c8d57283",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashFileDate(_:)": "47f0b3c2c17a24fc",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "160713aed5eced1c"
+   }
+  },
+  {
+   "key": "func ArchiveStore.trashFileDate(_:)",
+   "hash": "7b4e2f45fd984eb4",
+   "does": "Returns the trash file's modification date, nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch: attributesOfItem threw",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0"
+   }
+  },
+  {
+   "key": "func ArchiveStore.discardTrashed(_:)",
+   "hash": "08d1bab9cf1095a9",
+   "does": "Deletes Trash/<uuid>.session if present; failure logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/Trash/<uuid>.session"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": "catch: remove threw",
+     "effect": "log warning"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0d16d5df12883ae0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

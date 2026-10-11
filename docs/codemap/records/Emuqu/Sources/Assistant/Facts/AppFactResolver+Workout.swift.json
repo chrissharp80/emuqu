@@ -1,0 +1,894 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift",
+ "hash": "7f797fe16caf4f4b",
+ "role": "Declares WorkoutNamespace (fact namespace 'workout') for archived workouts: index lookups by date/ordinal/period, deep-dive record builder shared with WorkoutDetail, history list/count/recent aggregates, HRR and power per-workout facts; also a DateInterval.containsBeforeEnd helper used by many fact namespaces.",
+ "types": [
+  "WorkoutNamespace: struct — FactNamespaceResolver for workout.* archived-workout facts",
+  "DateInterval: extension — half-open containment helper"
+ ],
+ "state": [
+  "WorkoutNamespace.namespace = \"workout\"",
+  "WorkoutNamespace.archive: SessionArchive (injected by AppFactResolver.swift:199)",
+  "static let workoutRecentPeriodDescription"
+ ],
+ "toplevel": "WorkoutNamespace conforms to FactNamespaceResolver; registered by AppFactResolver.swift:199. Static description string at line 287.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references workout.by_date, workout.list, workout.count, workout.recent, workout.hrr_*, or workout.power.* fact keys; only workout.by_ordinal appears in one test file.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:156",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:171",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:191",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:203",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:311",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:347"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutNamespace.workoutEntries()",
+   "hash": "8ea1a60e106437dc",
+   "does": "Returns archive index entries of sessionType .workout sorted newest first.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.sessionByDate(_:)",
+   "hash": "a4d9dd4e84590641",
+   "does": "Parses yyyy-MM-dd via FactLocalDay.formatter and returns the newest workout started that local day, decrypted via retrieveLightweightOrLog.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date string parses",
+     "effect": "false: returns nil (callers report 'no workout on <date>' notRecorded rather than invalidParameter)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A malformed date returns nil, which every caller reports as missing(.notRecorded,'no workout on X') instead of .invalidParameter, so the model is told the user did not work out rather than that its argument was bad.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:29",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:318"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "retrieveLightweightOrLog swallows decrypt/read errors and returns nil, so a workout that exists on the date but fails to load is reported by every by_date fact as 'no workout on <date>' (notRecorded) rather than a read error.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:32",
+      "Emuqu/Sources/Storage/Archive.swift:537",
+      "Emuqu/Sources/Storage/Archive.swift:541",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:318"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()": "458f43b535dfaa23",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.sessionByOrdinal(_:)",
+   "hash": "33ac92a2b790543e",
+   "does": "Returns the decrypted workout at recency index n (0 = newest) or nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "0 <= n < entries.count",
+     "effect": "false: nil; true: retrieve session"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "7259758ce8dc7ff3",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.workoutAvailability()",
+   "hash": "23c91b5afd351587",
+   "does": "Availability for workout facts: hasData with range earliest...latest workout date, or .unavailable when no workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entries non-empty and min/max found",
+     "effect": "false: .unavailable (schema builder hides the entry); true: Availability(range)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.entries": "7259758ce8dc7ff3"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.entriesInPeriod(_:)",
+   "hash": "de65e5d4e275efed",
+   "does": "Returns workout entries whose date falls in PeriodParser.interval(for:) [start,end).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "PeriodParser returns an interval",
+     "effect": "false: returns [] — unknown period token is indistinguishable from an empty period"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "An unrecognised period string yields [] so workout.count returns 0 and workout.list/recent return 'no workouts in <period>' notRecorded, instead of invalidParameter; the AI tells the user they did no workouts.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:54",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:198",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:184"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func DateInterval.containsBeforeEnd(_:)": "1945fdef858257a3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutEntries()": "dbc0d9a6c3f63ef9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "56c1cbdd7c4b4a86"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.deepDiveRecord(for:)",
+   "hash": "59c20853ad6e630f",
+   "does": "Builds the composite deep-dive record for one workout: session_id, date, sport display name, plus present metadata and analysis-snapshot fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.present(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.metadataFields(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.snapshotFields(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.metadataFields(_:)": "797fd9a7b5fa9876",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.present(_:)": "3b94f44f8c766a14",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.snapshotFields(_:)": "cdd4a1d14f15dadd",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Date?, reason: MissingReason, detail: String?)": "3518f2eb24433cd0",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.present(_:)",
+   "hash": "cb627700903eecfb",
+   "does": "Converts (key, FactValue?) pairs to a dictionary keeping only non-nil values.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pair",
+     "effect": "nil values assign nil (key absent); non-nil stored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutNamespace.metadataFields(_:)",
+   "hash": "ec10473099804993",
+   "does": "Field table from WorkoutMetadata: trimp, hr_tss, decoupling, EF, IF, VI, recognized_route, partial_data_reason, elevation_loss_meters (only when > 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "elevationLossMeters > 0",
+     "effect": "true: .double; false (0 or negative): nil → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutNamespace.snapshotFields(_:)",
+   "hash": "dc919fc40be99c7c",
+   "does": "Field table from WorkoutAnalysisSnapshot: α1-regime seconds, first AT1 crossing offset/HR, dominant α1 band/HR zone, calories, calorie rate, VAM, GAP, relative-effort label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "bac5eb2b12a99713"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.entries",
+   "hash": "056cb5292ff252e2",
+   "does": "WorkoutNamespace's catalog: lookupEntries + detailEntries + timelineEntries.",
+   "entry": "FactNamespaceResolver protocol witness; read by FactResolverRegistry (schema build, resolve fan-out, findEntry) and FactNamespaceResolver.resolve.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.lookupEntries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.detailEntries",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.timelineEntries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.lookupEntries": "2754bf153df2c2b4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.detailEntries": "89b128b8c283db25",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutDetail.swift::var WorkoutNamespace.timelineEntries": "c7a936ddcb49db74"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.lookupEntries",
+   "hash": "7802cba25c70f0fe",
+   "does": "Returns the 13 lookup/history/HRR/power FactEntries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutListPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutCountPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutRecentPeriodEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByOrdinalOrdinalEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr1minDropByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr2minDropByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerAvgByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerNormalizedByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerPeakByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerTssByDateDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.powerIntensityFactorByDateEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerVariabilityByDateDateEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.powerIntensityFactorByDateEntry": "dfee17e0ab436db6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByDateDateEntry": "303bc6f0a316db1e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutByOrdinalOrdinalEntry": "7cd96f671c2b6fc1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutCountPeriodEntry": "8e05c95aa547a2fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr1minDropByDateDateEntry": "a02d354d6c5e092d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutHrr2minDropByDateDateEntry": "3f7f93dbaca239b5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutListPeriodEntry": "64fb4e13d30c5a1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerAvgByDateDateEntry": "c13f2b7f35f81137",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerNormalizedByDateDateEntry": "75845c437248db94",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerPeakByDateDateEntry": "f2fe07ed18a107bd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerTssByDateDateEntry": "5dfb199101bb21d7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutPowerVariabilityByDateDateEntry": "58e51f239659bbe6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::var WorkoutNamespace.workoutRecentPeriodEntry": "4cdf228c4bcdf85b"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutByDateDateEntry",
+   "hash": "7e741f0111247373",
+   "does": "Declares `workout.by_date($date)` (availability = workout range); resolves SessionNamespace.resolveSessionField on sessionByDate with optional tail field.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "ac9d18c0953ba021",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutListPeriodEntry",
+   "hash": "9aef3d4d16fc4e65",
+   "does": "Declares `workout.list($period)`; resolver decrypts every workout in the period and returns SessionNamespace.fullRecord for each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "no sessions decrypted in period",
+     "effect": "true: missing(.notRecorded,'no workouts in <period>'); false: list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.fullRecord(for:)": "36449474fed1fa1e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "2df145782d57c6a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutCountPeriodEntry",
+   "hash": "db2186fabcd10fe2",
+   "does": "Declares `workout.count($period)` returning the count of index entries in the period (no decryption).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "2df145782d57c6a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutRecentPeriodEntry",
+   "hash": "11696851ace54509",
+   "does": "Declares `workout.recent($period)` resolving via resolveWorkoutRecentPeriod.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.resolveWorkoutRecentPeriod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.resolveWorkoutRecentPeriod(_:)": "5304a199f1dca2f1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.resolveWorkoutRecentPeriod(_:)",
+   "hash": "92e1b2b64f798d44",
+   "does": "Decrypts workouts in the period and returns aggregate record: totals, power totals, sport_breakdown and hardest_workout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodTotals(_:sessions:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodPowerTotals(_:period:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sportBreakdown(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.addHardestWorkout(_:sessions:)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessions empty",
+     "effect": "true: missing(.notRecorded,'no workouts in <period>'); false: builds record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.addHardestWorkout(_:sessions:)": "68f7b1f8eb43626e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.entriesInPeriod(_:)": "2df145782d57c6a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodPowerTotals(_:period:)": "865b3dcdbd60b4bc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.periodTotals(_:sessions:)": "dc1cabef1caaebea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sportBreakdown(_:)": "97081900d7e35b6e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.periodTotals(_:sessions:)",
+   "hash": "bd85844392828046",
+   "does": "Returns period, workout_count, total_distance_m, total_trimp (Lucia TRIMP) and total_hr_tss sums over sessions.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutNamespace.periodPowerTotals(_:period:)",
+   "hash": "75c2c87f88e66ec1",
+   "does": "Computes period power aggregates: power-capable count, total power TSS, mean NP, max IF, max peak power; each missing when no session has the value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "npValues empty",
+     "effect": "true: avgNP nil; false: arithmetic mean of NP"
+    },
+    {
+     "at": "+9",
+     "cond": "session has powerTSS > 0 or NP > 0 (?? 0 defaults)",
+     "effect": "counts as power-capable"
+    },
+    {
+     "at": "+15",
+     "cond": "powerTssValues empty",
+     "effect": "true: missing(.notRecorded); false: .double(total)"
+    },
+    {
+     "at": "+16",
+     "cond": "avgNP present (??)",
+     "effect": "nil: missing(.notRecorded,'no NP captured'); else .double"
+    },
+    {
+     "at": "+17",
+     "cond": "maxIF present (??)",
+     "effect": "nil: missing(.notRecorded,'no IF captured'); else .double"
+    },
+    {
+     "at": "+18",
+     "cond": "maxPeakPower present (??)",
+     "effect": "nil: missing(.notRecorded,'no peak power captured'); else .integer"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutNamespace.sportBreakdown(_:)",
+   "hash": "741df1f520c704a6",
+   "does": "Counts sessions per sport display name ('(unknown)' when no metadata), sorted by count descending, as records.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each session",
+     "effect": "increments its sport bucket"
+    },
+    {
+     "at": "+3",
+     "cond": "workoutMetadata present (??)",
+     "effect": "nil → '(unknown)' sport label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+   }
+  },
+  {
+   "key": "func WorkoutNamespace.addHardestWorkout(_:sessions:)",
+   "hash": "a938ec67afca6efb",
+   "does": "Adds hardest_workout (max Lucia TRIMP) record with date, sport, trimp, hr_tss, distance, power_tss, NP, IF.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "luciaTRIMP nil (?? 0)",
+     "effect": "sessions without TRIMP compare as 0"
+    },
+    {
+     "at": "+2",
+     "cond": "hardest exists",
+     "effect": "sessions non-empty is guaranteed by caller, so always true; false would return without key"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When no session in the period has TRIMP, max(by:) returns the first (newest) session and it is labelled hardest_workout with trimp missing.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:271"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "9043f4e802508b2a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.displayName": "77a6486ffa8861f3"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutByOrdinalOrdinalEntry",
+   "hash": "04eb552c0814c9df",
+   "does": "Declares `workout.by_ordinal($ordinal)`: parses ordinal 0..100000 integer and returns resolveSessionField on sessionByOrdinal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByOrdinal(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "catch FactArgumentError",
+     "effect": "returns missing(.invalidParameter, detail)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.resolveSessionField(_:tail:)": "ac9d18c0953ba021",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByOrdinal(_:)": "ea6e78227161bc34",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutHrr1minDropByDateDateEntry",
+   "hash": "940bd3f236b55ed0",
+   "does": "Declares `workout.hrr_1min_drop.by_date($date)` returning the best 1-min HRR drop (sample nearest 60s ±10).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found for date",
+     "effect": "false: missing(.notRecorded,'no workout on X')"
+    },
+    {
+     "at": "+10",
+     "cond": "hrrSamples best-at-1-min drop exists",
+     "effect": "false: missing(.notRecorded,'no 1-min HRR sample captured'); true: .integer(drop)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutHrr2minDropByDateDateEntry",
+   "hash": "deeb1eb285f8b12a",
+   "does": "Declares `workout.hrr_2min_drop.by_date($date)` returning the best 2-min HRR drop (nearest 120s ±15).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded)"
+    },
+    {
+     "at": "+10",
+     "cond": "2-min HRR drop exists",
+     "effect": "false: missing(.notRecorded,'no 2-min HRR sample captured'); true: .integer"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtTwoMinutes": "85c645f2be66d347",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutPowerAvgByDateDateEntry",
+   "hash": "a1c024ebd9a0bd71",
+   "does": "Declares `workout.power.avg.by_date($date)` returning averagePowerWatts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded,'no workout on X'); true: .from(averagePowerWatts) → missing 'no power data captured' if nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Description says average power 'Requires a connected power-capable foot pod', but rower (PM5) and FTMS bike-trainer workouts also record power (WorkoutRecorder tallyPower), so the model may wrongly tell rowers/cyclists they need a foot pod.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:351",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:514",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:519"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutPowerNormalizedByDateDateEntry",
+   "hash": "f61a2812d99800d7",
+   "does": "Declares `workout.power.normalized.by_date($date)` returning normalizedPowerWatts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded); true: .from(NP, 'no power data captured')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutPowerPeakByDateDateEntry",
+   "hash": "eaa1ecf178e51551",
+   "does": "Declares `workout.power.peak.by_date($date)` returning peakPowerWatts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded); true: .from(peak, 'no power data captured')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutPowerTssByDateDateEntry",
+   "hash": "47ead2505efb9a08",
+   "does": "Declares `workout.power.tss.by_date($date)` returning powerTSS.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded); true: .from(powerTSS) with detail 'FTP not set ...' when nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "nil powerTSS is always explained as 'FTP not set for this workout's sport' even when the workout simply had no power data or the sport has no FTP (row/air bike).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift:402"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.powerIntensityFactorByDateEntry",
+   "hash": "0c09b9cedce7b9b9",
+   "does": "Declares `workout.power.intensity_factor.by_date($date)` returning intensityFactor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded); true: .from(IF) with detail 'FTP not set' when nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+   }
+  },
+  {
+   "key": "var WorkoutNamespace.workoutPowerVariabilityByDateDateEntry",
+   "hash": "78ae30e3ff0200fe",
+   "does": "Declares `workout.power.variability.by_date($date)` returning variabilityIndex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [
+    "archive:entries",
+    "archive:retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "workout found",
+     "effect": "false: missing(.notRecorded); true: .from(VI,'no power data captured')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.sessionByDate(_:)": "34e41fbfd4450dd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Workout.swift::func WorkoutNamespace.workoutAvailability()": "ecbce9562515951d",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c"
+   }
+  },
+  {
+   "key": "func DateInterval.containsBeforeEnd(_:)",
+   "hash": "aa5c1983e65342ee",
+   "does": "Returns start <= date < end (half-open interval).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

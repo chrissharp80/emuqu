@@ -1,0 +1,143 @@
+{
+ "file": "Emuqu/Sources/Utilities/Constants.swift",
+ "hash": "8fece8c1b696cd10",
+ "role": "Central constants: app/group/iCloud/keychain identifiers and container lookup, the UserDefaults key registry, unit/time conversions, HRV/sleep/training thresholds, composite recovery-score weights (ScoringWeights), score bounds and Kubios-style stress normative references.",
+ "types": [
+  "AppConfig: enum — identifiers + sharedContainerURL()",
+  "UserDefaultsKeys: enum — UD key strings",
+  "UnitConstants / SessionConstants / TimeConstants: enum — conversions and session age limit",
+  "HRVConstants (RRInterval, MinimumDuration, MinimumBeats, FrequencyBands, DFA, Artifacts, RRValidity): enum — HRV analysis thresholds",
+  "SleepConstants: enum — sleep duration/efficiency/nap/boundary thresholds",
+  "TrainingConstants (ACR, TSB, TRIMP, EWMA): enum — load model constants",
+  "ScoringBounds: enum — 0/100/50 clamp values",
+  "ScoringWeights (Tier3, Tier2, Comeback, Sleep, PerceivedReadiness, Vitals): enum — composite recovery-score weights and vitals sub-score rules",
+  "WindowConstants: enum — window min duration and triangular-index bin width",
+  "StressNormativeConstants: enum — PNS/SNS references and 1-10 readiness deltas"
+ ],
+ "state": [
+  "App Group: group.com.chrissharp.flowrecovery (Constants.swift:9)",
+  "ck:iCloud.com.chrissharp.flowrecovery container (Constants.swift:12)",
+  "kc:service com.chrissharp.flowrecovery.encryption (Constants.swift:15)",
+  "file:HRVArchive directory name (Constants.swift:18)",
+  "file:RRBackup directory name (Constants.swift:21)",
+  "ud:RRCollector.persistedRecordingState",
+  "ud:RRCollector.activeRecordingStartTime",
+  "ud:RRCollector.activeRecordingSessionId",
+  "ud:RRCollector.activeRecordingSessionType",
+  "ud:RRCollector.pausedSessionId",
+  "ud:RRCollector.mergeDataLossRepaired.v6",
+  "ud:PolarManager.knownDevices",
+  "ud:PolarManager.lastConnectedTime",
+  "ud:PolarManager.lastDeviceId (legacy)",
+  "ud:CloudKitZoneCreated",
+  "ud:CloudKitChangeToken",
+  "ud:CloudKitLastSyncDate",
+  "ud:PersistentLoggingEnabled",
+  "ud:hasAcceptedHealthDisclaimer",
+  "ud:lastTrialReminderDate",
+  "ud:healthAccessSkippedInOnboarding"
+ ],
+ "toplevel": "Only static let constants outside the two units; no conformances or #if blocks.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "Constants declared but never referenced anywhere in Swift (production or tests): TimeConstants.msPerSecond/msPerMinute/msPerHour/secondsPerMinute/minutesPerHour/hoursPerDay/secondsPerHour/twoHourGapSeconds, HRVConstants.MinimumBeats.forStreaming, SleepConstants.goodSleepMinutes/optimalSleepMinutes/poorEfficiency, TrainingConstants.ACR.optimalLow/optimalHigh, TrainingConstants.TSB.veryFresh, WindowConstants.minimumDurationMinutes. Call sites use their own literals instead, which is the drift this file says it exists to prevent.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/Constants.swift:116",
+    "Emuqu/Sources/Utilities/Constants.swift:125",
+    "Emuqu/Sources/Utilities/Constants.swift:161",
+    "Emuqu/Sources/Utilities/Constants.swift:234",
+    "Emuqu/Sources/Utilities/Constants.swift:236",
+    "Emuqu/Sources/Utilities/Constants.swift:287",
+    "Emuqu/Sources/Utilities/Constants.swift:296",
+    "Emuqu/Sources/Utilities/Constants.swift:304",
+    "Emuqu/Sources/Utilities/Constants.swift:522"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "scripts/check_scoring_governance.sh says a scoring-version bump is required 'whenever inputs, thresholds, or weights change' but hashes only Constants+RecoveryScore.swift and HRVThresholds.swift; the composite recovery-score weights (ScoringWeights.Tier3 0.60/0.25/0.15, Tier2, Comeback, Sleep sub-weights, Vitals bands) and ScoringBounds live here and can change without moving the hash, so archived scores from two algorithms can share one ScoringVersion.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/Constants.swift:396",
+    "Emuqu/Sources/Utilities/Constants.swift:400",
+    "scripts/check_scoring_governance.sh:8",
+    "scripts/check_scoring_governance.sh:59"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "First-pass dead-constant list is incomplete: TimeConstants.secondsPerDay is also unreferenced (EntitlementAnchor declares its own private secondsPerDay), so the whole TimeConstants enum is dead; SleepConstants.minimumSleepMinutes is unreferenced (the HealthKitServiceProtocol hit is a parameter label); and the entire TrainingConstants.TSB enum (veryFresh, fresh, neutral, tired) is unreferenced, not just veryFresh.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/Constants.swift:115",
+    "Emuqu/Sources/Utilities/Constants.swift:123",
+    "Emuqu/Sources/Utilities/Constants.swift:235",
+    "Emuqu/Sources/Utilities/Constants.swift:303",
+    "Emuqu/Sources/Utilities/Constants.swift:305",
+    "Emuqu/Sources/Utilities/Constants.swift:306",
+    "Emuqu/Sources/Utilities/Constants.swift:307",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift:462"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AppConfig.sharedContainerURL()",
+   "hash": "7d495858a9072dd6",
+   "does": "Returns the App Group container URL for group.com.chrissharp.flowrecovery; if unavailable falls back to the app's Documents directory, and if that cannot be resolved, to NSTemporaryDirectory(). Used for settings, saved routes, baselines, diagnostics, crash logs, workout track backups and the fresh-install wipe.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.containerURL(forSecurityApplicationGroupIdentifier:)",
+    "ext:FileManager.urls(for:in:)"
+   ],
+   "reads": [
+    "file:App Group container group.com.chrissharp.flowrecovery"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group container URL resolves (entitlement present)",
+     "effect": "true: return it; false: fall through to Documents — files written there are not visible to the watch/widget extensions sharing the group and are a different location from data written earlier under the group, with no log or signal."
+    },
+    {
+     "at": "+12",
+     "cond": "Documents URL resolves",
+     "effect": "true: return Documents; false: return the temporary directory, where settings/baselines written would be purged by the OS."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Both fallbacks are silent (no log): a missing App Group entitlement would make every caller (SettingsManager user_settings.json, BaselineTracker, SavedRoute, CrashLogManager) quietly read/write a different directory than the extensions and prior installs use.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/Constants.swift:25",
+      "Emuqu/Sources/Utilities/Constants.swift:36",
+      "Emuqu/Sources/Utilities/Constants.swift:39"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVConstants.RRInterval.isValid(_:)",
+   "hash": "b6771ad933d1fe01",
+   "does": "Returns true when the RR interval in ms is within 300...2000 (physiological range ~30-200 bpm).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

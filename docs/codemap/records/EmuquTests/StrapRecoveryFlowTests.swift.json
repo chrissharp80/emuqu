@@ -1,0 +1,547 @@
+{
+ "file": "EmuquTests/StrapRecoveryFlowTests.swift",
+ "hash": "14435e5dd3024283",
+ "role": "@MainActor integration tests of the app-level strap transfer flows (Retry, Recover, review-archive/Discard, the overnight fetch gate, reconnect-for-transfer) driven through a real PolarManager/RRCollector with FakeStrapRadio and a temp-directory SessionArchive, pinning strap-copies Bugs 1-3, 5-9.",
+ "types": [
+  "StrapRecoveryFlowTests: class — @MainActor XCTestCase over RRCollector recovery/morning/overnight flows and PolarManager.reconnectForTransfer"
+ ],
+ "state": [
+  "deviceId: \"H10-RECOVERY\" fixed strap id",
+  "directory: lazy temp dir StrapRecoveryFlowTests-<UUID>",
+  "archive: lazy SessionArchive(directory:) under that dir",
+  "ud:RRCollector.persistedRecordingState (UserDefaults.standard, written via persistRecordingState, cleared in tearDown)",
+  "ud:StrapRecoveryFlowTests-<UUID> suite per collector for StrapDownloadLedger (never removed)"
+ ],
+ "toplevel": "Lazy stored properties create a per-test temp directory and SessionArchive.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Shares state with the app host: persistRecordingState writes RRCollector.persistedRecordingState to UserDefaults.standard (PersistedRecordingState.swift:37) and tearDown's PersistedRecordingState.clear() removes that key, the legacy keys and RRCollector.dismissedInterruptedSessionIds from the host's UserDefaults.standard; offersStrapRecovery also reads getPersistedRecordingState() and AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:37-39), so leftover host state changes these tests' outcomes and running them wipes a real interrupted-session record on a device test host.",
+   "evidence": [
+    "EmuquTests/StrapRecoveryFlowTests.swift:17",
+    "EmuquTests/StrapRecoveryFlowTests.swift:58",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift:62",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift:37"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "Private exerciseId(_:) wrapper around StrapExerciseDecoder.exerciseId(at:) is copy-pasted in four test classes.",
+   "evidence": [
+    "EmuquTests/StrapRecoveryFlowTests.swift:38",
+    "EmuquTests/StrapArmingTests.swift:59",
+    "EmuquTests/StrapNightTests.swift:37",
+    "EmuquTests/StrapTransferTests.swift:27"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func StrapRecoveryFlowTests.tearDown()",
+   "hash": "6fc01cbac6fad921",
+   "does": "tearDown: clears PersistedRecordingState from UserDefaults.standard, deletes the temp archive directory, then calls super.tearDown.",
+   "entry": "XCTest runner: async tearDown after each test",
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState",
+    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "file:tmp/StrapRecoveryFlowTests-<UUID>"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch from removeItem",
+     "effect": "error swallowed by design (no directory when nothing was archived)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.makeCollector(_:)",
+   "hash": "4bea8337393d6b29",
+   "does": "Test helper: builds a PolarManager wired to the FakeStrapRadio, marks it connected to H10 'H10-RECOVERY', establishes and settles readiness, gives it a StrapDownloadLedger on a fresh UserDefaults suite, and returns RRCollector(polarManager:, healthKit: HealthKitManager(), archive:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:strapDownloadLedgerSince (test suite)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "UserDefaults(suiteName:) ?? .standard",
+     "effect": "fallback to UserDefaults.standard only if the suite cannot be created (then the ledger writes the host's strapDownloadLedgerSince)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Every makeCollector call creates a new persistent UserDefaults suite \"StrapRecoveryFlowTests-<UUID>\" (StrapDownloadLedger.init writes strapDownloadLedgerSince into it, StrapRecording.swift:57) and neither the helper nor tearDown removes it with removePersistentDomain, so each run leaves suite plists behind in the host container.",
+     "evidence": [
+      "EmuquTests/StrapRecoveryFlowTests.swift:33",
+      "EmuquTests/StrapRecoveryFlowTests.swift:16",
+      "Emuqu/Sources/Collection/StrapRecording.swift:57"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.exerciseId(_:)",
+   "hash": "e24cf51f25bd086c",
+   "does": "Test helper: StrapExerciseDecoder.exerciseId(at: start) in the current time zone.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.fetched(_:)",
+   "hash": "79c47050817acaf0",
+   "does": "Test helper: true if any recorded FakeStrapRadio call is .fetchExercise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "if case .fetchExercise = call",
+     "effect": "true for a fetchExercise call, false otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testRetryDoesNotScoreLastNightsFileAsTonight()",
+   "hash": "abd570e7ad60b2c0",
+   "does": "Bugs 1/3: with only a 30 h old exercise on the strap and tonight's state persisted (8 h ago), asserts retryFetchRecording returns a session with tonight's id in state .failed, never downloads the exercise, and sets lastError to PolarError.noRecordingSinceSessionStart.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "lastError is PolarError.noRecordingSinceSessionStart",
+     "effect": "true: passes; false: XCTFail with the actual error and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "eb5f05984c3aa9a1",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "6a035806d3377bc2",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testAnOrphanedRunningRecordingIsOffered()",
+   "hash": "f631f7faf6fcc2e7",
+   "does": "Asserts offersStrapRecovery is true when the strap reports isRecordingOnDevice and no session owns it (no persisted state, not collecting).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState",
+    "mem:AppDependencies.current.app.recorderBox"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Outcome depends on host-global state: strapHoldsOrphanedRecording requires getPersistedRecordingState()==nil from UserDefaults.standard and no live recorder in AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:38-47); a test host with a persisted session or running workout makes this fail.",
+     "evidence": [
+      "EmuquTests/StrapRecoveryFlowTests.swift:79",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:38",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:46"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "ef19a875cb340fce",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testRecoverLeavesALiveSessionsRecordingAlone()",
+   "hash": "42c0e54d9a9802b0",
+   "does": "Bug 2: with the strap recording, isRecordingOnDevice and isCollecting true, asserts offersStrapRecovery is false, recoverFromDevice throws CollectorError.alreadyRecording, and no stopRecording call reached the radio.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "catch from recoverFromDevice",
+     "effect": "asserts the error is CollectorError.alreadyRecording (a non-throw hits XCTFail)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1cd48851ede8a255",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testADownloadedRecordingIsNotOfferedOrRecoveredAgain()",
+   "hash": "c20009a26cc27aa5",
+   "does": "Bug 9: with a stored exercise dated 1 h ago, asserts hasUnrecoveredData true; after downloadLedger.markDownloaded asserts hasUnrecoveredData and offersStrapRecovery false, recoverFromDevice throws .strapRecordingAlreadySaved, and nothing was fetched.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.recorderBox",
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts (test suite)"
+   ],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "catch from recoverFromDevice",
+     "effect": "asserts CollectorError.strapRecordingAlreadySaved (a non-throw hits XCTFail)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "recoverFromDevice first runs checkRecoverable, whose strapRecordingBelongsToLiveSession reads the host-global AppDependencies.current.app.recorderBox (RRCollector+Recovery.swift:39,77); a host with a recorder in .recording/.finalizing makes it throw .alreadyRecording instead of .strapRecordingAlreadySaved and the assertion at :122 fails. offersStrapRecovery likewise reads getPersistedRecordingState() from UserDefaults.standard.",
+     "evidence": [
+      "EmuquTests/StrapRecoveryFlowTests.swift:117",
+      "EmuquTests/StrapRecoveryFlowTests.swift:122",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:39",
+      "Emuqu/Sources/Collection/RRCollector+Recovery.swift:77"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1cd48851ede8a255",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "f7777736bca46a35",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testANightSavedForReviewIsTheOneDiscardRemoves()",
+   "hash": "a1e7f413702f62f7",
+   "does": "Bug 5: a complete night new to the archive is pre-archived by morning.archiveForReview, asserts sessionState.reviewArchivedSessionId == night.id, then rejectSession removes it so the archive has no entry with that id.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive (temp dir)",
+    "archive:SessionArchive.delete (temp dir)",
+    "ud:RRCollector.persistedRecordingState",
+    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "ck:session deletion via host CloudKitSyncManager (only when iCloudSyncEnabled)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "rejectSession reaches host-global services the test does not inject: processRejection clears PersistedRecordingState in UserDefaults.standard (SessionAcceptanceService.swift:495, PersistedRecordingState.swift:62) and fires onCloudDelete, and discardReviewArchivedSession uploads a deletion through collector.cloudSyncManager, which defaults to AppDependencies.current.storage.cloudKitSyncManager (RRCollector.swift:706; RRCollector+MorningProcessing.swift:181-182). On a host with iCloud sync on, the test sends CloudKit deletions for its random session id; makeCollector also builds RawRRBackup() over the host App Group backup directory (RawRRBackup.swift:230-246).",
+     "evidence": [
+      "EmuquTests/StrapRecoveryFlowTests.swift:139",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:495",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:182",
+      "Emuqu/Sources/Collection/RRCollector.swift:706",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:636"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "eb28cd1f16567216",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2de706529f5fcca3",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "55cc69607ab6fe10",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()": "dc8f352f46c431da",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testANightAlreadyArchivedIsNotMarkedForDiscard()",
+   "hash": "ef63f56e76ae2176",
+   "does": "Asserts that when the night is already archived (skipSameNightMerge) before archiveForReview, reviewArchivedSessionId stays nil (not Discard's to remove).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive (temp dir)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2de706529f5fcca3",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight()": "dc8f352f46c431da",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testASkippedNightIsStoppedAndTheSkipDoesNotCarryOver()",
+   "hash": "d4c3c8f01fd2ee06",
+   "does": "Bugs 6/7: with deviceFetchPolicy .skipByUser and backup mode on, asserts fetchNightFromStrap returns nil, does not fetch, sends stopRecording to the strap, and resets deviceFetchPolicy to .automatic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "097b6e035533da83",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testAFailedNightDownloadIsReportedNotSilent()",
+   "hash": "c43a893ad20ec0c2",
+   "does": "With fetchExercise refused 50 times and a streamed series with a 30-minute wall-clock gap, asserts fetchNightFromStrap returns nil, sets lastError to CollectorError.strapStillHoldsNight(missingMinutes: 30), and hasUnrecoveredData is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "097b6e035533da83",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "8bbba8e1b762e5c6",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "161bea0c1f6a1fa5"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testADroppedStrapIsBroughtBackAndReadBeforeTheTransfer()",
+   "hash": "9b99da686b60cd68",
+   "does": "Bug 8: a disconnected PolarManager with the fake strap recording; a task applies .connected after 200 ms and settles readiness; asserts reconnectForTransfer returns true and isRecordingOnDevice was read as true from the strap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Timing-dependent: the link only comes up via an unstructured Task after sleepQuietly(200 ms); it passes because reconnectForTransfer waits up to the 60 s window, but the test relies on the main actor scheduling that Task during the await.",
+     "evidence": [
+      "EmuquTests/StrapRecoveryFlowTests.swift:213",
+      "EmuquTests/StrapRecoveryFlowTests.swift:214"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()": "9b315a2095aa9510",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.completeNight()",
+   "hash": "9f13432377769c8e",
+   "does": "Test helper: a complete overnight HRVSession 9 h ago, 7 h long, with 200 alternating 990/1010 ms beats, no analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "index % 2 == 0",
+     "effect": "990 ms on even indexes, 1010 ms on odd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.streamWithGap(minutes:)",
+   "hash": "8824ab3fc061b0c2",
+   "does": "Test helper: 400 beats of 1000 ms where wallClockMs equals t_ms for the first 200 and is shifted by `minutes` after, simulating a stream gap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "index < 200",
+     "effect": "true: wall = t; false: wall = t + minutes*60000"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+   }
+  }
+ ],
+ "deps": {}
+}

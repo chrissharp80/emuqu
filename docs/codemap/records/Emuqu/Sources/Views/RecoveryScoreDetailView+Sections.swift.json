@@ -1,0 +1,1312 @@
+{
+ "file": "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift",
+ "hash": "c02f0da7d92a9afc",
+ "role": "Extension of RecoveryScoreDetailView with the hero ring, trend comparison, 'What this means', 'Most likely explanations', score breakdown (+ provenance), SpO2 penalty badge, key findings and 'What to do today' sections and their copy builders; plus the RecoveryDetailCopy enum of wording helpers.",
+ "types": [
+  "RecoveryScoreDetailView.Explanation: struct — title/body/badge/badgeColor for an explanation card",
+  "RecoveryDetailCopy: enum (@MainActor) — static wording helpers that read no view state"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var RecoveryScoreDetailView.heroSection",
+   "hash": "1c9b4032c690a389",
+   "does": "Hero: ring plus verdict word and delta text, centered.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroRing",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroVerdictText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroRing": "505a7021a6702752",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroVerdictText": "f90d272132232ef8"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.heroRing",
+   "hash": "9a194593ee349230",
+   "does": "ScoreRing showing safeDisplayScore(compositeScore) and verdict at 140 pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "4a8f255fd29dc101",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.heroVerdictText",
+   "hash": "82d637432ba0f9e3",
+   "does": "Verdict word in verdict colour and optional '+N% vs your average' line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.deltaText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "deltaText non-nil (baseline lnRmssdMean > 0)",
+     "effect": "delta line shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "36e143abcc4cadb1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.textColor": "d1b20461dd94a948",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.deltaText": "72358c7bf0f672ba",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.trendComparisonSection",
+   "hash": "4813bf37835f18c0",
+   "does": "TrendComparisonCard(result, recentSessions, baselineStats) when there are at least two recent sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recentSessions.count >= 2",
+     "effect": "card shown; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "4f0f434946d7ac6c"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.whatThisMeansSection",
+   "hash": "96a47e84d9667810",
+   "does": "'What this means' heading and NarrativeCard with ScoreBreakdownCopy.message for the breakdown and the load level, accented by verdict colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.adviceLoad",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "fcd09acf3383cea3",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.adviceLoad": "2cb3cfea9fba5a7f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.mostLikelyExplanationsSection",
+   "hash": "f544537704d5907e",
+   "does": "'Most likely explanations' heading plus numbered explanation cards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.explanationCards"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.explanationCards": "b0ed6fff4231bc0f"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.explanationCards",
+   "hash": "5aaef6c8b1ea30e2",
+   "does": "Renders buildExplanations() as numbered explanation cards (id = offset).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildExplanations()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationCard(index:title:body:badge:badgeColor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildExplanations()": "afbd64eab00cec9e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationCard(index:title:body:badge:badgeColor:)": "84cba3f93a301bab"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.buildExplanations()",
+   "hash": "ad2ccfac20fdccb3",
+   "does": "HRV, sleep and vitals explanations, nils dropped, capped at 3.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvExplanation()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepExplanation()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.vitalsExplanation()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvExplanation()": "4d1d09f023be2e94",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepExplanation()": "e0508e0701d3359f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.vitalsExplanation()": "fe09fd00a96f29d8"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.hrvExplanation()",
+   "hash": "cc195d707119474a",
+   "does": "HRV explanation by % vs geometric baseline: >5% 'Above', <-10% 'Below', otherwise 'Within your usual range'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvAboveBaseline(rmssd:pct:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvBelowBaseline(rmssd:pct:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrvPercentVsBaseline nil (no baseline)",
+     "effect": "nil — no HRV card"
+    },
+    {
+     "at": "+3",
+     "cond": "pct > 5",
+     "effect": "Above-baseline card"
+    },
+    {
+     "at": "+4",
+     "cond": "pct < -10",
+     "effect": "Below-baseline card; otherwise (-10...5) 'Within your usual range' Stable card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvAboveBaseline(rmssd:pct:)": "767f17c94838d175",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvBelowBaseline(rmssd:pct:)": "e5b8b39216eaf50a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "1d1f00bed9cd856c"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.hrvPercentVsBaseline",
+   "hash": "688611de7f2c217f",
+   "does": "(RMSSD − exp(lnRmssdMean)) / exp(lnRmssdMean) × 100.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baselineStats nil or lnRmssdMean <= 0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RecoveryScoreDetailView.hrvAboveBaseline(rmssd:pct:)",
+   "hash": "cf9597eee3a30dca",
+   "does": "Builds the 'Above your baseline' explanation with RMSSD and percent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.hrvBelowBaseline(rmssd:pct:)",
+   "hash": "533101921247991c",
+   "does": "Builds the 'Below your baseline' explanation with RMSSD and |percent|.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.sleepExplanation()",
+   "hash": "af0ad0c7cc458a78",
+   "does": "Sleep explanation graded on measured efficiency: ≥95 Excellent, ≥85 Solid, else Disrupted, with localized duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.solidSleepExplanation(dur:pct:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.disruptedSleepExplanation(dur:pct:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sleepSnapshot, nightSleepMinutes <= 0, or efficiency not measured",
+     "effect": "nil — no sleep card"
+    },
+    {
+     "at": "+5",
+     "cond": "efficiency >= 95",
+     "effect": "Excellent sleep quality card"
+    },
+    {
+     "at": "+13",
+     "cond": "efficiency >= 85",
+     "effect": "Solid sleep card; otherwise Disrupted sleep card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.disruptedSleepExplanation(dur:pct:)": "13daee7130710df0",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.solidSleepExplanation(dur:pct:)": "1bc57fde51a4387f"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.solidSleepExplanation(dur:pct:)",
+   "hash": "f33d8e2f64ee6f78",
+   "does": "Builds the 'Solid sleep' explanation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.sleepHRAboveBaselineExplanation()",
+   "hash": "426696eca023af7e",
+   "does": "Card for whole-night mean HR at least max(SD,3) bpm above meanHRBaseline; body format depends on whether breathing and temperature were measured.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.sleepHRAboveBaselineFormat(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no meanHRBaseline > 0 or no meanHRSD > 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "delta < max(sd,3)",
+     "effect": "nil; otherwise 'Sleep heart rate above baseline' card"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The doc comment says the comparison is 'whole-night mean HR against meanHRBaseline', but the value compared is result.timeDomain.meanHR, the analysis-window mean (TimeDomainAnalyzer.computeTimeDomain takes windowStart/windowEnd; RecoveryScoreDetailView.swift:209 calls it the 'analysis-window meanHR'). The card's copy 'Overnight heart rate averaged' therefore reports a 5-minute window mean.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:163",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:168",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:601",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:209",
+      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:208"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.sleepHRAboveBaselineFormat(_:)": "afa9704fd2f909f3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.disruptedSleepExplanation(dur:pct:)",
+   "hash": "4546476d190d7a94",
+   "does": "Builds the 'Disrupted sleep' explanation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.vitalsExplanation()",
+   "hash": "f0e06e22584b91ef",
+   "does": "Vitals explanation: HR-above-baseline card when vitals status is normal and HR is high; otherwise normal-vitals card or 'Vitals above baseline' card for elevated/warning.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRAboveBaselineExplanation()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.normalVitalsExplanation(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "effectiveVitals nil or empty",
+     "effect": "nil (only when the analysis meanHR is 0 and no stored/fresh vitals)"
+    },
+    {
+     "at": "+2",
+     "cond": "status normal and HR above baseline",
+     "effect": "returns the sleep-HR card"
+    },
+    {
+     "at": "+4",
+     "cond": "case .normal",
+     "effect": "normalVitalsExplanation (claims HR/vitals within usual range)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .elevated, .warning",
+     "effect": "'Vitals above baseline' card"
+    },
+    {
+     "at": "+10",
+     "cond": "status == .warning (badge)",
+     "effect": "badge 'Pay attention' else 'Watch'"
+    },
+    {
+     "at": "+11",
+     "cond": "status == .warning (colour)",
+     "effect": "wongAttention else wongCaution"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "effectiveVitals is never empty once the analysis has a meanHR (strap HR always fills restingHeartRate), so the vitals card always renders; with no meanHRBaseline/SD in baselineStats, sleepHRAboveBaselineExplanation returns nil and the .normal path tells the user 'Only sleep heart rate was measured last night, and it is within your usual range' (or 'Every vital … within your usual range') without any comparison having been made.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:188",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:189",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:166",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:620",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:221"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "A low SpO2 alone makes status .elevated (RecoveryVitals.swift:86), and the card then says 'Vitals above baseline … above your usual range' for a value that is below normal.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:193",
+      "Emuqu/Sources/Models/RecoveryVitals.swift:86"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status": "ca0501f437b2e6eb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.normalVitalsExplanation(_:)": "a3f66795a49cc2b6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRAboveBaselineExplanation()": "193908002a4418c9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "3f7a05407cdf0f45"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.explanationCard(index:title:body:badge:badgeColor:)",
+   "hash": "631f2705c0d8fcd9",
+   "does": "Numbered explanation card layout with header and body text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationHeader(title:badge:badgeColor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.explanationHeader(title:badge:badgeColor:)": "cef455f860a5c4bf",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.body": "759b5fb9c65a102a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.explanationHeader(title:badge:badgeColor:)",
+   "hash": "bfa6ee4b67e68d38",
+   "does": "Title and coloured capsule badge row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.scoreBreakdownSection",
+   "hash": "3bd94a3b77b5e106",
+   "does": "'Score breakdown' heading, factor rows, weights footnote and scoring provenance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.breakdownRows",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.breakdownFootnote",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.breakdownFootnote": "34843ae8fb66f864",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.breakdownRows": "eeff1eec0e82b94e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.scoringProvenance",
+   "hash": "40720e6c30d253d2",
+   "does": "Two caption lines: scoring version line and the calibrated-not-validated disclaimer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.scoringVersionLine",
+   "hash": "ea7e5e8526340ff4",
+   "does": "'Scored before score versions were recorded' for unversioned breakdowns, else 'Scored by <version>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "breakdown.scoringVersion == ScoringVersion.unversioned",
+     "effect": "pre-versioning text; otherwise 'Scored by <version string>'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "For a session with a frozen recoveryScore but no stored scoreBreakdown, `breakdown` is the live recompute whose scoringVersion defaults to ScoringVersion.current, so the screen says 'Scored by v3.1.oct2026' beside a headline score that an older algorithm produced — the opposite of the provenance comment's requirement that a historical record show the version that produced it.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:258",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:279",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:151",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:179",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:120"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.breakdownRows",
+   "hash": "fcff34611743688d",
+   "does": "One breakdownRow per breakdown factor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownRow(factor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownRow(factor:)": "4b3af7a18c0aace5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.breakdownFootnote",
+   "hash": "ee60ca314067e4fd",
+   "does": "Footnote listing each factor's localized name and weight %, plus fixed prose about HRV/Sleep/Vitals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)": "64f3780feb471390",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.breakdownRow(factor:)",
+   "hash": "9152a20691480a3f",
+   "does": "Tappable factor row toggling expandedFactor with animation.",
+   "entry": "SwiftUI Button action (factor row tap)",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownRowLabel(factor:isExpanded:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.expandedFactor"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "this factor is currently expanded",
+     "effect": "collapses (nil); otherwise expands this factor (collapsing any other)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownRowLabel(factor:isExpanded:)": "d7acf51ce1545ddf"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.breakdownRowLabel(factor:isExpanded:)",
+   "hash": "8efe9e11e1f35fa5",
+   "does": "Factor header, score bar and, when expanded, the factor's displayDetail in the user's temperature unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownHeader(factor:color:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownBar(factor:color:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.factorColor(_:)",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.temperatureUnit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "isExpanded",
+     "effect": "detail text shown; else hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownBar(factor:color:)": "04c7691befc8483e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.breakdownHeader(factor:color:)": "b2336f109cb05a20",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.factorColor(_:)": "753701c79bf8940c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.settingsManager": "717f9f22d32b4601",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.breakdownHeader(factor:color:)",
+   "hash": "06b036ee8b836891",
+   "does": "Factor name, display score in factor colour, and '× N%' weight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.factorName(_:)": "64f3780feb471390",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.breakdownBar(factor:color:)",
+   "hash": "3e947c2124fb53c4",
+   "does": "6 pt bar filled to factor.score/100 of width.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.factorColor(_:)",
+   "hash": "29f6748675a870e3",
+   "does": "Colour band for a factor score.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "score >= 80",
+     "effect": "wongOptimal"
+    },
+    {
+     "at": "+3",
+     "cond": "60..<80",
+     "effect": "wongGood"
+    },
+    {
+     "at": "+4",
+     "cond": "45..<60",
+     "effect": "wongCaution"
+    },
+    {
+     "at": "+5",
+     "cond": "default (<45 or NaN)",
+     "effect": "wongAttention"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RecoveryScoreDetailView.spo2PenaltyBadge",
+   "hash": "b82f312b38dff0ee",
+   "does": "Red-tinted badge with RecoveryDetailCopy.spo2PenaltyText for the penalty points and SpO2 value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.spo2PenaltyText(points:value:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.spo2PenaltyText(points:value:)": "e323e85a90f012e3",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "4ee743f85b86bb62",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.keyFindingsSection",
+   "hash": "dac1c3fa1fa60939",
+   "does": "'Key findings' heading and list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsList": "f405238ca2936813"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.keyFindingsList",
+   "hash": "9ca477bfa6590eee",
+   "does": "Up to 4 findings rendered as dot rows (ForEach id = the string itself).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildKeyFindings()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.keyFindingRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildKeyFindings()": "85c706c5844280c1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.keyFindingRow(_:)": "3fe12af81416141d"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.keyFindingRow(_:)",
+   "hash": "b33eab4ec0ce97d4",
+   "does": "Dot + finding text row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.buildKeyFindings()",
+   "hash": "32ab0948cbbef171",
+   "does": "HRV, sleep HR, sleep efficiency, stress and DFA findings with nils dropped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvFinding()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRFinding()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepEfficiencyFinding()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.stressFinding()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.dfaFinding()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.dfaFinding()": "9fdf7a624712b1a9",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvFinding()": "94fed3efbba3b946",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepEfficiencyFinding()": "06040ad94482171e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRFinding()": "00aade622bac7441",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.stressFinding()": "4dd5b3e95c9b7f93"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.hrvFinding()",
+   "hash": "9f72931f16c0fe2f",
+   "does": "'HRV N ms' with '±N% vs your average' when a baseline exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.rmssdText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no baseline percent",
+     "effect": "'HRV N ms' only"
+    },
+    {
+     "at": "+4",
+     "cond": "pct >= 0",
+     "effect": "'+' sign prefix; negative numbers carry their own '-'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "1d1f00bed9cd856c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.rmssdText": "f150185dba9378ea"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.sleepHRFinding()",
+   "hash": "ec4ee3ad72321cc1",
+   "does": "'Sleep HR N bpm' vs meanHRBaseline: '(at baseline)' within 1 bpm, else '(±N vs baseline)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no meanHRBaseline > 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "|delta| < 1",
+     "effect": "'(at baseline)' text"
+    },
+    {
+     "at": "+7",
+     "cond": "delta >= 0",
+     "effect": "'+' prefix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.sleepEfficiencyFinding()",
+   "hash": "c3849999fc8d3eaf",
+   "does": "'Sleep efficiency N% across <duration>' when efficiency was measured.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sleepSnapshot, nightSleepMinutes <= 0 or efficiency unmeasured",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.stressFinding()",
+   "hash": "d47487055241fc11",
+   "does": "Baevsky stress-index band text: <50 very low, <100 low, <150 normal, <200 elevated, else high.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stressIndex nil or <= 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "band thresholds (nested ?:)",
+     "effect": "very low / low / normal / elevated / high by HRVThresholds.stressIndexVeryLow/Low/Normal/Elevated"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.dfaFinding()",
+   "hash": "0778ef147f21c4e7",
+   "does": "States DFA α1 was in 0.75–1.0 when it was; nothing otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dfaAlpha1 nil or outside [0.75,1.0]",
+     "effect": "nil (out-of-range DFA produces no finding)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.whatToDoSection",
+   "hash": "de919ac105d3ab40",
+   "does": "'What to do today' heading and action list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.actionList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.sectionHeading(_:)": "4f367185542ae300",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.actionList": "5b9486eacbc6e70a"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.actionList",
+   "hash": "7f28ee511db8a14e",
+   "does": "Up to 3 actions rendered as arrow rows (id = string).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.actionRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.actionRow(_:)": "7e0d9d85edee031b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()": "981daf8302fd9b24"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.actionRow(_:)",
+   "hash": "1ee29e4f337adeb9",
+   "does": "Arrow + action text row.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var RecoveryScoreDetailView.adviceLoad",
+   "hash": "244a0be6c5ee91da",
+   "does": "TrainingAdviceGate assessment of the session's frozen training snapshot (or the result's trainingContext).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.trainingSnapshot nil",
+     "effect": "falls back to session.analysisResult?.trainingContext; both nil → assess(nil) = .clear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.buildActions()",
+   "hash": "72c335de4ff1a06d",
+   "does": "Action list by verdict: Excellent+clear load → push advice; Excellent held back or Good → goodDayActions; Fair and below → backOffActions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.adviceLoad",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.goodDayActions(load:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.backOffActions()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .excellent",
+     "effect": "see 519"
+    },
+    {
+     "at": "+4",
+     "cond": "load.level != .clear",
+     "effect": "goodDayActions(load); otherwise three 'push yourself' actions"
+    },
+    {
+     "at": "+10",
+     "cond": "case .good",
+     "effect": "goodDayActions(load)"
+    },
+    {
+     "at": "+12",
+     "cond": "case .fair/.payAttention/.low/.veryLow",
+     "effect": "backOffActions()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.backOffActions()": "232e54330bcf7983",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.goodDayActions(load:)": "c4af31e70d6e7e34",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.adviceLoad": "2cb3cfea9fba5a7f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.goodDayActions(load:)",
+   "hash": "8c712b19f7c66950",
+   "does": "Good-day actions: lead depends on load (easier → easy aerobic; else normal training), HRV <-10% vs baseline swaps the second line for a moderate-intensity caution, otherwise the load reason line or 'green light' line; sleep line last.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "load.level == .easier",
+     "effect": "'Easy aerobic work…' lead; else 'Normal training is on the table…'"
+    },
+    {
+     "at": "+5",
+     "cond": "hrvPercentVsBaseline < -10",
+     "effect": "second line = HRV-under-baseline caution"
+    },
+    {
+     "at": "+12",
+     "cond": "reasonLine nil (load clear)",
+     "effect": "'If you wanted a hard session, the green light is there.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)": "bcfbcdac1a60f330",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "1d1f00bed9cd856c"
+   }
+  },
+  {
+   "key": "func RecoveryScoreDetailView.backOffActions()",
+   "hash": "c5448a4e7c4a1a23",
+   "does": "Back-off actions: Fair, Pay attention, and a firmer rest set for Low/Very low.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fair",
+     "effect": "fair actions"
+    },
+    {
+     "at": "+8",
+     "cond": "case .payAttention",
+     "effect": "easy/rest actions"
+    },
+    {
+     "at": "+14",
+     "cond": "default (.low/.veryLow; .excellent/.good unreachable from buildActions)",
+     "effect": "rest-day actions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.verdict": "29a6c3c9c67a84d6"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.factorName(_:)",
+   "hash": "b9515a14876301c6",
+   "does": "Maps the fixed English factor label to its localized catalog name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'HRV'",
+     "effect": "localized HRV"
+    },
+    {
+     "at": "+3",
+     "cond": "'Sleep'",
+     "effect": "localized Sleep"
+    },
+    {
+     "at": "+4",
+     "cond": "'Vitals'",
+     "effect": "localized Vitals"
+    },
+    {
+     "at": "+5",
+     "cond": "'Training Load'",
+     "effect": "localized Training Load (legacy pre-v2 breakdowns)"
+    },
+    {
+     "at": "+6",
+     "cond": "other",
+     "effect": "raw label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.sleepHRAboveBaselineFormat(_:)",
+   "hash": "0c3d7a721cbb4325",
+   "does": "Format string for the sleep-HR-above-baseline card, mentioning breathing/temperature in range only when both were measured.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitals nil or respiratoryRate nil or wristTemperature nil",
+     "effect": "short HR-only sentence; else sentence adding 'Breathing and temperature are in range'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.normalVitalsExplanation(_:)",
+   "hash": "9eee7430e1f93bc2",
+   "does": "Normal-vitals explanation: 'Sleep heart rate at baseline' when neither breathing nor temperature was measured, else 'All vitals at baseline'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vitals nil, or respiratoryRate or wristTemperature present",
+     "effect": "'All vitals at baseline' card; else the HR-only card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.spo2PenaltyText(points:value:)",
+   "hash": "1e033f3618a78f3d",
+   "does": "SpO2 penalty sentence with or without the measured value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value nil",
+     "effect": "'−N penalty: low SpO₂.'; else 'dropped to N%'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecoveryDetailCopy.storedWindowMethod(_:)",
+   "hash": "a83f411078759810",
+   "does": "Parses the stored English windowSelectionReason into a WindowSelectionMethod by prefix.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reason nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "prefix 'Manual selection'",
+     "effect": ".custom"
+    },
+    {
+     "at": "+3",
+     "cond": "prefix 'Peak SDNN (Total Power'",
+     "effect": ".peakTotalPower (checked before Peak SDNN)"
+    },
+    {
+     "at": "+4",
+     "cond": "prefix 'Peak SDNN'",
+     "effect": ".peakSDNN"
+    },
+    {
+     "at": "+5",
+     "cond": "prefix 'Peak RMSSD'",
+     "effect": ".peakRMSSD; otherwise nil (organized-recovery default)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "The method is recovered by matching English prefixes of free-text reasons WindowSelector writes; any rewording of those strings silently turns the row back to the current segment name. No test covers this parser.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:641",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:705",
+      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:829"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

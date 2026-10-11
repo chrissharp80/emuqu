@@ -1,0 +1,809 @@
+{
+ "file": "EmuquTests/WorkoutMileMarkerEngineTests.swift",
+ "hash": "a3988483310c87be",
+ "role": "XCTest suite for WorkoutMileMarkerEngine.evaluate (60 s refusal window, unit resolution, monotonic marker index, split deltas, elevation/cadence skip-when-normal, HR zone label against physiological max) and MileMarkerFormatter.render (English utterance text).",
+ "types": [
+  "WorkoutMileMarkerEngineTests: class — XCTestCase for split-marker engine and formatter"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Rendering and zone-label tests assert English literals ('Mile 3 in 8:45', 'min/km', 'total', 'cadence 150, down 7', 'climbing', 'Zone 1') but the formatter and HRZone.localizedLabel localise through LanguageManager.appBundle/appLocale, which follow the app-language setting of the test host; under a non-English app language these tests fail without a code defect.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:259",
+    "Emuqu/Sources/Views/HRZone.swift:59",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift:241"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Several 'is omitted' tests assert XCTAssertNil(payload?.field), which also passes when the engine returns no payload at all, so they would stay green if the marker stopped firing (stub-split pace, flat-split elevation, steady cadence, non-running cadence).",
+   "evidence": [
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift:154",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift:164",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift:186",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift:209"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testNoMarkerFiresInsideTheFirstMinute()",
+   "hash": "af636e75eaf59427",
+   "does": "For elapsed 0, 30 and 59 s at 5 km, asserts no payload and lastMarkerIndex stays 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for elapsed in [0,30,59]",
+     "effect": "each value asserted inside the refusal window"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testAMarkerFiresOnceThe60SecondWindowHasPassed()",
+   "hash": "e847aa766347b735",
+   "does": "Asserts 1.7 km at 600 s fires mile marker index 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testDistanceUnitResolvesToMilesOrKilometresByPreference()",
+   "hash": "3e8fd0ade5de6b45",
+   "does": "Asserts .everyDistanceUnit resolves to .mile when imperial and .kilometer (index 1) when metric at 1.7 km.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testTimeIntervalIndexesByElapsedNotDistance()",
+   "hash": "05cc2c82ac1e5a9d",
+   "does": "Asserts .everyTenMinutes at 1250 s with 0 distance gives index 2, unit .tenMinutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testAMarkerNeverFiresTwiceForTheSameIndex()",
+   "hash": "64bc64559e6f4d50",
+   "does": "Asserts evaluating the same context again with the returned state yields no payload.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testGPSDriftingBackwardsDoesNotFire()",
+   "hash": "84792f3803312abd",
+   "does": "Asserts a distance correction from 3400 m back to 3000 m does not fire.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testSkippingSeveralMarkersAnnouncesTheLatestOnly()",
+   "hash": "40cf190f5afb5416",
+   "does": "Asserts jumping to 8100 m in one tick announces only mile 5 and sets lastMarkerIndex 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testSplitDurationAndDistanceAreMeasuredFromTheLastMarker()",
+   "hash": "abec812bdd186b80",
+   "does": "Asserts the second mile's split duration is 540 s measured from the first marker's state.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testNoPaceIsReportedForAStubSplit()",
+   "hash": "478b8458d87f00d9",
+   "does": "Asserts a split of 20 m since the explicit state's start has nil pace.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The first evaluate call's resulting `state` is never used: the second call passes a freshly built MileMarkerState, so lines 138-142 are dead setup; the comment calls it a 'time-based re-index' while the interval is .everyDistanceUnit.",
+     "evidence": [
+      "EmuquTests/WorkoutMileMarkerEngineTests.swift:139",
+      "EmuquTests/WorkoutMileMarkerEngineTests.swift:146"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testFlatSplitsOmitElevation()",
+   "hash": "ba2f57c6f1d6ef10",
+   "does": "Asserts 5 m of elevation gain (<15 m) is omitted from the payload.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testAClimbingSplitReportsElevation()",
+   "hash": "40769d8b6af859cf",
+   "does": "Asserts 40 m of gain is reported as 40 ±0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "field nil",
+     "effect": "?? 0 fallback fails the 40 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testSteadyCadenceIsNotSurfaced()",
+   "hash": "78d195da095c8646",
+   "does": "For cadence/drift pairs with |drift| < 5 or nil drift, asserts cadenceSpm is not surfaced.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each (cadence, drift) case",
+     "effect": "asserts nil cadenceSpm per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testShiftedCadenceIsSurfaced()",
+   "hash": "d297d974b1548e29",
+   "does": "For drift -7 and +6, asserts cadenceSpm and cadenceShiftSpm equal the inputs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each case",
+     "effect": "asserts both fields per case"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testCadenceIsNotSurfacedOutsideRunning()",
+   "hash": "24990b4e647f6fde",
+   "does": "Asserts a row workout with drift -8 does not surface cadence.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)",
+   "hash": "390da1fb1556de46",
+   "does": "Fixture: builds a MileMarkerPayload with defaults (mile 3, 525 s, 300 s/km, 4828 m, total 1500 s) and optional zone/cadence/shift/elevation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testRenderedUtteranceLeadsWithTheMarkerAndSplitTime()",
+   "hash": "d7fccbceca7f8f68",
+   "does": "Asserts the imperial render starts with 'Mile 3 in 8:45' and ends with '.'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDuration(seconds:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)": "4523debe6f910e85",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDuration(seconds:)": "fd32d36d0ebed51c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)": "2243c3e5586bef71",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)": "bb9b3ba97de42e20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)": "c4fbf20785f22e9c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testPaceIsConvertedToTheUsersUnits()",
+   "hash": "7663d5276f8ee931",
+   "does": "Asserts 300 s/km renders as '5:00 min/km' metric and '8:03 min/mi' imperial.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.paceLabel(secPerKm:imperial:)": "c4fbf20785f22e9c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testTimeMarkersOmitTotalDistance()",
+   "hash": "a9dde8896929c5f0",
+   "does": "Asserts a .tenMinutes payload omits 'total' while a mile payload includes it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatDistance(meters:imperial:)": "4523debe6f910e85",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)": "2243c3e5586bef71",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testOptionalFieldsAreOmittedWhenAbsent()",
+   "hash": "bb2c09ed35e5dda0",
+   "does": "Asserts a payload without cadence/elevation omits 'cadence' and 'climbing'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)": "bb9b3ba97de42e20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testOptionalFieldsAppearWhenPresent()",
+   "hash": "93f0d3418f964328",
+   "does": "Asserts zone, 'cadence 150, down 7' and 'climbing' appear when supplied.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.cadenceLabel(spm:shift:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatElevation(meters:imperial:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.cadenceLabel(spm:shift:)": "ceed56eddded6a98",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.formatElevation(meters:imperial:)": "917338f8f3eaf4cc",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.optionalCueParts(_:unitsImperial:)": "bb9b3ba97de42e20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testEveryMarkerUnitRendersALabel()",
+   "hash": "6e868552222ff853",
+   "does": "Asserts every MileMarkerUnit renders non-empty text not starting with ' in '.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each unit",
+     "effect": "renders and checks the label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.headline(_:)": "2243c3e5586bef71",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.payload(index:unit:durationSec:paceSecPerKm:zone:totalMeters:cadence:cadenceShift:elevation:)": "74a3975db3266fd5"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testZoneUsesPhysiologicalMaxNotSessionPeak()",
+   "hash": "77778bbee63d6971",
+   "does": "Asserts HR 100 with userMaxHR 180 (peakHR 100) labels 'Zone 1', proving the denominator is max HR not session peak.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testZoneBandsMatchThePercentOfMaxFramework()",
+   "hash": "4f5903df8ae04b59",
+   "does": "Asserts HR 107/108/126/144/162 at max 180 label Zone 1..5 (band edges at 60/70/80/90%).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each case",
+     "effect": "asserts the label prefix per HR"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "The percent-of-max zone bands pinned here (HRZone.classify, nil below 50%) are implemented three times with different below-60% behaviour: HRZone.classify (nil <50%), WorkoutZoneBreakdown.zoneIndex (nil <50%) and WorkoutGeometry.hrMaxZone (zone 1 for anything <60%, used for zone thresholds). The engine comment calls HRZone \"the app's one zone model\". Each copy has its own test (this file, WorkoutLiveTrendsTests:495-551, WorkoutGeometryTests:74-100), so the copies can drift apart and the suite stays green: at HR <50% of max a zone-1 threshold treats the HR as zone 1 while the spoken label and the live breakdown report no zone.",
+     "evidence": [
+      "Emuqu/Sources/Views/HRZone.swift:37",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:108",
+      "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift:202",
+      "EmuquTests/WorkoutGeometryTests.swift:99"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.testNoHeartRateYieldsNoZoneLabel()",
+   "hash": "2308f47cacf093a5",
+   "does": "Asserts nil heart rate yields a payload with nil hrZoneLabel.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "19d326dc1e2efeb4",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.hrZoneLabel(context:)": "cbb1bae8eec1f74c",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.markerIndex(context:unit:)": "14863b952d22fc20",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.resolvedUnit(for:unitsImperial:)": "e2aab5cbf7e2baad",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.shiftedCadence(context:)": "3813776223e42003",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitElevation(context:state:)": "0543dbdd80d395a1",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.splitPace(context:state:)": "bebd24eb2e800250",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::var MileMarkerUnit.metersPerMarker": "0afb1d84e021bc5a",
+    "EmuquTests/WorkoutMileMarkerEngineTests.swift::func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)": "56962af3cf65ca12"
+   }
+  },
+  {
+   "key": "func WorkoutMileMarkerEngineTests.makeContext(distance:elapsed:hr:elev:cadence:cadenceDrift:maxHR:sport:)",
+   "hash": "5fc304cbe1475444",
+   "does": "Fixture: builds a WorkoutAIContext with sport, elapsed (sessionStart = now - elapsed), distance, optional HR (peakHR = hr or 0), max HR, elevation gain, cadence and cadence drift; every other field nil/empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "hr is nil",
+     "effect": "peakHR ?? 0 → 0; otherwise peakHR = hr"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

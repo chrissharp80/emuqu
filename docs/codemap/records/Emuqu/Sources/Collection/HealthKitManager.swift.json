@@ -1,0 +1,1068 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager.swift",
+ "hash": "0932603885c4af15",
+ "role": "The @Observable @MainActor HealthKit facade: shared singleton owning HKHealthStore, settings provider, authorization (coalesced request, write-gap re-prompt, forced re-prompt, inferred-denial probe, granted-scope summary, write-permission summary), workout backfill to Apple Health with a watermark and retry ceiling, and the observer bookkeeping properties used by the sleep/vitals observers.",
+ "types": [
+  "HealthKitManager: class (@Observable @MainActor, final) — HealthKit facade",
+  "HealthKitManager.WritePermission: struct (Identifiable) — label + HKAuthorizationStatus for the Permissions screen",
+  "HealthKitManager.CoreAuthTypes: struct (private) — the 8 required HK types"
+ ],
+ "state": [
+  "mem:HealthKitManager.shared (nonisolated static singleton)",
+  "mem:HealthKitManager.healthStore (HKHealthStore)",
+  "mem:HealthKitManager.settingsProvider (closure; default AppDependencies.current.app.settingsManager.settingsSnapshot)",
+  "mem:HealthKitManager.authorizationRequested",
+  "mem:HealthKitManager.inferredAuthorizationDenied",
+  "mem:HealthKitManager.pendingAuthTask (@ObservationIgnored)",
+  "mem:HealthKitManager.hasReportedWorkoutWriteDenied (@ObservationIgnored)",
+  "mem:HealthKitManager.workoutExportSampleTypes (static)",
+  "ud:hkBackfillExportedWatermark (backfillWatermarkKey)",
+  "ud:UserDefaultsKeys.healthAccessSkipped ('healthAccessSkippedInOnboarding', read/removed here)",
+  "mem:HealthKitManager.sleepObserverQuery",
+  "mem:HealthKitManager.sleepDataVersion",
+  "mem:HealthKitManager.sleepCacheWarmTask (@ObservationIgnored)",
+  "mem:HealthKitManager.vitalsObserverQueries",
+  "mem:HealthKitManager.vitalsDataVersion"
+ ],
+ "toplevel": "shared = HealthKitManager() at static init; healthStore = HKHealthStore() per instance; typealiases map SleepBoundarySource..SleepData onto Emuqu domain types; workoutExportSampleTypes static array of (HKSampleType,label) for heartRate, activeEnergy, walking/running distance, cycling distance, workoutRoute.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthKitManager.heartRate",
+   "hash": "82e8a93728ad68d0",
+   "does": "Computed property returning a fresh HeartRateHealthQueries(manager: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.writes",
+   "hash": "1272847f99f7e63a",
+   "does": "Computed property returning a fresh HealthWriteAndObserve(manager: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.sleepSchedule",
+   "hash": "9f0de7ee7dab94e9",
+   "does": "Returns settingsProvider().sleepSchedule — the user's sleep schedule from the current settings snapshot.",
+   "entry": null,
+   "calls": [
+    "closure:settingsProvider (default AppDependencies.current.app.settingsManager.settingsSnapshot, injected in init)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init HealthKitManager(settingsProvider:)",
+   "hash": "093730031b89860c",
+   "does": "Stores the settings-provider closure; default reads AppDependencies.current.app.settingsManager.settingsSnapshot.",
+   "entry": null,
+   "calls": [
+    "closure:default settingsProvider reading AppDependencies.current.app.settingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "var HealthKitManager.isHealthKitAvailable",
+   "hash": "0a4bae16f9ffa2cc",
+   "does": "Returns HKHealthStore.isHealthDataAvailable().",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.isHealthDataAvailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.isAccessSkipped",
+   "hash": "cb8f93a89aabe264",
+   "does": "Returns UserDefaults.standard bool for UserDefaultsKeys.healthAccessSkipped (user chose 'Skip for now' in onboarding).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:UserDefaultsKeys.healthAccessSkipped"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.requestAuthorization()",
+   "hash": "2c393728523feb3e",
+   "does": "Clears the onboarding skip flag, returns immediately if authorization was already requested this process, otherwise runs the coalesced authorization prompt (throws its error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()"
+   ],
+   "reads": [
+    "mem:HealthKitManager.authorizationRequested"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.healthAccessSkipped"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "authorizationRequested already true",
+     "effect": "returns without prompting; else prompts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "645578cceae6623b"
+   }
+  },
+  {
+   "key": "func HealthKitManager.runCoalescedAuthorization()",
+   "hash": "8432bc592a818bdb",
+   "does": "Joins the in-flight authorization task if one exists; otherwise creates a Task running performAuthorization, stores it in pendingAuthTask, awaits it and clears pendingAuthTask on exit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.performAuthorization()"
+   ],
+   "reads": [
+    "mem:HealthKitManager.pendingAuthTask"
+   ],
+   "writes": [
+    "mem:HealthKitManager.pendingAuthTask"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a pendingAuthTask exists",
+     "effect": "awaits it (rethrows its error) and returns; else starts a new one"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.performAuthorization()": "7782a74c35916d28"
+   }
+  },
+  {
+   "key": "func HealthKitManager.grantedScopeSummary()",
+   "hash": "5b27889e52ad33fc",
+   "does": "Returns which of {sleep, heartRate, vitals, workouts} have at least one sample in the last 30 days (each probe bounded 6 s, timeout = absent); [] when HealthKit is unavailable. Drives OnboardingHealthPage's status card.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.anyVitalsSampleExists(since:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "hk:sleepAnalysis",
+    "hk:heartRate",
+    "hk:respiratoryRate",
+    "hk:oxygenSaturation",
+    "hk:appleSleepingWristTemperature",
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "returns []"
+    },
+    {
+     "at": "+4",
+     "cond": "a sleep sample exists in 30 d",
+     "effect": "inserts 'sleep'"
+    },
+    {
+     "at": "+7",
+     "cond": "a heart-rate sample exists",
+     "effect": "inserts 'heartRate'"
+    },
+    {
+     "at": "+10",
+     "cond": "any vitals sample exists",
+     "effect": "inserts 'vitals'"
+    },
+    {
+     "at": "+13",
+     "cond": "a workout exists",
+     "effect": "inserts 'workouts'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "'Granted' is inferred from sample existence with no source filter, so samples the app itself wrote (HR, sleep and workout exports; an app can always read its own writes) count as granted even when the user denied read access, and a granted scope with no data in 30 days counts as denied.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:192",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:165",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:174",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:193"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.anyVitalsSampleExists(since:)": "d126eeb57d61dbec",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "f0e2a15b10aceaec",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f"
+   }
+  },
+  {
+   "key": "func HealthKitManager.anyVitalsSampleExists(since:)",
+   "hash": "ab2f78886f629d7b",
+   "does": "Returns true as soon as a respiratoryRate, oxygenSaturation or appleSleepingWristTemperature sample exists since date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)"
+   ],
+   "reads": [
+    "hk:respiratoryRate",
+    "hk:oxygenSaturation",
+    "hk:appleSleepingWristTemperature"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a sample of this vitals type exists",
+     "effect": "returns true; loop continues otherwise; returns false after all three"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "f0e2a15b10aceaec",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "f70295aa9cb54643"
+   }
+  },
+  {
+   "key": "func HealthKitManager.sampleExists(type:since:)",
+   "hash": "48449302d4818fbf",
+   "does": "Bounded (6 s) limit-1 HKSampleQuery since the date (all sources); true when any sample returns, false on nil type, empty/error or timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKSampleQuery",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:<type>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type nil",
+     "effect": "returns false"
+    },
+    {
+     "at": "+3",
+     "cond": "query timed out (nil)",
+     "effect": "?? false — treated as not present"
+    },
+    {
+     "at": "+5",
+     "cond": "results nil",
+     "effect": "?? true inside isEmpty check → resolves false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc"
+   }
+  },
+  {
+   "key": "func HealthKitManager.ensureWriteAuthorizationFresh()",
+   "hash": "9a31df3c91f5d67b",
+   "does": "If HealthKit is available and not skipped, finds write types whose authorizationStatus is .notDetermined; if any, resets authorizationRequested and re-runs the coalesced authorization prompt, logging any error. Called at app launch (EmuquApp.swift:554).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeableWriteTypes()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKHealthStore.authorizationStatus",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isAccessSkipped"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.healthAccessSkipped"
+   ],
+   "writes": [
+    "mem:HealthKitManager.authorizationRequested"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable OR user skipped access",
+     "effect": "returns"
+    },
+    {
+     "at": "+5",
+     "cond": "no write type is .notDetermined",
+     "effect": "returns without prompting"
+    },
+    {
+     "at": "+12",
+     "cond": "authorization threw",
+     "effect": "logs warning and swallows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeableWriteTypes()": "62578d1ab0316890",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "645578cceae6623b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isAccessSkipped": "f7677a470b120672",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.probeableWriteTypes()",
+   "hash": "caf2bd76623484e3",
+   "does": "Static list of the 9 write types probed for .notDetermined (workout, SDNN, HR, RHR, sleep, activeEnergy, walking/running and cycling distance, workout route), nils dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.forceReauthorize()",
+   "hash": "2896dd8364952187",
+   "does": "Clears the onboarding skip flag, resets authorizationRequested and runs the coalesced authorization prompt, logging any error. Called from SettingsView.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.healthAccessSkipped",
+    "mem:HealthKitManager.authorizationRequested"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "authorization threw",
+     "effect": "logs warning and swallows"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "645578cceae6623b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var HealthKitManager.WritePermission.id",
+   "hash": "39d6188bb73fbbe2",
+   "does": "Identifiable id = label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.writePermissionSummary()",
+   "hash": "8a944fe935970f5e",
+   "does": "Returns WritePermission rows (localized labels via LanguageManager.appBundle) with the write authorization status for Workouts, HRV, HR, RHR, Sleep and Active energy; [] when HealthKit is unavailable. Used by SettingsView's permissions screen.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "e269c6dccfb8bd8b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HealthKitManager.status(_:)",
+   "hash": "a302cdfd73bbf4ea",
+   "does": "Nested helper: authorizationStatus(for: type), or .notDetermined for a nil type.",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.authorizationStatus"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type nil",
+     "effect": "returns .notDetermined"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.backfillWorkoutsToHealthKit(archive:bodyWeightKg:)",
+   "hash": "5a9daf9ac8c54bdd",
+   "does": "Back-publishes archived workout sessions to Apple Health: requires HealthKit + workout write auth; skips entirely when the workout set watermark (count-newestDate) matches the stored one; otherwise logs denied optional types and serially exports each eligible session (claim, retrieve, needsBackfill, export+stamp, 250 ms pacing), storing the watermark only when no session failed. Returns (exported, skipped, failed). Called from EmuquApp.swift:561 on foreground.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWatermark(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "ud:hkBackfillExportedWatermark"
+   ],
+   "writes": [
+    "ud:hkBackfillExportedWatermark"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "HealthKit unavailable OR workout write not authorized",
+     "effect": "returns (0,0,0)"
+    },
+    {
+     "at": "+9",
+     "cond": "stored watermark equals current",
+     "effect": "returns (0, candidates.count, 0) without scanning"
+    },
+    {
+     "at": "+14",
+     "cond": "for each workout entry",
+     "effect": "yields then backfills one"
+    },
+    {
+     "at": "+20",
+     "cond": "no failures",
+     "effect": "stores the new watermark; else keeps the old one so the scan repeats next foreground"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Any entry that fails every pass — retrieve returning nil/throwing for a missing or undecryptable file, or the claim being held — increments failed without ever reaching the retry ceiling (only HealthKit export failures are counted on the session), so the watermark never advances and every foreground re-decrypts all workout sessions forever.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:425",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:427",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:341"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)": "2e82aacef6f1c9b1",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWatermark(_:)": "762aa576fb71c562",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()": "bbdcddbe5f6c46d9",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized": "6d246946d77597a0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var HealthKitManager.workoutWriteAuthorized",
+   "hash": "4a7278bcfb2945c7",
+   "does": "True when Workouts write status is .sharingAuthorized; otherwise logs a once-per-launch user-facing warning and returns false.",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.authorizationStatus",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:HealthKitManager.hasReportedWorkoutWriteDenied"
+   ],
+   "writes": [
+    "mem:HealthKitManager.hasReportedWorkoutWriteDenied"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout write not .sharingAuthorized",
+     "effect": "goes to the denied path; else returns true"
+    },
+    {
+     "at": "+2",
+     "cond": "warning not yet reported this launch",
+     "effect": "sets the flag and logs the warning; returns false either way"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.reportDeniedWorkoutSampleTypes()",
+   "hash": "71934ed43184fc0c",
+   "does": "Logs a warning naming the optional workout sample types (HR, active energy, distances, routes) whose write is not authorized.",
+   "entry": null,
+   "calls": [
+    "ext:HKHealthStore.authorizationStatus",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "type authorized",
+     "effect": "omitted from list; else its label included"
+    },
+    {
+     "at": "+4",
+     "cond": "no denied types",
+     "effect": "returns without logging"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.backfillWatermark(_:)",
+   "hash": "323401a45719f64f",
+   "does": "Returns \"<count>-<Int(newest date epoch)>\" for the entries (0 when empty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no entries (max nil)",
+     "effect": "?? 0 — newest epoch 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)",
+   "hash": "79ccf8a4942811a5",
+   "does": "Claims the session for export (HealthExportClaims), retrieves it from the archive, checks needsBackfill and exports; claim failure or retrieve failure count as failed, ineligible as skipped; releases the claim on exit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve",
+    "mem:HealthExportClaims.claimed"
+   ],
+   "writes": [
+    "mem:HealthExportClaims.claimed"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "claim not obtained (another export in flight)",
+     "effect": "tally.failed += 1 and returns"
+    },
+    {
+     "at": "+13",
+     "cond": "retrieve threw or returned nil",
+     "effect": "tally.failed += 1 and returns (error swallowed by try?)"
+    },
+    {
+     "at": "+14",
+     "cond": "session doesn't need backfill",
+     "effect": "tally.skipped += 1 and returns; else exports"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A session claimed by the recorder's in-flight export (WorkoutRecorder+Metrics.swift:229) is counted as failed, so a backfill that overlaps a just-finished workout's export never advances the watermark that pass and re-scans (decrypting every workout) on the next foreground.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:425",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:341",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:229"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "0c562d1b84019369",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "122eddae27c2269d",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)": "099057e5dc37fc65",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "8daa629768fd94ea",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000"
+   }
+  },
+  {
+   "key": "func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)",
+   "hash": "8fb7e585526de3eb",
+   "does": "Runs exportAndStamp; on success tally.exported += 1, on error tally.failed += 1 and records the failure count on the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportAndStamp(_:archive:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.recordBackfillFailure(_:session:archive:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "exportAndStamp threw",
+     "effect": "failed += 1 and recordBackfillFailure"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportAndStamp(_:archive:bodyWeightKg:)": "6e474064388cb618",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.recordBackfillFailure(_:session:archive:sessionId:)": "62948dcd18546b4f"
+   }
+  },
+  {
+   "key": "func HealthKitManager.exportAndStamp(_:archive:bodyWeightKg:)",
+   "hash": "95d1542aaa7c4ad6",
+   "does": "Exports the session as an HKWorkout via HealthKitWorkoutExport.export, stamps healthKitExportedAt (and clears the failure count) in the archive via update(requestingReupload: false), logs if the stamp fails, then sleeps 250 ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:workoutType",
+    "archive:SessionArchive.update(healthKitExportedAt)"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "archive.update threw",
+     "effect": "logs a warning; the export stands unstamped, so the next backfill pass re-exports it (duplicate workout in Health)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comments state HealthKit accepts ~1 workout/sec and the pacing 'keeps us safely below', but the pause is 250 ms (up to 4/sec plus export time).",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:448",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:469",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:309"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "If the stamp write fails after a successful export, the session stays unstamped and the next pass exports it again, creating a duplicate workout in Apple Health (the comment calls it 'safe').",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:459",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:466"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)": "37392a6f41346c42",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func HealthKitManager.needsBackfill(_:)",
+   "hash": "c8a19bbcb25fb39b",
+   "does": "Eligible for backfill when not yet exported, failure count below HRVSession.healthKitExportRetryCeiling, has workoutMetadata, and has endDate > startDate. Callers: backfillOne (HealthKitManager.swift:428) and WorkoutBackfillEligibilityTests. (OvernightChartsView+Init.swift:150 is an unrelated local variable named needsBackfill, not a call.)",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "already exported OR failure count at ceiling OR no workoutMetadata OR no endDate OR endDate <= startDate",
+     "effect": "returns false; else true"
+    },
+    {
+     "at": "+2",
+     "cond": "healthKitExportFailureCount nil",
+     "effect": "?? 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitManager.recordBackfillFailure(_:session:archive:sessionId:)",
+   "hash": "26bc36483bd542d1",
+   "does": "Increments the session's healthKitExportFailureCount, persists it via archive.update(requestingReupload: false) (logging if that fails), and logs the export failure via logBackfillFailure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.logBackfillFailure(_:sessionId:attempt:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update(healthKitExportFailureCount)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "failure count nil",
+     "effect": "?? 0 then +1"
+    },
+    {
+     "at": "+5",
+     "cond": "archive.update threw",
+     "effect": "logs warning; the retry counter does not advance"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.logBackfillFailure(_:sessionId:attempt:)": "1563d53d3dda8db2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.logBackfillFailure(_:sessionId:attempt:)",
+   "hash": "1a217a965af78a5a",
+   "does": "Logs a backfill export failure only on the first failure (unless it's HKError.errorAuthorizationNotDetermined) or when the retry ceiling is reached (with a 'giving up' suffix).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "neither first failure nor ceiling hit",
+     "effect": "returns silently"
+    },
+    {
+     "at": "+7",
+     "cond": "error is authorizationNotDetermined and ceiling not hit",
+     "effect": "returns silently"
+    },
+    {
+     "at": "+8",
+     "cond": "ceiling hit",
+     "effect": "appends ' — giving up after N attempts'; else no suffix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.performAuthorization()",
+   "hash": "746b66e953ea6fa6",
+   "does": "Throws notAvailable when HealthKit is unavailable or a core type is missing; otherwise requests HealthKit authorization for the write and read type sets, sets authorizationRequested = true and launches a background probe for inferred denial.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)",
+    "ext:HKHealthStore.requestAuthorization",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeAuthorizationGranted(sleepType:hrvType:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.authorizationRequested",
+    "hk:authorization"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "throws HealthKitError.notAvailable"
+    },
+    {
+     "at": "+2",
+     "cond": "coreAuthorizationTypes nil",
+     "effect": "logs and throws notAvailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "fd75a894b14a638a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeAuthorizationGranted(sleepType:hrvType:)": "da443031e2721168",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "e8721d4334c95c3f",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "a36f68d5292a7253",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.coreAuthorizationTypes()",
+   "hash": "aba23c71f0905eaf",
+   "does": "Builds CoreAuthTypes (sleep, SDNN, HR, VO2max, active energy, respiratory rate, SpO2, resting HR) or nil if any identifier is unavailable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any core type identifier returns nil",
+     "effect": "returns nil; else the struct"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.readTypes(core:)",
+   "hash": "3c12d51938175d63",
+   "does": "Read set: the 8 core types, workouts and workout routes, unioned with optionalReadTypes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.optionalReadTypes()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.optionalReadTypes()": "95faada83005db5e"
+   }
+  },
+  {
+   "key": "func HealthKitManager.optionalReadTypes()",
+   "hash": "3abd1975ae4d032b",
+   "does": "Optional read set: step count, walking/running and cycling distance, flights, body mass, exercise time, walking/running speed, physical effort, HR recovery 1-min, distanceRowing on iOS 18+, biologicalSex, dateOfBirth and sleeping wrist temperature (each only if available).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "iOS 18 or later",
+     "effect": "adds .distanceRowing"
+    },
+    {
+     "at": "+7",
+     "cond": "for each quantity identifier",
+     "effect": "iterates"
+    },
+    {
+     "at": "+8",
+     "cond": "quantity type available",
+     "effect": "inserted; else skipped"
+    },
+    {
+     "at": "+10",
+     "cond": "for biologicalSex and dateOfBirth",
+     "effect": "iterates"
+    },
+    {
+     "at": "+11",
+     "cond": "characteristic type available",
+     "effect": "inserted; else skipped"
+    },
+    {
+     "at": "+13",
+     "cond": "wrist temperature type available",
+     "effect": "inserted; else skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "f70295aa9cb54643",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+   }
+  },
+  {
+   "key": "func HealthKitManager.writeTypes(core:)",
+   "hash": "3396a137118791cf",
+   "does": "Write set: SDNN, HR, resting HR, sleep, workouts, active energy, workout routes, plus walking/running and cycling distance when available.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for walking/running and cycling distance",
+     "effect": "iterates"
+    },
+    {
+     "at": "+8",
+     "cond": "type available",
+     "effect": "inserted; else skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "f70295aa9cb54643"
+   }
+  },
+  {
+   "key": "func HealthKitManager.probeAuthorizationGranted(sleepType:hrvType:)",
+   "hash": "55109055fa38ca75",
+   "does": "Counts sleep and HRV samples over the last 14 days concurrently and sets inferredAuthorizationDenied = (both zero), logging a warning when armed (drives the Dashboard Settings banner).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis",
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "writes": [
+    "mem:HealthKitManager.inferredAuthorizationDenied"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "Calendar can't compute now-14d",
+     "effect": "?? now — empty window, counts 0, banner armed"
+    },
+    {
+     "at": "+14",
+     "cond": "appearsDenied",
+     "effect": "logs warning"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The probe counts samples from all sources, and the app writes SDNN and sleep to Health itself; an app can always read its own writes, so a user who denied read access but has exported HRV/sleep gets no banner even though reads of Watch data return nothing.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:703",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:685",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:193"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the flag is set only if 'the device clock indicates we're past the install window'; no such check exists.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager.swift:666",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:685"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthKitManager.sampleCount(for:from:to:)",
+   "hash": "f5756306b93c871b",
+   "does": "Bounded (6 s) limit-1 HKSampleQuery between start and end; returns the sample count (0 or 1), 0 on error or timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKSampleQuery",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:<type>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "query timed out",
+     "effect": "?? 0"
+    },
+    {
+     "at": "+8",
+     "cond": "samples nil (error)",
+     "effect": "?? 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc"
+   }
+  },
+  {
+   "key": "func HealthKitManager.clearInferredDenial()",
+   "hash": "28d841b1e20557b5",
+   "does": "Schedules a MainActor task that sets inferredAuthorizationDenied = false (banner hidden until next probe). Called from DashboardV2View+Cards after the Settings deep link.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitManager.inferredAuthorizationDenied"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

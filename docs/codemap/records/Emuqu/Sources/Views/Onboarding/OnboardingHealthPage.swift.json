@@ -1,0 +1,497 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift",
+ "hash": "5507706229834349",
+ "role": "Onboarding page 4: explains which Apple Health categories are read/written, fires HealthKitManager.requestAuthorization on Connect, then infers granted scopes from 30-day data presence and shows a status card; Skip for now records the skip in UserDefaults.",
+ "types": [
+  "OnboardingHealthPage: struct — Apple Health permission page"
+ ],
+ "state": [
+  "@State requesting (Bool) — auth in flight",
+  "@State didAttempt (Bool) — Connect completed",
+  "@State grantedScopes (Set<String>) — result of grantedScopeSummary",
+  "static statusCardID = \"onboarding.health.status\" (scroll anchor id)",
+  "ud:healthAccessSkippedInOnboarding written (key declared in Constants.swift:83)"
+ ],
+ "toplevel": "#Preview builds the page with a fresh RRCollector.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header doc promises \"confirmation card 'You're connected' + scope summary\" and for partial grants a \"warning card listing what's missing\"; allScopesGrantedRow shows no scope summary and scopesPendingRow is fixed generic text that names no missing category, although grantedScopes holds exactly which of sleep/heartRate/vitals/workouts were found.",
+   "evidence": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:20-24",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:244-256",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:300-312"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var OnboardingHealthPage.hk",
+   "hash": "0e035dfb528d558e",
+   "does": "Shorthand for collector.healthKit (HealthKitManager).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.body",
+   "hash": "2d7cbe551cc43cd4",
+   "does": "ScrollViewReader wrapping healthPageScroll so the status card can be scrolled into view.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.healthPageScroll(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.healthPageScroll(_:)": "f38ac383901bb34a"
+   }
+  },
+  {
+   "key": "func OnboardingHealthPage.healthPageScroll(_:)",
+   "hash": "85492556ae0cadfa",
+   "does": "ScrollView of healthPageContent with flashing indicators, pinnedButtons as bottom safe-area inset; when didAttempt becomes true scrolls to the status card anchor.",
+   "entry": "Called from body; .onChange(of: didAttempt) SwiftUI callback.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthPageContent",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.pinnedButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "attempted (guard)",
+     "effect": "false: return (no scroll). true: animated proxy.scrollTo(statusCardID, anchor: .bottom)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthPageContent": "2e2f3565f8ceedf5",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.pinnedButtons": "22e85a7a791d8049"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.healthPageContent",
+   "hash": "190b40b647b9a4c9",
+   "does": "VStack: header, data-categories card, next-step note, and authFailureNotice tagged with statusCardID.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthPageHeader",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.dataCategoriesCard",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.nextStepNote",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.authFailureNotice"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.authFailureNotice": "3b7cbdbbd927540d",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.dataCategoriesCard": "2df0ad5f9c44db88",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthPageHeader": "2dd66eefa453d77c",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.nextStepNote": "af9e1a1f72d4840e"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.pinnedButtons",
+   "hash": "942be486283f815e",
+   "does": "Pinned bottom buttons: Continue once didAttempt, otherwise Connect plus Skip for now (identifier onboarding.skip).",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.continueButton",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.connectHealthButton",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthNavigationButtons"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "didAttempt",
+     "effect": "true: only continueButton. false: connectHealthButton + healthNavigationButtons (Skip for now)."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.connectHealthButton": "877c1a50cf018ccd",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.continueButton": "aca554b62f87a450",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.healthNavigationButtons": "42b3c2082e2d1f2c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.healthNavigationButtons",
+   "hash": "1ec51dfa80283c4d",
+   "does": "skipForNowButton with plain button style.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.skipForNowButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.skipForNowButton": "ec8aae9bfa524208"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.healthPageHeader",
+   "hash": "2631b6ebf8fef2cf",
+   "does": "Header: heart.text.square glyph, \"Connect to Apple Health\" title, privacy summary line.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.dataCategoriesCard",
+   "hash": "a19e8cf7106dddc3",
+   "does": "Card of five scopeRows (Sleep; Heart rate and HRV; Vitals; Activity; Workouts) with localized titles/subtitles.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.scopeRow(glyph:title:subtitle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.scopeRow(glyph:title:subtitle:)": "0ede5d728d79ccf0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.authFailureNotice",
+   "hash": "f2d345d0d0eed50f",
+   "does": "Shows statusCard only after an authorization attempt.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "didAttempt",
+     "effect": "true: statusCard. false: empty."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.statusCard": "32c42478f8d208f3"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.connectHealthButton",
+   "hash": "f2f695f86a6b9b68",
+   "does": "Sage \"Connect\" button; tap launches Task { await requestHealthAuthorization() }; disabled while requesting.",
+   "entry": "SwiftUI Button action (user tap).",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.connectHealthLabel",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.requestHealthAuthorization()": "994a0228c183ccb0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.connectHealthLabel": "44eae80bf2698495",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.connectHealthLabel",
+   "hash": "53f6e7f75463de19",
+   "does": "Connect label: spinner while requesting, otherwise shield icon + \"Connect\".",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "requesting",
+     "effect": "true: white ProgressView. false: checkmark.shield.fill + \"Connect\" text."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.continueButton",
+   "hash": "831dbbb042b9a8f1",
+   "does": "Sage \"Continue\" button calling advance (OnboardingView.advanceFromHealthPage).",
+   "entry": "SwiftUI Button action.",
+   "calls": [
+    "closure:advance — OnboardingView.advanceFromHealthPage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.skipForNowButton",
+   "hash": "fed5c34558a9af1e",
+   "does": "\"Skip for now\" button: writes UserDefaults healthAccessSkippedInOnboarding=true then advance.",
+   "entry": "SwiftUI Button action (user tap; UI tests via onboarding.skip).",
+   "calls": [
+    "closure:advance — OnboardingView.advanceFromHealthPage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:healthAccessSkippedInOnboarding (standard)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func OnboardingHealthPage.scopeRow(glyph:title:subtitle:)",
+   "hash": "c273d8434c7ba767",
+   "does": "Row with an 18pt sage glyph, verbatim title and subtitle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.nextStepNote",
+   "hash": "7948aa437cc9cb30",
+   "does": "Explanatory line that Connect opens Apple Health where the user chooses categories.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.statusCard",
+   "hash": "493e3f14e62900c1",
+   "does": "Chooses the status row from grantedScopes size.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "grantedScopes.count >= 4",
+     "effect": "true: allScopesGrantedRow (\"You're connected\"). Max possible count is 4 (sleep, heartRate, vitals, workouts per HealthKitManager.swift:161-180), so this needs a workout sample in the last 30 days."
+    },
+    {
+     "at": "+4",
+     "cond": "grantedScopes.isEmpty",
+     "effect": "true: noDataVisibleRow (caution + Open Settings). false (1-3 scopes): scopesPendingRow."
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.allScopesGrantedRow": "2900356b22bcce5b",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.noDataVisibleRow": "de7b2851eceb51e3",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.scopesPendingRow": "c1851d0ee972af7e"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.allScopesGrantedRow",
+   "hash": "fdce56323fde3c1b",
+   "does": "Green confirmation row: \"You're connected. Sleep + vitals + workouts will start populating tonight.\"",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.noDataVisibleRow",
+   "hash": "3481e0b4d1ca7c1c",
+   "does": "Caution card saying no Health data in last 30 days is visible, with instructions for re-enabling categories and an Open Settings button.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.openHealthButton",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.openHealthButton": "0e5997d33df84311",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var OnboardingHealthPage.openHealthButton",
+   "hash": "f703c3625cc0932d",
+   "does": "Bordered \"Open Settings\" button calling openSettings.",
+   "entry": "SwiftUI Button action.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.openSettings()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func OnboardingHealthPage.openSettings()": "d9873bb99298de92"
+   }
+  },
+  {
+   "key": "func OnboardingHealthPage.openSettings()",
+   "hash": "64a0d1239859f005",
+   "does": "Opens UIApplication.openSettingsURLString (the app's Settings page).",
+   "entry": "Button action from openHealthButton.",
+   "calls": [
+    "ext:UIApplication.shared.open"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "URL(string: openSettingsURLString) parses (guard)",
+     "effect": "nil: return silently. non-nil: open it."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var OnboardingHealthPage.scopesPendingRow",
+   "hash": "1479fce146daf012",
+   "does": "Info row: some categories have no recent data; check Settings → Privacy & Security → Health.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func OnboardingHealthPage.requestHealthAuthorization()",
+   "hash": "b009edc310e4102a",
+   "does": "Sets requesting; awaits HealthKitManager.requestAuthorization (clears the skip key, prompts if not yet requested this process); a thrown error is only logged as warning; then sets grantedScopes = await grantedScopeSummary() (30-day sample-presence probe per category), requesting=false, didAttempt=true.",
+   "entry": "Task from connectHealthButton tap.",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis",
+    "hk:heartRate",
+    "hk:respiratoryRate/oxygenSaturation/appleSleepingWristTemperature",
+    "hk:workoutType"
+   ],
+   "writes": [
+    "ud:healthAccessSkippedInOnboarding (removed inside requestAuthorization)",
+    "mem:HealthKitManager.authorizationRequested (set on success)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "catch from hk.requestAuthorization()",
+     "effect": "error is logged via debugLog(.warning) and swallowed; flow continues to grantedScopeSummary and didAttempt=true, so the user sees the data-presence status card (usually \"can't see any Health data\") with no mention the request failed."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A thrown requestAuthorization error (e.g. HealthKitError.notAvailable) is only logged; the page then shows the same status card as a successful sheet with no data and switches to Continue, so the user is not told the Health request failed.",
+     "evidence": [
+      "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift:317-326",
+      "Emuqu/Sources/Collection/HealthKitManager.swift:536-540"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.grantedScopeSummary()": "68075fce7a25eb98",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestAuthorization()": "0554c5246dd39562",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::var OnboardingHealthPage.hk": "23efcb0768e580dc"
+   }
+  }
+ ],
+ "deps": {}
+}

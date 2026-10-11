@@ -1,0 +1,203 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapRecording.swift",
+ "hash": "e04982ab604cf388",
+ "role": "A recording downloaded from strap memory with its own start time (and clock re-basing onto a session), plus the persisted ledger of recording starts already downloaded.",
+ "types": [
+  "StrapRecording: struct — points + startedAt",
+  "StrapDownloadLedger: struct — UserDefaults-backed set of downloaded recording starts (capacity 60) and the date the ledger began"
+ ],
+ "state": [
+  "ud:strapDownloadedRecordingStarts ([Double] whole-second epoch starts, standard suite)",
+  "ud:strapDownloadLedgerSince (Date, standard suite)",
+  "static capacity = 60"
+ ],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var StrapRecording.endedAt",
+   "hash": "cb1d757fc70199f8",
+   "does": "startedAt plus the summed beat duration; nil without a start.",
+   "entry": "Read by tests (StrapTransferTests.swift:154).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "endedAt has no production reader; its only use is a test assertion (grep '\\.endedAt' finds only EmuquTests/StrapTransferTests.swift:154 among strap recordings).",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapRecording.swift:19",
+      "EmuquTests/StrapTransferTests.swift:154"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "23569ddb0336cdc7",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb"
+   }
+  },
+  {
+   "key": "func StrapRecording.points(onClockOf:fallbackStart:)",
+   "hash": "f1498846395fca2e",
+   "does": "Returns the points re-based onto a session starting at sessionStart: shifted later by (recording start − session start) when the recording started after the session; unchanged when it started before or no start is known.",
+   "entry": "Called from RRCollector+BackupRecovery.swift:167,393, RRCollector+DeviceRecording.swift:124, RRCollector+OvernightStreaming.swift:493, WorkoutRecorder+DeviceBackup.swift:188.",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "startedAt ?? fallbackStart yields a start",
+     "effect": "nil: points returned unshifted; else use startedAt, falling back to fallbackStart when startedAt is nil"
+    },
+    {
+     "at": "+3",
+     "cond": "offsetMs > 0",
+     "effect": "false: unshifted (recording began at/before the session, or offset fallback 0); true: every point shifted by offsetMs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "6bd9e605fb3d11ea",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "init StrapDownloadLedger(defaults:)",
+   "hash": "4463e1cbaf394828",
+   "does": "Stores the defaults and, on first use per store, writes strapDownloadLedgerSince = now.",
+   "entry": "Built by PolarManager's stored-property initialiser (PolarManager.swift:162); tests inject isolated defaults.",
+   "calls": [],
+   "reads": [
+    "ud:strapDownloadLedgerSince"
+   ],
+   "writes": [
+    "ud:strapDownloadLedgerSince"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "since key absent",
+     "effect": "true: set to now; false: kept"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StrapDownloadLedger.since",
+   "hash": "23820f0c78af796a",
+   "does": "Date the ledger began; distantPast if unreadable.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:strapDownloadLedgerSince"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored value not a Date (??)",
+     "effect": "→ .distantPast"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
+   "hash": "538198d5bbb58c4a",
+   "does": "Appends the whole-second start key to the stored list if absent, keeping only the last 60.",
+   "entry": "Called from StrapRecordingCoordinator+Transfer.swift:149,241; tests.",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)"
+   ],
+   "reads": [
+    "ud:strapDownloadedRecordingStarts"
+   ],
+   "writes": [
+    "ud:strapDownloadedRecordingStarts"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stored array missing/wrong type (??)",
+     "effect": "→ []"
+    },
+    {
+     "at": "+3",
+     "cond": "key already present",
+     "effect": "true: return; false: append and save suffix(60)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "706587635007c449"
+   }
+  },
+  {
+   "key": "func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)",
+   "hash": "000c5e0ceec40253",
+   "does": "True when the whole-second start key is in the stored list.",
+   "entry": "Called from PolarManager.isRecordingSaved (PolarManager.swift:159) and RRCollector.isStrapRecordingSaved (RRCollector.swift:364).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)"
+   ],
+   "reads": [
+    "ud:strapDownloadedRecordingStarts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored array missing (??)",
+     "effect": "→ [] so false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)": "706587635007c449"
+   }
+  },
+  {
+   "key": "func StrapDownloadLedger.predatesRecord(_:)",
+   "hash": "89c74f8d675e3b6f",
+   "does": "True when start is before the ledger's since date.",
+   "entry": "Called from RRCollector.isStrapRecordingSaved (RRCollector.swift:365).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapDownloadLedger.since"
+   ],
+   "reads": [
+    "ud:strapDownloadLedgerSince"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecording.swift::var StrapDownloadLedger.since": "0553ed932450dc16"
+   }
+  },
+  {
+   "key": "func StrapDownloadLedger.key(for:)",
+   "hash": "3656fd6cf5a8979c",
+   "does": "Start time as epoch seconds rounded down.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

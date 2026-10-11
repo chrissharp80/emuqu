@@ -1,0 +1,187 @@
+{
+ "file": "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift",
+ "hash": "f12308bed8bddd7a",
+ "role": "Single precedence ladder choosing which stored training-load figure a workout contributes to ATL/CTL (power > route-dropout estimate > hrTSS > METs > Banister > route estimate), plus FTP anchors for read-time power TSS.",
+ "types": [
+  "TrainingLoadPrecedence: enum — precedence ladder",
+  "TrainingLoadPrecedence.FTPAnchors: struct — running/cycling FTP"
+ ],
+ "state": [
+  "mem:TrainingLoadPrecedence.FTPAnchors.none (const)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingLoadPrecedence.FTPAnchors.current(_:)",
+   "hash": "8476b52fcf6b9ce0",
+   "does": "FTP anchors from settings: running = user FTP if >0 else cached auto-estimate; cycling = user FTP if >0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP"
+   ],
+   "reads": [
+    "ud:FTPAutoEstimator.cachedFTPKey"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "runningFTPWatts > 0",
+     "effect": "use it; else nil"
+    },
+    {
+     "at": "+1",
+     "cond": "?? cachedRunningFTP",
+     "effect": "falls back to auto-estimate from UserDefaults"
+    },
+    {
+     "at": "+2",
+     "cond": "cyclingFTPWatts > 0",
+     "effect": "use it; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "025373b97cca81f8"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedence.FTPAnchors.ftp(for:)",
+   "hash": "d9291fa60fb9dc22",
+   "does": "FTP for sport.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run/trailRun/walk/hike/treadmill",
+     "effect": "running"
+    },
+    {
+     "at": "+3",
+     "cond": "bike/indoorBike",
+     "effect": "cycling"
+    },
+    {
+     "at": "+4",
+     "cond": "default (row, airBike, crossFit)",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingLoadPrecedence.stored(_:ftp:)",
+   "hash": "6dabed43a5d30a41",
+   "does": "Returns the first available load and its source in precedence order; default FTP anchors read from the settings snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "storedPowerTSS ?? readTimePowerTSS non-nil",
+     "effect": "(p, .power)"
+    },
+    {
+     "at": "+4",
+     "cond": "storedPowerTSS nil",
+     "effect": "fall back to read-time TSS from NP and current FTP"
+    },
+    {
+     "at": "+5",
+     "cond": "routeEstimateReplacesHRLoad and extrapolatedTRIMP set",
+     "effect": "(e, .routeHistory)"
+    },
+    {
+     "at": "+6",
+     "cond": "hrTSS > 0",
+     "effect": "(h, .hr)"
+    },
+    {
+     "at": "+7",
+     "cond": "computedMETLoad > 0",
+     "effect": "(m, .mets)"
+    },
+    {
+     "at": "+8",
+     "cond": "luciaTRIMP > 0",
+     "effect": "(l, .banister)"
+    },
+    {
+     "at": "+9",
+     "cond": "extrapolatedTRIMP > 0",
+     "effect": "(e, .routeHistory); else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "WorkoutMetadata.preferredTrainingLoad re-implements the same six-tier ladder (power > route-dropout estimate > hrTSS > METs > Banister > route estimate) separately for the row display; the two must be kept in lockstep or a workout's displayed load differs from its ATL/CTL contribution.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:87",
+      "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift:92",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:708",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:715"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)",
+   "hash": "543590ede45c7cf7",
+   "does": "Coggan TSS from stored NP and current FTP over the last sample offset: IF^2 * hours * 100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no NP>0, no FTP>0 for sport, or max sample offset <= 60 s",
+     "effect": "nil"
+    },
+    {
+     "at": "+7",
+     "cond": "tss > 0",
+     "effect": "tss; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.ftp(for:)": "b3470c4c18bd7598"
+   }
+  }
+ ],
+ "deps": {}
+}

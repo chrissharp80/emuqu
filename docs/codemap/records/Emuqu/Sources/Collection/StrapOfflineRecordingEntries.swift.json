@@ -1,0 +1,43 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift",
+ "hash": "bff102908aed4e62",
+ "role": "Collapses Verity Sense offline-recording sub-file entries (PPI0.REC, PPI1.REC …) into one entry per recording so a night is downloaded and removed once.",
+ "types": [
+  "StrapOfflineRecordingEntries: enum — recordingKey/onePerRecording"
+ ],
+ "state": [],
+ "toplevel": "No code outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapOfflineRecordingEntries.recordingKey(forPath:)",
+   "hash": "ded76a2f08b1c609",
+   "does": "Returns the path with a trailing '<digits>.REC' replaced by '.REC' (regex), the recording's grouping key.",
+   "entry": "Called from onePerRecording; EmuquTests/FakeStrapRadio.swift:294-299; tests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapOfflineRecordingEntries.onePerRecording(_:path:)",
+   "hash": "673b3353e6de3620",
+   "does": "Keeps the first entry for each recordingKey in listing order.",
+   "entry": "Called from PolarManager+Recording.swift:296 (Verity offline listing, PPI entries only).",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)",
+    "closure:path key-path from caller (\\.path)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,13 @@
+{
+ "file": ".ci/scoring_constants_hash.txt",
+ "hash": "a70372a974be9da7",
+ "role": "Committed CI threshold file (not a budget: scoring version + hash of scoring constants; non-integer so the monotonicity ratchet skips it by design) read by scripts/check_scoring_governance.sh (a constants change must come with a scoring-version bump); scripts/verify_gates_fail.sh plants a violation against it.",
+ "types": [],
+ "state": [
+  "file:.ci/scoring_constants_hash.txt = v3.1.oct2026 541b56e600080795"
+ ],
+ "toplevel": "Single line `v3.1.oct2026 541b56e600080795`. Read by scripts/check_scoring_governance.sh (a constants change must come with a scoring-version bump); scripts/verify_gates_fail.sh plants a violation against it. Every .ci/*.txt with an integer value is also compared against a baseline commit by scripts/check_budget_monotonicity.sh (ceilings may only fall, min_* floors may only rise, unless a `budget-raise-ok: .ci/scoring_constants_hash.txt` commit trailer is present in the compared range). Changes are owned by @chrissharp80 per CODEOWNERS.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

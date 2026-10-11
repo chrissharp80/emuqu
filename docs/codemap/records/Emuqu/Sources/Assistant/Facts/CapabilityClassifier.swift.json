@@ -1,0 +1,314 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift",
+ "hash": "76f58238d6d35c3f",
+ "role": "Capability-axis classifier for SmartProviderRouter: classifies a user message on four flags (tools, web, historical depth, speculation) by keyword-gated embedding cosine similarity to prototype centroids, and maps the flag count to a provider tier (quick/auto/deep).",
+ "types": [
+  "CapabilityClassifier: final class (@MainActor singleton) — classifier",
+  "CapabilityClassifier.Axis: enum — four capability axes",
+  "CapabilityClassifier.Requirement: struct — four flags, requiredTier, debugSummary, .none/.allAxes"
+ ],
+ "state": [
+  "mem:CapabilityClassifier.shared (singleton; exposed via AppDependencies.swift:655)",
+  "mem:CapabilityClassifier.axisThreshold = 0.55",
+  "mem:Requirement.none / Requirement.allAxes (static)",
+  "mem:CapabilityClassifier.emailRequestMarkers / toolMarkers / webMarkers / depthMarkers / speculationMarkers (static keyword lists)",
+  "mem:CapabilityClassifier.prototypes (static phrase lists per axis)",
+  "mem:CapabilityClassifier.prototypeCentroids (lazy instance cache of embedded centroids)"
+ ],
+ "toplevel": "Static keyword and prototype tables. Called only from SmartProviderRouter.swift:63-67 (classify, requiredTier, debugSummary).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CapabilityClassifier.Requirement.requiredTier",
+   "hash": "3a7a48f7c82b5ba8",
+   "does": "Maps the number of set flags to a tier: ≥2 → .deep, 1 → .auto, 0 → .quick.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "count >= 2",
+     "effect": ".deep"
+    },
+    {
+     "at": "+3",
+     "cond": "count >= 1",
+     "effect": ".auto; otherwise .quick"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CapabilityClassifier.Requirement.debugSummary",
+   "hash": "9ae232d01c449fe8",
+   "does": "Joins names of set flags ('tools','web','history','speculate') with '+', or 'none'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "needsTools",
+     "effect": "appends 'tools'"
+    },
+    {
+     "at": "+3",
+     "cond": "needsWeb",
+     "effect": "appends 'web'"
+    },
+    {
+     "at": "+4",
+     "cond": "needsHistoricalDepth",
+     "effect": "appends 'history'"
+    },
+    {
+     "at": "+5",
+     "cond": "needsSpeculation",
+     "effect": "appends 'speculate'"
+    },
+    {
+     "at": "+6",
+     "cond": "no parts (ternary)",
+     "effect": "'none'; otherwise joined string"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CapabilityClassifier.classify(_:)",
+   "hash": "326834ffc53f1ad4",
+   "does": "Trims+lowercases the message; computes keyword gate (English keyword heuristic, or all axes open for confidently non-English text); with embeddings, each axis = gate AND cosine ≥ 0.55; without embeddings returns the keyword result for English or .none for non-English.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "message empty after trimming",
+     "effect": "returns .none"
+    },
+    {
+     "at": "+5",
+     "cond": "isLikelyEnglish (ternary)",
+     "effect": "keyword heuristic; else .allAxes gate"
+    },
+    {
+     "at": "+11",
+     "cond": "embeddingClassify returned scores",
+     "effect": "per-axis gate && score ≥ 0.55 (missing score defaults 0)"
+    },
+    {
+     "at": "+19",
+     "cond": "no embeddings: english (ternary)",
+     "effect": "returns keyword result; non-English returns .none (Quick tier, no tools)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Keyword markers are raw substring tests: 'wind' matches 'window'/'unwind', 'latest' matches 'what's my latest HRV', 'would i'/'could i' match ordinary requests, 'buy'/'stock'/'license' match within other words. When the embedder is unavailable (first launch asset download, older OS) the keyword result is returned directly, escalating plain data lookups from on-device Apple to the cloud tiers (cost, and the user's data leaves the device for that turn).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:145",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:199",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:227",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:231",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:248"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.isLikelyEnglish(_:)": "415ee598e877b051",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349"
+   }
+  },
+  {
+   "key": "func CapabilityClassifier.isLikelyEnglish(_:)",
+   "hash": "17c16c97b1a5b498",
+   "does": "Returns true for inputs under 3 words, when the recognizer has no hypothesis, when its top language is English, or when top confidence < 0.6.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 3 whitespace-separated words",
+     "effect": "true (stay on English keyword path)"
+    },
+    {
+     "at": "+4",
+     "cond": "no language hypothesis",
+     "effect": "true; else English or confidence < 0.6 → true, otherwise false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CapabilityClassifier.embed(_:)",
+   "hash": "e58081bfed11186f",
+   "does": "Delegates to SmartProviderRouter.embed via AppDependencies.current.providers.smartProviderRouter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.providers.smartProviderRouter"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "084fda77aeca56c8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "let CapabilityClassifier.prototypeCentroids",
+   "hash": "c01d11be3711730d",
+   "does": "Lazily embeds every prototype phrase per axis (once per classifier instance) and stores the mean vector per axis; axes whose phrases all fail to embed get no centroid (mean returns nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func EmbeddingCentroid.mean(of:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CapabilityClassifier.prototypeCentroids"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each axis in prototypes",
+     "effect": "embeds phrases and stores centroid"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func EmbeddingCentroid.mean(of:)": "64c1bcc1b15f9c94"
+   }
+  },
+  {
+   "key": "func CapabilityClassifier.embeddingClassify(_:)",
+   "hash": "533ac5e8f9a82144",
+   "does": "Embeds the query and returns cosine similarity to each axis centroid; nil when the query cannot be embedded or no centroids exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)"
+   ],
+   "reads": [
+    "mem:CapabilityClassifier.prototypeCentroids"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "query embedding nil",
+     "effect": "returns nil (keyword fallback)"
+    },
+    {
+     "at": "+3",
+     "cond": "centroids empty",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "for each axis centroid",
+     "effect": "scores it"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "SmartProviderRouter.embed falls back per call from the contextual embedder to the 512-dim word-vector embedder; prototype centroids are cached once (lazy) from whichever path served them, and cosineSimilarity returns 0 on a dimension mismatch, so any query embedded by the other path scores 0 on every axis and is silently routed to the Quick tier.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift:145",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:170",
+      "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift:303"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "644b9d7baad9bdb0",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embed(_:)": "ab993c103face060",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::let CapabilityClassifier.prototypeCentroids": "7a9ea8ae197b11fb"
+   }
+  },
+  {
+   "key": "func CapabilityClassifier.keywordHeuristic(_:)",
+   "hash": "54be66f99a11515f",
+   "does": "Builds a Requirement from substring keyword matches per axis; tools also fire on asksToEmail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.asksToEmail(_:)": "f46307606349eab9"
+   }
+  },
+  {
+   "key": "func CapabilityClassifier.asksToEmail(_:)",
+   "hash": "3038e98d35892002",
+   "does": "True when text starts with 'email ' or contains an email-request marker ('an email', 'please email', 'email me', 'email to ', ...).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CapabilityClassifier.cosineSimilarity(_:_:)",
+   "hash": "21f5448bb472643c",
+   "does": "Cosine similarity of two vectors; 0 when lengths differ, vectors empty, or either norm is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "length mismatch or empty",
+     "effect": "returns 0"
+    },
+    {
+     "at": "+5",
+     "cond": "for each index",
+     "effect": "accumulates dot and norms"
+    },
+    {
+     "at": "+11",
+     "cond": "denominator > 0 (ternary)",
+     "effect": "dot/denom; otherwise 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

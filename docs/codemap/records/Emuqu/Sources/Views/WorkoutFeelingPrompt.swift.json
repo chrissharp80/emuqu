@@ -1,0 +1,629 @@
+{
+ "file": "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift",
+ "hash": "87e22143d06c1561",
+ "role": "Post-workout subjective feeling capture: a 1-5 emoji prompt with auto-commit/optional note, a compact tappable badge for a saved feeling, and the workout feeling label/phrase lookup.",
+ "types": [
+  "WorkoutFeelingPrompt: struct View — 5-point emoji prompt; calls onSelect(feeling, note?) or onSkip",
+  "WorkoutFeelingBadge: struct View — committed-feeling badge, tappable to edit",
+  "WorkoutFeelingDisplay: enum — emoji/colour (forwarded to MorningFeelingDisplay), localized label and 'Felt …' phrase"
+ ],
+ "state": [
+  "@State selected: Int?, noteText: String, pendingCommit: DispatchWorkItem? (WorkoutFeelingPrompt)",
+  "@FocusState noteFocused",
+  "static feelings: [(value, emoji)] 1..5"
+ ],
+ "toplevel": "Stored closures onSelect/onSkip and optional existing/existingNote set by FitnessPostSummaryView+Feeling.swift:22 (onSelect spawns saveWorkoutFeeling which archives the rating).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutFeelingPrompt.showNote",
+   "hash": "6b7daac2ead405e5",
+   "does": "True when a feeling is selected and it is 1 or 2.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selected is nil",
+     "effect": "return false; else selected <= 2"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.body",
+   "hash": "0caffbf4fddbc9cb",
+   "does": "Card stack of header, emoji scale, optional note field and actions; on appear pre-selects existing feeling/note.",
+   "entry": "SwiftUI body; .onAppear on first display (FitnessPostSummaryView+Feeling.swift:22, StateSnapshotTests).",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingPromptHeader",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingScale",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingNoteField",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingActions",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "existing non-nil",
+     "effect": "selected = existing; else unchanged"
+    },
+    {
+     "at": "+16",
+     "cond": "existingNote non-nil",
+     "effect": "noteText = existingNote; else unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingActions": "7f4d2fd531e063fa",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingNoteField": "6860713b3f6d75f8",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingPromptHeader": "934c68440bb45b1a",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingScale": "252f852b3a465ada"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.feelingPromptHeader",
+   "hash": "63f638f1de7ed3d5",
+   "does": "Smiley icon with 'HOW DID THAT FEEL?' or, when editing, 'CHANGE YOUR FEELING'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "existing == nil",
+     "effect": "new-rating header; else edit header"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.feelingScale",
+   "hash": "d4ff84d434a001ff",
+   "does": "Horizontal row of the five feeling buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.feelingButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.feelingButton(_:)": "cfe8b241b67f35b6"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingPrompt.feelingButton(_:)",
+   "hash": "7804b9b2d79a3eda",
+   "does": "Plain button that calls tapFeeling(value) with feelingLabel as label.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.tapFeeling(_:)",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.feelingLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.feelingLabel(_:)": "eb51ba2d40d2d1f9",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.tapFeeling(_:)": "e853a2f33f5c4b38"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.feelingNoteField",
+   "hash": "a777ed033e4d4d46",
+   "does": "When showNote, shows divider, 'OPTIONAL NOTE' caption, text field and hint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.showNote",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.noteTextField",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showNote (selected 1-2)",
+     "effect": "note section; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.noteTextField": "758de0ab70f19e71",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.showNote": "7a3cdf869f9f1007"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.noteTextField",
+   "hash": "f16627745d9a2182",
+   "does": "Vertical 2-4 line TextField bound to noteText with focus binding.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.feelingActions",
+   "hash": "64daa9a0a3331dd8",
+   "does": "HStack of skip and save buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.saveFeelingButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.saveFeelingButton": "8142be678b526845",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton": "5023c8454b7bd2cc"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.skipFeelingButton",
+   "hash": "d4cba3dce3548043",
+   "does": "Button cancelling any pending auto-commit then calling onSkip; label 'Skip' or 'Cancel' when editing.",
+   "entry": "Button tap.",
+   "calls": [
+    "closure:onSkip set by FitnessPostSummaryView+Feeling.swift:27 (skipFeeling → feelingEditing=false)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "existing == nil",
+     "effect": "'Skip'; else 'Cancel'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "On an unrated workout Skip only runs onSkip → skipFeeling, which sets feelingEditing=false (already false); feelingSection shows the prompt whenever workoutFeeling is nil, so Skip does nothing visible and the prompt (rendered twice, top and bottom) stays on screen.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:141",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:14",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift:34",
+      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:243",
+      "Emuqu/Sources/Views/FitnessPostSummaryView.swift:324"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingPrompt.saveFeelingButton",
+   "hash": "ec04200414417678",
+   "does": "'Save' button calling commitExplicit, shown only when the note section is open.",
+   "entry": "Button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.showNote",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.commitExplicit()",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "showNote",
+     "effect": "Save button; else nothing (3-5 commit by timer)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingPrompt.commitExplicit()": "47a2aad3d72ca3d2",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.showNote": "7a3cdf869f9f1007"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingPrompt.feelingLabel(_:)",
+   "hash": "76c6ff7e9550f8b8",
+   "does": "Emoji plus localized label; highlights text and background tint when this feeling is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.localizedLabel(for:)",
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selected == feeling.value",
+     "effect": "primary text colour; else tertiary"
+    },
+    {
+     "at": "+15",
+     "cond": "selected == feeling.value",
+     "effect": "feeling colour at 15% background; else clear"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)": "42440404b74801a1",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.localizedLabel(for:)": "52483c511d9d9a6d"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingPrompt.tapFeeling(_:)",
+   "hash": "750cdc21803ec069",
+   "does": "Selects the tapped feeling (animated). For 3-5 clears the note and schedules onSelect(value,nil) after 1 s on main queue, cancelling any prior pending commit; for 1-2 only cancels the pending commit and waits for Save.",
+   "entry": null,
+   "calls": [
+    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23 (Task saveWorkoutFeeling → archive write)",
+    "ext:DispatchQueue.main.asyncAfter"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:HRVSession.workoutMetadata.workoutFeeling (via onSelect)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "value >= 3",
+     "effect": "noteText cleared; else note kept"
+    },
+    {
+     "at": "+8",
+     "cond": "value >= 3",
+     "effect": "schedule 1 s DispatchWorkItem calling onSelect(value,nil); else no commit"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 1 s DispatchWorkItem is not cancelled on disappear; if the summary is dismissed within the second the rating is still saved after the view is gone.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:197",
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:201"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same 1 s DispatchWorkItem auto-commit / cancel-on-retap logic as MorningFeelingPrompt.tapFeeling; two copies to keep in step.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:188",
+      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:231"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Header says a 3-5 auto-commit is 'cancellable by re-tapping', but re-tapping the same 3-5 face cancels and immediately reschedules the commit; only tapping 1-2 or Skip/Cancel stops it.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:18",
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:195",
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:196"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingPrompt.commitExplicit()",
+   "hash": "c53240a77ac67c31",
+   "does": "Cancels pending auto-commit and, if a feeling is selected, calls onSelect(value, trimmed note or nil).",
+   "entry": null,
+   "calls": [
+    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:HRVSession.workoutMetadata.workoutFeeling/workoutFeelingNote (via onSelect)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "selected is nil",
+     "effect": "return without saving; else continue"
+    },
+    {
+     "at": "+4",
+     "cond": "trimmed note empty",
+     "effect": "pass nil note; else trimmed text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Mirrors MorningFeelingPrompt.commitExplicit (cancel pending, guard selection, commit).",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift:205",
+      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:253"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutFeelingBadge.body",
+   "hash": "7af719db48050a8e",
+   "does": "Plain button wrapping recordedFeelingRow, calling onTap; disabled when onTap is nil.",
+   "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift:39 and ComponentSnapshotTests.",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.recordedFeelingRow",
+    "closure:onTap set by FitnessPostSummaryView+Feeling.swift:42 (feelingEditing=true)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.recordedFeelingRow": "4cdcbe1c67a26296"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingBadge.recordedFeelingRow",
+   "hash": "582adea538d02265",
+   "does": "Emoji, text, spacer and edit hint on a feeling-tinted rounded background.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.emoji(for:)",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.recordedFeelingText",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.editHint",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.color(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.color(for:)": "63cb71b37cceaa7e",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.emoji(for:)": "8839f96edf22e670",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.editHint": "df2b010ed5c8d013",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.recordedFeelingText": "8532abe7eee6d880"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingBadge.recordedFeelingText",
+   "hash": "aaa2082d0826674d",
+   "does": "'Felt …' phrase plus note-or-hint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.feltPhrase(for:)",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.noteOrHint",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func WorkoutFeelingDisplay.feltPhrase(for:)": "79bdfb48e22088d2",
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.noteOrHint": "9f474c2a217e5c30"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingBadge.noteOrHint",
+   "hash": "2b13ec4cefea5269",
+   "does": "Shows the note (2 lines) if non-empty else 'Tap to change'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "note non-nil and non-empty",
+     "effect": "note text; else 'Tap to change' (shown even when onTap is nil and the badge is disabled)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var WorkoutFeelingBadge.editHint",
+   "hash": "dffd73b2e2a57e94",
+   "does": "Pencil icon when tappable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "onTap != nil",
+     "effect": "pencil; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingDisplay.emoji(for:)",
+   "hash": "348cf89003336434",
+   "does": "Forwards to MorningFeelingDisplay.emoji.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.emoji(for:)": "18b4003425849fee"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingDisplay.localizedLabel(for:)",
+   "hash": "7e730e02016ca8f2",
+   "does": "Localized single-word label for 1-5.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "1",
+     "effect": "Terrible"
+    },
+    {
+     "at": "+4",
+     "cond": "2",
+     "effect": "Hard"
+    },
+    {
+     "at": "+5",
+     "cond": "3",
+     "effect": "OK"
+    },
+    {
+     "at": "+6",
+     "cond": "4",
+     "effect": "Good"
+    },
+    {
+     "at": "+7",
+     "cond": "5",
+     "effect": "Great"
+    },
+    {
+     "at": "+8",
+     "cond": "default (out of range)",
+     "effect": "OK"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingDisplay.feltPhrase(for:)",
+   "hash": "8ffa8ce57af4718f",
+   "does": "Localized 'Felt …' phrase for 1-5.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "1",
+     "effect": "Felt terrible"
+    },
+    {
+     "at": "+4",
+     "cond": "2",
+     "effect": "Felt hard"
+    },
+    {
+     "at": "+5",
+     "cond": "3",
+     "effect": "Felt OK"
+    },
+    {
+     "at": "+6",
+     "cond": "4",
+     "effect": "Felt good"
+    },
+    {
+     "at": "+7",
+     "cond": "5",
+     "effect": "Felt great"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "Felt OK"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func WorkoutFeelingDisplay.color(for:)",
+   "hash": "b3c1c5e65ef1bfae",
+   "does": "Forwards to MorningFeelingDisplay.color.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::func MorningFeelingDisplay.color(for:)": "42440404b74801a1"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,224 @@
+{
+ "file": "docs/runbooks/data-deletion.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Runbook for GDPR/CCPA deletion and access requests: explains there is no backend, directs users to the in-app Delete All My Data flow (local + CloudKit zone deletion) and Export Data, and gives a reply template.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request",
+   "hash": "7ce28a6d9569a495",
+   "does": "no behavioural claim: legal response windows (GDPR 30 days, CCPA 45+45) and HIPAA non-applicability.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Architecture you're working with",
+   "hash": "3208a78e16ea77c0",
+   "does": "Claims: no backend; CloudKit private DB holds session backups, raw RR archives and workout tracks; iCloud sign-out does not delete; Delete All My Data removes the cloud copy; AI API keys are ThisDeviceOnly; archive encryption key is not synchronizable; CloudPayloadCodec key and EntitlementAnchor are synchronizable. Verified: APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift:65), EncryptionManager uses AfterFirstUnlock without synchronizable (EncryptionManager.swift:252), CloudPayloadCodec.swift:281 and EntitlementAnchor.swift:355 set kSecAttrSynchronizable true; workout GPS tracks travel inside the HRVSession payload (CloudKitSyncManager+Push.swift:429).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()": "fb3294f4a71c9201"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 1 — Understand what you can and cannot do",
+   "hash": "32eef65a8d008e8a",
+   "does": "Claims no account system, so nothing to verify; the Profile email field is a report recipient. No code contradiction found.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.recoveryEmailSection",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.recoveryEmailToRow",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.trainingEmailSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.recoveryEmailSection": "b7b942fe8a9d1384",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.recoveryEmailToRow": "ba6007e14c83657b",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.trainingEmailSection": "47bf4239ee047039"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 2 — Local data deletion",
+   "hash": "34146cfed4d2c1e2",
+   "does": "Claims More → Settings → Advanced Data Controls → Delete All My Data, typing DELETE MY DATA, calls DataPurgeService.purgeAllUserData which wipes archive, raw backups, CloudKit sync state, API keys, conversations, user facts, disclaimer flags, debug/crash logs, units preference, breadcrumbs, legacy widget keys and sweeps containers/preferences with a keep-list; keeps Health samples and the purchase/trial anchor. Verified: confirmPhrase 'DELETE MY DATA' (DeleteAllDataPage.swift:28); Report fields and steps (DataPurgeService.swift:183-212, 553-577); defaultsKeepList keeps entitlement.anchor.v1 and storekit.lastKnown* (DataPurgeService.swift:331-335); keepList keeps user_settings.json, reset via resetToDefaults.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "738ba787af751fec",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "93c429b1e47f665a",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "38a4354681685bbb",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:errors:)": "a9167ea804ea5e3d",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "6f6cfec6f5b1681a",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()": "bd6e0e9096cc3d48",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "b99dd2d7bc852d06",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(errors:)": "5ded030f6239c54f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(errors:)": "f7e516b009caba4b",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:errors:)": "952f885d4a2fa916",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "2d6f177d70af20c6"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 3 — CloudKit private-DB deletion",
+   "hash": "32118da6209ae812",
+   "does": "Claims the purge awaits CloudKitSyncManager.deleteAllRemoteData, which deletes zones HRVSessions and UserSettings before the local wipe; offline/signed-out failure still completes the local wipe and reports remoteDeleted false, surfaced as a retry prompt; re-running is idempotent. Verified: purgeRemote runs first (DataPurgeService.swift:190), allCustomZoneIDs (CloudKitSyncManager+Deletion.swift:18-23), zone-already-gone counts as success, 30 s timeout, remoteLine 'NOT deleted — run this again…' (DataPurgeService.swift:69-75).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "d951b20451ad7ecc",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine": "be5ef9ddf84e2e8a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()": "fb3294f4a71c9201",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "2cb164c03427dc36"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 4 — Third-party AI provider data",
+   "hash": "9d17791e87c7c5bc",
+   "does": "Claims providers (Anthropic, OpenAI, Google, xAI, DeepSeek) retain content and the user enabled them per ProviderConsentTracker's consent log. Provider files exist (AnthropicProvider, OpenAIProvider, GeminiProvider, GrokProvider, DeepSeekProvider).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Runbook tells the operator to cite the ProviderConsentTracker consent log, but the purge's preferences sweep removes every non-kept UserDefaults key, so after Delete All My Data no consent record remains to cite.",
+     "evidence": [
+      "docs/runbooks/data-deletion.md:128",
+      "Emuqu/Sources/Services/DataPurgeService.swift:382",
+      "Emuqu/Sources/Services/DataPurgeService.swift:353"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)": "590793ba5e12212a"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 5 — Data export (Article 15 / 20)",
+   "hash": "6f92de50210c2bc7",
+   "does": "Claims More → Settings → iCloud & Data → Import & Export → Export Data offers RR CSV, summary CSV and all-sessions JSON. Verified: SettingsPages+Data.swift:232/252 Import & Export → ExportDataView with 'Export RR Intervals (CSV)', 'Export Summary (CSV)', 'Export All Sessions (JSON)' (ExportAndArchiveViews.swift:121-138).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportRRData()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportRRData()": "7cf05a3cfb77b3db",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 6 — Reply template",
+   "hash": "e357afd11af16f45",
+   "does": "Reply template repeating the in-app deletion steps, the iCloud sign-out warning and the export path; consistent with Step 2/3/5 claims.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "738ba787af751fec"
+   }
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 7 — Log the request",
+   "hash": "86df2486f20a76cc",
+   "does": "no behavioural claim: keep a private log outside the repo for 3 years.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Edge cases",
+   "hash": "5d7f62b106b2e655",
+   "does": "no behavioural claim: guidance for account-takeover suspicion, minors, deceased users.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Compliance posture (for your records)",
+   "hash": "eccbe9ca77392913",
+   "does": "Claims nothing health-related remains in the app after delete-all; Apple Health samples remain. Consistent with DataPurgeService sweep design and footerLines note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "ce90e6d1827a3bfc",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "18a14d28b856d909"
+   }
+  }
+ ],
+ "deps": {}
+}

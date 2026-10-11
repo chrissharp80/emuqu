@@ -1,0 +1,1118 @@
+{
+ "file": "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift",
+ "hash": "ec88486918ad36bd",
+ "role": "Deep-dive PDF report sections for sleep (duration/efficiency, architecture, trends), training load (CTL/ATL/TSB, ACWR, yesterday TRIMP, VO2max) and recovery vitals (respiratory rate, SpO2, wrist temperature, RHR, combined pattern), with localized explanatory and interpretation text.",
+ "types": [
+  "DeepDiveReportRenderer: extension — sleep/training/vitals section drawers"
+ ],
+ "state": [],
+ "toplevel": "File-scope private row builders (lines 368-558) produce DeepDiveMetric rows; no stored state.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "SpO2 copy hardcodes '−10 points' in two strings instead of reading RecoveryScoreConstants.Vitals.spo2Penalty as RecoveryScoreDetailView and ScoreBreakdownCopy do; a constant change would leave the PDF wrong.",
+   "evidence": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:510",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:512",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:263",
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:19"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DeepDiveReportRenderer.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+   "hash": "911b44c654bd6650",
+   "does": "Draws the 'Sleep — Complete Analysis' title then the duration, architecture and trends subsections, returning the new y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepDurationSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepArchitectureSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepTrendsSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepArchitectureSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "9fa1cc7f9960b977",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepDurationSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "31605197484e1c42",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepTrendsSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "5b9ee4fc0f763698",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawSleepDurationSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+   "hash": "2c84a1a6b468c011",
+   "does": "Draws 'Duration & Efficiency' and one metric row each for total sleep, efficiency, time in bed and (if any) time awake.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepDurationRows(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each row",
+     "effect": "draws each row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepDurationRows(sleep:bundle:)": "48b8a160bc05f4a3",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawSleepArchitectureSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+   "hash": "075d78de6cfc35bc",
+   "does": "Draws 'Sleep Architecture' with explanation and deep/REM/light rows; skipped when neither deep nor REM minutes exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.sleepArchitectureRows(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "deep and REM both nil",
+     "effect": "returns yPosition unchanged (section skipped)"
+    },
+    {
+     "at": "+17",
+     "cond": "for each row",
+     "effect": "draws each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.sleepArchitectureRows(sleep:bundle:)": "69c871f5052f466f",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.sleepArchitectureRows(sleep:bundle:)",
+   "hash": "8b18fa6b0f316ec7",
+   "does": "Collects non-nil deep, REM and light sleep rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.deepSleepRow(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.remSleepRow(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func lightSleepRow(sleep:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.deepSleepRow(sleep:bundle:)": "8c6b14b87f98a917",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.remSleepRow(sleep:bundle:)": "a3b1bb6be874b0f5",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func lightSleepRow(sleep:bundle:)": "f490cc0e916b75c1"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.deepSleepRow(sleep:bundle:)",
+   "hash": "13e52ff7dd27e1cd",
+   "does": "Deep sleep row: minutes and % of total sleep with explanation and interpretDeepSleep; nil without deep minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretDeepSleep(deepPct:deepMinutes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deepSleepMinutes nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "totalSleepMinutes > 0",
+     "effect": "% computed; else 0%"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretDeepSleep(deepPct:deepMinutes:)": "3de85f815b5c87b2",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.remSleepRow(sleep:bundle:)",
+   "hash": "9bf0e449423786df",
+   "does": "REM row: minutes and % of total with explanation and interpretREMSleep; nil without REM minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretREMSleep(remPct:remMinutes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remSleepMinutes nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "totalSleepMinutes > 0",
+     "effect": "% computed; else 0%"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretREMSleep(remPct:remMinutes:)": "5473ea5641cb4630",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawSleepTrendsSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
+   "hash": "dff6788c16bda3dc",
+   "does": "Draws 'Sleep Trends (N nights)' with the trend summary and average deep sleep when >2 nights analyzed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepTrendSummary(_:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "no trend or nightsAnalyzed <= 2",
+     "effect": "returns yPosition (skipped)"
+    },
+    {
+     "at": "+14",
+     "cond": "averageDeepSleepMinutes nil or <= 0",
+     "effect": "returns after summary; else adds the average-deep line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepTrendSummary(_:bundle:)": "2a6734d90058a954",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawDeepTrainingAnalysis(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "004ac7a8db5963e2",
+   "does": "Draws the 'Training Load — Complete Analysis' title and PMC, ACWR, yesterday and VO2max subsections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawPMCMetricsSection(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawACWRSection(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawYesterdayTrainingSection(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawVO2MaxSection(training:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawACWRSection(training:pageNumber:yPosition:in:pageRect:)": "a36a68d68c6574eb",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawPMCMetricsSection(training:pageNumber:yPosition:in:pageRect:)": "6fe61eefa45ea6c9",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawVO2MaxSection(training:pageNumber:yPosition:in:pageRect:)": "c2e0aaa40e294b3d",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawYesterdayTrainingSection(training:pageNumber:yPosition:in:pageRect:)": "e7f3828058737ac0",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawPMCMetricsSection(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "5ba7f280688b81b8",
+   "does": "Draws the PMC explanation and CTL/ATL/TSB rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.pmcRows(training:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each row",
+     "effect": "draws each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.pmcRows(training:bundle:)": "e2c750e41b7bc4cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.pmcRows(training:bundle:)",
+   "hash": "efb9e8d9a47ce00e",
+   "does": "Returns [CTL, ATL, TSB] rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.ctlRow(training:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.tsbRow(training:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)": "cd5e1dd35a6e59b2",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.ctlRow(training:bundle:)": "7ef0041d4a05c235",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.tsbRow(training:bundle:)": "4d90d4bc76718abb"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.ctlRow(training:bundle:)",
+   "hash": "29103a59e4311573",
+   "does": "CTL row with value (%.0f), 42-day EWMA explanation and interpretCTL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretCTL(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretCTL(_:)": "a7817ad38a18cf7b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.atlRow(training:bundle:)",
+   "hash": "5365ff492e3a71cf",
+   "does": "ATL row with value, 7-day EWMA explanation and interpretATL(atl, ctl).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretATL(_:ctl:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretATL(_:ctl:)": "52247f73859a3c89",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.tsbRow(training:bundle:)",
+   "hash": "f9b3ad82f83e9aca",
+   "does": "TSB row with signed value, explanation (+5…+25 peak, −10…−30 adaptive) and interpretTSB.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretTSB(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretTSB(_:)": "67ac4c4978f2f65c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawACWRSection(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "c87fb2245c502c26",
+   "does": "Draws the ACWR subsection with value, Gabbett/Impellizzeri explanation and interpretACWR when the ratio exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "acuteChronicRatio nil (ctl <= 0)",
+     "effect": "nothing drawn; else section"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "b1b7873dbab900b6",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawYesterdayTrainingSection(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "18594ca5640a0aae",
+   "does": "Draws 'Recent Training Context' with yesterday's TRIMP row when it is > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func yesterdayTrimpRow(training:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "yesterdayTrimp <= 0",
+     "effect": "returns yPosition (skipped)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func yesterdayTrimpRow(training:bundle:)": "c01c9cf024770fd4",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawVO2MaxSection(training:pageNumber:yPosition:in:pageRect:)",
+   "hash": "9ca9b502b77a396a",
+   "does": "Draws the estimated VO2max row (value, explanation, interpretVO2Max) when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretVO2Max(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "vo2Max nil",
+     "effect": "nothing drawn"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretVO2Max(_:)": "76094623b549fc33",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawDeepVitalsAnalysis(vitals:pageNumber:yPosition:in:pageRect:)",
+   "hash": "a4394d08c29bf890",
+   "does": "Draws the 'Recovery Vitals' title, explanation, each available vitals row and the combined pattern; returns y+10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.vitalsRows(vitals:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawCombinedVitalsPattern(vitals:pageNumber:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "for each row",
+     "effect": "draws each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawCombinedVitalsPattern(vitals:pageNumber:yPosition:in:pageRect:)": "b0b3d096903b0d45",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.vitalsRows(vitals:bundle:)": "e39928c7f5cf5520",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "47c8e99023f07dcf",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.drawCombinedVitalsPattern(vitals:pageNumber:yPosition:in:pageRect:)",
+   "hash": "0a023ba76b55e090",
+   "does": "Draws 'Combined Vitals Pattern' with assessVitalsPattern text when non-empty (after reserving 40 pt, which may start a new page even when nothing is drawn).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.assessVitalsPattern(_:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "pattern empty",
+     "effect": "returns y (after ensureSpace); else draws"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.assessVitalsPattern(_:)": "00d151d531dafab3",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.vitalsRows(vitals:bundle:)",
+   "hash": "fc2f641008246b9b",
+   "does": "Collects non-nil respiratory, SpO2, wrist temperature (labelled via generator.wristTemperatureDeviationLabel) and RHR rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateRow(vitals:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func oxygenSaturationRow(vitals:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureRow(vitals:valueLabel:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func restingHeartRateRow(vitals:bundle:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateRow(vitals:bundle:)": "450db63254e886ff",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func oxygenSaturationRow(vitals:bundle:)": "0d5d9673a5899851",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func restingHeartRateRow(vitals:bundle:)": "e104827551286539",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureRow(vitals:valueLabel:bundle:)": "5f237d708801c081",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)": "389c04c0930b114f"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.respiratoryRateRow(vitals:bundle:)",
+   "hash": "620080b2777698fb",
+   "does": "Respiratory rate row (br/min value, baseline-aware explanation and interpretation); nil without a rate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func respiratoryRateExplanation(rr:vitals:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateInterpretation(rr:vitals:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "respiratoryRate nil",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateInterpretation(rr:vitals:bundle:)": "7bd3300dd3c3b087",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func respiratoryRateExplanation(rr:vitals:bundle:)": "d6af3800034d33c6",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)": "d02107676f421479",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DeepDiveReportRenderer.respiratoryRateInterpretation(rr:vitals:bundle:)",
+   "hash": "b577e1cc96415147",
+   "does": "Respiratory interpretation: without baseline ≤16 normal, ≤20 upper normal, else elevated; with baseline diff >2 elevated (lowers Vitals), >1 slightly above, else no concern — matching VitalsScoring's 1 br/min band and isRespiratoryElevated (>2).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no baseline",
+     "effect": "absolute bands"
+    },
+    {
+     "at": "+2",
+     "cond": "rr <= 16",
+     "effect": "'Normal range'"
+    },
+    {
+     "at": "+3",
+     "cond": "rr <= 20",
+     "effect": "'Upper normal' else 'Elevated'"
+    },
+    {
+     "at": "+8",
+     "cond": "diff > 2",
+     "effect": "elevated above baseline"
+    },
+    {
+     "at": "+9",
+     "cond": "diff > 1",
+     "effect": "slightly above; else at/below baseline"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Without a baseline the PDF labels 17-20 br/min 'Upper normal' and <12 'Normal range', but the score's population path treats 12-18 as normal and deducts 15 points per br/min above 18 (20 br/min -> sub-score 70) and scores <12 as 90; the PDF row says nothing about a penalty the score applied.",
+     "evidence": [
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:343",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:344",
+      "Emuqu/Sources/Analysis/VitalsScoring.swift:315",
+      "Emuqu/Sources/Utilities/Constants.swift:498",
+      "Emuqu/Sources/Utilities/Constants.swift:499"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func sleepDurationRows(sleep:bundle:)",
+   "hash": "ea992c8c9d03a62e",
+   "does": "Collects total sleep, efficiency, time in bed and (non-nil) time awake rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func totalSleepTimeRow(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepEfficiencyRow(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeInBedRow(sleep:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeAwakeRow(sleep:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepEfficiencyRow(sleep:bundle:)": "dbf17f841e9050b1",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeAwakeRow(sleep:bundle:)": "4e7a21ece6f9a261",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeInBedRow(sleep:bundle:)": "74bf85c5f3449f08",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func totalSleepTimeRow(sleep:bundle:)": "15d18856b610663f"
+   }
+  },
+  {
+   "key": "func totalSleepTimeRow(sleep:bundle:)",
+   "hash": "a6e322439d284be0",
+   "does": "Total sleep row (formatted total) with NSF explanation and ≥7 h / ≥6 h / <6 h interpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "totalHours >= 7",
+     "effect": "'Within recommended range'"
+    },
+    {
+     "at": "+7",
+     "cond": "totalHours >= 6",
+     "effect": "'Slightly below' else 'Below 6 hours'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted": "ff982209d1b68851",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func sleepEfficiencyRow(sleep:bundle:)",
+   "hash": "425d21cda61225f1",
+   "does": "Sleep efficiency row: 'Not measured' with no interpretation when nil; else %.0f%% with ≥90/≥85/≥80/<80 interpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleepEfficiency nil",
+     "effect": "'Not measured' row"
+    },
+    {
+     "at": "+11",
+     "cond": "eff >= 90",
+     "effect": "Excellent"
+    },
+    {
+     "at": "+13",
+     "cond": "eff >= 85",
+     "effect": "Good"
+    },
+    {
+     "at": "+15",
+     "cond": "eff >= 80",
+     "effect": "Fair; else 'Below 80%'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func timeInBedRow(sleep:bundle:)",
+   "hash": "a3fd5a9c101ad42b",
+   "does": "Time-in-bed row with WASO/CBT-I explanation, no interpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func timeAwakeRow(sleep:bundle:)",
+   "hash": "f1fa7b81a848baff",
+   "does": "Time awake row with <30/<60/≥60 min interpretation; nil when awakeMinutes is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "awakeMinutes <= 0",
+     "effect": "nil (row omitted)"
+    },
+    {
+     "at": "+6",
+     "cond": "< 30",
+     "effect": "minimal"
+    },
+    {
+     "at": "+8",
+     "cond": "< 60",
+     "effect": "some disruption; else significant"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func lightSleepRow(sleep:bundle:)",
+   "hash": "c6093ead222a7f11",
+   "does": "Light sleep row: total − deep − REM minutes and % of total; nil when ≤0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deep nil",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "REM nil",
+     "effect": "0"
+    },
+    {
+     "at": "+4",
+     "cond": "light <= 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "totalSleepMinutes > 0",
+     "effect": "% computed; else 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When only one of deep/REM minutes is present, the missing stage is counted as 0 and its minutes are reported as Light Sleep, overstating the light-sleep minutes and percentage (the section is drawn whenever either stage exists).",
+     "evidence": [
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:442",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:443",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:444",
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:62"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func sleepTrendSummary(_:bundle:)",
+   "hash": "819b6cf3d98317b8",
+   "does": "Trend text: 'Average: <h m> at <eff> efficiency.' (or without efficiency) plus a trend sentence per SleepTrend case.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "averageSleepMinutes not finite",
+     "effect": "0 minutes"
+    },
+    {
+     "at": "+4",
+     "cond": "averageEfficiency non-nil",
+     "effect": "with efficiency; else without"
+    },
+    {
+     "at": "+10",
+     "cond": ".improving",
+     "effect": "improving sentence"
+    },
+    {
+     "at": "+11",
+     "cond": ".declining",
+     "effect": "declining sentence"
+    },
+    {
+     "at": "+12",
+     "cond": ".stable",
+     "effect": "stable sentence"
+    },
+    {
+     "at": "+13",
+     "cond": ".insufficient",
+     "effect": "insufficient-data sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "func yesterdayTrimpRow(training:bundle:)",
+   "hash": "bba6f1ec367f1171",
+   "does": "Yesterday's TRIMP row with <50/<150/<300/≥300 interpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "< 50",
+     "effect": "light"
+    },
+    {
+     "at": "+6",
+     "cond": "< 150",
+     "effect": "moderate"
+    },
+    {
+     "at": "+8",
+     "cond": "< 300",
+     "effect": "hard; else very hard"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func respiratoryRateExplanation(rr:vitals:bundle:)",
+   "hash": "2dfa2bc2ac7ab282",
+   "does": "Respiratory explanation: population range plus, with a baseline, the baseline and signed deviation and the >2 br/min rule; otherwise the infection-signal caveat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "baseline exists",
+     "effect": "baseline/deviation text; else population caveat"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Explanation states the normal adult sleep range is 12-20 breaths/min, while recovery scoring uses 12-18 br/min as its population normal (respiratoryRatePopulationMaxBPM = 18).",
+     "evidence": [
+      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:491",
+      "Emuqu/Sources/Utilities/Constants.swift:499"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func oxygenSaturationRow(vitals:bundle:)",
+   "hash": "d49c4df3acf10af2",
+   "does": "SpO2 row: average (and min when present) with explanation and ≥95 typical / <95 penalized interpretation; nil without SpO2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "oxygenSaturation nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "oxygenSaturationMin nil",
+     "effect": "average only"
+    },
+    {
+     "at": "+9",
+     "cond": "spo2 >= 95",
+     "effect": "typical; else 'penalized (−10)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func wristTemperatureRow(vitals:valueLabel:bundle:)",
+   "hash": "0db74840d0877c27",
+   "does": "Wrist temperature deviation row: value via the generator's unit-aware label, or '—' with 'No baseline yet' when a reading exists without baseline; nil when neither.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureInterpretation(_:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no deviation and baseline not lacking",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "temp nil",
+     "effect": "value '—'"
+    },
+    {
+     "at": "+8",
+     "cond": "temp nil",
+     "effect": "'No baseline yet' interpretation; else banded interpretation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureInterpretation(_:bundle:)": "61905b6efdb133a0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func wristTemperatureInterpretation(_:bundle:)",
+   "hash": "45a8ff22b8eead25",
+   "does": "Wrist temperature bands: >1.0 substantially elevated, >0.5 elevated, >0.3 mildly elevated, < −0.3 below baseline, else typical — matching the scoring bands (0.3/0.5/1.0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "> 1.0",
+     "effect": "substantially elevated"
+    },
+    {
+     "at": "+2",
+     "cond": "> 0.5",
+     "effect": "elevated"
+    },
+    {
+     "at": "+3",
+     "cond": "> 0.3",
+     "effect": "mildly elevated"
+    },
+    {
+     "at": "+4",
+     "cond": "< -0.3",
+     "effect": "below baseline; else typical"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func restingHeartRateRow(vitals:bundle:)",
+   "hash": "f8012f1544eebf76",
+   "does": "Resting HR row with absolute-band interpretation (<50, <60, <70, <80, ≥80) each reminding that recovery reads it against baseline; nil without RHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "restingHeartRate nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "< 50",
+     "effect": "athletic (own baseline)"
+    },
+    {
+     "at": "+7",
+     "cond": "< 60",
+     "effect": "athletic"
+    },
+    {
+     "at": "+9",
+     "cond": "< 70",
+     "effect": "common 60–70"
+    },
+    {
+     "at": "+11",
+     "cond": "< 80",
+     "effect": "upper-normal; else high"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

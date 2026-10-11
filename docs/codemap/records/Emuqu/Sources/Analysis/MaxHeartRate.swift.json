@@ -1,0 +1,79 @@
+{
+ "file": "Emuqu/Sources/Analysis/MaxHeartRate.swift",
+ "hash": "2d3066ce66446920",
+ "role": "Age-predicted maximum heart rate (Tanaka 208-0.7*age) with clamp and the effective-HRmax rule used by UserSettings.effectiveMaxHR, which anchors TRIMP and HR zones.",
+ "types": [
+  "MaxHeartRate: enum — HRmax formula, age derivation, effective rule"
+ ],
+ "state": [
+  "mem:MaxHeartRate.floor=130",
+  "mem:MaxHeartRate.ceiling=220",
+  "mem:MaxHeartRate.minimumUserEntered=80",
+  "mem:MaxHeartRate.defaultWithoutBirthday=180"
+ ],
+ "toplevel": "Static constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MaxHeartRate.tanaka(age:)",
+   "hash": "f89c9a61632c1457",
+   "does": "Tanaka HRmax rounded and clamped to 130...220.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf"
+   }
+  },
+  {
+   "key": "func MaxHeartRate.age(from:to:calendar:)",
+   "hash": "8e403cef60d1a122",
+   "does": "Completed years between birthday and reference using the passed calendar; nil if Calendar returns no year.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+   "hash": "641dc9fc4986adac",
+   "does": "Effective HRmax: user-entered value if >= 80; else 180 when no birthday; else Tanaka of age (age 40 if the calendar yields nil). Called by UserSettings+Model.swift:290.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "userEntered non-nil and >= 80",
+     "effect": "return userEntered (no upper bound check)"
+    },
+    {
+     "at": "+9",
+     "cond": "birthday nil",
+     "effect": "return 180"
+    },
+    {
+     "at": "+10",
+     "cond": "age nil (?? 40)",
+     "effect": "use age 40 → 180"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  }
+ ],
+ "deps": {}
+}

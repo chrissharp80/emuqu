@@ -1,0 +1,540 @@
+{
+ "file": "Emuqu/Sources/Services/AppLaunchRecovery.swift",
+ "hash": "1a59c24669558dfe",
+ "role": "Extension of EmuquApp for interrupted-session recovery at launch (detect persisted recording state, alert, resume/save/dismiss actions) plus the Debug-only -UITests-FreshInstall wipe of launch-modal defaults, settings files, archive/backup directories, entitlement anchor and strap pairings.",
+ "types": [
+  "EmuquApp: extension — interrupted-session recovery and UI-test reset"
+ ],
+ "state": [
+  "ud:hasAcceptedHealthDisclaimer (UserDefaultsKeys.disclaimerAccepted, removed in UI-test reset)",
+  "ud:lastTrialReminderDate (UserDefaultsKeys.lastTrialReminderDate, removed)",
+  "ud:assistant.disclaimerAccepted (literal, removed)",
+  "ud:debug_isPurchased (literal, removed)",
+  "file:<AppGroup>/user_settings.json and Documents/user_settings.json (deleted in UI-test reset)",
+  "file:<AppGroup>/AppConfig.archiveDirectoryName and AppConfig.backupDirectoryName (deleted+recreated in UI-test reset)"
+ ],
+ "toplevel": "Whole UI-test reset body is inside #if DEBUG (184-197), so Release builds compile resetUITestStateIfRequested to an empty function.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "clearLaunchModalDefaults hardcodes 'assistant.disclaimerAccepted' and 'debug_isPurchased' instead of AssistantViewModel.disclaimerKey and StoreKitManager's private debugPurchasedKey; a rename of either constant silently stops the UI-test wipe from clearing it.",
+   "evidence": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:246",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:250",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:103",
+    "Emuqu/Sources/Services/StoreKitManager.swift:778"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc says -UITests-FreshInstall is 'set only by the OnboardingFlowUITests target', but 18 UI test files under EmuquUITests pass it (Dashboard, Settings, Fitness, Record, DataDeletion, ...).",
+   "evidence": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:176",
+    "EmuquUITests/DashboardUITests.swift",
+    "EmuquUITests/RecordTabUITests.swift"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func EmuquApp.logRebuildableWorkouts()",
+   "hash": "8187f6f27af15476",
+   "does": "Builds a HealthWorkoutImporter on the shared HealthKitManager and logs (info) up to 3 archived workouts that captured almost nothing and could be rebuilt from Apple Health.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive workout entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stubs is empty",
+     "effect": "returns silently; non-empty: logs count and summary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "130980037689363f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.checkForInterruptedSession()",
+   "hash": "bd8f65b70adbc5d8",
+   "does": "At launch (after modal gates), reads the persisted recording state; if its session is already archived clears the state; if previously dismissed skips; otherwise writes a termination report and raises the interrupted-session alert.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.logRebuildableWorkouts()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.isDismissed(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "archive:SessionArchive.exists"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState (cleared when archived)",
+    "file:CrashLogManager termination report",
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no persisted recording state",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "session already archived",
+     "effect": "clears persisted state and returns"
+    },
+    {
+     "at": "+8",
+     "cond": "session id previously dismissed",
+     "effect": "logs and returns without alert or report"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.isDismissed(_:)": "16ec228ec91d0370",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "4411e0672b48fb76",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.logRebuildableWorkouts()": "cbeef0bdb47b518d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)": "a3875ddc016a1204",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func EmuquApp.resumeInterruptedSession()",
+   "hash": "9f43e9a9ca3a5c78",
+   "does": "Resume button: clears the alert and starts a Task running resume(info).",
+   "entry": "Resume button of the resumable alert (EmuquApp.swift:582).",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resume(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "interruptedSessionAlert is nil",
+     "effect": "returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resume(_:)": "ccb811d5e90ead39"
+   }
+  },
+  {
+   "key": "func EmuquApp.resume(_:)",
+   "hash": "5241448c57663f70",
+   "does": "If launch auto-recovery already saved the session, shows 'Saved to your archive.'; otherwise recovers the backup into a paused collector state and shows the success/failure message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverToPausedState(_:sessionType:)",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.showRecoveryOutcome(success:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.recoveryResultMessage",
+    "mem:RRCollector paused session"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "savedByAutoRecovery returns a message",
+     "effect": "sets it and returns; nil: recoverToPausedState"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverToPausedState(_:sessionType:)": "00cce4f199298012",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "abd69078361e39f9",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.showRecoveryOutcome(success:)": "ab48f673b236cc66"
+   }
+  },
+  {
+   "key": "func EmuquApp.showRecoveryOutcome(success:)",
+   "hash": "36cbd9d5b70112e0",
+   "does": "Sets recoveryResultMessage to the restored or could-not-restore localized text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "success",
+     "effect": "restored message; false: points to Recover Lost Sessions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9"
+   }
+  },
+  {
+   "key": "func EmuquApp.recoverInterruptedSession()",
+   "hash": "6d4fb497cbce3f6b",
+   "does": "Save as Complete / Save to Archive: clears the alert and in a Task recovers a workout via recoverInterruptedWorkout or another session via recoverInterruptedRecording, then shows the result message.",
+   "entry": "Alert buttons (EmuquApp.swift:583, 596).",
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.interruptedSessionAlert",
+    "mem:EmuquApp.recoveryResultMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "interruptedSessionAlert is nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "sessionType == .workout",
+     "effect": "workout recovery; else RR backup recovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)": "a426fd7a5215bcc8",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)": "9a7e775852da8223"
+   }
+  },
+  {
+   "key": "func EmuquApp.recoverInterruptedWorkout(_:)",
+   "hash": "053fac4cc885c38e",
+   "does": "Workout recovery: if auto-recovery already archived it returns that message; else WorkoutRecoveryService.recover from archive/raw backup/CloudKit, clears persisted recording state regardless of outcome, and returns failure text or the outcome summary + archive note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)"
+   ],
+   "reads": [
+    "file:RawRRBackup",
+    "file:WorkoutTrackBackup"
+   ],
+   "writes": [
+    "archive:SessionArchive (recovered workout)",
+    "ck:session upload",
+    "ud:UserDefaultsKeys.persistedRecordingState (cleared)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "auto-recovery saved it",
+     "effect": "returns saved message"
+    },
+    {
+     "at": "+13",
+     "cond": "recover returned nil",
+     "effect": "returns could-not-recover text (state already cleared, backup kept)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)": "06e210dce05eee88",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "abd69078361e39f9",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "3c7b3b81903b91c0"
+   }
+  },
+  {
+   "key": "func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)",
+   "hash": "a5f1388978fe2566",
+   "does": "Returns 'Saved to your archive.' or the could-not-save/backup-kept text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wasArchived",
+     "effect": "saved text; false: backup-kept text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9"
+   }
+  },
+  {
+   "key": "func EmuquApp.savedByAutoRecovery(_:)",
+   "hash": "3672ea46ad7d5318",
+   "does": "Waits (up to InterruptedWorkoutAutoRecovery's 150 s default) for launch auto-recovery of this id; if the archive now holds it, clears persisted state and returns the saved message, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle"
+   ],
+   "reads": [
+    "archive:SessionArchive.exists"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState (cleared)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive does not contain sessionId",
+     "effect": "returns nil; else clears state and returns message"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.waitUntilDone(_:limit:)": "a9dc1f078d105b30",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "ef79d682d1c86be9",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+   }
+  },
+  {
+   "key": "func EmuquApp.recoverInterruptedRecording(_:)",
+   "hash": "459ad523571f2930",
+   "does": "Recovers an HRV/overnight session from the raw RR backup into the archive, clears persisted state, returns success or failure text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()"
+   ],
+   "reads": [
+    "file:RawRRBackup"
+   ],
+   "writes": [
+    "archive:SessionArchive",
+    "ud:UserDefaultsKeys.persistedRecordingState (cleared)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "recoverFromBackup returned nil",
+     "effect": "returns could-not-recover text; else saved text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "2032ea4920766602"
+   }
+  },
+  {
+   "key": "func EmuquApp.dismissInterruptedSession()",
+   "hash": "921542f2a06a34d1",
+   "does": "Dismiss: records the session id as dismissed (so the alert never re-fires) and clears the alert; persisted state and backup stay.",
+   "entry": "Dismiss buttons (EmuquApp.swift:584, 597).",
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markDismissed(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.dismissedInterruptedSessionIds",
+    "mem:EmuquApp.interruptedSessionAlert"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "interruptedSessionAlert non-nil",
+     "effect": "marks dismissed; then clears in both cases"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markDismissed(_:)": "613bfc31d6276f13"
+   }
+  },
+  {
+   "key": "func EmuquApp.resetUITestStateIfRequested()",
+   "hash": "da477539af25a5af",
+   "does": "Debug-only: when launched with -UITests-FreshInstall, removes launch-modal UserDefaults, resets the entitlement anchor, deletes settings files, wipes archive/backup directories and removes strap pairings. Release: empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSettingsFiles()",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSessionData()",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.removeAll()",
+    "ext:NSLog"
+   ],
+   "reads": [
+    "ext:CommandLine.arguments"
+   ],
+   "writes": [
+    "ud:hasAcceptedHealthDisclaimer",
+    "ud:lastTrialReminderDate",
+    "ud:assistant.disclaimerAccepted",
+    "ud:debug_isPurchased",
+    "kc:EntitlementAnchor",
+    "file:user_settings.json",
+    "file:archive directory",
+    "file:backup directory",
+    "ud:StrapPairingStore"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "arguments lack -UITests-FreshInstall",
+     "effect": "returns; present: performs the wipe"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.removeAll()": "a0d3f27a38f3b132",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.clearLaunchModalDefaults()": "7a8711a0fe464dd7",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSessionData()": "dfd57598bf17ecd6",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.removeStoredSettingsFiles()": "c2839ebd56cea7c8",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resetForUITesting()": "cf830dd4199620c7"
+   }
+  },
+  {
+   "key": "func EmuquApp.removeStoredSessionData()",
+   "hash": "5b2d1e8bbb2737a0",
+   "does": "Resets the archive and raw-backup App Group directories.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetSharedDirectory(named:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/archive dir",
+    "file:<AppGroup>/backup dir"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of archiveDirectoryName, backupDirectoryName",
+     "effect": "resetSharedDirectory for each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetSharedDirectory(named:)": "e258741b46724674"
+   }
+  },
+  {
+   "key": "func EmuquApp.resetSharedDirectory(named:)",
+   "hash": "6e81603aa80fe436",
+   "does": "Deletes the named App Group directory if it exists and recreates it empty; any error is NSLogged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "ext:FileManager.removeItem/createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/<name>"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "directory exists",
+     "effect": "removed first; absent: skip removal"
+    },
+    {
+     "at": "+7",
+     "cond": "remove/create throws",
+     "effect": "NSLog only; directory may remain or be missing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
+   }
+  },
+  {
+   "key": "func EmuquApp.clearLaunchModalDefaults()",
+   "hash": "c530dbe965bf2171",
+   "does": "Removes four launch-gating UserDefaults keys and synchronizes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:hasAcceptedHealthDisclaimer",
+    "ud:lastTrialReminderDate",
+    "ud:assistant.disclaimerAccepted",
+    "ud:debug_isPurchased"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "for each key",
+     "effect": "removeObject"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquApp.removeStoredSettingsFiles()",
+   "hash": "5f5da7c695f8b12f",
+   "does": "Deletes user_settings.json in the App Group and the legacy Documents copy; failures are swallowed by attempt().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup>/user_settings.json",
+    "file:Documents/user_settings.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Documents URL resolves",
+     "effect": "attempts removal of legacy file; nil: skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

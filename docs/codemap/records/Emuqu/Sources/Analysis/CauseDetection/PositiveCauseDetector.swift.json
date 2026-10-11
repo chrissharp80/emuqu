@@ -1,0 +1,287 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift",
+ "hash": "b9f69caf5b8cc870",
+ "role": "Strategy that, for good/excellent readings, lists positive contributors: sleep duration/efficiency/deep sleep, a recovery-day tag, upward weekly trend, RMSSD >20% above average and resting HR >5 bpm below baseline.",
+ "types": [
+  "PositiveCauseDetector: class (CauseDetectionStrategy)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PositiveCauseDetector.detectCauses(in:)",
+   "hash": "095d21c1a5acd0b5",
+   "does": "Returns [] unless good/excellent; otherwise sleep, tag and trend positives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectSleepPositives(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTagPositives(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTrendPositives(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not good and not excellent",
+     "effect": "returns [] (this is the normal path for poor readings through CauseDetector)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectSleepPositives(in:)": "ac3b61c612c9115d",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTagPositives(in:)": "0b34585c3e8d49bf",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectTrendPositives(in:)": "17dc9a8f0d9f8571"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.detectSleepPositives(in:)",
+   "hash": "efe92f78b8684910",
+   "does": "Concatenates solid sleep, efficiency and deep sleep causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.solidSleepDurationCause(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.sleepEfficiencyCause(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.deepSleepCause(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.deepSleepCause(in:)": "c83d760f1f894673",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.sleepEfficiencyCause(in:)": "da7a7d629553db26",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.solidSleepDurationCause(in:)": "d278f068ecd08903"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.solidSleepDurationCause(in:)",
+   "hash": "f612fef05d8d306a",
+   "does": "'Solid Sleep' (contributingFactor, 0.8) when total sleep >= sleepMinimumMinutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "totalSleepMinutes >= minimum",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.sleepEfficiencyCause(in:)",
+   "hash": "2ece4fc7c9e4811e",
+   "does": "'Excellent Sleep Quality' (0.75) when sleep efficiency present and >= good threshold.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "efficiency present and >= sleepEfficiencyGood",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.deepSleepCause(in:)",
+   "hash": "5e2ccf169da73eae",
+   "does": "'Strong Deep Sleep' (0.7) when deep-sleep minutes present and its share of total >= deepSleepGoodPercent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "deep minutes present and total > 0",
+     "effect": "computes percent"
+    },
+    {
+     "at": "+6",
+     "cond": "percent >= good",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.detectTagPositives(in:)",
+   "hash": "8ffe4a8803e1a3d6",
+   "does": "'Recovery Day' (moderateHigh, 0.7) when the recovery tag is selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recovery tag not selected",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.detectTrendPositives(in:)",
+   "hash": "91fa51bfe0063b92",
+   "does": "With trend data and >= 5 sessions, concatenates upward trend, above-baseline and low resting HR causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.upwardTrendCause(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.aboveBaselineCause(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.lowRestingHRCause(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no trend data or < 5 sessions",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.aboveBaselineCause(in:)": "83ba8103ea98345a",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.lowRestingHRCause(in:)": "d74b9f4f484d58d0",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.upwardTrendCause(in:)": "56b0f8947da629a2"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.upwardTrendCause(in:)",
+   "hash": "31dc4ba73bfe8ab5",
+   "does": "'Upward Trend' (pattern, 0.65) when trend7Day exists and is positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "trend7Day present and > 0",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.aboveBaselineCause(in:)",
+   "hash": "73f006f1ab206806",
+   "does": "'Above Your Baseline' (excellent, 0.8) when RMSSD > 1.2 × trendStats.avgRMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "rmssd > 1.2 × avg",
+     "effect": "adds cause with % above"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func PositiveCauseDetector.lowRestingHRCause(in:)",
+   "hash": "1e113b6374ffc99a",
+   "does": "'Low Resting HR' (goodSign, 0.6) when tonight's HR is > 5 bpm below trendStats.avgHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "avgHR > 0 and current HR present",
+     "effect": "computes drop"
+    },
+    {
+     "at": "+5",
+     "cond": "drop > 5",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "'Low Resting HR' is never exercised by tests: CauseDetectorTests contexts use HRVSession() with no analysisResult, so currentHR is nil.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:142",
+      "EmuquTests/CauseDetectorTests.swift:55"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

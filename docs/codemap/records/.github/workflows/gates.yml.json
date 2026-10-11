@@ -1,0 +1,436 @@
+{
+ "file": ".github/workflows/gates.yml",
+ "hash": "e5fa65fa0d4d746b",
+ "role": "Push/PR-triggered Linux workflow (\"Gates\") running the subset of `make ci` gates that need no Xcode, SwiftLint, plutil or simulator — the only CI that runs automatically.",
+ "types": [],
+ "state": [
+  "permissions contents: read"
+ ],
+ "toplevel": "Triggers: push to main, pull_request (all), workflow_dispatch. One job script-gates. Explicitly excluded (by header comment): lint, lint-budget, verify-gates (SwiftLint), check_privacy_manifest_vocabulary (plutil), test-coverage and thread-sanitizer (Xcode). Also absent without being listed: coremotion-isolation-guard, hr-feed-link-guard, release-build. The gate list is a hand-copied subset of Makefile `ci`; check_gates_wired.sh does not audit it.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
+   "evidence": [
+    ".github/workflows/gates.yml:7-20",
+    ".github/workflows/gates.yml:60",
+    "Makefile:48-53",
+    "Makefile:272",
+    ".github/workflows/ci.yml:273-280",
+    "scripts/check_gates_wired.sh:17",
+    "scripts/check_coremotion_handler_isolation.sh:36-37"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "job script-gates",
+   "hash": "bf1de162dca83e3c",
+   "does": "ubuntu-latest job \"Script gates (no Xcode)\" (timeout 15): runs the Makefile gates that need only bash/python/git, the code-map check (records current, re-checks, findings ratchet), on pull requests the code-map impact report to the job summary, then the budget ratchet. Required to pass before anything merges to main.",
+   "entry": "GitHub Actions job; triggered on push to main, pull_request (any branch), workflow_dispatch.",
+   "calls": [
+    ".github/workflows/gates.yml::step script-gates/Checkout",
+    ".github/workflows/gates.yml::step script-gates/Toolchain",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards",
+    ".github/workflows/gates.yml::step script-gates/Info.plist and CloudKit guards (the plutil-free two)",
+    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home",
+    ".github/workflows/gates.yml::step script-gates/Code map is current",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request",
+    ".github/workflows/gates.yml::step script-gates/The gates themselves are wired and fail closed",
+    ".github/workflows/gates.yml::step script-gates/Tech-debt budgets and refactor-spec conformance",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/gates.yml::step script-gates/Checkout": "72d9a6f0a231d718",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "dee3ea42e8cd6b89",
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "e6a86cff4afd94ad",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home": "bff13ed6353e7615",
+    ".github/workflows/gates.yml::step script-gates/Info.plist and CloudKit guards (the plutil-free two)": "74727d6ba76441df",
+    ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen": "4bc02855efcd4524",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "35e8a427fb74b719",
+    ".github/workflows/gates.yml::step script-gates/Tech-debt budgets and refactor-spec conformance": "4f88c83b9a783493",
+    ".github/workflows/gates.yml::step script-gates/The gates themselves are wired and fail closed": "fadf08095cf7abe6",
+    ".github/workflows/gates.yml::step script-gates/Toolchain": "21fa67f1c0ec935c",
+    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target comment-citations": "5d99132a7ed35a3d",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
+    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
+    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
+    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
+    "Makefile::target locale-format-guard": "3bc960e72737676f",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
+    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f",
+    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
+    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
+    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
+    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target sendable-guard": "16583da771b94003",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
+    "Makefile::target skip-budget": "5163df861fd66554",
+    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
+    "Makefile::target spec-conformance": "060f9ad7c55731da",
+    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
+    "Makefile::target uitest-reset-guard": "4f60211274aafec3",
+    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_codemap.sh::": "7556633b3058e90d",
+    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e",
+    "scripts/codemap/codemap.py::": "5d018c610440e0c2"
+   }
+  },
+  {
+   "key": "step script-gates/Checkout",
+   "hash": "8c99ed15e62f8b46",
+   "does": "actions/checkout with fetch-depth 0 (needed for HEAD~1 / origin/<base>).",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step script-gates/Toolchain",
+   "hash": "67faf2249fe7d679",
+   "does": "Prints python3 and bash versions (diagnostic only).",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "step script-gates/Copy perimeter, science register, scoring governance",
+   "hash": "08427db08ef714e2",
+   "does": "`make copy-perimeter perimeter-sync science-register scoring-governance`.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target copy-perimeter",
+    "Makefile::target perimeter-sync",
+    "Makefile::target science-register",
+    "Makefile::target scoring-governance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "step script-gates/Localization (coverage, bundle, resolution, orphans, argumen",
+   "hash": "5dea3ed150726506",
+   "does": "`make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard`.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target localization-guard",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target localization-resolution-guard",
+    "Makefile::target localization-orphan-guard",
+    "Makefile::target localization-format-guard",
+    "Makefile::target locale-format-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target locale-format-guard": "3bc960e72737676f",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-format-guard": "0d43f8954fa435e8",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Makefile::target localization-orphan-guard": "512d37327b9a5cb6",
+    "Makefile::target localization-resolution-guard": "a26107ccd4e06f9f"
+   }
+  },
+  {
+   "key": "step script-gates/Source hygiene guards",
+   "hash": "f1bb9f40cb20203c",
+   "does": "`make` of 19 source-hygiene targets (sendable-guard, no-unowned-guard, logger-self-reference-guard, license-header-guard, dated-comment-budget, shared-root-guard, snapshot-refs-guard, empty-range-guard, leaked-mutations-guard, eager-prompt-guard, date-ms-guard, log-redaction-guard, uitest-reset-guard, skip-budget, fixed-font-budget, orphan-swift-guard, aggregate-type-size, comment-citations, strict-concurrency-enabled). Does not include coremotion-isolation-guard or hr-feed-link-guard.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target sendable-guard",
+    "Makefile::target no-unowned-guard",
+    "Makefile::target logger-self-reference-guard",
+    "Makefile::target license-header-guard",
+    "Makefile::target dated-comment-budget",
+    "Makefile::target shared-root-guard",
+    "Makefile::target snapshot-refs-guard",
+    "Makefile::target empty-range-guard",
+    "Makefile::target leaked-mutations-guard",
+    "Makefile::target eager-prompt-guard",
+    "Makefile::target date-ms-guard",
+    "Makefile::target log-redaction-guard",
+    "Makefile::target uitest-reset-guard",
+    "Makefile::target skip-budget",
+    "Makefile::target fixed-font-budget",
+    "Makefile::target orphan-swift-guard",
+    "Makefile::target aggregate-type-size",
+    "Makefile::target comment-citations",
+    "Makefile::target strict-concurrency-enabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "gates.yml (the only automatically triggered workflow) claims to run every `make ci` gate that is plain bash/python, listing what it omits and why, but its target lists omit `coremotion-isolation-guard` and `hr-feed-link-guard`, both plain bash scripts with no Xcode/SwiftLint/plutil need. These guard a SIGTRAP crash that lost a recorded walk and an HR-subscribe hang that lost a night; they now run only on manual ci.yml or local `make ci` — the exact gap Makefile:48 says was fixed. gates.yml duplicates the Makefile `ci` list by hand, and check_gates_wired.sh audits only ci.yml, so nothing detects the omission.",
+     "evidence": [
+      ".github/workflows/gates.yml:7-20",
+      ".github/workflows/gates.yml:60",
+      "Makefile:48-53",
+      "Makefile:272",
+      ".github/workflows/ci.yml:273-280",
+      "scripts/check_gates_wired.sh:17",
+      "scripts/check_coremotion_handler_isolation.sh:36-37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Makefile::target aggregate-type-size": "c6dd8f45d377a846",
+    "Makefile::target comment-citations": "5d99132a7ed35a3d",
+    "Makefile::target date-ms-guard": "5d1483cc14f91acf",
+    "Makefile::target dated-comment-budget": "4d060a7644646ab1",
+    "Makefile::target eager-prompt-guard": "50d14b391de121e4",
+    "Makefile::target empty-range-guard": "0ed3afe7ec2b0df1",
+    "Makefile::target fixed-font-budget": "f95cc4fa94a7efcb",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target license-header-guard": "5a874a7a5519c7ff",
+    "Makefile::target log-redaction-guard": "a395242dcaec5ca7",
+    "Makefile::target logger-self-reference-guard": "298678b9de1426cd",
+    "Makefile::target no-unowned-guard": "8738ed86bce7f699",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Makefile::target sendable-guard": "16583da771b94003",
+    "Makefile::target shared-root-guard": "ebba2b132335fbf0",
+    "Makefile::target skip-budget": "5163df861fd66554",
+    "Makefile::target snapshot-refs-guard": "63830b2fa0ad1c7e",
+    "Makefile::target strict-concurrency-enabled": "04a0a73d7dea2e15",
+    "Makefile::target uitest-reset-guard": "4f60211274aafec3"
+   }
+  },
+  {
+   "key": "step script-gates/Info.plist and CloudKit guards (the plutil-free two)",
+   "hash": "1598c14ec120af85",
+   "does": "Runs scripts/check_no_health_data_in_cloudkit.sh && scripts/check_infoplist_key_drift.sh directly (the privacy-manifest vocabulary check needs plutil and is skipped on Linux).",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_no_health_data_in_cloudkit.sh",
+    "ext:script scripts/check_infoplist_key_drift.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/check_infoplist_key_drift.sh::": "0671ffbea1780273",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e"
+   }
+  },
+  {
+   "key": "step script-gates/Documentation, SBOM, no phone-home",
+   "hash": "40c4b8d6a9b3fc32",
+   "does": "`make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home`.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target doc-counts-guard",
+    "Makefile::target doc-links",
+    "Makefile::target sbom-guard",
+    "Makefile::target sbom-check",
+    "Makefile::target no-phone-home"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target doc-counts-guard": "bad28eeb1b91ef4b",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target no-phone-home": "28f9f3dd4f70e0ce",
+    "Makefile::target sbom-check": "e1a31616864cff02",
+    "Makefile::target sbom-guard": "66e379cb76f4a7ec"
+   }
+  },
+  {
+   "key": "step script-gates/Code map is current",
+   "hash": "d273ed7098ec9b99",
+   "does": "Runs `make codemap-setup` and then scripts/check_codemap.sh with the venv interpreter on the Linux runner, so every push to main and every pull request fails while any code-map record is missing, stale or due a re-check, or the open high/medium findings differ from their budgets.",
+   "entry": "gates.yml workflow (push to main, pull_request, manual dispatch), script-gates job",
+   "calls": [
+    "Makefile::target codemap-setup"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "scripts/check_codemap.sh::": "7556633b3058e90d"
+   }
+  },
+  {
+   "key": "step script-gates/Code map impact of this pull request",
+   "hash": "fd42a75facd44c72",
+   "does": "On pull requests only, and even when an earlier step failed (unless the run was cancelled): runs `codemap.py impact --base origin/$GITHUB_BASE_REF` with the venv interpreter, which writes the impact list for the PR's changes (callers up to triggers, tests, docs, shared state, open findings) to the job summary. Not a gate: it exits 0 whenever the base ref resolves. Uses the venv made by the previous step's codemap-setup; if that step failed before creating it, this step fails too.",
+   "entry": "gates.yml workflow on pull_request, script-gates job",
+   "calls": [
+    "scripts/codemap/codemap.py::def main"
+   ],
+   "reads": [
+    "env:GITHUB_BASE_REF"
+   ],
+   "writes": [
+    "file:$GITHUB_STEP_SUMMARY"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run not cancelled and event is pull_request",
+     "effect": "runs; otherwise skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/codemap/codemap.py::": "5d018c610440e0c2",
+    "scripts/codemap/codemap.py::def main": "6b5922b4852cf300"
+   }
+  },
+  {
+   "key": "step script-gates/The gates themselves are wired and fail closed",
+   "hash": "60cc919be205650b",
+   "does": "`make gates-wired-guard gate-preflight` (gates-wired audits ci.yml, not this file).",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target gates-wired-guard",
+    "Makefile::target gate-preflight"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5"
+   }
+  },
+  {
+   "key": "step script-gates/Tech-debt budgets and refactor-spec conformance",
+   "hash": "eeae8ec507c6d0a9",
+   "does": "`make debt-budget spec-conformance`.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "Makefile::target debt-budget",
+    "Makefile::target spec-conformance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target spec-conformance": "060f9ad7c55731da"
+   }
+  },
+  {
+   "key": "step script-gates/Debt budgets ratchet down only",
+   "hash": "7fcf1758e9d4b01a",
+   "does": "Budget ratchet: on a pull_request compares against origin/$GITHUB_BASE_REF (no require flag); otherwise against HEAD~1 with BUDGET_REQUIRE_BASELINE=1; on a root commit prints a message and passes.",
+   "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_budget_monotonicity.sh",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int"
+   ],
+   "reads": [
+    "file:.ci/*.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "GITHUB_BASE_REF non-empty (pull_request event)",
+     "effect": "compare against origin/<base>; BUDGET_REQUIRE_BASELINE unset, so an unresolvable base makes the script print \"skipping\" and exit 0"
+    },
+    {
+     "at": "+5",
+     "cond": "HEAD~1 resolves (push / dispatch)",
+     "effect": "compare against the parent commit with a baseline required; else (root commit) echo and pass without comparing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The budget ratchet compares only against the parent commit (HEAD~1). gates.yml runs once per push, so in a push of several commits a budget raised in any commit but the last is never compared; ci.yml is manual-only, so raises in commits between manual runs are never compared either. The `budget-raise-ok` trailer scan (git log BASE..HEAD) has the same one-commit window.",
+     "evidence": [
+      ".github/workflows/gates.yml:81-82",
+      ".github/workflows/ci.yml:124-126",
+      "scripts/check_budget_monotonicity.sh:113"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "On pull_request the script is called without BUDGET_REQUIRE_BASELINE, so if origin/<base> does not resolve the ratchet prints \"skipping\" and exits 0 — the green tick the script's own header says a gate must not give when it could not compare.",
+     "evidence": [
+      ".github/workflows/gates.yml:79-80",
+      "scripts/check_budget_monotonicity.sh:72-83",
+      "scripts/check_budget_monotonicity.sh:108-110"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/check_budget_monotonicity.sh::": "23f1134fee90b433",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+   }
+  }
+ ],
+ "deps": {}
+}

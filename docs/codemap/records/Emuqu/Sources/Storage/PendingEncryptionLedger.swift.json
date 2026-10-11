@@ -1,0 +1,298 @@
+{
+ "file": "Emuqu/Sources/Storage/PendingEncryptionLedger.swift",
+ "hash": "4c608671e8187f74",
+ "role": "UserDefaults-backed list of session / raw-backup ids written without app-layer encryption (key unavailable), with an in-memory locked cache and writes deferred to a serial utility queue; consumed by Archive and RawRRBackup re-encryption passes.",
+ "types": [
+  "PendingEncryptionLedger: enum — record/clear/pending/clearAll",
+  "PendingEncryptionLedger.Store: enum — session/rawBackup with their UserDefaults keys"
+ ],
+ "state": [
+  "ud:storage.pendingReencryption.sessionIDs",
+  "ud:storage.pendingReencryption.rawBackupIDs",
+  "mem:PendingEncryptionLedger.cache (OSAllocatedUnfairLock [Store: Set<UUID>])",
+  "mem:PendingEncryptionLedger.persistQueue (serial DispatchQueue storage.pendingReencryption.persist)"
+ ],
+ "toplevel": "Static stored properties built lazily on first use.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PendingEncryptionLedger.pending",
+   "hash": "1101538f512de992",
+   "does": "Pending ids for the session store.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c85629c52ed2861d"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.pending(in:)",
+   "hash": "1799bba9c96f8ac4",
+   "does": "Returns the cached id set for a store (loading it from UserDefaults on first use) under the lock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.record(_:)",
+   "hash": "97b4fa4ef9da4eb8",
+   "does": "Records a session id (store .session).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "46e4c74baeb23ced"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.clear(_:)",
+   "hash": "dccd1ed9a54546a5",
+   "does": "Clears a session id (store .session).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "34c488564d5b9a6e"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.record(_:in:)",
+   "hash": "727eb898f4249443",
+   "does": "Inserts id into the store's cached set; when newly inserted schedules an async UserDefaults write and logs at .error with the pending count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [
+    "mem:PendingEncryptionLedger.cache",
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id already present",
+     "effect": "return nil (no persist/log)"
+    },
+    {
+     "at": "+7",
+     "cond": "count nil",
+     "effect": "return; else persist+log"
+    },
+    {
+     "at": "+10",
+     "cond": "store == .session",
+     "effect": "log label \"session\"; else \"raw backup\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.clear(_:in:)",
+   "hash": "56a2c431895b3cf1",
+   "does": "Removes id from the store's cached set; schedules persistence when it was present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
+   ],
+   "reads": [
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [
+    "mem:PendingEncryptionLedger.cache",
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id not present",
+     "effect": "return false"
+    },
+    {
+     "at": "+7",
+     "cond": "changed",
+     "effect": "schedule persist; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.clearAll()",
+   "hash": "0df1c6c8e15e5bc7",
+   "does": "Empties both stores in memory and schedules removal of both UserDefaults keys.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PendingEncryptionLedger.cache",
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.schedulePersist(_:)": "a4dc8ab262237cce"
+   }
+  },
+  {
+   "key": "func PendingEncryptionLedger.waitForPendingWrites()",
+   "hash": "74a0f2c2df2eb288",
+   "does": "Blocks until the persist queue has drained (persistQueue.sync {}).",
+   "entry": null,
+   "calls": [
+    "ext:DispatchQueue.sync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only tests call it (PendingEncryptionLedgerTests.swift:111,125,149); no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:115",
+      "EmuquTests/PendingEncryptionLedgerTests.swift:111"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PendingEncryptionLedger.ids(_:in:)",
+   "hash": "074f6d154862977c",
+   "does": "Returns the cached set for store, loading it from UserDefaults (invalid UUID strings dropped) the first time and caching it.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.stringArray"
+   ],
+   "reads": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs",
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "store cached",
+     "effect": "return cached"
+    },
+    {
+     "at": "+2",
+     "cond": "UserDefaults key absent",
+     "effect": "?? [] → empty set"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The list is read from UserDefaults once and cached; schedulePersist then writes the whole cached set over the key (line 135). If the first read returns nothing although ids are stored (UserDefaults unreadable, e.g. before first unlock, which is the trigger the type documents at lines 15-17), the next record/clear overwrites the stored list with only the new ids, and the earlier plaintext files are never re-encrypted.",
+     "evidence": [
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:123",
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:125",
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:135",
+      "Emuqu/Sources/Storage/PendingEncryptionLedger.swift:16"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func PendingEncryptionLedger.schedulePersist(_:)",
+   "hash": "4dc700cacef46e5a",
+   "does": "Asynchronously on the persist queue writes the store's current set to UserDefaults (sorted UUID strings) or removes the key when empty.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.set",
+    "ext:UserDefaults.removeObject"
+   ],
+   "reads": [
+    "mem:PendingEncryptionLedger.cache"
+   ],
+   "writes": [
+    "ud:storage.pendingReencryption.sessionIDs",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "store missing from cache",
+     "effect": "?? [] → treated empty"
+    },
+    {
+     "at": "+3",
+     "cond": "set empty",
+     "effect": "removeObject; else set sorted array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc"
+   }
+  }
+ ],
+ "deps": {}
+}

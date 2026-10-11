@@ -1,0 +1,97 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift",
+ "hash": "77bf2ca307f58c07",
+ "role": "Extension of TrainingMetricsCache holding the rebuild rule: load settings that force a rebuild, the HistoricalKey a series build depends on, throttle constants, and a SHA-256 fingerprint of HealthKit workouts.",
+ "types": [
+  "TrainingMetricsCache.LoadSettings: struct Codable — restingHR, maxHR, isFemale, ftp anchors",
+  "TrainingMetricsCache.HistoricalKey: struct — archive/healthKit fingerprints, day, settings, anchors"
+ ],
+ "state": [
+  "static burstThrottleSec = 300",
+  "static unchangedMaxAgeSec = 1800"
+ ],
+ "toplevel": "No top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init TrainingMetricsCache.LoadSettings(_:)",
+   "hash": "a514be829304d695",
+   "does": "Captures effective resting/max HR, female flag and the current FTP anchors (manual FTP or FTPAutoEstimator cache) from settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP (via FTPAnchors.current)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424"
+   }
+  },
+  {
+   "key": "func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)",
+   "hash": "22bf0797408190da",
+   "does": "Rebuild rule: true when no result or lastUpdated nil, or settings changed; otherwise true once the result is older than 300 s (observed change) or 1800 s (no observed change).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "lastUpdated set and hasResult",
+     "effect": "false: true (rebuild)"
+    },
+    {
+     "at": "+8",
+     "cond": "settingsChanged",
+     "effect": "true: rebuild immediately"
+    },
+    {
+     "at": "+10",
+     "cond": "observedChange",
+     "effect": "threshold 300 s; else 1800 s"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingMetricsCache.healthKitFingerprint(_:)",
+   "hash": "272b0e08f712c987",
+   "does": "SHA-256 hex over each HK workout (sorted by start) of start epoch, duration, type, averageHR (or -1), precomputedLoad (or -1).",
+   "entry": null,
+   "calls": [
+    "ext:CryptoKit.SHA256"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each workout sorted by date",
+     "effect": "hashes its line"
+    },
+    {
+     "at": "+5",
+     "cond": "averageHR ?? -1 / precomputedLoad ?? -1",
+     "effect": "-1 placeholder when absent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40"
+   }
+  }
+ ],
+ "deps": {}
+}

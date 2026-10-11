@@ -1,0 +1,189 @@
+{
+ "file": "EmuquTests/SessionStorageDiagnosticTests.swift",
+ "hash": "c539475080950f5d",
+ "role": "Tests SessionStorageDiagnostic.status (RR data presence classification for the diagnostics screen: both/archive-only/backup-only/neither, any beat counts) and statusCounts tallying.",
+ "types": [
+  "SessionStorageDiagnostic.RRStatus typealias Status (private)",
+  "SessionStorageDiagnosticTests: class — XCTestCase for storage diagnostics classification"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "Only the pure status() table and statusCounts are tested. The path that decides what a user with a corrupt archive file sees is untested: inspectSession returns .unreadable with backupBeats forced to 0 without consulting the backup index, so a session whose archive JSON fails to decode but whose RawRRBackup holds every beat is reported as unreadable rather than repairable (repairableCount counts only .backupOnly).",
+   "evidence": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:144",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:145",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:83",
+    "EmuquTests/SessionStorageDiagnosticTests.swift:16"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SessionStorageDiagnosticTests.testBothSourcesPresent()",
+   "hash": "b4f6ae2760f87927",
+   "does": "Asserts 5000/5000 beats → .bothPresent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testArchiveOnly()",
+   "hash": "1507627ba02a2019",
+   "does": "Asserts archive 5000, backup 0 → .archivedFull.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testBackupOnly()",
+   "hash": "514289421c4fc730",
+   "does": "Asserts archive 0, backup 5000 → .backupOnly.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testNeitherSourceHasBeats()",
+   "hash": "520a8214c5a10353",
+   "does": "Asserts 0/0 → .neither.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testOneBeatIsNotNothing()",
+   "hash": "059cc426f750b926",
+   "does": "Asserts a single beat on either side counts as present (.archivedFull / .backupOnly).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "8bf726dab1329fe1"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.report(_:)",
+   "hash": "e9d1d7413e05bfd3",
+   "does": "Builds a SessionReport with the given status and matching 100/0 archive and backup beat counts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "status is .archivedFull or .bothPresent",
+     "effect": "archiveBeatCount 100; else 0"
+    },
+    {
+     "at": "+8",
+     "cond": "status is .backupOnly or .bothPresent",
+     "effect": "backupBeatCount 100; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testCountsTallyEachStatus()",
+   "hash": "c9ad715f468eb4a5",
+   "does": "Asserts statusCounts of [both,both,archived,neither] is 2/1/1 and has no .backupOnly key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793",
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "7ba384fd900a0483"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testEmptyInputTalliesNothing()",
+   "hash": "7aca13c2a7434f6e",
+   "does": "Asserts statusCounts of [] is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnosticTests.testTotalOfCountsMatchesInput()",
+   "hash": "54ff6f1e176c40f6",
+   "does": "Asserts the counts for 7 alternating reports sum to 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index is even",
+     "effect": "report .bothPresent; else .backupOnly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "d892404f8dd7c793",
+    "EmuquTests/SessionStorageDiagnosticTests.swift::func SessionStorageDiagnosticTests.report(_:)": "7ba384fd900a0483"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,839 @@
+{
+ "file": "Emuqu/Sources/Analysis/TrendAnalysis.swift",
+ "hash": "f89c871051011e38",
+ "role": "TrendAnalyzer: builds per-metric TrendStatistics (mean/SD/percentiles/CV/slope/7-day baseline/verdict) and English insight lines from reliable overnight sessions over a period; consumed by the assistant (AssistantContextSource, AppFactResolver+Sleep).",
+ "types": [
+  "TrendAnalyzer: enum — trend statistics",
+  "TrendAnalyzer.TrendDataPoint: struct Codable Identifiable — one session's metrics",
+  "TrendDataPoint.Metrics: private struct — defaults for unanalysed sessions",
+  "TrendAnalyzer.TrendStatistics: struct — per-metric stats",
+  "TrendAnalyzer.TrendDirection: enum String — improving/stable/declining/rising/falling/insufficient",
+  "TrendAnalyzer.TrendSummary: struct",
+  "TrendAnalyzer.TimePeriod: enum — week…all",
+  "TrendAnalyzer.AllStatistics: private struct",
+  "TrendAnalyzer.TrendRule: struct — higherIsBetter + scale",
+  "TrendAnalyzer.ChartMetric: enum String — chartable metrics"
+ ],
+ "state": [],
+ "toplevel": "TrendDataPoint has synthesized Codable; ChartMetric raw values are English display strings.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init TrendAnalyzer.TrendDataPoint.Metrics(_:)",
+   "hash": "1a15e8817dd3b776",
+   "does": "Copies time-domain, frequency, DFA, ANS and artifact% from an HRVAnalysisResult; with nil result leaves rmssd/sdnn/meanHR 0 and artifactPercent 100.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result non-nil",
+     "effect": "false → defaults (zeros, artifact 100%)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "init TrendAnalyzer.TrendDataPoint(session:)",
+   "hash": "957add4f8909b1bb",
+   "does": "Builds a TrendDataPoint from an HRVSession (id, startDate, morning feeling + tags, analysis metrics).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint.Metrics(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint.Metrics(_:)": "8db9c8eb2b280d33",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "var TrendAnalyzer.TimePeriod.days",
+   "hash": "ae6c039afdf2868e",
+   "does": "Days per period: 7/14/30/90, nil for all.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "week",
+     "effect": "7"
+    },
+    {
+     "at": "+3",
+     "cond": "twoWeeks",
+     "effect": "14"
+    },
+    {
+     "at": "+4",
+     "cond": "month",
+     "effect": "30"
+    },
+    {
+     "at": "+5",
+     "cond": "threeMonths",
+     "effect": "90"
+    },
+    {
+     "at": "+6",
+     "cond": "all",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrendAnalyzer.TimePeriod.displayName",
+   "hash": "9df2b330b8fc2bc2",
+   "does": "Unlocalized English period name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "week",
+     "effect": "'7 Days'"
+    },
+    {
+     "at": "+3",
+     "cond": "twoWeeks",
+     "effect": "'14 Days'"
+    },
+    {
+     "at": "+4",
+     "cond": "month",
+     "effect": "'30 Days'"
+    },
+    {
+     "at": "+5",
+     "cond": "threeMonths",
+     "effect": "'90 Days'"
+    },
+    {
+     "at": "+6",
+     "cond": "all",
+     "effect": "'All Time'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "TimePeriod.displayName is only referenced by EmuquTests/TrendAnalysisTests.swift:392-394; no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:151"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.analyze(sessions:period:)",
+   "hash": "0acf848999e20706",
+   "does": "Filters to reliable overnight analysed sessions within the period, requires ≥2 points, computes all statistics and insights and returns a TrendSummary whose overallTrend is the RMSSD trend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "≥ 2 data points",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+7",
+     "cond": "first/last exist",
+     "effect": "false → nil (unreachable after count check)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "49c6adaf84b943df"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.filteredDataPoints(sessions:period:)",
+   "hash": "8585afd35b68eee2",
+   "does": "Keeps sessions with analysisResult, sessionType .overnight and isReliableForHRVAggregates; logs drops; requires ≥2; maps to TrendDataPoint, applies period cutoff, sorts by date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "some sessions dropped",
+     "effect": "true → debugLog"
+    },
+    {
+     "at": "+12",
+     "cond": "≥ 2 valid sessions",
+     "effect": "false → debugLog and []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "80e0cb434cd1c59b",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "c1d69059100f781f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.withinPeriod(_:period:)",
+   "hash": "c98223ebb70949d3",
+   "does": "Drops points older than now − period.days (Calendar.current); .all returns input unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "period has days and cutoff computable",
+     "effect": "false → unfiltered"
+    },
+    {
+     "at": "+5",
+     "cond": "filter removed points",
+     "effect": "true → debugLog"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "36f2819ab6740ce8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.computeAllStatistics(dataPoints:)",
+   "hash": "32b4a3123104db8a",
+   "does": "Computes RMSSD/SDNN (log, higher better), Mean HR (linear, lower better), and optional LF/HF (log, lower better), DFA α1 (linear, no direction), Stress Index (linear, lower better), Readiness (linear, higher better).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)": "ad91096243908ced",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)",
+   "hash": "e39106ffa5da3f1a",
+   "does": "Extracts non-nil values and matching dates; nil when fewer than 2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "≥ 2 values",
+     "effect": "false → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "0c467bd9fa808f95"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.computeRollingBaseline(values:dates:windowDays:)",
+   "hash": "2b4778e29261a34f",
+   "does": "For each value, mean of readings in the prior windowDays (strictly before its date), falling back to the value itself; returns input unchanged if arrays differ in length.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "values.count == dates.count",
+     "effect": "false → returns values"
+    },
+    {
+     "at": "+7",
+     "cond": "prior-window mean nil",
+     "effect": "fallback to values[i]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "10ae86dbbad561fd"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)",
+   "hash": "355f8bb053f33955",
+   "does": "Mean of values with dates in [date − windowDays, date) among earlier indices; nil if none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "window start computable",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+6",
+     "cond": "window non-empty",
+     "effect": "false → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)",
+   "hash": "27461f027acd2c69",
+   "does": "Per-metric stats: mean, sample SD, CV, sorted min/max, nearest-rank p25/p75, per-day slope, TrendVerdict-based direction, and rolling baseline/deviation of the last value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:mean:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "n ≥ 2",
+     "effect": "false → insufficientStatistics"
+    },
+    {
+     "at": "+10",
+     "cond": "mean > 0",
+     "effect": "true → CV = sd/mean·100; false → 0"
+    },
+    {
+     "at": "+12",
+     "cond": "sorted first/last exist",
+     "effect": "false → emptyRangeStatistics (unreachable for n ≥ 2)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "emptyRangeStatistics is only reachable when a sorted array of ≥2 values has no first/last, which cannot happen.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:304",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:309",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:356"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "eb395310f3a332ff",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)": "336025d22ce6dde9",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:mean:)": "f1f8de40b0f82f62",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)": "8fbcf539efc74a29",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)": "9422f1f3a728c638",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)": "275a434bcd54f1d5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.baselineDeviation(values:dates:mean:)",
+   "hash": "eff37c17f1ff1861",
+   "does": "Last value of computeRollingBaseline(7 days) as baseline and (current−baseline)/baseline·100 as deviation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeRollingBaseline(values:dates:windowDays:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "values.last nil",
+     "effect": "fallback mean (unreachable for n ≥ 2)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When no reading falls in the 7 days before the last one, the 'baseline' is the last value itself, so deviation is 0% and TrendStatistics.baseline reports today's value as the baseline.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:279",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:331"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeRollingBaseline(values:dates:windowDays:)": "122b382b28e66610"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.insufficientStatistics(metric:values:)",
+   "hash": "5df65b9648afd1cb",
+   "does": "Stats for <2 values: single value (or 0) everywhere, trend .insufficient.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "values.first nil",
+     "effect": "mean 0"
+    },
+    {
+     "at": "+6",
+     "cond": "values.first nil",
+     "effect": "min 0"
+    },
+    {
+     "at": "+7",
+     "cond": "values.first nil",
+     "effect": "max 0"
+    },
+    {
+     "at": "+8",
+     "cond": "values.first nil",
+     "effect": "p25 0"
+    },
+    {
+     "at": "+9",
+     "cond": "values.first nil",
+     "effect": "p75 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.emptyRangeStatistics(metric:count:mean:sd:cv:)",
+   "hash": "99a2d7d77433f1fc",
+   "does": "Stats with zeroed range and .insufficient trend.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.direction(of:rule:)",
+   "hash": "0f35f717856145b3",
+   "does": "Maps TrendVerdict movement to TrendDirection: insufficient→insufficient, flat→stable, up/down → rising/falling when no better direction, else improving/declining by higherIsBetter.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .insufficient",
+     "effect": "→ .insufficient"
+    },
+    {
+     "at": "+3",
+     "cond": "case .flat",
+     "effect": "→ .stable"
+    },
+    {
+     "at": "+4",
+     "cond": "case .up/.down",
+     "effect": "directional"
+    },
+    {
+     "at": "+6",
+     "cond": "higherIsBetter nil",
+     "effect": "→ rising/falling"
+    },
+    {
+     "at": "+7",
+     "cond": "wentUp == better",
+     "effect": "true → .improving; false → .declining"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.linearRegressionSlope(values:dates:)",
+   "hash": "454f3a3c6c36bdeb",
+   "does": "OLS slope per day since first date (index fallback if dates mismatch).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n ≥ 2",
+     "effect": "false → 0"
+    },
+    {
+     "at": "+3",
+     "cond": "dates align with values",
+     "effect": "true → day offsets; false → indices"
+    },
+    {
+     "at": "+12",
+     "cond": "loop",
+     "effect": "accumulate"
+    },
+    {
+     "at": "+16",
+     "cond": "denominator > 0",
+     "effect": "false → 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrendAnalyzer.rmssdInsights(_:)",
+   "hash": "2927c19d9b6576c7",
+   "does": "RMSSD insights: trend sentence (improving/declining/stable), high-variability note when CV > 25%, plus baseline-deviation insights.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "trend improving",
+     "effect": "upward sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "trend declining",
+     "effect": "advises reducing training/rest day"
+    },
+    {
+     "at": "+7",
+     "cond": "trend stable",
+     "effect": "stable sentence"
+    },
+    {
+     "at": "+9",
+     "cond": "insufficient/rising/falling",
+     "effect": "no sentence"
+    },
+    {
+     "at": "+12",
+     "cond": "CV > 25",
+     "effect": "variability sentence"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:)": "0d019d2dfb4d03b3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "9686a279442b4e4a"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.baselineDeviationInsights(_:)",
+   "hash": "1a81277b47907609",
+   "does": "Last-value deviation < −15% → 'below baseline. Consider a rest day'; > +15% → 'above baseline'; else none.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviation present",
+     "effect": "false → []"
+    },
+    {
+     "at": "+2",
+     "cond": "deviation < −15",
+     "effect": "rest-day line"
+    },
+    {
+     "at": "+5",
+     "cond": "deviation > 15",
+     "effect": "above-baseline line; else []"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The insight calls the LAST reading in the period 'Today's HRV' and advises a rest day, whatever its date. analyze() is run over .month/.all and over period-windowed archives for the assistant, so a reading days or weeks old is reported to Flo as today's HRV with rest-day advice.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:332",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:437",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:442",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:762",
+      "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift:93"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.autonomicInsights(stress:readiness:)",
+   "hash": "b2a18ff00610e777",
+   "does": "Stress mean > 150 → elevated line; mean < 50 and trend not declining → low line; readiness improving → improving line, else mean < 5 → below-optimal line.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "stress stats present",
+     "effect": "else skipped"
+    },
+    {
+     "at": "+6",
+     "cond": "stress mean > 150",
+     "effect": "elevated line"
+    },
+    {
+     "at": "+8",
+     "cond": "mean < 50 and trend != declining",
+     "effect": "low line"
+    },
+    {
+     "at": "+12",
+     "cond": "readiness stats present",
+     "effect": "else skipped"
+    },
+    {
+     "at": "+13",
+     "cond": "readiness improving",
+     "effect": "improving line"
+    },
+    {
+     "at": "+15",
+     "cond": "readiness mean < 5",
+     "effect": "below-optimal line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)",
+   "hash": "0d83a6f8bbf13da6",
+   "does": "HR improving (falling) with slope < −0.5 bpm/day → adaptation line; more than a third of points with artifact > 5% → sensor-contact line.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "hr improving and slope < −0.5",
+     "effect": "adaptation line"
+    },
+    {
+     "at": "+10",
+     "cond": "high-artifact sessions > count/3",
+     "effect": "contact line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)",
+   "hash": "7ba44154ee2231cc",
+   "does": "Concatenates RMSSD, autonomic and HR/quality insights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)": "6d2edb1c807fa0f3",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)": "127505ddfa6a5471",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:)": "847179b40442906c"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.chartData(from:metric:)",
+   "hash": "ad4f5c631c383479",
+   "does": "Chart-ready (date, value) pairs for a metric, skipping nil values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.value(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "value present",
+     "effect": "false → skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "chartData(from:metric:) is only called by EmuquTests/TrendAnalysisTests.swift:359-376; no production caller (grep 'chartData(from').",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:508"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.value(of:in:)": "b700a4ea4f4e4ea9"
+   }
+  },
+  {
+   "key": "func TrendAnalyzer.value(of:in:)",
+   "hash": "731013a20e8eef71",
+   "does": "Returns the TrendDataPoint field for the ChartMetric.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .rmssd",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+3",
+     "cond": "case .sdnn",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .meanHR",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+5",
+     "cond": "case .lfHfRatio",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .hf",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+7",
+     "cond": "case .lf",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+8",
+     "cond": "case .dfaAlpha1",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+9",
+     "cond": "case .stressIndex",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+10",
+     "cond": "case .readiness",
+     "effect": "returns that field (nil for missing optional)"
+    },
+    {
+     "at": "+11",
+     "cond": "case .morningFeeling",
+     "effect": "returns that field (nil for missing optional)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "value(of:in:) is only called by chartData(from:metric:), whose only callers are EmuquTests/TrendAnalysisTests.swift:359-376; ChartMetric likewise has no production use (grep 'ChartMetric' outside TrendAnalysis.swift: none).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:513",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:518",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:533"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,249 @@
+{
+ "file": "Emuqu/Sources/Views/ChartCard.swift",
+ "hash": "995402818b30e14a",
+ "role": "Generic card container for Swift Charts: title + optional unit chip, chart at fixed aspect ratio, optional legend, and loading / building-baseline / no-data states.",
+ "types": [
+  "ChartCard<Content>: struct View — chart card",
+  "ChartCard.DisplayState: enum — default/loading/buildingBaseline/noData"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "No caller passes `state:` or `legend:` (all 8 ChartCard(...) uses in HRVDetailV2View+Charts, VitalsDetailV2View, RecoveryScoreDetailView+Charts, TrendsV2View+Charts, SleepDetailV2View pass only title/unitLabel/aspectRatio/content), so the loading, buildingBaseline and noData states, baselineOverlay, emptyState, ctaButton and the legend slot are never used.",
+   "evidence": [
+    "Emuqu/Sources/Views/ChartCard.swift:11",
+    "Emuqu/Sources/Views/ChartCard.swift:13",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:14",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift:517"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ChartCard.body",
+   "hash": "f4f9f68aa15211a2",
+   "does": "VStack of titleRow, chartArea and optional legend on a rounded card background.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.titleRow",
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.chartArea"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "legend non-nil",
+     "effect": "renders it; otherwise nothing (no caller sets it)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.chartArea": "39d35357058b2a97",
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.titleRow": "eb8e1d8656f18927",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChartCard.titleRow",
+   "hash": "6848b35b2e432bd0",
+   "does": "HStack of title text and unit chip.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.unitChip"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.unitChip": "6b00566e9afe550a",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var ChartCard.unitChip",
+   "hash": "692bad630a0f7085",
+   "does": "Capsule chip with unitLabel when set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "unitLabel non-nil",
+     "effect": "shows chip; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var ChartCard.chartArea",
+   "hash": "a9001ae9cb803ee8",
+   "does": "Switches on DisplayState to show the chart, a grey loading placeholder, the dimmed chart with a baseline message, or an empty state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.baselineOverlay(_:)",
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.emptyState(_:ctaLabel:onTap:)",
+    "closure:content — the chart builder passed by each ChartCard call site"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .default",
+     "effect": "content at aspect ratio (the only case any caller uses)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .loading",
+     "effect": "grey rounded rectangle placeholder (no caller)"
+    },
+    {
+     "at": "+10",
+     "cond": "case .buildingBaseline",
+     "effect": "baselineOverlay(message) (no caller)"
+    },
+    {
+     "at": "+12",
+     "cond": "case .noData",
+     "effect": "emptyState with optional CTA (no caller)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Only .default is reachable: state defaults to .default and no call site sets it.",
+     "evidence": [
+      "Emuqu/Sources/Views/ChartCard.swift:11",
+      "Emuqu/Sources/Views/ChartCard.swift:65",
+      "Emuqu/Sources/Views/ChartCard.swift:69",
+      "Emuqu/Sources/Views/ChartCard.swift:71"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.baselineOverlay(_:)": "dc35a6b83e870185",
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.emptyState(_:ctaLabel:onTap:)": "cde3148c4cbecc59",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ChartCard.baselineOverlay(_:)",
+   "hash": "4e1b629948aeebcd",
+   "does": "Chart at 35% opacity with a capsule message on top.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "closure:content"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only reached via .buildingBaseline, which no caller uses.",
+     "evidence": [
+      "Emuqu/Sources/Views/ChartCard.swift:69"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func ChartCard.emptyState(_:ctaLabel:onTap:)",
+   "hash": "19d0ebce7370107e",
+   "does": "Message text plus optional CTA button at the chart's aspect ratio.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.ctaButton(_:onTap:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only reached via .noData, which no caller uses.",
+     "evidence": [
+      "Emuqu/Sources/Views/ChartCard.swift:71"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ChartCard.swift::func ChartCard.ctaButton(_:onTap:)": "646a806c2249a796",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func ChartCard.ctaButton(_:onTap:)",
+   "hash": "82a8dd5a8034d644",
+   "does": "Capsule button calling onTap when a CTA label is given.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "closure:onTap from DisplayState.noData (never constructed)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ctaLabel non-nil",
+     "effect": "shows button; otherwise nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ctaButton is only reached from emptyState via DisplayState.noData, which no ChartCard call site constructs (all 8 call sites pass only title/unitLabel/aspectRatio/content); grep finds no `.noData(` for ChartCard.",
+     "evidence": [
+      "Emuqu/Sources/Views/ChartCard.swift:72",
+      "Emuqu/Sources/Views/ChartCard.swift:94",
+      "Emuqu/Sources/Views/ChartCard.swift:100"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

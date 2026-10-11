@@ -1,0 +1,39 @@
+{
+ "file": "scripts/check_thread_sanitizer.sh",
+ "hash": "eec1a395197b7b32",
+ "role": "CI gate (ci.yml thread-sanitizer job when inputs.scope != 'gates'; make thread-sanitizer) that runs the EmuquTests unit target under Thread Sanitizer and fails on any TSan warning or test failure.",
+ "types": [],
+ "state": [
+  "env:SCHEME/PROJECT/TSAN_DERIVED_DATA (default build/DD-tsan)/DESTINATION",
+  "file:$TMPDIR/tsan.XXXXXX log (temp, removed on EXIT)",
+  "env:GITHUB_STEP_SUMMARY (append)"
+ ],
+ "toplevel": "set -euo pipefail; sources lib/preflight.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output ('id=<udid>'). gate_mktemp log (exit on failure). Runs `xcodebuild test -enableThreadSanitizer YES -only-testing:EmuquTests` into the log with set +e. Counts 'WARNING: ThreadSanitizer', \"' passed\", \"' failed\" lines. races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints first 20 failed lines; else greps build-error markers and tails the log; exits with xcodebuild's status. Else appends summary. Header comment is stale: it says the app is 'in Swift 5 language mode' with '45 @unchecked Sendable / nonisolated(unsafe) escapes', while check_strict_concurrency_enabled.sh enforces SWIFT_VERSION = 6.0 in all 8 configurations and the actual escape count/budget is 14.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header claims Swift 5 language mode and 45 unchecked escapes; the project is Swift 6.0 in all configs (enforced by check_strict_concurrency_enabled.sh) and .ci/unchecked_sendable_budget.txt is 14 with 14 real hits.",
+   "evidence": [
+    "scripts/check_thread_sanitizer.sh:8",
+    "scripts/check_thread_sanitizer.sh:9",
+    "scripts/check_strict_concurrency_enabled.sh:54",
+    ".ci/unchecked_sendable_budget.txt"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "In the build-failure path, `grep -E ... | head -40 >&2` under `set -e -o pipefail` aborts the script with grep's status 1 when no marker line matches, so the promised 'last 40 lines of the xcodebuild log' are never printed and the exit code becomes 1 instead of xcodebuild's status.",
+   "evidence": [
+    "scripts/check_thread_sanitizer.sh:72",
+    "scripts/check_thread_sanitizer.sh:74",
+    "scripts/check_thread_sanitizer.sh:75"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

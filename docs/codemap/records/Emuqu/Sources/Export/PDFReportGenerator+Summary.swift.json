@@ -1,0 +1,512 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift",
+ "hash": "7198601b88bf71e7",
+ "role": "The 'What This Means' PDF section: runs AnalysisSummaryGenerator (same as MorningResultsView) with the report's sleep, trend, training context and baseline, then lays out the diagnostic card, probable causes, key findings, actionable steps and disclaimer with measured, paginated blocks.",
+ "types": [
+  "PDFReportGenerator: extension — analysis summary section",
+  "PDFReportGenerator.SummaryPager: struct — page number/context/rect shared while summary blocks paginate"
+ ],
+ "state": [],
+ "toplevel": "File-scope private helper summarySleepTrendInput.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PDFReportGenerator.drawAnalysisSummarySection(_:yPosition:pageNumber:in:pageRect:)",
+   "hash": "95d29bd2cb23c6b5",
+   "does": "Generates the analysis summary for the report inputs and draws title, diagnostic card, probable causes, key findings, actionable steps and disclaimer, paginating via SummaryPager and writing the final page number back through the inout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.analysisSummary(result:session:sleepData:sleepTrend:recentSessions:trainingContext:baselineStats:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryTitle(y:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDiagnosticCard(_:y:contentWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryProbableCauses(_:y:contentWidth:pager:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryKeyFindings(_:y:contentWidth:pager:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryActionableSteps(_:y:contentWidth:pager:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDisclaimer(y:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.analysisSummary(result:session:sleepData:sleepTrend:recentSessions:trainingContext:baselineStats:)": "2121c383e0a8d3be",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryActionableSteps(_:y:contentWidth:pager:)": "8bfbe38ddaca24d1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDiagnosticCard(_:y:contentWidth:)": "1797c9bfe6eb01da",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryDisclaimer(y:contentWidth:)": "bae146eff30a5644",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryKeyFindings(_:y:contentWidth:pager:)": "b85f248fbbfbb04a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryProbableCauses(_:y:contentWidth:pager:)": "8d48db3880e0948a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryTitle(y:)": "29c9b74c80b4c8fe",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "221b4360b3045fb2"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)",
+   "hash": "00f3d841f3581a80",
+   "does": "Calls generator.ensureSpace with the pager's page number/context/rect, updating pageNumber on page breaks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.wrappedHeight(_:width:)",
+   "hash": "760d06453185ce03",
+   "does": "Returns ceil of the attributed string's bounding height when wrapped at width.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.analysisSummary(result:session:sleepData:sleepTrend:recentSessions:trainingContext:baselineStats:)",
+   "hash": "d9a0922a830a9777",
+   "does": "Builds AnalysisSleepInput and trend input, reads age/sex from settings, constructs AnalysisSummaryGenerator with result, session, recent sessions, session tags, training context and baseline RMSSD (exp(lnRmssdMean)) / HR, and returns generate().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summarySleepInput(sleepData:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func summarySleepTrendInput(_:)",
+    "closure:PDFReportGenerator.settingsProvider (stored init param, default { AppDependencies.current.app.settingsManager.settingsSnapshot }, PDFReportGenerator.swift:186)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [
+    "mem:UserSettings.age, UserSettings.biologicalSex (via settingsProvider)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc comments say the PDF summary is 100% the same content as MorningResultsView, but the PDF builds AnalysisSummaryGenerator without currentReadiness, todayTrimp or liveLoadSnapshot (the view model passes all three) and uses inputs.trainingContext instead of session.trainingSnapshot ?? result.trainingContext; for today's overnight session after a hard workout the app switches the steps to post-workout advice and the PDF does not.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:16",
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:80",
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:87",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:313",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:317",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:319"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summarySleepInput(sleepData:)": "72ad08b516a4b44b",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func summarySleepTrendInput(_:)": "c642a74906c035ce",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.summarySleepInput(sleepData:)",
+   "hash": "229dea563b0e5444",
+   "does": "Converts SleepData with total > 0 into AnalysisSleepInput; otherwise AnalysisSleepInput.empty (no recording-length guess).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleepData non-nil and totalSleepMinutes > 0",
+     "effect": "true: real input; false: .empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryTitle(y:)",
+   "hash": "238a52509928511b",
+   "does": "Draws 'What This Means' in the title font at y; returns y+35.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryDiagnosticCard(_:y:contentWidth:)",
+   "hash": "9109c6b24399ea6a",
+   "does": "Measures the explanation (min 55pt), draws the score-coloured card frame, title/subtitle and wrapped explanation; returns y below the card + 20.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryExplanationText(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardFrame(color:y:contentWidth:cardHeight:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardCopy(_:color:y:contentWidth:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "ae7af921e8c3faaa",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.diagnosticColorForScore(_:)": "7794af47773b0c31",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardCopy(_:color:y:contentWidth:)": "1e37ce9ed9dc796d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryCardFrame(color:y:contentWidth:cardHeight:)": "832371aef375d9fc",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.summaryExplanationText(_:)": "28ec9d576d19efc8",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryCardFrame(color:y:contentWidth:cardHeight:)",
+   "hash": "4ef78b6e95d78837",
+   "does": "Fills the card at 8% alpha of the score colour and a 6pt accent bar on the left edge.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryCardCopy(_:color:y:contentWidth:)",
+   "hash": "8af10becbe4580d4",
+   "does": "Draws the summary's analysisTitle in bold 18pt score colour and the 'Primary Assessment' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.summaryExplanationText(_:)",
+   "hash": "799aba882d2dde30",
+   "does": "Wraps analysisExplanation in 11pt wrapped attributes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.wrappedSummaryAttributes(size:)",
+   "hash": "201801da9ffea431",
+   "does": "Attributes: system font at size, dark grey, language-direction paragraph style with word wrapping.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.paragraphStyle()": "3c25801c4b034a3a"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryProbableCauses(_:y:contentWidth:pager:)",
+   "hash": "c6df09905e47e2d0",
+   "does": "If there are probable causes: ensureSpace(90), 'Possible Explanations' heading, then for each cause measures its 8pt explanation, ensures card height + 8, and draws the ranked cause card; returns y+10.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawProbableCauseRow(rank:cause:confidence:explanation:explanationHeight:yPosition:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "probableCauses empty",
+     "effect": "returns y unchanged (section omitted)"
+    },
+    {
+     "at": "+6",
+     "cond": "for each cause",
+     "effect": "measures, paginates and draws one card"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::var AnalysisSummaryGenerator.ProbableCause.confidenceLabel": "8d42c57265c06cf9",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "2b01e444fd094a17",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawProbableCauseRow(rank:cause:confidence:explanation:explanationHeight:yPosition:contentWidth:)": "e04e7eca464fb033",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryKeyFindings(_:y:contentWidth:pager:)",
+   "hash": "2e138b78e5ae9692",
+   "does": "ensureSpace(60), 'Key Findings' heading, then each finding as a measured wrapped bullet row (ensureSpace per row); returns y+15.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryFindingRow(_:y:height:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each key finding",
+     "effect": "measures, paginates, draws a bullet row"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Heading 'Key Findings' is drawn even when keyFindings is empty (no guard, unlike probable causes).",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:208",
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:188"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryFindingRow(_:y:height:contentWidth:)": "eee32b8804160cd2",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryFindingRow(_:y:height:contentWidth:)",
+   "hash": "a85a61f3576e4974",
+   "does": "Draws a 4pt primary-colour dot and the wrapped finding text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryActionableSteps(_:y:contentWidth:pager:)",
+   "hash": "0a10be4ebfce7580",
+   "does": "ensureSpace(60), 'What To Do' heading, then each step as a measured arrow row (ensureSpace per row); returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryStepRow(_:y:height:contentWidth:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each actionable step",
+     "effect": "measures, paginates, draws an arrow row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReportGenerator.drawSectionHeading(_:yPosition:pageRect:)": "10e96263462269ee",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.SummaryPager.ensureSpace(_:y:generator:)": "b284b7f52dd848aa",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawSummaryStepRow(_:y:height:contentWidth:)": "f98b42470dee9112",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedHeight(_:width:)": "0490386e3c49a93d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.wrappedSummaryAttributes(size:)": "e961368db6d2684b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryStepRow(_:y:height:contentWidth:)",
+   "hash": "4daf365c92577dc1",
+   "does": "Draws the direction-aware bullet arrow in bold secondary colour and the wrapped step text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::var PDFReadingDirection.bullet": "dc3518292cfe2e31"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryDisclaimer(y:contentWidth:)",
+   "hash": "bbaf62cf15a5d46d",
+   "does": "Draws the 8pt grey medical disclaimer in a 20pt-high box 15pt below y; returns y+40.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The disclaimer is drawn into a fixed 20pt-high rect; at 8pt it fits two lines in English but a longer translation is clipped, cutting the not-medical-advice notice.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:259",
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:260"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(in:withAttributes:)": "259840329617caee",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.causeCardHeight(explanationHeight:)",
+   "hash": "966744d4cf4f9e5d",
+   "does": "Card height for a probable cause: max(50, 34 + explanationHeight + 8).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawProbableCauseRow(rank:cause:confidence:explanation:explanationHeight:yPosition:contentWidth:)",
+   "hash": "3b6c2f240e9c275a",
+   "does": "Fills a grey rounded card sized to the explanation, draws rank/title/confidence and the explanation; returns y + card + 8.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseRankAndTitle(rank:cause:confidence:y:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func NSAttributedString.pdfDraw(in:)": "9025a4c33d5fb3c1",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.causeCardHeight(explanationHeight:)": "2b01e444fd094a17",
+    "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift::func PDFReportGenerator.drawCauseRankAndTitle(rank:cause:confidence:y:)": "0d222e6e92e125bc"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawCauseRankAndTitle(rank:cause:confidence:y:)",
+   "hash": "2828a4cf1a1f4732",
+   "does": "Draws the rank number, the cause title (single unwrapped line) and the confidence label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Cause title is drawn with pdfDraw(at:) with no width, so a long (or translated) title runs past the card's right edge instead of wrapping.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:301"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func summarySleepTrendInput(_:)",
+   "hash": "12a465fb3edaa78a",
+   "does": "Converts SleepTrendData with nightsAnalyzed > 0 into AnalysisSleepTrendInput, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sleepTrend non-nil and nightsAnalyzed > 0",
+     "effect": "true: input; false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)": "c732705f7ed71a85"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,1153 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessTabView+Strap.swift",
+ "hash": "d66198da2938be68",
+ "role": "Extension on FitnessStrapSection rendering the Fitness-tab hero card (latest workout), the inline 45-day load/trajectory link card, the 2x2 summary tile grid and the Recent workouts list, plus the async lightweight load of the newest workout for the hero.",
+ "types": [
+  "FitnessStrapSection: extension — hero, trajectory card, summary tiles, recent list",
+  "FitnessStrapSection.HeroCardChrome: struct (ViewModifier) — gradient background, accent border, rounded clip",
+  "FitnessStrapSection.HeroFacts: struct — precomputed strings/values the hero renders",
+  "FitnessStrapSection.RouteThumbnailFit: struct — aspect-preserving lat/lon→point fit for the route thumbnail"
+ ],
+ "state": [
+  "static FitnessStrapSection.hardSessionLoad = 150 (FitnessTabView+Strap.swift:459) — load badge turns wongCaution at/above it"
+ ],
+ "toplevel": "File-scope private helpers trajectoryLine/heroHeadline/heroDurationAndPace (674-711) are listed as units. HeroFacts is a plain struct with no behaviour. hardSessionLoad static constant 150.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FitnessStrapSection.heroCard(latest:)",
+   "hash": "292481244306de08",
+   "does": "Returns heroCardContent(latest:) with a .task(id: heroReloadKey) that awaits loadLatestWorkoutSession() whenever the newest workout id or ArchiveSignal.version changes (cancelling the stale load).",
+   "entry": "SwiftUI .task(id:) on the hero view fires on appear and on heroReloadKey change",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardContent(latest:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroReloadKey",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardContent(latest:)": "3152d3c3ccb93293",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()": "36c4ad213de48719",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroReloadKey": "35fe11920a7bc395"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroCardContent(latest:)",
+   "hash": "e5d367ea6afd2efb",
+   "does": "Chooses the hero variant: rich card when the loaded full session matches the newest archive entry, placeholder while loading/failed, empty-state card when there are no workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardRich(session:latest:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardPlaceholder(latest:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroCardEmpty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "latest entry non-nil",
+     "effect": "true → inner check on loaded session; false → heroCardEmpty"
+    },
+    {
+     "at": "+3",
+     "cond": "latestWorkoutSession loaded and its id == latest.sessionId",
+     "effect": "true → heroCardRich(session:latest:); false (not yet loaded, stale, or load failed) → heroCardPlaceholder"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardPlaceholder(latest:)": "ceda58d5c838be44",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardRich(session:latest:)": "44a23912baff5f09",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroCardEmpty": "c070e109db242f9d"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.trajectoryLinkCard",
+   "hash": "8d5cac9e113b4b63",
+   "does": "Builds a plain-style NavigationLink to LoadTrajectoryLoader (with collector in environment) whose label shows the training-load card and, when available, a sparkline of the last 45 days of TrainingMetricsCache samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.trajectoryCardLabel(_:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "Calendar date(byAdding: -45 days) returns nil",
+     "effect": "?? falls back to Date() (now) as cutoff, which yields at most today's sample so the sparkline is hidden; never nil in practice for Gregorian calendars"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.trajectoryCardLabel(_:)": "e2c6d03afb97bd4a"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.trajectoryCardLabel(_:)",
+   "hash": "62802bb90b4bf56e",
+   "does": "Card label: header row, then either a 'Training load paused' caption when training load is paused, or the CTL/ATL/TSB sparkline when ≥2 samples exist; otherwise header only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryCardHeader",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.trajectorySparkline(_:)"
+   ],
+   "reads": [
+    "mem:UserSettings (training-load pause fields via TrainingLoadVisibility.isPaused)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "TrainingLoadVisibility.isPaused(settings)",
+     "effect": "true → shows 'Training load paused' text, no chart"
+    },
+    {
+     "at": "+7",
+     "cond": "samples.count >= 2",
+     "effect": "true → trajectorySparkline; false → no chart (link-only card)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.trajectorySparkline(_:)": "ecd7449893bd45bf",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryCardHeader": "98e601ebf87427f2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.trajectoryCardTitles",
+   "hash": "fefbd276b926724c",
+   "does": "Static two-line title block: 'Load & Trajectory' and 'Fitness, fatigue, form — your training arc'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.trajectoryCardHeader",
+   "hash": "af3b6eca9a06a859",
+   "does": "Header row: chart icon tile, titles, spacer, chevron (accessibility hidden).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryCardTitles"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryCardTitles": "4a67b8d0991dfe15",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.trajectorySparkline(_:)",
+   "hash": "b638c8672a937f9e",
+   "does": "Swift Charts view: TSB area (green when ≥0 else tertiary, 15% opacity) plus ATL (wongCaution, 1.5pt) and CTL (wongGood, 2pt) line series per day; axes hidden, 56pt tall, accessibility label 'Training load trend, last 45 days'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func trajectoryLine(sample:value:series:tint:width:)",
+    "ext:Charts.Chart"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sample.tsb >= 0",
+     "effect": "true → wongOptimal area fill; false → textTertiary fill"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func trajectoryLine(sample:value:series:tint:width:)": "4df09e09c8a809cd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.heroCardEmpty",
+   "hash": "c686c69f9d91dcba",
+   "does": "Empty-state hero: decorative run icon (a11y hidden), 'No workouts yet' and 'Pick a sport and tap Start above…' copy on a card.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroCardPlaceholder(latest:)",
+   "hash": "125e85bdc1b9b466",
+   "does": "Placeholder hero row: workout icon, 'Last workout' caption with relative date (or failure text), and a spinner unless the latest load failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.placeholderCaption(latest:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "!latestWorkoutLoadFailed",
+     "effect": "true → small ProgressView spinner; false → no spinner (caption shows failure message)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.placeholderCaption(latest:)": "f8443918ea124270",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.placeholderCaption(latest:)",
+   "hash": "cb04cc9902dc9bfd",
+   "does": "Caption block: 'Last workout' plus either 'Couldn't load this workout.' (load failed) or the relative date of the entry's endDate (fallback date).",
+   "entry": null,
+   "calls": [
+    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:54) → Emuqu/Sources/Views/FitnessTabView.swift:544"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "latestWorkoutLoadFailed",
+     "effect": "true → 'Couldn't load this workout.'; false → relativeDate(...)"
+    },
+    {
+     "at": "+7",
+     "cond": "latest.endDate nil",
+     "effect": "?? falls back to latest.date (start date) for the relative-date text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroCardRich(session:latest:)",
+   "hash": "2b3f374d2c5ef27a",
+   "does": "Rich hero: computes HeroFacts once and wraps heroCardBody in a plain Button whose action sets the bound lastCompletedSession = session, which presents the workout summary sheet in FitnessTabView.",
+   "entry": "SwiftUI Button tap on the hero card",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroFacts(session:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardBody(session:latest:facts:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.lastCompletedSession (via @Binding)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Tapping the hero routes an old workout through lastCompletedSession, so FitnessTabView builds WorkoutSummaryItem(isJustCompleted: true) for it; Done/Delete then call recorder.acknowledgeFinished() and a Watch 'acknowledged' notification closes it as if it were the just-recorded workout. The history path (selectedHistorySession) exists for this case and is not used.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:196",
+      "Emuqu/Sources/Views/FitnessTabView.swift:195",
+      "Emuqu/Sources/Views/FitnessTabView.swift:221",
+      "Emuqu/Sources/Views/FitnessTabView.swift:226",
+      "Emuqu/Sources/Views/FitnessTabView.swift:695"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardBody(session:latest:facts:)": "143a2dd1063b665c",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroFacts(session:)": "79a5c933ca70fa5a"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroCardBody(session:latest:facts:)",
+   "hash": "4b16f245303f34c9",
+   "does": "Hero body: top row (sport icon + label + relative time), headline distance/duration/pace, optional mini route trace, and the badge row; padded and styled with HeroCardChrome.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroTopRow(sport:latest:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroHeadline(facts:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "facts.polyline non-nil",
+     "effect": "true → heroPolylinePreview with session startDate/duration; false → no trace"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "92368270c3e12467",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)": "b1b4896b136daf48",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)": "b9ae1f7c025b0946",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)": "b1780f276983363f",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroTopRow(sport:latest:)": "1f72fbdddb5c8d9d",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroHeadline(facts:)": "bb10321e15595d81"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.HeroCardChrome.body(content:)",
+   "hash": "17644a18ad85706a",
+   "does": "ViewModifier body: applies a top-leading→bottom-trailing card gradient, an 18pt rounded accent stroke overlay and a continuous rounded clip.",
+   "entry": "SwiftUI ViewModifier.body, applied via .modifier(HeroCardChrome()) at FitnessTabView+Strap.swift:223",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroFacts(session:)",
+   "hash": "1f11e86a53d02073",
+   "does": "Resolves HeroFacts from session.workoutMetadata: sport, formatted distance, duration string, pace, peak HR from samples, mean α1, preferredTrainingLoad (power TSS over TRIMP), hrTSS, elevation gain, GPS polyline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroDurationString(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPaceString(session:meta:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroAlpha1Average(meta:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
+   ],
+   "reads": [
+    "mem:UnitsPreference (stored units)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "meta?.sport nil (no workoutMetadata)",
+     "effect": "?? falls back to .walk, so a workout with missing metadata is shown as a Walk"
+    },
+    {
+     "at": "+7",
+     "cond": "meta?.distanceMeters nil",
+     "effect": "?? shows '—' as distance"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "A session without workoutMetadata (or without sport) is labelled 'Walk' on the hero rather than shown as unknown.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:266"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroAlpha1Average(meta:)": "9bd5adad90011fc1",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroDurationString(_:)": "11ec7a906efcebb4",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPaceString(session:meta:)": "7202cff2af864bda"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroDurationString(_:)",
+   "hash": "0ed06c7ddfc66ce2",
+   "does": "Formats a duration as H:MM:SS when ≥1 hour, else M:SS; '—' when nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "duration nil",
+     "effect": "early return '—'"
+    },
+    {
+     "at": "+4",
+     "cond": "h > 0",
+     "effect": "true → '%d:%02d:%02d'; false → '%d:%02d'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.heroPaceString(session:meta:)",
+   "hash": "c42dab5b1e7defc6",
+   "does": "Returns formatted pace via UnitsPreference.formatPace(elapsedSec:distanceMeters:) only when distance >100 m and duration >10 s; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance present and >100 and duration present and >10",
+     "effect": "false → nil (no pace shown); true → formatted pace"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "10aef8a5289537eb"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroAlpha1Average(meta:)",
+   "hash": "eeaa2423f4aaced3",
+   "does": "Mean of all non-nil α1 values in workoutMetadata.samples; nil when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples' α1 list non-empty",
+     "effect": "false → nil (no α1 badge); true → arithmetic mean"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.heroTopRow(sport:latest:)",
+   "hash": "0625be8fe09e660a",
+   "does": "Hero top row: circular sport icon, sport/time label, spacer, chevron.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroSportLabel(sport:latest:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroSportLabel(sport:latest:)": "4782a4faefd3fb5f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroSportLabel(sport:latest:)",
+   "hash": "8be3223b56bfa986",
+   "does": "Sport name uppercased plus relative time of the latest entry's endDate (falls back to start date).",
+   "entry": null,
+   "calls": [
+    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:54) → Emuqu/Sources/Views/FitnessTabView.swift:544"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "latest.endDate nil",
+     "effect": "?? uses latest.date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)",
+   "hash": "891e6c5e45cddce7",
+   "does": "Decodes the stored GPS polyline into CLLocations via GPXExporter.decode on every render and draws a route trace when ≥2 points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.polylineTrace(coords:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "decoded.count >= 2",
+     "effect": "true → polylineTrace; false → nothing rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.polylineTrace(coords:)": "59c86b584ef2be95"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.polylineTrace(coords:)",
+   "hash": "c547bc1ebdefa47a",
+   "does": "GeometryReader drawing a 64pt-high stroked Path of the coordinates using tracePolyline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.tracePolyline(_:coords:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.tracePolyline(_:coords:in:)": "acdf494a870ad855",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.tracePolyline(_:coords:in:)",
+   "hash": "b31908c6945a864a",
+   "does": "Fills a Path from coordinates scaled with RouteThumbnailFit: moveTo first point, lineTo the rest.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::init FitnessStrapSection.RouteThumbnailFit(coords:size:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.RouteThumbnailFit.point(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "RouteThumbnailFit init returns nil (empty coords)",
+     "effect": "early return, path left empty"
+    },
+    {
+     "at": "+2",
+     "cond": "for each coordinate",
+     "effect": "iterates all coords"
+    },
+    {
+     "at": "+4",
+     "cond": "i == 0",
+     "effect": "true → path.move(to:); false → path.addLine(to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.RouteThumbnailFit.point(_:)": "b64d4fc67b6ff3ee",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::init FitnessStrapSection.RouteThumbnailFit(coords:size:)": "45f56cde043c1995"
+   }
+  },
+  {
+   "key": "init FitnessStrapSection.RouteThumbnailFit(coords:size:)",
+   "hash": "2b46f03c09ea5f67",
+   "does": "Failable init computing lat/lon bounds, a cos(mid-latitude) longitude scale, one uniform scale fitting the box (spans floored at 0.0001°) and centring offsets.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lat/lon min/max all present (coords non-empty)",
+     "effect": "false → returns nil; true → computes fit"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.RouteThumbnailFit.point(_:)",
+   "hash": "e991a6f7d1537f4e",
+   "does": "Maps a coordinate to a CGPoint in the box using the uniform scale, cos-latitude longitude shrink and centring offsets (north up).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)",
+   "hash": "ac9459da1c9a1cef",
+   "does": "Horizontal non-indicator ScrollView wrapping heroBadges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadges(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadges(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)": "e12a8ec4da0a3be5"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroBadges(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)",
+   "hash": "2620743e294baed0",
+   "does": "HStack of optional badges: peak HR, elevation (≥5 m), α1 average (2 dp), training-load badge, and HRSS (hrTSS integer).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadge(icon:label:color:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadBadge(trimp:loadSource:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "peakHR non-nil",
+     "effect": "true → heart badge"
+    },
+    {
+     "at": "+13",
+     "cond": "elevation non-nil and ≥ 5 m",
+     "effect": "true → mountain badge with formatted elevation; false → omitted"
+    },
+    {
+     "at": "+16",
+     "cond": "alpha1Avg non-nil",
+     "effect": "true → 'α1 x.xx' badge"
+    },
+    {
+     "at": "+19",
+     "cond": "trimp (preferred load value) non-nil",
+     "effect": "true → loadBadge"
+    },
+    {
+     "at": "+22",
+     "cond": "hrTSS non-nil",
+     "effect": "true → 'HRSS n' badge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadge(icon:label:color:)": "2b7ff73b4ad1cb77",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadBadge(trimp:loadSource:)": "685439d67005a53d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.loadBadge(trimp:loadSource:)",
+   "hash": "44d59e877e4c66a3",
+   "does": "Training-load badge labelled with the load source's displayLabel (or 'LOAD') and integer value, coloured wongCaution at ≥150 else fitnessAccent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadge(icon:label:color:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trimp >= hardSessionLoad (150)",
+     "effect": "true → wongCaution colour; false → fitnessAccent"
+    },
+    {
+     "at": "+2",
+     "cond": "loadSource nil",
+     "effect": "?? label prefix 'LOAD'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Docs say the hero badge row shows 'TRIMP', but the badge shows preferredTrainingLoad labelled by source ('LOAD' for power/HR/METs, 'TRIMP' only for Banister/route-history), so most badges read LOAD.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:980",
+      "docs/FEATURES.md:55",
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:449",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:510"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.TrainingLoadSource.displayLabel": "fa5521cf8a3a0f67",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadge(icon:label:color:)": "2b7ff73b4ad1cb77",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.heroBadge(icon:label:color:)",
+   "hash": "f213f18c21cb95e6",
+   "does": "Capsule badge with SF Symbol and caption text tinted with the given colour at 12% background.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessStrapSection.heroReloadKey",
+   "hash": "418b23b47a538f5d",
+   "does": "Hashable reload key '<newest workout uuid or \"empty\">-<ArchiveSignal.version>'.",
+   "entry": null,
+   "calls": [
+    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:52) → Emuqu/Sources/Views/FitnessTabView.swift:529"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries",
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no workout entries",
+     "effect": "?? uses 'empty' as id part"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.loadLatestWorkoutSession()",
+   "hash": "13e66c2738f2e41c",
+   "does": "Loads the newest workout session lightweight (no rrSeries) on a detached task via retrieveLightweightOrLog, then writes latestWorkoutSession and latestWorkoutLoadFailed through the bindings unless the task was cancelled.",
+   "entry": null,
+   "calls": [
+    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:52) → Emuqu/Sources/Views/FitnessTabView.swift:529",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweightOrLog",
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:FitnessTabView.latestWorkoutSession (binding)",
+    "mem:FitnessTabView.latestWorkoutLoadFailed (binding)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "there is at least one workout entry",
+     "effect": "false → clears latestWorkoutSession and failed flag, returns"
+    },
+    {
+     "at": "+15",
+     "cond": "Task.isCancelled after the detached read",
+     "effect": "true → returns without writing (superseded by newer key); false → stores result; nil result sets latestWorkoutLoadFailed = true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.summaryTileGrid(entries:)",
+   "hash": "fa8312d9bde8bcce",
+   "does": "2-column LazyVGrid with tiles: workouts in last 7 days, workouts in last 30 days, weekly load, mean HRR@1m.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)",
+    "closure:withinDays — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:53) → Emuqu/Sources/Views/FitnessTabView.swift:535",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.weeklyLoadTile",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.meanHRRTile"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)": "828af7c1a88e1153",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.meanHRRTile": "0837a9c570d0e99a",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.weeklyLoadTile": "9419f2963b18360d"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.weeklyLoadTile",
+   "hash": "e211ab744447f2e7",
+   "does": "Weekly LOAD tile: '—'/'Paused' when training load is paused; else the rounded 7-day load sum or '—' with 'no workouts in 7d'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.computeWeeklyTrimp()",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)"
+   ],
+   "reads": [
+    "mem:UserSettings (training-load pause)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "TrainingLoadVisibility.isPaused(settings)",
+     "effect": "true → early return tile value '—', note 'Paused'"
+    },
+    {
+     "at": "+11",
+     "cond": "weeklyTrimp nil",
+     "effect": "?? value '—'"
+    },
+    {
+     "at": "+12",
+     "cond": "weeklyTrimp == nil",
+     "effect": "true → note 'no workouts in 7d'; false → 'last 7 days'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.computeWeeklyTrimp()": "d10156c619434f1b",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)": "828af7c1a88e1153",
+    "Emuqu/Sources/Views/TrainingDetailView.swift::func TrainingLoadVisibility.isPaused(_:)": "1d59fbbd894f7ba5"
+   }
+  },
+  {
+   "key": "var FitnessStrapSection.meanHRRTile",
+   "hash": "76ec0f1c462992c0",
+   "does": "Mean HRR@1m tile from the bound meanHRR1m7d (computed elsewhere); '—' with 'no HRR captured 7d' when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)"
+   ],
+   "reads": [
+    "mem:FitnessTabView.meanHRR1m7d (binding)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "meanHRR nil",
+     "effect": "?? value '—'"
+    },
+    {
+     "at": "+5",
+     "cond": "meanHRR == nil",
+     "effect": "true → 'no HRR captured 7d'; false → 'last 7 days'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)": "828af7c1a88e1153"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.computeWeeklyTrimp()",
+   "hash": "218a611b625f8d2c",
+   "does": "Sums DaySample.trimp over training-cache samples since now−7 days, counting only days with trimp>0; nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.dailySeries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Calendar date(byAdding: -7 days) nil",
+     "effect": "?? now − 7×24h"
+    },
+    {
+     "at": "+5",
+     "cond": "any sample with trimp > 0",
+     "effect": "false → nil (cold cache or no workouts); true → sum"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Reads AppDependencies.current.analysis.trainingMetricsCache instead of the injected `trainingCache` the struct already carries, so a test/preview override of trainingCache is bypassed for this tile.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:552",
+      "Emuqu/Sources/Views/FitnessStrapSection.swift:17"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.samplesSince(_:)": "ffe29dcbda438e76",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.summaryTile(title:value:note:)",
+   "hash": "c3971757ed39ba77",
+   "does": "Generic summary tile: caption title, title2 value and optional caption2 note on a card.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "note non-nil",
+     "effect": "true → note text rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.recentWorkoutsList(entries:)",
+   "hash": "8d165b543e68522d",
+   "does": "Recent list wrapper: renders recentWorkoutsColumn only when entries non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentWorkoutsColumn(entries:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!entries.isEmpty",
+     "effect": "false → nothing rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentWorkoutsColumn(entries:)": "9c22e44a05d79763"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.recentWorkoutsColumn(entries:)",
+   "hash": "f44abc0f645f59e8",
+   "does": "'Recent' header and the first 5 workout entries as rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRow(entry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRow(entry:)": "bacab2caf507c3bc"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.recentRow(entry:)",
+   "hash": "43cf130b193bd559",
+   "does": "Plain Button row that opens the workout (openRecentWorkout) with a context menu offering Delete Workout.",
+   "entry": "SwiftUI Button tap / context menu on a recent row",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.openRecentWorkout(_:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRowLabel(entry:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)": "08a50aa38a6ef0ad",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.openRecentWorkout(_:)": "2c5e968be29ede5d",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRowLabel(entry:)": "4c246b14a4a9b42b"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.openRecentWorkout(_:)",
+   "hash": "ee58329fff468165",
+   "does": "Loads the tapped entry lightweight on a detached task and sets the bound selectedHistorySession, which presents the summary sheet; a nil read does nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweightOrLog"
+   ],
+   "writes": [
+    "mem:FitnessTabView.selectedHistorySession (binding)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session loaded (non-nil)",
+     "effect": "true → selectedHistorySession = session; false → nothing happens (failure only logged by retrieveLightweightOrLog)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "When the session file can't be read the tap does nothing at all — no message — unlike the hero placeholder which says 'Couldn't load this workout.'",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:617",
+      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:184"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.deleteWorkoutButton(_:title:)",
+   "hash": "b0dbbf2d32edfaa2",
+   "does": "Destructive 'Delete Workout' button calling the bound deleteWorkout closure with the entry's session id.",
+   "entry": "SwiftUI context-menu button action",
+   "calls": [
+    "closure:deleteWorkout — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:56) → Emuqu/Sources/Views/FitnessTabView.swift:556"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessStrapSection.recentRowLabel(entry:)",
+   "hash": "6af59fef792b67dc",
+   "does": "Row label: workout icon, title/date, mean HR (if present) and chevron.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRowTitle(entry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "entry.meanHR non-nil",
+     "effect": "true → '<n> bpm' text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRowTitle(entry:)": "134f40df049c9567",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.recentRowTitle(entry:)",
+   "hash": "848cd54c154e46f9",
+   "does": "Title = entry notes when non-empty else 'Workout'; subtitle = formatted date.",
+   "entry": null,
+   "calls": [
+    "closure:formattedDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:55) → Emuqu/Sources/Views/FitnessTabView.swift:550"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.notes non-nil and non-empty (ternary), then ?? fallback",
+     "effect": "non-empty notes → notes shown; nil or empty → ?? falls back to localized 'Workout'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func trajectoryLine(sample:value:series:tint:width:)",
+   "hash": "99c4d29c582c160b",
+   "does": "Builds a monotone-interpolated LineMark for one series (ATL or CTL) at the given tint/width.",
+   "entry": null,
+   "calls": [
+    "ext:Charts.LineMark"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func heroHeadline(facts:)",
+   "hash": "f08ff4fd90deec5f",
+   "does": "Headline: large distance text (min scale 0.6) and the duration/pace column.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroDurationAndPace(facts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroDurationAndPace(facts:)": "4e51e0f415ceb4b9",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func heroDurationAndPace(facts:)",
+   "hash": "4008aebf162ff92a",
+   "does": "Trailing column with monospaced duration and, when present, pace.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "facts.pace non-nil",
+     "effect": "true → pace caption rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,324 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+HRV.swift",
+ "hash": "643828a620f7cf76",
+ "role": "HealthWriteAndObserve extension writing HRV (SDNN) to Apple Health: single bare-UUID SDNN summary for short sessions, or 5-minute windowed SDNN series, each idempotent via delete-own-prior-then-save.",
+ "types": [
+  "HealthWriteAndObserve: extension — SDNN exports",
+  "HRVSampleSlot: struct (private) — type/time/session/index of one exported window"
+ ],
+ "state": [
+  "hk:heartRateVariabilitySDNN samples with ExternalUUID '<uuid>' (bare summary) or '<uuid>-sdnn-<n>' (series); legacy '<uuid>-rmssd-<n>' deleted only",
+  "metadata keys 'Source'='Emuqu', 'HRVMetric'='SDNN'"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The bare-SDNN path and the windowed path never clean up each other: exportHRVMetrics picks one by RR count (>=30), windowed deletion matches only '-sdnn-'/'-rmssd-' prefixes and bare deletion only the exact UUID within 1 s of `date`, so a session re-exported through the other path (or with a changed endDate) keeps its old SDNN row beside the new one.",
+   "evidence": [
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:53",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:209",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:333"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HealthWriteAndObserve.exportSDNN(value:at:sessionId:)",
+   "hash": "974c9433be08c489",
+   "does": "Writes one SDNN sample (ms) at `date` with ExternalUUID = bare session UUID after deleting any prior exact-UUID sample at that instant. Called by HealthKitManager+SleepTrends.swift:337 when the session has <30 RR points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deletePriorBareSDNN(sdnnType:at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+    "ext:HKHealthStore.save"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit available",
+     "effect": "false: throws HealthKitError.notAvailable"
+    },
+    {
+     "at": "+2",
+     "cond": "value is finite",
+     "effect": "false: warning log, returns silently without deleting prior"
+    },
+    {
+     "at": "+6",
+     "cond": "SDNN type resolves",
+     "effect": "false: returns"
+    },
+    {
+     "at": "+12",
+     "cond": "factory produced a sample",
+     "effect": "false: returns after the prior sample was already deleted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deletePriorBareSDNN(sdnnType:at:sessionId:)": "84a9a3c1e30a8490",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.deletePriorBareSDNN(sdnnType:at:sessionId:)",
+   "hash": "9d0ba010ae2432c7",
+   "does": "Fail-closed bounded query for SDNN samples in [date, date+1s]; deletes those whose ExternalUUID equals the bare session UUID. Timeout throws queryTimedOut.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.quantityResult(_:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec",
+    "ext:HKSampleQuery",
+    "ext:HKHealthStore.delete"
+   ],
+   "reads": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "any matching prior sample",
+     "effect": "true: delete (errors propagate); false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.quantityResult(_:_:)": "13ac0db317dc936c",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "8768717f4143c6f1",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)",
+   "hash": "c149c99d88db4cc1",
+   "does": "Builds windowed SDNN samples from the RR stream, deletes this session's prior -sdnn-/-rmssd- series (abort on failure), then saves the new samples if any. Called by HealthKitManager+SleepTrends.swift:334.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.windowedHRVSamples(rrPoints:sdnnType:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deleteOurSDNNSamples(sessionId:sessionStart:through:)",
+    "ext:HKHealthStore.save",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "HealthKit available",
+     "effect": "false: throws notAvailable"
+    },
+    {
+     "at": "+6",
+     "cond": "SDNN type resolves",
+     "effect": "false: returns"
+    },
+    {
+     "at": "+13",
+     "cond": "samples non-empty",
+     "effect": "false: returns after deleting prior series (leaves none); true: saves"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Sessions with >=30 RR points always take this path (exportHRVMetrics), even when no 5-minute window yields >=10 beats with >=8 valid after filtering. Then samples is empty: the prior series is deleted and the function returns at line 94 with no SDNN written, no fallback to the single exportSDNN summary and no log. Apple Health gets no HRV for the session.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:94",
+      "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:145",
+      "Emuqu/Sources/Collection/HealthKitManager+HRV.swift:149",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:333"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deleteOurSDNNSamples(sessionId:sessionStart:through:)": "e6cf3fbeface6a76",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.windowedHRVSamples(rrPoints:sdnnType:sessionStart:sessionId:)": "138d597ffe3409b4",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.windowedHRVSamples(rrPoints:sdnnType:sessionStart:sessionId:)",
+   "hash": "6db44bc748c55b36",
+   "does": "Walks 5-minute windows over exportTimeMs from 0 to the max, building a sample per window that qualifies; returns (samples, produced-window count). Window indices are contiguous over produced windows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvSamplesForWindow(windowPoints:sdnnType:sessionStart:sessionId:windowStartMs:windowEndMs:windowIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "max exportTimeMs ?? 0",
+     "effect": "empty: no windows"
+    },
+    {
+     "at": "+11",
+     "cond": "windowStart < endMs",
+     "effect": "loop"
+    },
+    {
+     "at": "+14",
+     "cond": "window produced a sample",
+     "effect": "true: appended, index++; false: skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvSamplesForWindow(windowPoints:sdnnType:sessionStart:sessionId:windowStartMs:windowEndMs:windowIndex:)": "92be77c7984402c8"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.hrvSamplesForWindow(windowPoints:sdnnType:sessionStart:sessionId:windowStartMs:windowEndMs:windowIndex:)",
+   "hash": "f7769e8fdcd2e8cf",
+   "does": "For a window with >=10 beats, drops invalid RRs, applies TimeDomainAnalyzer.filterEctopicBeats, requires >=8 survivors, and returns one SDNN (sample SD) sample spanning the window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvSample(_:metric:label:slot:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "window has >= 10 points",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+13",
+     "cond": ">= 8 valid filtered RRs",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "d622eb47a84bc6dd",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvSample(_:metric:label:slot:)": "52d16bdebad0482a",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.hrvSample(_:metric:label:slot:)",
+   "hash": "f5794085b4daa87e",
+   "does": "Builds the HKQuantitySample (ms) with ExternalUUID seriesMember(session, metric, index), Source and HRVMetric metadata; nil for non-finite value or backwards interval.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:index:)": "2093eba13e354404",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.deleteOurSDNNSamples(sessionId:sessionStart:through:)",
+   "hash": "bacce5bc32f7568e",
+   "does": "Queries this app's SDNN samples with an ExternalUUID from sessionStart-1h to max(lastEnd, sessionStart+24h), keeps those in this session's -sdnn- or -rmssd- series, and deletes them. Errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.ownExternalUUIDSDNNSamples(sdnnType:start:end:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)",
+    "ext:HKHealthStore.delete",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "SDNN type resolves",
+     "effect": "false: returns (no cleanup)"
+    },
+    {
+     "at": "+4",
+     "cond": "lastEnd ?? sessionStart",
+     "effect": "no new samples: window to sessionStart+24h"
+    },
+    {
+     "at": "+7",
+     "cond": "sample has string ExternalUUID",
+     "effect": "false: not deleted"
+    },
+    {
+     "at": "+11",
+     "cond": "any matching",
+     "effect": "false: returns; true: delete"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "46a4eff9ff6b6698",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.ownExternalUUIDSDNNSamples(sdnnType:start:end:)": "0559c9cb959e9f3a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HealthWriteAndObserve.ownExternalUUIDSDNNSamples(sdnnType:start:end:)",
+   "hash": "109e970a4916ab92",
+   "does": "Fail-closed bounded query: own-source SDNN samples with ExternalUUID metadata in start...end; timeout throws queryTimedOut.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.quantityResult(_:_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.quantityResult(_:_:)": "13ac0db317dc936c",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "8768717f4143c6f1",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "790d183a184158dc",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  }
+ ],
+ "deps": {}
+}

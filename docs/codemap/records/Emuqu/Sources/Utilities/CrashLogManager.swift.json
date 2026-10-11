@@ -1,0 +1,1018 @@
+{
+ "file": "Emuqu/Sources/Utilities/CrashLogManager.swift",
+ "hash": "cfbb785d0f03472a",
+ "role": "Singleton that installs uncaught-exception and fatal-signal handlers at launch, keeps crash/termination reports as text files in the App Group container, builds SIGKILL termination reports on the next launch, and exports/clears them for Settings and Delete-All-My-Data.",
+ "types": [
+  "CrashLogManager: class (final, Sendable) — crash/termination report writer and reader",
+  "CrashLogManager.TraceSummary: struct — peak/final memory, peak thermal, warning count for a trace window"
+ ],
+ "state": [
+  "mem:CrashLogManager.shared",
+  "file:<AppGroup>/crash_log.txt (C signal handler output)",
+  "file:<AppGroup>/exception_log.txt (uncaught NSException report)",
+  "file:<AppGroup>/previous_crash.txt (promoted / termination report)",
+  "file:tmp/Emuqu_Crash_<yyyyMMdd_HHmmss>.txt (export)",
+  "static terminationCauseBlock (report text)",
+  "static noBackupIndexExplanation (report text)"
+ ],
+ "toplevel": "Stored lets crashLogFileName/exceptionLogFileName/previousCrashFileName; static report text constants terminationCauseBlock (lines 162-173) and noBackupIndexExplanation (368-376). No #if blocks.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No test in EmuquTests/EmuquUITests references CrashLogManager: promotion, termination-report dedupe (previousCrashPredates), scrubbing and clearAll are unverified.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift:100",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift:424",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift:80"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var CrashLogManager.crashLogURL",
+   "hash": "c797bb63920b3476",
+   "does": "Returns <sharedContainer>/crash_log.txt, the path the C signal handler writes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+   }
+  },
+  {
+   "key": "var CrashLogManager.exceptionLogURL",
+   "hash": "3b4d963837d0304e",
+   "does": "Returns <sharedContainer>/exception_log.txt, where the uncaught-exception report is written.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+   }
+  },
+  {
+   "key": "var CrashLogManager.previousCrashURL",
+   "hash": "9c4c6c8331d616d3",
+   "does": "Returns <sharedContainer>/previous_crash.txt, the report shown/exported in Settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.storageDirectory": "da0ec9c4adf3139d"
+   }
+  },
+  {
+   "key": "var CrashLogManager.storageDirectory",
+   "hash": "e14a6d7e1b7a0a04",
+   "does": "Returns AppConfig.sharedContainerURL() (App Group container, Documents fallback).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
+   }
+  },
+  {
+   "key": "var CrashLogManager.hasPreviousCrash",
+   "hash": "cf0353bf9db4c839",
+   "does": "True when previous_crash.txt exists on disk; drives the Settings crash badge/rows.",
+   "entry": "SwiftUI view bodies: SettingsView.swift:416, SettingsPages+Diagnostics.swift:353/432, SettingsPages+DiagnosticActions.swift:109",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+   }
+  },
+  {
+   "key": "var CrashLogManager.previousCrashLog",
+   "hash": "f5a2bd477e85e967",
+   "does": "Reads previous_crash.txt as UTF-8; nil when missing or unreadable (try? swallows the error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "ext:String(contentsOf:)"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+   }
+  },
+  {
+   "key": "init CrashLogManager()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private no-op initializer for the singleton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.install()",
+   "hash": "65513334b7e5e5ad",
+   "does": "Launch hook: promotes last run's crash files into previous_crash.txt, installs an NSSetUncaughtExceptionHandler closure that writes a PHI-scrubbed exception report via the dependency container's CrashLogManager, then installs the C fatal-signal handlers.",
+   "entry": "EmuquMain.main → EmuquApp.installDiagnostics (EmuquApp.swift:223) before the SwiftUI app starts; closure runs on an uncaught NSException",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.promoteCurrentCrashLog()",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.installSignalHandlers()",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeCrashLog(type:name:reason:stackTrace:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "ext:NSSetUncaughtExceptionHandler"
+   ],
+   "reads": [
+    "file:exception_log.txt",
+    "file:crash_log.txt"
+   ],
+   "writes": [
+    "file:previous_crash.txt",
+    "file:exception_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "exception.reason is nil",
+     "effect": "reason text falls back to \"Unknown\"; otherwise the exception's reason is used"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "The exception handler resolves the writer through AppDependencies.current.app.crashLogManager, so an override installed in tests/previews redirects real crash writes; install() itself is called on CrashLogManager.shared directly (EmuquApp.swift:223), so the installing instance and the writing instance can differ.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:52",
+      "Emuqu/EmuquApp.swift:223",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:413"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "1b529e89fe88d675",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.installSignalHandlers()": "0d7ba09591742fd6",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.promoteCurrentCrashLog()": "8d85d20c81824e17",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeCrashLog(type:name:reason:stackTrace:)": "5cab914a25d259d3"
+   }
+  },
+  {
+   "key": "func CrashLogManager.clearPreviousCrash()",
+   "hash": "99499a1d4c78719e",
+   "does": "Deletes previous_crash.txt; a missing file is ignored, other errors are logged via debugLog.",
+   "entry": "Settings buttons: SettingsSubviews.swift:125, SettingsPages+DiagnosticActions.swift:111",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:previous_crash.txt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error is NSCocoaErrorDomain NSFileNoSuchFileError",
+     "effect": "swallowed silently (nothing to clear)"
+    },
+    {
+     "at": "+6",
+     "cond": "any other removal error",
+     "effect": "logged at .info via debugLog and swallowed; the file stays and the badge persists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CrashLogManager.clearAll()",
+   "hash": "7a3f7d34283188ae",
+   "does": "Deletes crash_log.txt, exception_log.txt and previous_crash.txt; missing files are ignored, other errors collected and the first one is thrown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:crash_log.txt",
+    "file:exception_log.txt",
+    "file:previous_crash.txt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of the three crash files",
+     "effect": "attempts removal of each"
+    },
+    {
+     "at": "+4",
+     "cond": "removal throws NSFileNoSuchFileError",
+     "effect": "ignored"
+    },
+    {
+     "at": "+7",
+     "cond": "removal throws any other error",
+     "effect": "appended to collected, loop continues"
+    },
+    {
+     "at": "+9",
+     "cond": "collected has an error",
+     "effect": "throws the first one (others dropped); otherwise returns normally"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b"
+   }
+  },
+  {
+   "key": "func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)",
+   "hash": "122743b7f634caf6",
+   "does": "Builds a termination report (session info, SIGKILL cause text, RawRRBackup forensics, memory/thermal context) for an orphaned recording session and writes it, PHI-scrubbed, to previous_crash.txt, appended after any older uncleared report.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.diagnosticContextBlock()",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [
+    "file:previous_crash.txt"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a previous crash log exists AND it was not written before sessionStart",
+     "effect": "logs and returns without writing (that report already explains this session); otherwise builds the report and writes [existing, report] joined"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.diagnosticContextBlock()": "bdb55a0225d61e23",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)": "5ca5fc89fff8db6a",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)": "204ddfffde1cb461",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)": "9f58b3be7b9e5079",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)": "f679a44f99c92857",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CrashLogManager.previousCrashPredates(_:)",
+   "hash": "c36235d785f6bebe",
+   "does": "Returns whether previous_crash.txt's modification date is earlier than date; unreadable attributes or missing date count as false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.attributesOfItem"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "modificationDate attribute missing / not a Date",
+     "effect": "returns false (keep report, skip writing)"
+    },
+    {
+     "at": "+5",
+     "cond": "attributesOfItem throws",
+     "effect": "logs the error and returns false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CrashLogManager.writeTerminationReport(_:)",
+   "hash": "3aa9379564d2b8a9",
+   "does": "Scrubs every line with DebugLogger.scrubPHI and atomically writes the result to previous_crash.txt; write failures are logged and swallowed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:String.write(to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:previous_crash.txt"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "write throws",
+     "effect": "logged via debugLog; report lost silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "00b21e78a01c5f05",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)",
+   "hash": "b2fd7f0b76c371e5",
+   "does": "Formats the report banner (via formatLogHeader) plus session id, type and start time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)",
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "3082f04e07801700"
+   }
+  },
+  {
+   "key": "func CrashLogManager.forensicsBlock(sessionId:sessionStart:)",
+   "hash": "f9dfd5849cc9925d",
+   "does": "Wraps formatRecordingForensics output in a 'RECORDING FORENSICS' section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)": "877618c420b1f7c1"
+   }
+  },
+  {
+   "key": "func CrashLogManager.diagnosticContextBlock()",
+   "hash": "1c9a033e754eb358",
+   "does": "Wraps formatDiagnosticContext output in a 'DIAGNOSTIC CONTEXT' section with a MetricKit note and the END banner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatDiagnosticContext()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatDiagnosticContext()": "dcd0d6240ab94857"
+   }
+  },
+  {
+   "key": "func CrashLogManager.exportCrashLog()",
+   "hash": "1b2023c6f5b5cb2c",
+   "does": "Reads previous_crash.txt, scrubs each line with scrubPHI, writes tmp/Emuqu_Crash_<timestamp>.txt and returns its URL; nil when there is no log or the write fails.",
+   "entry": "Settings share button, SettingsSubviews.swift:162",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "ext:String.write(to:)"
+   ],
+   "reads": [
+    "file:previous_crash.txt"
+   ],
+   "writes": [
+    "file:tmp/Emuqu_Crash_<ts>.txt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "previousCrashLog is nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+17",
+     "cond": "write throws",
+     "effect": "returns nil; error discarded without logging"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "The export write error is discarded with no log entry, so a failed share has no trace.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:248"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "43c2b5700d16c347",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "00b21e78a01c5f05",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func CrashLogManager.formatDiagnosticContext()",
+   "hash": "3a2ec9a2b823701b",
+   "does": "Reads the last 31 memory-trace samples from SystemDiagnosticsManager, drops the current launch's samples, and formats peak/final MB, peak thermal, warning count, sample count and the last 5 samples; returns a fixed 'No memory/thermal samples' text when empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousProcessTrace(_:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.summarize(trace:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.traceTimeline(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)"
+   ],
+   "reads": [
+    "file:Diagnostics/memory_trace.jsonl"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "trace (after trimming the current launch) is empty",
+     "effect": "returns 'No memory/thermal samples recorded for this session.'; otherwise formats the summary"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 31-sample window is not bounded to the killed process: if that process wrote fewer samples, samples from older processes are included in peak/final memory and peak thermal.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:271",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:294"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager": "8aac7ee745cb0544",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousProcessTrace(_:)": "53774e4222c4520d",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.summarize(trace:)": "ff48c7dab31e8d31",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.traceTimeline(_:)": "e1625e7e49c82e40",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "a26593368b9b7383"
+   }
+  },
+  {
+   "key": "func CrashLogManager.previousProcessTrace(_:)",
+   "hash": "f0cad67e0715ff18",
+   "does": "Returns the samples before the last 'launch' sample (the current process's launch sample), or the whole trace when none has reason 'launch'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sample with reason == 'launch'",
+     "effect": "returns trace unchanged; otherwise returns trace[..<lastLaunch]"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Correctness depends on SystemDiagnosticsManager.install having already written this launch's \"launch\" sample (EmuquApp.swift:224 runs before checkForInterruptedSession); if that sample is missing the killed process's own launch sample is the last one and all of its later samples are dropped.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:295",
+      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:104"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.summarize(trace:)",
+   "hash": "79a11f33011e24ee",
+   "does": "Folds the samples into a TraceSummary: max and last memory MB, hottest thermal, max memory_warnings_total.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.megabytes(in:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.hotterThermal(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each sample",
+     "effect": "accumulates"
+    },
+    {
+     "at": "+3",
+     "cond": "sample has decodable memory_bytes",
+     "effect": "updates peakMB and finalMB; otherwise memory untouched"
+    },
+    {
+     "at": "+8",
+     "cond": "memory_warnings_total not an Int",
+     "effect": "treated as 0 via ??"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same peak-memory/peak-thermal/warning summarisation is re-implemented in SettingsDiagnosticsViews (memoryMB/maxThermal/memoryWarnings).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:301",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:135",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:143"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.hotterThermal(_:_:)": "d650432a77fdf7a5",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.megabytes(in:)": "79d928b49c6b641b"
+   }
+  },
+  {
+   "key": "func CrashLogManager.hotterThermal(_:_:)",
+   "hash": "5801db4d107925c8",
+   "does": "Returns candidate if it ranks hotter than current on nominal<fair<serious<critical, else current.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "candidate nil, or rank(candidate) <= rank(current); unknown names rank 0 via ??",
+     "effect": "returns current; otherwise candidate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.megabytes(in:)",
+   "hash": "4dab83acf2bbcdf7",
+   "does": "Converts sample['memory_bytes'] (UInt64 or Int) to MB; nil otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "memory_bytes casts to UInt64",
+     "effect": "returns bytes/1048576"
+    },
+    {
+     "at": "+2",
+     "cond": "memory_bytes casts to Int",
+     "effect": "returns bytes/1048576; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.traceTimeline(_:)",
+   "hash": "44a0542b600c4f70",
+   "does": "Formats the last 5 samples as '  ts — mb MB · thermal=… · reason' lines, '?' for missing fields.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ts missing",
+     "effect": "'?'"
+    },
+    {
+     "at": "+3",
+     "cond": "memory_mb missing / not String",
+     "effect": "'?'"
+    },
+    {
+     "at": "+4",
+     "cond": "thermal missing",
+     "effect": "'?'"
+    },
+    {
+     "at": "+5",
+     "cond": "reason missing",
+     "effect": "'?'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same sample-row field extraction exists in SettingsDiagnosticsViews.sampleRow.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:331",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:173"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)",
+   "hash": "74cb2798267727cf",
+   "does": "Looks up RawRRBackup's termination forensics for the session and formats estimated death time, duration, beat counts, backup size and archive status; returns noBackupIndexExplanation when no index entry exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.elapsedDescription(from:to:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.byteDescription(_:)",
+    "ext:DateFormatter"
+   ],
+   "reads": [
+    "file:RRBackup index (via RawRRBackup)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no forensics summary for sessionId",
+     "effect": "returns noBackupIndexExplanation"
+    },
+    {
+     "at": "+6",
+     "cond": "lastBackupTime nil",
+     "effect": "'(never — no incremental write completed)'"
+    },
+    {
+     "at": "+7",
+     "cond": "summary.isArchived",
+     "effect": "'Already folded…' vs 'Not yet folded… SessionRecoveryService should pick it up'"
+    },
+    {
+     "at": "+15",
+     "cond": "backedUpCount nil",
+     "effect": "'(legacy single-file format)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)": "b4ae5364f7436661",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.byteDescription(_:)": "15b5508ccfd31892",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.elapsedDescription(from:to:)": "cf15b294b4e56700"
+   }
+  },
+  {
+   "key": "func CrashLogManager.elapsedDescription(from:to:)",
+   "hash": "09b237b42f7d1629",
+   "does": "Formats lastBackup - sessionStart as 'Hh Mm Ss' / 'Mm Ss' / 'Ss'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastBackup nil",
+     "effect": "'(unknown)'"
+    },
+    {
+     "at": "+3",
+     "cond": "elapsed negative",
+     "effect": "'(negative — clock skew?)'"
+    },
+    {
+     "at": "+7",
+     "cond": "hours > 0",
+     "effect": "'Hh Mm Ss'"
+    },
+    {
+     "at": "+8",
+     "cond": "minutes > 0",
+     "effect": "'Mm Ss'; else 'Ss'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.byteDescription(_:)",
+   "hash": "0a014fb13bdad7df",
+   "does": "Formats a byte count as B / KB / MB.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bytes nil",
+     "effect": "'(file missing or unreadable)'"
+    },
+    {
+     "at": "+2",
+     "cond": "< 1024",
+     "effect": "'N B'"
+    },
+    {
+     "at": "+3",
+     "cond": "< 1 MiB",
+     "effect": "'N KB'; else '%.1f MB'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.formatLogHeader(title:timestamp:)",
+   "hash": "83965cbba6682db7",
+   "does": "Builds the report banner with title, timestamp (labelled Timestamp for crash logs, Detected otherwise), device family, iOS version and app version/build.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion",
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "CFBundleShortVersionString missing",
+     "effect": "'?'"
+    },
+    {
+     "at": "+5",
+     "cond": "CFBundleVersion missing",
+     "effect": "'?'"
+    },
+    {
+     "at": "+12",
+     "cond": "title == 'EMUQU CRASH LOG'",
+     "effect": "label 'Timestamp'; else 'Detected'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-reads CFBundleShortVersionString/CFBundleVersion instead of Bundle.appVersion/appBuild (Extensions.swift:144/149); DebugLogger.exportHeader does the same with a different fallback (\"Unknown\").",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:405",
+      "Emuqu/Sources/Utilities/Extensions.swift:144",
+      "Emuqu/Sources/Utilities/DebugLog.swift:547"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Every report/export DateFormatter here is created with a fixed dateFormat but no locale or calendar (no en_US_POSIX), so it formats in the user's current calendar: on a Buddhist- or Japanese-calendar device the 'yyyy' year in report headers, session start, estimated termination time and the export filename is the era year, not the Gregorian year.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:402",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:403",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:145",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:146",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:234",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:235",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:350",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:351"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+   }
+  },
+  {
+   "key": "func CrashLogManager.promoteCurrentCrashLog()",
+   "hash": "f32dc0521f73839a",
+   "does": "At launch, concatenates exception_log.txt then crash_log.txt (whichever exist) into previous_crash.txt and deletes the sources; errors are logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data(contentsOf:)",
+    "ext:String.write",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:exception_log.txt",
+    "file:crash_log.txt"
+   ],
+   "writes": [
+    "file:previous_crash.txt",
+    "file:exception_log.txt",
+    "file:crash_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "neither source file exists",
+     "effect": "returns, previous_crash.txt untouched"
+    },
+    {
+     "at": "+5",
+     "cond": "a source is not valid UTF-8",
+     "effect": "contributes '' to the report"
+    },
+    {
+     "at": "+7",
+     "cond": "for each source",
+     "effect": "removes it after the write"
+    },
+    {
+     "at": "+8",
+     "cond": "read/write/remove throws",
+     "effect": "logged via debugLog; partial state (e.g. written but sources not removed → re-promoted next launch)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "Promotion overwrites previous_crash.txt, so an uncleared earlier report (e.g. a SIGKILL termination report) is discarded when a new crash is promoted, unlike recordTermination which appends.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:430",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:112"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL": "6089b7767d29d07b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func CrashLogManager.installSignalHandlers()",
+   "hash": "b4eebef8a66386c9",
+   "does": "Passes crash_log.txt's file-system path to the C function emuqu_install_crash_signal_handlers; NSLogs if installation fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_install_crash_signal_handlers"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "path representation is nil",
+     "effect": "returns false → not installed"
+    },
+    {
+     "at": "+5",
+     "cond": "installation returned false",
+     "effect": "NSLog failure; app runs without signal handlers"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.crashLogURL": "6eb84f0604e71b79",
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c::c emuqu_install_crash_signal_handlers": "ca358e74d48ff0fd"
+   }
+  },
+  {
+   "key": "func CrashLogManager.writeCrashLog(type:name:reason:stackTrace:)",
+   "hash": "242afaab0144e306",
+   "does": "Builds a crash report (header, crash info, stack trace) and persists it.",
+   "entry": "Called from the NSSetUncaughtExceptionHandler closure installed in install()",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.crashInfoBlock(type:name:reason:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stackTraceBlock(_:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.persistCrashLog(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:exception_log.txt"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.crashInfoBlock(type:name:reason:)": "1f30ec4cf5007ec3",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.persistCrashLog(_:)": "d5cda4994ea2bdc5",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stackTraceBlock(_:)": "02956a53bbc3f3e7"
+   }
+  },
+  {
+   "key": "func CrashLogManager.crashInfoBlock(type:name:reason:)",
+   "hash": "b4bb894956c375a0",
+   "does": "Formats header plus Type/Name/Reason lines for an exception report.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatLogHeader(title:timestamp:)": "3082f04e07801700"
+   }
+  },
+  {
+   "key": "func CrashLogManager.stackTraceBlock(_:)",
+   "hash": "c96cfdf6a48ad5a1",
+   "does": "Formats the stack-trace section and END banner.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CrashLogManager.persistCrashLog(_:)",
+   "hash": "8e4e5d5a8f448da3",
+   "does": "Scrubs each line with scrubPHI and writes (non-atomically) to exception_log.txt; NSLogs on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL",
+    "ext:String.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:exception_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "write throws",
+     "effect": "NSLog only; crash report lost"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.exceptionLogURL": "3e21aaad916fafdb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "00b21e78a01c5f05"
+   }
+  }
+ ],
+ "deps": {}
+}

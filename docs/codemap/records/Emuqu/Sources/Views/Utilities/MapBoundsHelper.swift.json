@@ -1,0 +1,69 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift",
+ "hash": "dae36545cd2b3195",
+ "role": "Single helper computing an MKCoordinateRegion bounding route coordinates with padding/minimum span.",
+ "types": [
+  "MapBoundsHelper: enum — region(for:...)"
+ ],
+ "state": [],
+ "toplevel": "Callers: Alpha1ReportCards+Report.swift:621, FitnessPostSummaryView+Share.swift:418, WorkoutPreflightView.swift:532, FitnessRecordingView+Tiles.swift:863.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)",
+   "hash": "8a88b2c8ea92da34",
+   "does": "Returns a region centred on the lat/lon midpoint with span (max-min)*paddingFactor floored at minimumDelta; empty input returns a 0,0-centred region with emptyFallbackDelta span.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "coordinates empty",
+     "effect": "return fallback at (0,0); else compute"
+    },
+    {
+     "at": "+13",
+     "cond": "min/max all non-nil",
+     "effect": "build bounding region; else fallback (unreachable once non-empty)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Uses raw min/max longitude; a route crossing the ±180° antimeridian gets a centre near 0° and a longitude span up to ~360*1.3, an invalid/wrong region.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:21",
+      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "After the isEmpty guard, min()/max() on non-empty arrays can't be nil, so the second fallback never runs.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:22"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Doc calls this \"the one shared implementation for the app's route maps\", yet three other units recompute the same min/max bounding region with their own padding: TrailRow.mapRegion, RecapCard.snapshotOptions, WorkoutPDFRenderer.mapSnapshotOptions.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:5",
+      "Emuqu/Sources/Views/DiscoverTrailsView.swift:783",
+      "Emuqu/Sources/Views/RecapCard.swift:323",
+      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:296"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,252 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift",
+ "hash": "20caa7d1734366dc",
+ "role": "One-shot backfill that folds HealthKit daytime-nap minutes into the sleep snapshot of overnight sessions from the last 400 days, marks each scanned session napRepaired, and rescores changed nights via ReanalysisService.recomputeScoreOnly.",
+ "types": [
+  "SessionDataMigrations: extension — daytime-nap repair migration"
+ ],
+ "state": [
+  "ud:FlowRecovery.napRepairBackfill.v1.done (standard suite; static napRepairMigrationKey)",
+  "napRepairLookbackDays = 400 (static constant)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionDataMigrations.runNapRepairMigrationIfNeeded()",
+   "hash": "cec86f57dfa46795",
+   "does": "If the flag is unset, gets overnight entries from the last 400 days; for each retrievable session not already napRepaired, runs repairNap and collects adjusted nights; then sets the flag and logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.napRepairCandidates(defaults:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.repairNap(_:entry:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.napRepairBackfill.v1.done",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "ud:FlowRecovery.napRepairBackfill.v1.done"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "flag already set",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": "napRepairCandidates returned nil (no entries / date math failed; flag set by callee)",
+     "effect": "return"
+    },
+    {
+     "at": "+10",
+     "cond": "for each overnight entry",
+     "effect": "process entry"
+    },
+    {
+     "at": "+11",
+     "cond": "archive.retrieve throws or returns nil (try?)",
+     "effect": "skip entry silently (continue); error discarded"
+    },
+    {
+     "at": "+12",
+     "cond": "session.napRepaired == true",
+     "effect": "skip (per-session idempotency)"
+    },
+    {
+     "at": "+14",
+     "cond": "repairNap returned nap minutes",
+     "effect": "append \"yyyy-MM-dd (+Nm nap)\" to adjusted list; nil -> nothing"
+    },
+    {
+     "at": "+19",
+     "cond": "adjustedNights empty ?:",
+     "effect": "empty suffix; otherwise \" — nights: ...\" joined list"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "fetchDaytimeNapMinutes returns 0 on HealthKit unavailable or query failure (try? -> nil -> 0), which repairNap treats as \"no nap\": every night is permanently marked napRepaired and the global flag is set, so a launch where the HealthKit query fails (e.g. data protection while locked) loses the nap credit for all past nights with no retry.",
+     "evidence": [
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:88",
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:50",
+      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:207-211",
+      "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift:221-228"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Runs on the main actor and synchronously retrieves (decrypt+decode) and rewrites every overnight in 400 days, each write posting flowRecoveryArchiveChanged; loadArchivedSessions exists precisely because main-actor archive reads held the first screen for seconds.",
+     "evidence": [
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:43",
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:112-115",
+      "Emuqu/Sources/Collection/SessionDataMigrations.swift:69-71"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test calls runNapRepairMigrationIfNeeded (grep EmuquTests finds none); FLOWCHART names parity tests only for InsufficientData, TrimpRepair and WorkoutSleepCleanup.",
+     "evidence": [
+      "docs/FLOWCHART.md:682-683",
+      "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift:32"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.napRepairCandidates(defaults:)": "9242872d4700e6d8",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.repairNap(_:entry:)": "030793064ea76dfe",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.napRepairCandidates(defaults:)",
+   "hash": "60f02787d60c0667",
+   "does": "Computes start = startOfDay(now) - 400 days and returns overnight archive entries in [start, now]; sets the flag and returns nil when the date cannot be computed or there are no entries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries(from:to:)"
+   ],
+   "writes": [
+    "ud:FlowRecovery.napRepairBackfill.v1.done"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Calendar.date(byAdding:) returns nil",
+     "effect": "set flag, return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "no overnight entries in window",
+     "effect": "set flag, log, return nil; otherwise return entries"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.repairNap(_:entry:)",
+   "hash": "e1790c36db9238cd",
+   "does": "For a session with a positive night sleep snapshot, fetches qualifying daytime-nap minutes before the night; if positive, sets snapshot.napSleepMinutes, marks napRepaired, persists and calls ReanalysisService.recomputeScoreOnly; returns nap minutes. Otherwise marks checked and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.markChecked(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchDaytimeNapMinutes(nightAnchoredAt:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.persist(_:entry:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType.sleepAnalysis (daytime nap window)"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
+    "archive:ReanalysisService.recomputeScoreOnly (rescore + upload)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sleepSnapshot or nightSleepMinutes <= 0",
+     "effect": "markChecked, return nil"
+    },
+    {
+     "at": "+6",
+     "cond": "napMinutes <= 0",
+     "effect": "markChecked (no score change), return nil"
+    },
+    {
+     "at": "+15",
+     "cond": "persist failed",
+     "effect": "return nil without rescoring (session not marked on disk; error already logged)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutes(nightAnchoredAt:)": "2816636397311714",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchDaytimeNapMinutes(nightAnchoredAt:)": "d41e517d23078f53",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.markChecked(_:)": "57047929c72ed553",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.persist(_:entry:)": "278fb32d9a383f39",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "5084c288e2d38543"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.persist(_:entry:)",
+   "hash": "b9f934ecc906dc6c",
+   "does": "Archives the session; returns true on success, logs a warning and returns false on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archive throws",
+     "effect": "warning logged, return false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func SessionDataMigrations.markChecked(_:)",
+   "hash": "c0422ac1e04bee5e",
+   "does": "Sets napRepaired = true and archives the session; archive errors are logged as warnings and swallowed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archive throws",
+     "effect": "warning logged; mark lost (global flag still set by caller so it does not matter unless flag cleared)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

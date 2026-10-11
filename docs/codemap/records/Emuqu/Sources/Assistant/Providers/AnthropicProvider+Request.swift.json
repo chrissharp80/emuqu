@@ -1,0 +1,217 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift",
+ "hash": "f164bba60596db89",
+ "role": "AnthropicProvider extension holding request shaping: prompt-cache split of the system prompt, tool declarations (with Anthropic server-side web_search replacing the app's Tavily tool), URLRequest construction, and the SSE line reader.",
+ "types": [
+  "AnthropicProvider: extension — request assembly + SSE"
+ ],
+ "state": [
+  "mem:AnthropicProvider.serverWebSearchToolName = \"web_search\" (static let)",
+  "net:api.anthropic.com headers: anthropic-version 2023-06-01, anthropic-beta extended-cache-ttl-2025-04-11"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No test exercises AnthropicProvider's request assembly or SSE parsing (grep of EmuquTests finds no call to handle/consumeSSE/spliceLiveState/toolDeclarations/statusError/cacheAwareSystemBlocks; JSONOrderingTests claims to guard provider encoders but only encodes its own Payload struct).",
+   "evidence": [
+    "EmuquTests/JSONOrderingTests.swift:14",
+    "EmuquTests/JSONOrderingTests.swift:26"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AnthropicProvider.cacheAwareSystemBlocks(_:)",
+   "hash": "e9112cd3e3e33d54",
+   "does": "Splits the composed system prompt at AssistantSystemPrompt.Composed.cacheSplitMarker into a stable prefix (first part) and variable suffix (rest rejoined with the marker), then builds system blocks with only the stable one cache-tagged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "parts.first ?? systemPrompt",
+     "effect": "first component; fallback to whole prompt is unreachable since components(separatedBy:) always returns ≥1 element"
+    },
+    {
+     "at": "+4",
+     "cond": "parts.count > 1",
+     "effect": "variable = remaining parts joined by marker; else empty string (single uncached block omitted)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "9bf824779ebf7909"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.toolDeclarations(for:)",
+   "hash": "0e92c5a416294597",
+   "does": "Builds Anthropic tools[]: custom declarations for every ToolSpec (dropping the app's own web_search when web search is on), appends the server web_search_20250305 tool (max_uses 3, WebSearchService.excludeDomains blocked) when SettingsManager.settingsSnapshot.enableWebSearch, and puts a 1h ephemeral cache breakpoint on the last declaration. Returns nil when there is nothing to send.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settingsSnapshot.enableWebSearch"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tools empty AND web search off",
+     "effect": "returns nil (no tools field)"
+    },
+    {
+     "at": "+3",
+     "cond": "webSearchOn",
+     "effect": "filters out ToolSpec named \"web_search\" (Anthropic rejects duplicate names); else all tools kept"
+    },
+    {
+     "at": "+7",
+     "cond": "webSearchOn",
+     "effect": "appends serverWebSearch(maxUses:3, blockedDomains: excludeDomains); else nothing"
+    },
+    {
+     "at": "+10",
+     "cond": "combined.last is nil",
+     "effect": "returns nil (unreachable after guard at 71 unless tools were only web_search and web search off — impossible since filter only applies when on); else last element replaced with cacheTagged copy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "With web search on, the guard and append at 71/76 add Anthropic's billed server web_search tool (max_uses 3) even when tools is empty. So the toolless 4-arg sends also get it: the summarizer, auto-fact extraction and voice interjection. The comment at AIProvider.swift:543-546 says those sends go out with no tools. They can now trigger paid web searches, and the extra latency runs into their 5 s / 8 s collect timeouts.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:71",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:76",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:543",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:23",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:178",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:256"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "1a9605f184933b33",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.cacheTagged(_:)",
+   "hash": "441dc09fb8570296",
+   "does": "Returns the same ToolDecl with cache_control {type: ephemeral, ttl: 1h}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .custom",
+     "effect": "rebuilds custom with cache"
+    },
+    {
+     "at": "+5",
+     "cond": "case .serverWebSearch",
+     "effect": "rebuilds server web search with cache"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.makeRequest(url:apiKey:body:)",
+   "hash": "3690e6d44a6776bc",
+   "does": "Builds the POST URLRequest: x-api-key, anthropic-version 2023-06-01, anthropic-beta extended-cache-ttl-2025-04-11, JSON content-type, SSE accept; body JSON-encoded with .sortedKeys. Throws if encoding fails.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [
+    "net:api.anthropic.com (request built, sent by caller)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.consumeSSE(_:continuation:)",
+   "hash": "585337674ff2aae7",
+   "does": "Reads the SSE byte stream line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)",
+    "ext:URLSession.AsyncBytes.lines",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [
+    "net:api.anthropic.com SSE stream"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each line",
+     "effect": "loop until stream ends; throws on network error/cancellation"
+    },
+    {
+     "at": "+8",
+     "cond": "line empty",
+     "effect": "clears lastEventName and continues"
+    },
+    {
+     "at": "+12",
+     "cond": "line starts with event:",
+     "effect": "stores trimmed event name and continues"
+    },
+    {
+     "at": "+16",
+     "cond": "line does not start with data:",
+     "effect": "skipped (comments, id:, retry:)"
+    },
+    {
+     "at": "+18",
+     "cond": "payload empty or not UTF-8",
+     "effect": "skipped; else handle(eventName:data:) which may throw"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "The stream ends whenever bytes end; no check that message_stop arrived. If the connection closes cleanly mid-reply, consumeSSE returns, ProviderStream.run finishes normally and the truncated reply is treated as complete (no .done yielded, no error).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:133",
+      "Emuqu/Sources/Assistant/Providers/ProviderStream.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "0e3bcacdf7929c4d"
+   }
+  }
+ ],
+ "deps": {}
+}

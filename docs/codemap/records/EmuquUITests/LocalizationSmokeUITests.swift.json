@@ -1,0 +1,123 @@
+{
+ "file": "EmuquUITests/LocalizationSmokeUITests.swift",
+ "hash": "8c25b6db4811801c",
+ "role": "XCUITest launching the app under en/ja/de/ar (AppleLanguages/AppleLocale) and asserting the disclaimer's agree button label matches Localizable.xcstrings' translation of 'I Agree' (verified: 同意する, Ich stimme zu, أوافق).",
+ "types": [
+  "LocalizationSmokeUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/LocalizationSmokeUITests.swift:25",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func LocalizationSmokeUITests.makeApp(language:)",
+   "hash": "2db07a81e945aa24",
+   "does": "Creates an XCUIApplication with -UITests, -UITests-FreshInstall, -AppleLanguages (lang), -AppleLocale lang; does not launch.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)",
+   "hash": "c9f1364e9f0d2f1f",
+   "does": "Launches the app in the language, asserts disclaimer.agree appears within 20s and its label equals the expected translation; terminates the app on exit.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.makeApp(language:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68",
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.makeApp(language:)": "af59203dd72323e3"
+   }
+  },
+  {
+   "key": "func LocalizationSmokeUITests.testEnglishLaunchRendersDisclaimer()",
+   "hash": "2a7c1b7a17da5bf1",
+   "does": "Asserts the English agree label is 'I Agree'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)": "6fcfca4ca965c69e"
+   }
+  },
+  {
+   "key": "func LocalizationSmokeUITests.testJapaneseLaunchRendersInJapanese()",
+   "hash": "81938cc63caef69a",
+   "does": "Asserts the Japanese agree label is '同意する'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)": "6fcfca4ca965c69e"
+   }
+  },
+  {
+   "key": "func LocalizationSmokeUITests.testGermanLaunchRendersInGerman()",
+   "hash": "2de2490790ad2297",
+   "does": "Asserts the German agree label is 'Ich stimme zu'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)": "6fcfca4ca965c69e"
+   }
+  },
+  {
+   "key": "func LocalizationSmokeUITests.testArabicRTLLaunchRendersInArabic()",
+   "hash": "672320b063af4afd",
+   "does": "Asserts the Arabic (RTL) agree label is 'أوافق'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/LocalizationSmokeUITests.swift::func LocalizationSmokeUITests.assertAgreeButton(language:reads:file:line:)": "6fcfca4ca965c69e"
+   }
+  }
+ ],
+ "deps": {}
+}

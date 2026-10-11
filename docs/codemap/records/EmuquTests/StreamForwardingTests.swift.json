@@ -1,0 +1,159 @@
+{
+ "file": "EmuquTests/StreamForwardingTests.swift",
+ "hash": "e1013dd6be6b0a68",
+ "role": "@MainActor XCTest suite for the app-owned half of the strap HR subscription: StrapHeartRateFeed.desiredKind (PPI only for a Verity Sense in session) and StrapHeartRateFeed.drain over synthetic AsyncThrowingStreams (order, empty stream, failure after samples, cancellation).",
+ "types": [
+  "StreamForwardingTests: class — @MainActor XCTestCase over StrapHeartRateFeed.desiredKind/drain",
+  "Boom: private struct Error used as a synthetic stream failure"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StreamForwardingTests.stream(_:failing:)",
+   "hash": "65ecaaadab10a1d0",
+   "does": "Test helper: AsyncThrowingStream that yields each of `values` synchronously then finishes, throwing `error` if given.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each value",
+     "effect": "yields it to the continuation before finishing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StreamForwardingTests.testOnlyAVeritySenseSessionUsesPPI()",
+   "hash": "3344dc4e1e9e2806",
+   "does": "Asserts desiredKind is .ppi only for veritySense with sessionActive true; .heartRate for Verity outside a session, H10 in session, and nil device.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "fb318ac17b3c3e6e"
+   }
+  },
+  {
+   "key": "func StreamForwardingTests.testEverySampleIsDeliveredInOrder()",
+   "hash": "5c281b471c597132",
+   "does": "Asserts drain over [1..5] delivers 1,2,3,4,5 in order, reports samples 5 and no error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)": "3373dd1357db3313"
+   }
+  },
+  {
+   "key": "func StreamForwardingTests.testAnEmptyStreamDeliversNothingAndEndsCleanly()",
+   "hash": "a6158e523e8619e0",
+   "does": "Asserts drain over an empty stream delivers nothing, samples 0, error nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)": "3373dd1357db3313"
+   }
+  },
+  {
+   "key": "func StreamForwardingTests.testAStreamFailureIsReportedAfterTheSamplesBeforeIt()",
+   "hash": "2072292582606b3b",
+   "does": "Asserts drain over [1,2] then Boom delivers 1 and 2, samples 2, and error is Boom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)": "3373dd1357db3313"
+   }
+  },
+  {
+   "key": "func StreamForwardingTests.testCancellationStopsDelivery()",
+   "hash": "5a63b026503f0bac",
+   "does": "Drains an endless 2 ms producer on a MainActor task, waits (≤5 s) for the first element, cancels the feed task, then asserts no further element is delivered within 100 ms; finally cancels the producer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "while producer task not cancelled",
+     "effect": "yields an incrementing value every 2 ms; finishes the stream once cancelled"
+    },
+    {
+     "at": "+19",
+     "cond": "received.isEmpty in the handler",
+     "effect": "true on the first element: fulfils the 'delivery started' expectation; false afterwards"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func StreamForwardingTests.testAnAlreadyCancelledTaskDeliversNothingFurther()",
+   "hash": "5533129debd87c7a",
+   "does": "Cancels a feed task draining a 3-element stream immediately and asserts at most 3 elements were delivered and pass.samples equals the delivered count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertLessThanOrEqual(received.count, 3) cannot fail for a 3-element source whatever drain does on cancellation, so the test only checks samples == received.count; the 'delivers nothing further' behaviour in its name is not asserted.",
+     "evidence": [
+      "EmuquTests/StreamForwardingTests.swift:123"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
+    "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.stream(_:failing:)": "3373dd1357db3313"
+   }
+  }
+ ],
+ "deps": {}
+}

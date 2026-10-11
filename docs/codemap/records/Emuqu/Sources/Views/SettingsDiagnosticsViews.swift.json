@@ -1,0 +1,795 @@
+{
+ "file": "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift",
+ "hash": "28b94c795b1a5686",
+ "role": "Developer diagnostics detail screens pushed from ArchiveDiagnosticsView: MetricKit payload history, sampled memory/thermal trace, and the per-session RR storage audit list.",
+ "types": [
+  "MetricKitHistoryView: struct (View) — renders SystemDiagnosticsManager.readMetricKitHistory() dicts",
+  "MemoryTraceView: struct (View) — renders the memory/thermal JSONL trace dicts",
+  "RRStorageAuditDetailView: struct (View) — per-session rows of SessionStorageDiagnostic.Report"
+ ],
+ "state": [
+  "mem:MetricKitHistoryView.payloads (let)",
+  "mem:MemoryTraceView.trace (let)",
+  "mem:RRStorageAuditDetailView.report (let)",
+  "mem:RRStorageAuditDetailView.dateFormatter (static DateFormatter, en_US_POSIX yyyy-MM-dd HH:mm)"
+ ],
+ "toplevel": "Header comment mentions \"the export URL wrapper\" but no such type is in this file (it is not declared here). Views read untyped [String: Any] dicts whose keys (kind, summary, begin, end, received_at, exit_background, exit_foreground, peak_memory_bytes; ts, memory_bytes, memory_mb, thermal, reason, memory_warnings_total) are written by SystemDiagnosticsManager.swift:272-299, 349, 425-432.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Trace/payload schema is stringly typed and duplicated between the writer (SystemDiagnosticsManager) and two readers (these views and CrashLogManager.summarize/traceTimeline); a renamed key silently renders \"?\"/0.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:425",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:137",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift:324"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "File header says it contains \"the export URL wrapper\"; no such type exists in the file.",
+   "evidence": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:4"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MetricKitHistoryView.body",
+   "hash": "dbbfdd4ca16521e7",
+   "does": "List with an explanatory \"What this shows\" section and one payloadRow per MetricKit payload dict (indexed by offset); inline nav title \"MetricKit History\".",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from ArchiveDiagnosticsView.metricKitHistoryLink, ExportAndArchiveViews.swift:907)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadRow(_:)": "f6d7159ed791cafe",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.payloadRow(_:)",
+   "hash": "8649852ea3c2432f",
+   "does": "Renders one payload: header, the \"summary\" string, the begin→end window when both present, then payloadDetail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadHeader(_:)",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadDetail(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "payload[\"summary\"] is a String",
+     "effect": "shows it; otherwise the localized \"(no summary)\" fallback (diagnostic payloads without summary or metric payloads without exit metrics)"
+    },
+    {
+     "at": "+7",
+     "cond": "both \"begin\" and \"end\" are Strings",
+     "effect": "shows \"Window: begin → end\"; otherwise the window line is omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadDetail(_:)": "227d4b464150b1df",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadHeader(_:)": "957fc620fde70fc7"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.payloadHeader(_:)",
+   "hash": "3d0f8cc3665854ba",
+   "does": "HStack of the uppercased payload \"kind\" (coloured by payloadKindColor) and the \"received_at\" timestamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadKindColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "payload[\"kind\"] is a String",
+     "effect": "uppercased kind; else \"?\""
+    },
+    {
+     "at": "+5",
+     "cond": "payload[\"received_at\"] is a String",
+     "effect": "shows it; else \"—\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.payloadKindColor(_:)": "65815779036ff246",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.payloadDetail(_:)",
+   "hash": "1148fde09d166052",
+   "does": "Shows background/foreground exit breakdowns and peak memory (ByteCountFormatter .memory) when those keys decode.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdown(_:counts:)",
+    "ext:ByteCountFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"exit_background\" decodes as [String:Int]",
+     "effect": "renders exitBreakdown(\"Background exits\"); else nothing"
+    },
+    {
+     "at": "+5",
+     "cond": "\"exit_foreground\" decodes as [String:Int]",
+     "effect": "renders exitBreakdown(\"Foreground exits\"); else nothing"
+    },
+    {
+     "at": "+8",
+     "cond": "\"peak_memory_bytes\" decodes as Double",
+     "effect": "shows \"Peak memory: <bytes>\"; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdown(_:counts:)": "6501516ab9104909"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.exitBreakdown(_:counts:)",
+   "hash": "019be46ab4319475",
+   "does": "Filters exit counts to non-zero, non-\"normal\" keys and, if any remain, renders them sorted by key via exitBreakdownColumn.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownColumn(_:rows:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "filtered dict is non-empty",
+     "effect": "renders the column; when empty nothing is shown (a period with only normal exits shows no breakdown)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownColumn(_:rows:)": "e6b9be1d4b894919"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.exitBreakdownColumn(_:rows:)",
+   "hash": "89ee74c6d7560330",
+   "does": "VStack with the title and one exitBreakdownRow per (key,value).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MetricKitHistoryView.exitBreakdownRow(_:)": "44a4fd0669a0febd"
+   }
+  },
+  {
+   "key": "func MetricKitHistoryView.exitBreakdownRow(_:)",
+   "hash": "a268be155f975654",
+   "does": "HStack: indented key and the count in red monospaced bold.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricKitHistoryView.payloadKindColor(_:)",
+   "hash": "4db6a91333b9fc0a",
+   "does": "Maps payload kind to a colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "kind == \"diagnostic\"",
+     "effect": "red"
+    },
+    {
+     "at": "+3",
+     "cond": "kind == \"metric\"",
+     "effect": "blue"
+    },
+    {
+     "at": "+4",
+     "cond": "default (nil or other)",
+     "effect": "secondary"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MemoryTraceView.body",
+   "hash": "7fe4ca4ddc2ff066",
+   "does": "List of summarySection + recentSamplesSection, nav title \"Memory & Thermal\".",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from ArchiveDiagnosticsView.memoryTraceLink, ExportAndArchiveViews.swift:918)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summarySection",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.recentSamplesSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.recentSamplesSection": "8e7d0c8fcd35a044",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summarySection": "e6bdec60e6694e35"
+   }
+  },
+  {
+   "key": "var MemoryTraceView.summarySection",
+   "hash": "22cbc5731ab1ce18",
+   "does": "Section \"Sampled every 5 s during recording\" with an explanatory phys_footprint caption and the summary block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "09165c15836025e9",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MemoryTraceView.recentSamplesSection",
+   "hash": "2840f943a33daf35",
+   "does": "Section listing sampleRow for the last 200 trace samples (newest last).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.sampleRow(_:)": "16e613d554b0aeff"
+   }
+  },
+  {
+   "key": "var MemoryTraceView.memoryMB",
+   "hash": "e7f5277d58d20e50",
+   "does": "Converts each sample's \"memory_bytes\" (UInt64 or Int) to MB; samples with neither are dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"memory_bytes\" casts to UInt64",
+     "effect": "returns bytes/1_048_576"
+    },
+    {
+     "at": "+3",
+     "cond": "\"memory_bytes\" casts to Int",
+     "effect": "returns bytes/1_048_576; otherwise nil (sample skipped)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same UInt64/Int memory_bytes decoding as CrashLogManager.megabytes(in:); two copies of the trace-schema knowledge.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:135",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:324"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var MemoryTraceView.maxThermal",
+   "hash": "b8935ce0a4d693a2",
+   "does": "Returns the hottest thermal state name seen in the trace using the order nominal<fair<serious<critical; starts at \"nominal\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "iterates the whole trace"
+    },
+    {
+     "at": "+4",
+     "cond": "sample has a String \"thermal\" whose rank exceeds current top",
+     "effect": "top becomes that state; otherwise unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "order[t] ?? 0 / order[top] ?? 0",
+     "effect": "unknown names (e.g. \"unknown\" from @unknown default) rank 0, so they never become the peak"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements CrashLogManager.hotterThermal (same order table) for the same trace.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:144",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:316"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var MemoryTraceView.memoryWarnings",
+   "hash": "9ea6aac616a95446",
+   "does": "Max of \"memory_warnings_total\" Int across samples.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "max() of empty list",
+     "effect": "?? 0 when no sample carries the counter"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "memory_warnings_total is SystemDiagnosticsManager.memoryWarningCount, a per-process counter that starts at 0 each launch; the trace spans several launches/recordings, so max() shows the largest single-process count, not the number of warnings in the window the row is labelled for.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:80",
+      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:405",
+      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:431",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:154"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same max-of-memory_warnings_total reduction as CrashLogManager.summarize(trace:).",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:154",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:309"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var MemoryTraceView.summary",
+   "hash": "50583b383c498265",
+   "does": "Builds a VStack with peak MB, average MB, peak thermal (coloured) and memory-warning count (orange when > 0), formatted with LanguageManager.appLocale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryMB",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.maxThermal",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "memMB.max() is nil (no decodable samples)",
+     "effect": "peak shown as 0.0 MB"
+    },
+    {
+     "at": "+3",
+     "cond": "memMB is empty",
+     "effect": "average 0; else arithmetic mean"
+    },
+    {
+     "at": "+10",
+     "cond": "warnings > 0",
+     "effect": "count drawn orange; else primary"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Peak MB / peak thermal / warnings summary is computed a second time by CrashLogManager.summarize(trace:) over the same trace schema; the two summaries can drift.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:157",
+      "Emuqu/Sources/Utilities/CrashLogManager.swift:301"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.maxThermal": "33d0ae53f6ae76f2",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryMB": "b22f8d5157b4fa76",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.memoryWarnings": "7237390a767f629a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MemoryTraceView.sampleRow(_:)",
+   "hash": "07fb49857fe7e8e5",
+   "does": "One row per sample: last 8 chars of \"ts\", \"memory_mb\" string, thermal (coloured) and reason.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"ts\" is String",
+     "effect": "value; else \"—\""
+    },
+    {
+     "at": "+3",
+     "cond": "\"memory_mb\" is String",
+     "effect": "value; else \"?\""
+    },
+    {
+     "at": "+4",
+     "cond": "\"thermal\" is String",
+     "effect": "value; else \"?\""
+    },
+    {
+     "at": "+5",
+     "cond": "\"reason\" is String",
+     "effect": "value; else \"?\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func MemoryTraceView.thermalColor(_:)": "ef4f60d21736cf1f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MemoryTraceView.thermalColor(_:)",
+   "hash": "2c1277ba3e9ffcd1",
+   "does": "Maps thermal state name to colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "\"fair\"",
+     "effect": "yellow"
+    },
+    {
+     "at": "+3",
+     "cond": "\"serious\"",
+     "effect": "orange"
+    },
+    {
+     "at": "+4",
+     "cond": "\"critical\"",
+     "effect": "red"
+    },
+    {
+     "at": "+5",
+     "cond": "default (nominal/unknown/?)",
+     "effect": "secondary"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "let RRStorageAuditDetailView.dateFormatter",
+   "hash": "9d2d27b68517357a",
+   "does": "Static DateFormatter (en_US_POSIX, gregorian, \"yyyy-MM-dd HH:mm\") used for session-row dates.",
+   "entry": null,
+   "calls": [
+    "ext:DateFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRStorageAuditDetailView.body",
+   "hash": "ebcf97813f620c1b",
+   "does": "List: summary caption, sessionsSection, orphanedBackupsSection; nav title \"RR Storage Audit\".",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from ArchiveDiagnosticsView.rrAuditDetailLink, ExportAndArchiveViews.swift:804)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.sessionsSection",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupsSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Type doc and on-screen caption say tapping a session shows beat counts and file paths; sessionRow has no NavigationLink or tap action and no path is ever shown (SessionReport has no path field), so the instruction leads nowhere.",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:202",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:217",
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:256",
+      "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift:49"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupsSection": "19043b8287520a5f",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.sessionsSection": "f59269ad2093993a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RRStorageAuditDetailView.sessionsSection",
+   "hash": "fd2b9799241a5ab4",
+   "does": "Section \"Sessions (N)\" with one sessionRow per report.sessions keyed by sessionId.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRow(_:)": "9d276f8ae8862c9a"
+   }
+  },
+  {
+   "key": "var RRStorageAuditDetailView.orphanedBackupsSection",
+   "hash": "bef75eca3c11401d",
+   "does": "Section listing orphaned backup ids plus explanation, only when there are any.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupRows"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "report.orphanedBackupIds non-empty",
+     "effect": "section shown; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupRows": "46b3b19df430fb0b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RRStorageAuditDetailView.orphanedBackupRows",
+   "hash": "bdb2ee984037b231",
+   "does": "ForEach orphaned backup UUID: first 8 chars + \"…\" monospaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRStorageAuditDetailView.sessionRow(_:)",
+   "hash": "4a56235a076e266a",
+   "does": "Session row: header, optional analysisSummary, beat counts, short session id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowHeader(_:)",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "s.analysisSummary non-nil",
+     "effect": "shows it; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowCounts(_:)": "89b746959ced924d",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.sessionRowHeader(_:)": "6196e298c04fb032",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var MemoryTraceView.summary": "09165c15836025e9"
+   }
+  },
+  {
+   "key": "func RRStorageAuditDetailView.sessionRowHeader(_:)",
+   "hash": "951223d068c1e2c4",
+   "does": "HStack: status icon/colour, formatted date, session type display name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::let RRStorageAuditDetailView.dateFormatter",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusIcon(_:)",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusColor(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.displayName": "e8364f253d678fdc",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusColor(_:)": "ddd35b1f6b9fa2e4",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.statusIcon(_:)": "e06d9a3ba77dbae6",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::let RRStorageAuditDetailView.dateFormatter": "21e9c1eb48af79b3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RRStorageAuditDetailView.sessionRowCounts(_:)",
+   "hash": "52eabafc34d2a226",
+   "does": "HStack: archive beats, backup beats, archive file size string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.byteString(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::func RRStorageAuditDetailView.byteString(_:)": "593005829bc01b20",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func RRStorageAuditDetailView.statusIcon(_:)",
+   "hash": "8eea87e7ddcf48f3",
+   "does": "Maps RRStatus to SF Symbol name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".bothPresent",
+     "effect": "checkmark.seal.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".archivedFull",
+     "effect": "checkmark.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": ".backupOnly",
+     "effect": "exclamationmark.arrow.circlepath"
+    },
+    {
+     "at": "+5",
+     "cond": ".neither",
+     "effect": "xmark.octagon.fill"
+    },
+    {
+     "at": "+6",
+     "cond": ".unreadable",
+     "effect": "questionmark.diamond.fill"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRStorageAuditDetailView.statusColor(_:)",
+   "hash": "bcc18925025f043a",
+   "does": "Maps RRStatus to colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".bothPresent/.archivedFull",
+     "effect": "green"
+    },
+    {
+     "at": "+3",
+     "cond": ".backupOnly",
+     "effect": "orange"
+    },
+    {
+     "at": "+4",
+     "cond": ".neither/.unreadable",
+     "effect": "red"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRStorageAuditDetailView.byteString(_:)",
+   "hash": "00967ff9118fdd4d",
+   "does": "ByteCountFormatter .file string for a byte count.",
+   "entry": null,
+   "calls": [
+    "ext:ByteCountFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Identical to ArchiveDiagnosticsView.byteString in ExportAndArchiveViews.swift (same one-liner).",
+     "evidence": [
+      "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift:314",
+      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:853"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

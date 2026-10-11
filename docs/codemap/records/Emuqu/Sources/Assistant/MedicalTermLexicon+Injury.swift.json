@@ -1,0 +1,35 @@
+{
+ "file": "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift",
+ "hash": "887b0760f3833c28",
+ "role": "Extension defining the injury Concept (first-person injury reports in English, European, Nordic, Russian latin-script patterns plus ja/zh/ko/ar substrings) and the refuseAsInjury group used by MedicalQueryGuard.",
+ "types": [
+  "MedicalTermLexicon: extension — injury concept and its locale pattern lists"
+ ],
+ "state": [
+  "mem:MedicalTermLexicon.injury",
+  "mem:MedicalTermLexicon.englishInjury",
+  "mem:MedicalTermLexicon.notAFall",
+  "mem:MedicalTermLexicon.frenchBodyPart",
+  "mem:MedicalTermLexicon.spanishBodyPart",
+  "mem:MedicalTermLexicon.europeanInjury",
+  "mem:MedicalTermLexicon.nordicInjury",
+  "mem:MedicalTermLexicon.refuseAsInjury"
+ ],
+ "toplevel": "All static lets: injury Concept assembled from englishInjury + europeanInjury + nordicInjury + Russian literals, unbounded CJK/Arabic substrings; idiom lookaheads exclude 'fell asleep/behind/...', 'cut myself slack', 'bleeding edge', French/Spanish 'racked my brain' forms. refuseAsInjury = [injury].",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "The header says the patterns describe an injury happening to the speaker, but bare alternatives \"sprain(?:ed)?\", \"concussion\", \"ambulance\", \"bleeding\" (and entorse, esguince, verstaucht, forstuvet, 捻挫, 骨折 etc.) match any mention, so ordinary questions like \"how long does a sprain take to heal?\" or \"what is concussion protocol?\" are refused with the injury reply and never reach the model.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:11",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:49",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:72",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift:30"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

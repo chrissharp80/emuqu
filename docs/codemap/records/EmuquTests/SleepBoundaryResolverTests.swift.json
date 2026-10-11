@@ -1,0 +1,382 @@
+{
+ "file": "EmuquTests/SleepBoundaryResolverTests.swift",
+ "hash": "72d82440e5f2d258",
+ "role": "XCTest suite for SleepBoundaryResolver (clamp, detectSleepOnset, resolve fallback, validateBoundaries reconciliation) and HealthKitManager.estimateSleepFromHR onset detection.",
+ "types": [
+  "SleepBoundaryResolverTests: class — @MainActor XCTestCase for SleepBoundaryResolver and HR-based sleep estimation"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepBoundaryResolverTests.testClampWithinRange()",
+   "hash": "58ba4d9396d8720a",
+   "does": "Asserts clamp(60000,300000,dur 480000) leaves both values unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testClampNegativeStartClampsToZero()",
+   "hash": "0a546da217bd584d",
+   "does": "Asserts clamp clamps a negative start (-5000) to 0 and leaves end 300000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testClampEndBeyondDurationClamped()",
+   "hash": "ec7791410dd2be91",
+   "does": "Asserts clamp clamps end 600000 to recording duration 480000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testClampNilValuesStayNil()",
+   "hash": "2f13615e5dfe0e62",
+   "does": "Asserts clamp keeps nil start and nil end as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testClampMixedNilValues()",
+   "hash": "2ed57129c38aa3dc",
+   "does": "Asserts clamp with nil start and end 300000 returns (nil, 300000).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testClampStartBeyondDuration()",
+   "hash": "09ab4325a4cd1f4d",
+   "does": "Asserts clamp clamps start 600000 to 480000 and keeps nil end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testDetectSleepOnsetReturnsNilForShortData()",
+   "hash": "8a684268d6b17191",
+   "does": "Asserts detectSleepOnset returns nil for 100 RR points (below the 300-beat minimum).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testDetectSleepOnsetWithUniformHR()",
+   "hash": "848db87c7816cce1",
+   "does": "Asserts detectSleepOnset returns nil for 1200 constant 800ms RR points (no HR drop).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testDetectSleepOnsetWithHRDrop()",
+   "hash": "1d8ccf2f1e9a2ed2",
+   "does": "Builds 600 beats at 857ms then 600 at 1090ms, asserts detectSleepOnset returns a non-nil onset >0 and < 600*857+200000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for loop over 600 awake beats",
+     "effect": "appends 857ms RR points; always runs 600 times"
+    },
+    {
+     "at": "+13",
+     "cond": "for loop over 600 sleep beats",
+     "effect": "appends 1090ms RR points; always runs 600 times"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Comments say onset is found because HR is 'sustained below 65 bpm', but detectSleepOnset uses an adaptive ceiling at the midpoint of the night's own HR range (here ~62.5 bpm), not a fixed 65 bpm; the comment documents a removed rule.",
+     "evidence": [
+      "EmuquTests/SleepBoundaryResolverTests.swift:121",
+      "EmuquTests/SleepBoundaryResolverTests.swift:128",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:206",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:229"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testResolverInitialization()",
+   "hash": "9590bfe954f5356e",
+   "does": "Constructs SleepBoundaryResolver with MockHealthKitService and asserts it is not nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTAssertNotNil on a non-optional value just constructed: tautology, cannot fail.",
+     "evidence": [
+      "EmuquTests/SleepBoundaryResolverTests.swift:135"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "165c0cc6e5775dcd"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testResolveFallsBackToRecordingBoundaries()",
+   "hash": "3ffd7b22df70f5e2",
+   "does": "Calls resolve(sessionStart:recordingEnd:) with a default MockHealthKitService over 8h and asserts both sleepStartMs and wakeTimeMs are non-nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only asserts non-nil; the fallback path always returns (0, recordingEndMs), so the actual fallback values (0 and 28,800,000) are never checked and a wrong fallback would pass. Comment also wrongly says HealthKit 'will likely fail' while the mock is in use.",
+     "evidence": [
+      "EmuquTests/SleepBoundaryResolverTests.swift:150",
+      "EmuquTests/SleepBoundaryResolverTests.swift:151",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:103"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "165c0cc6e5775dcd"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsLater_DetailedStages_KeepsHealthKit()",
+   "hash": "8843865efdda6029",
+   "does": "validateBoundaries with HK start 0, HR start 30min later, hasDetailedStages true: asserts start stays 0 (HK kept).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsLater_NoDetailedStages_UsesHR()",
+   "hash": "c72b57f6bdeaf79e",
+   "does": "validateBoundaries with HR start 30min later and no detailed stages: asserts start becomes 1,800,000 (HR wins).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsEarlier_DetailedStages_UsesHR()",
+   "hash": "efbb0fc14e469d24",
+   "does": "validateBoundaries with HR start 30min earlier and detailed stages: asserts start becomes 0 (HR may move onset earlier).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_WithinThreshold_KeepsHealthKit()",
+   "hash": "3b7e78ae82fe8cb5",
+   "does": "validateBoundaries with HR 10min later (below the 15min threshold): asserts HK start 0 kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_EndCanOnlyExtend()",
+   "hash": "2dc08cce5de2aac0",
+   "does": "validateBoundaries with HR wake 1h earlier: asserts HK wake 28,800,000 kept (end can only extend).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testEstimateSleepFromHR_FastSleeper_UsesMaxHRBaseline()",
+   "hash": "2bc20844ae4ac99a",
+   "does": "Builds 5h at 1090ms, 30min at 833ms, 2h at 1090ms and asserts HealthKitManager.estimateSleepFromHR returns a sleepStart under 30 min after recordingStart (fast sleeper).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for loop 16400 beats",
+     "effect": "appends 1090ms beats"
+    },
+    {
+     "at": "+16",
+     "cond": "for loop 2160 beats",
+     "effect": "appends 833ms wake beats"
+    },
+    {
+     "at": "+22",
+     "cond": "for loop 6560 beats",
+     "effect": "appends 1090ms beats"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testEstimateSleepFromHR_NormalSleeper_StillWorks()",
+   "hash": "ae7a92e68218ac7a",
+   "does": "Builds 30min at 833ms then 6h at 1090ms and asserts estimateSleepFromHR onset is between 10 and 60 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for loop 2160 beats",
+     "effect": "appends 833ms awake beats"
+    },
+    {
+     "at": "+13",
+     "cond": "for loop 19680 beats",
+     "effect": "appends 1090ms sleep beats"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  }
+ ],
+ "deps": {}
+}

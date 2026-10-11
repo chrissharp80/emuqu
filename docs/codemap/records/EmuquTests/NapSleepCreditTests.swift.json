@@ -1,0 +1,299 @@
+{
+ "file": "EmuquTests/NapSleepCreditTests.swift",
+ "hash": "4c35a0d373599ede",
+ "role": "XCTest suite for daytime-nap credit: nap minutes raise the sleep score's duration component without touching night architecture, SleepData nap Codable back-compat, HealthKitManager.qualifyingNapMinutes episode grouping/floor/union, and SleepSchedule.daytimeNapWindow bounds.",
+ "types": [
+  "NapSleepCreditTests: class — XCTestCase over SleepData nap fields, RecoveryScoreCalculator.calculateSleepScore, qualifyingNapMinutes, daytimeNapWindow"
+ ],
+ "state": [
+  "mem:NapSleepCreditTests.baseDate (1_700_000_000)"
+ ],
+ "toplevel": "baseDate stored-property initializer.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func NapSleepCreditTests.testNapRaisesShortNightSleepScore()",
+   "hash": "09aee6f2379bfef3",
+   "does": "Asserts calculateSleepScore for a 3 h night plus a 180-min nap is strictly greater than for the 3 h night alone (typical 8 h, age 40).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testNapLeavesNightArchitectureUntouched()",
+   "hash": "2693320783f63aae",
+   "does": "Asserts withNapSleepMinutes(120) keeps nightSleepMinutes 300, deep 60, REM 75, makes totalSleepIncludingNapMinutes 420, and a no-nap night's total equals the night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testNonPositiveNapClearsField()",
+   "hash": "d78ce80f41174876",
+   "does": "Asserts withNapSleepMinutes(0) and (-5) leave napSleepMinutes nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testCodableRoundTripPreservesNap()",
+   "hash": "29380a867d46bc84",
+   "does": "Asserts a SleepData with napSleepMinutes 95 survives a JSON encode/decode round trip.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)": "f1c7f784570d0607"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testMissingNapDecodesToNil()",
+   "hash": "c6b6d11da80e7b6e",
+   "does": "Asserts a SleepData without a nap decodes napSleepMinutes nil and totalSleepIncludingNapMinutes 200.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)": "f1c7f784570d0607",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.iv(_:_:)",
+   "hash": "745a89ee0f2287ca",
+   "does": "Helper: (start,end) interval startMin..endMin minutes after baseDate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NapSleepCreditTests.aggregate(_:)",
+   "hash": "eb0ba29acb3335b2",
+   "does": "Helper: calls HealthKitManager.qualifyingNapMinutes with a 60-min episode gap and 20-min floor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)": "3145872527ceb4ba",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)": "a511543446a2469f"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testLongNapCounts()",
+   "hash": "a73d20da82cc17b0",
+   "does": "Asserts a single 90-min interval counts 90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testShortNapBelowFloorIgnored()",
+   "hash": "b48118f016af0a7b",
+   "does": "Asserts a 15-min nap below the 20-min floor counts 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testSeparateEpisodesEachGetTheFloor()",
+   "hash": "1ca2cfa2ce30525e",
+   "does": "Asserts episodes >60 min apart are floored separately: 40 + 10 → 40.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testOverlappingSamplesCountOnce()",
+   "hash": "e396601dfe89f0ce",
+   "does": "Asserts overlapping intervals 0-45 and 30-60 union to 60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testNearbySamplesFormOneEpisode()",
+   "hash": "4524af29a1744fe0",
+   "does": "Asserts two 15-min samples 10 min apart form one 30-min episode that clears the floor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testEmptyIntervalsYieldZero()",
+   "hash": "ce37b6fcb5c49f1a",
+   "does": "Asserts empty input and a zero-length interval both yield 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.aggregate(_:)": "8792200bc9be22f3",
+    "EmuquTests/NapSleepCreditTests.swift::func NapSleepCreditTests.iv(_:_:)": "805862dd14eb903c"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testNapWindowIsTheGapBetweenNights()",
+   "hash": "ea9406d529a520f6",
+   "does": "For a 22:00/8 h schedule asserts the nap window ends at overnightWindowStart, start<end, and start is exactly wake + 4.5 h on the window-end day (Calendar.current).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute",
+    "EmuquTests/TestDate.swift::func TestDate.settingTime(hour:minute:second:of:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)": "5afd5330581bf7e0",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeHour": "fcf48d2661d7f43f",
+    "Emuqu/Sources/Models/SleepSchedule.swift::var SleepSchedule.wakeMinute": "75750dd31915a210",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/TestDate.swift::func TestDate.settingTime(hour:minute:second:of:calendar:file:line:)": "101fec72513b4a64"
+   }
+  },
+  {
+   "key": "func NapSleepCreditTests.testNapWindowAMBedtime()",
+   "hash": "330550a3422b8571",
+   "does": "For a 02:00/6 h schedule asserts the nap window ends at overnightWindowStart and has length in (0, 14 h].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
+    "EmuquTests/TestDate.swift::func TestDate.settingTime(hour:minute:second:of:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)": "5afd5330581bf7e0",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "EmuquTests/TestDate.swift::func TestDate.settingTime(hour:minute:second:of:calendar:file:line:)": "101fec72513b4a64"
+   }
+  }
+ ],
+ "deps": {}
+}

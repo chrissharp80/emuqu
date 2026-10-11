@@ -1,0 +1,198 @@
+{
+ "file": "EmuquTests/EmergencyNumberTests.swift",
+ "hash": "ccb23d5ebf493e2b",
+ "role": "XCTest suite for Get Me Back's SOS number choice: per-region numbers (911/999/000/111/119/120/193, default 112), current country overriding the Region setting, fallback to handset-routable 112/911 when location is unknown, geocoded country valid only within the fix radius, the '193 / 112' display, and the call-from-a-phone message on devices that cannot call.",
+ "types": [
+  "EmergencyNumberTests: class (XCTestCase, @MainActor)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func EmergencyNumberTests.testNorthAmericaAndPhilippinesDial911()",
+   "hash": "a78949b72ae62291",
+   "does": "Asserts US, CA, MX, AS, GU, PR, VI, PH map to 911.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each region",
+     "effect": "asserts '911'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testBrazilDialsFireBrigadeRescue()",
+   "hash": "707075124ff88b9a",
+   "does": "Asserts BR maps to 193 and is shown as '193 / 112'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testRegionalNumbers()",
+   "hash": "73edd2fbd881dbb4",
+   "does": "Asserts GB/IE/HK 999, AU 000, NZ 111, JP/KR/TW 119, CN 120.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each (region, number)",
+     "effect": "asserts the mapping"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testEverywhereElseDials112Alone()",
+   "hash": "6b0ee08ab66dff0c",
+   "does": "Asserts PL, DE, FR, SE, IN, RU, ZA and nil map to 112, shown as '112' alone.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each region",
+     "effect": "asserts '112'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testCurrentCountryDecidesOverTheRegionSetting()",
+   "hash": "3479ea5603f42f22",
+   "does": "Asserts the current country wins over the Region: PT/BR → 112, JP/DE → 119, BR/BR → 193, US/GB → 911.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "de2bd0e7912f8a81",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testUnknownLocationDialsANumberEveryPhoneRoutes()",
+   "hash": "7dde1f3d6c2c5003",
+   "does": "With currentCountry nil asserts regions with national numbers (BR, JP, …, DE, nil) dial 112 and US/CA/PH dial 911.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each non-911 region including nil",
+     "effect": "asserts '112'"
+    },
+    {
+     "at": "+2",
+     "cond": "region ?? \"nil\"",
+     "effect": "message label 'nil' when region is nil"
+    },
+    {
+     "at": "+4",
+     "cond": "for US, CA, PH",
+     "effect": "asserts '911'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "de2bd0e7912f8a81",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "87f29b94ca44b83b"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testGeocodedCountryOnlyCountsNearWhereItWasResolved()",
+   "hash": "27874f276cac52f4",
+   "does": "Geocode context 'pt' at Lisbon: asserts 'PT' for a location ~1 km away, nil for ~111 km away, nil with no location, nil with no context.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "a90df5010522669f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "ec045a8c2d076fad"
+   }
+  },
+  {
+   "key": "func EmergencyNumberTests.testDeviceThatCannotCallIsToldToCallFromAPhone()",
+   "hash": "fb66ff2c8a39cbd0",
+   "does": "Asserts sosConfirmMessage and dialFailedMessage with canPlaceCalls false both equal callFromAPhoneMessage and contain '193 / 112', and with canPlaceCalls true differ from it.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each of the two cannot-call messages",
+     "effect": "asserts equality with the phone-only message and the number pair"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "ba0c017ec53f7e86",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)": "efb4ffdc5d3ca2c7",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)": "183e27f4123ea100"
+   }
+  }
+ ],
+ "deps": {}
+}

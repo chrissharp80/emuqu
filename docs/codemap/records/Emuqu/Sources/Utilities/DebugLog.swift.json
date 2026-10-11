@@ -1,0 +1,1118 @@
+{
+ "file": "Emuqu/Sources/Utilities/DebugLog.swift",
+ "hash": "8a5d522555dc5661",
+ "role": "App-wide logger: debugLog() buffers every line into an observable in-memory ring buffer and 'Recent Problems' error catalog, and (always in DEBUG, opt-in in Release) flushes PHI-scrubbed lines to debug_log.txt in the App Group container; also owns the PHI scrubber/regex cache, log export and the debugLogExternal/correlation helpers.",
+ "types": [
+  "DebugLogger: class (@Observable, @MainActor) — logger singleton, ring buffer, disk flush, export",
+  "DebugLogger.LogLevel: enum — debug/info/warning/error, Comparable",
+  "DebugLogger.LogEntry: struct — one log line",
+  "ExternalCause: enum — strap/iOS/bluetooth/iCloud/network tag for debugLogExternal"
+ ],
+ "state": [
+  "mem:DebugLogger.shared",
+  "mem:DebugLogger.entries (observable, ≤5000, ≤7 days)",
+  "mem:DebugLogger.errorCatalog (observable, ≤1000, in-memory only)",
+  "mem:DebugLogger.persistentLoggingEnabled",
+  "ud:UserDefaultsKeys.persistentLoggingEnabled ('PersistentLoggingEnabled')",
+  "file:<AppGroup or Documents or tmp>/debug_log.txt",
+  "file:tmp/log-export/hrv_debug_log_<epoch>.txt",
+  "notif:DebugLogger.significantLogPosted ('DebugLogger.SignificantLog')",
+  "static maxFileSize=2MB, maxMemoryEntries=5000, flushInterval=5s",
+  "static lineDateStyle (yyyy-MM-dd HH:mm:ss.SSS local)",
+  "static metricPattern/unitPattern/separatorPattern (PHI regex sources)",
+  "mem:DebugLogger.compiledPatterns (regex cache)",
+  "DispatchQueue 'com.hrv.debuglogger'",
+  "Timer flushTimer (5 s repeating)"
+ ],
+ "toplevel": "Static regex source strings and lineDateStyle are initialised lazily; persistentLoggingEnabled is hard-wired true under #if DEBUG in init. Free functions debugLog/correlationTagged/debugLogExternal and enum ExternalCause are top-level.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "med",
+   "text": "Header doc says the in-memory ring buffer serves \"the error catalog and export UI\" when disk logging is off (the Release default), but exportLogs/exportToFile read only debug_log.txt; with Persistent Logging off, Export/Copy Log produce a header with 0 entries (or a stale file) while the ring buffer holds the lines.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/DebugLog.swift:9",
+    "Emuqu/Sources/Utilities/DebugLog.swift:528",
+    "Emuqu/Sources/Utilities/DebugLog.swift:294"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "scrubPHI's redaction output is not asserted by any test; RedactionPatternTests only checks that the patterns compile.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/DebugLog.swift:351",
+    "EmuquTests/RedactionPatternTests.swift:31"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DebugLogger.persistentLoggingEnabled",
+   "hash": "6120220d05107503",
+   "does": "Observable flag for disk persistence; didSet writes it to UserDefaults and mirrors it into the lock-backed persistentBox read by the flush queue.",
+   "entry": "Settings 'Persistent Logging' Toggle binding (SettingsPages+DiagnosticActions.swift:120)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistentLoggingEnabled",
+    "mem:DebugLogger.persistentLoggingEnabled"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.LogLevel.<(lhs:rhs:)",
+   "hash": "fba9e13a65f3a888",
+   "does": "Orders LogLevel by rawValue.",
+   "entry": "Comparable conformance (used by >= in isSignificant/shouldCatalog)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DebugLogger.LogEntry.formatted",
+   "hash": "2a2c8830e3b2d6f8",
+   "does": "Formats '[timestamp] [category] message' with lineDateStyle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.format(_:)": "f55dbd73868f2e3a"
+   }
+  },
+  {
+   "key": "init DebugLogger()",
+   "hash": "1d23ef80c92da2be",
+   "does": "Creates the serial queue, reads the persistent flag (forced true in DEBUG, UserDefaults in Release), resolves the log path, relaxes file protection, defers rotate+load when enabled, schedules the 5 s flush timer on the main actor, and registers resign-active/terminate observers.",
+   "entry": "Lazy init of DebugLogger.shared on first access (first debugLog call)",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.deferDiskLoad()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.startFlushTimer()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.observeAppLifecycle()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistentLoggingEnabled"
+   ],
+   "writes": [
+    "mem:DebugLogger.shared"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "persistent logging enabled at init",
+     "effect": "rotateIfNeeded+loadFromDisk queued on the logger queue; otherwise no disk load, ring buffer starts empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.deferDiskLoad()": "71c152e0cf4eb222",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.observeAppLifecycle()": "ee10aa52df5f39de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)": "17eebbaabe47d9de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()": "9bdb338bd0f0b8b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.startFlushTimer()": "bcfd24ce79cf058a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "9b34d14e62197094"
+   }
+  },
+  {
+   "key": "func DebugLogger.resolveLogFileURL()",
+   "hash": "32874186c52979ab",
+   "does": "Returns <AppGroup>/debug_log.txt, else <Documents>/debug_log.txt, else <tmp>/debug_log.txt.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.containerURL"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "App Group container available",
+     "effect": "uses it"
+    },
+    {
+     "at": "+6",
+     "cond": "no Documents URL",
+     "effect": "falls back to temporaryDirectory"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements AppConfig.sharedContainerURL() fallback logic (Constants.swift:24) with an extra tmp fallback; DataPurgeService.purgeDebugLog only deletes the App Group copy, relying on clear() for the fallback path.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/DebugLog.swift:107",
+      "Emuqu/Sources/Utilities/Constants.swift:24",
+      "Emuqu/Sources/Services/DataPurgeService.swift:617"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func DebugLogger.relaxFileProtection(at:)",
+   "hash": "5347d36682610edd",
+   "does": "If the log file exists, sets its protection class to completeUntilFirstUserAuthentication; NSLogs on failure.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "returns"
+    },
+    {
+     "at": "+7",
+     "cond": "setAttributes throws",
+     "effect": "NSLog, continue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.deferDiskLoad()",
+   "hash": "f0953b6d43f11580",
+   "does": "Queues rotateIfNeeded then loadFromDisk on the logger queue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.rotateIfNeeded()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.loadFromDisk()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.loadFromDisk()": "c5dab88c8fd8f75a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.rotateIfNeeded()": "aab3695200c84566"
+   }
+  },
+  {
+   "key": "func DebugLogger.startFlushTimer()",
+   "hash": "2f814090927ace1b",
+   "does": "Schedules a repeating 5 s main-run-loop Timer that calls flushToDisk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()",
+    "ext:Timer.scheduledTimer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "5bf6d5088a04dcd0"
+   }
+  },
+  {
+   "key": "func DebugLogger.observeAppLifecycle()",
+   "hash": "e88f3988d94fcea3",
+   "does": "Registers selector observers for willResignActive and willTerminate.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.willResignActiveNotification",
+    "notif:UIApplication.willTerminateNotification"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillResignActive()": "451c49a9ed0272a6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appWillTerminate()": "84a44ed587e64030"
+   }
+  },
+  {
+   "key": "func DebugLogger.appWillResignActive()",
+   "hash": "64e2e051a5660710",
+   "does": "Flushes pending lines asynchronously when the app resigns active.",
+   "entry": "NotificationCenter selector: UIApplication.willResignActiveNotification",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDisk()": "5bf6d5088a04dcd0"
+   }
+  },
+  {
+   "key": "func DebugLogger.appWillTerminate()",
+   "hash": "2946bf82ab3ee376",
+   "does": "Flushes pending lines synchronously on termination.",
+   "entry": "NotificationCenter selector: UIApplication.willTerminateNotification",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "7b9bf7750ab9705e"
+   }
+  },
+  {
+   "key": "func DebugLogger.log(_:category:level:)",
+   "hash": "b6e1186ba349984c",
+   "does": "Thread-safe log entry point: builds a LogEntry, appends its formatted line to pendingLines (for disk) and the entry to pendingEntries; the first entry of a batch schedules one main-queue hop to recordPendingEntries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.pendingLines",
+    "mem:DebugLogger.pendingEntries"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "pendingEntries was empty before this append",
+     "effect": "dispatches recordPendingEntries to main; otherwise returns (an earlier hop will pick it up)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()": "22e0d6e2a21aab49",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func DebugLogger.recordPendingEntries()",
+   "hash": "b2699e1ce5737df5",
+   "does": "Main-actor drain: takes all pending entries, appends them to the ring buffer, posts significantLogPosted if any is significant, and appends catalog-worthy ones to errorCatalog capped at 1000.",
+   "entry": "DispatchQueue.main.async from log()",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appendToRingBuffer(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.isSignificant(message:level:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.shouldCatalog(message:level:)",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.entries",
+    "mem:DebugLogger.errorCatalog",
+    "notif:DebugLogger.significantLogPosted"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "batch empty",
+     "effect": "returns"
+    },
+    {
+     "at": "+7",
+     "cond": "any entry significant",
+     "effect": "posts significantLogPosted (observed by PolarManager.swift:508)"
+    },
+    {
+     "at": "+11",
+     "cond": "no catalog-worthy entries",
+     "effect": "returns"
+    },
+    {
+     "at": "+13",
+     "cond": "errorCatalog > 1000",
+     "effect": "drops oldest down to 1000"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "exportErrorCatalog labels the catalog \"(Permanent)\" but errorCatalog is in-memory only and is not rebuilt by loadFromDisk (which tags every reloaded line .info), so Recent Problems empties on every relaunch.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/DebugLog.swift:557",
+      "Emuqu/Sources/Utilities/DebugLog.swift:40",
+      "Emuqu/Sources/Utilities/DebugLog.swift:496"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appendToRingBuffer(_:)": "643089eae2febf6b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.isSignificant(message:level:)": "cb8fedfeafc94de0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.shouldCatalog(message:level:)": "7dd4560a21d00643"
+   }
+  },
+  {
+   "key": "func DebugLogger.appendToRingBuffer(_:)",
+   "hash": "7a2cc70a69bc8aaa",
+   "does": "Drops entries older than 7 days (only when the oldest has aged out), appends the batch, and trims to 5000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.entries"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "oldest entry older than 7 days",
+     "effect": "removes all entries older than 7 days"
+    },
+    {
+     "at": "+6",
+     "cond": "count > maxMemoryEntries",
+     "effect": "removes oldest overflow"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.isSignificant(message:level:)",
+   "hash": "39bc029eeead7e95",
+   "does": "True for level >= warning or messages containing ❌, ✅, ⚠️ or 'disconnected'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.shouldCatalog(message:level:)",
+   "hash": "b51a3f1f167c4ffb",
+   "does": "True for level >= warning, or messages containing ❌, ⚠️, 'ERROR' or 'WARNING'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "level >= .warning",
+     "effect": "true; otherwise text-marker check"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.flushToDisk()",
+   "hash": "d9036bda6657b76f",
+   "does": "Queues flushPendingLines on the logger queue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "d6fbafbe56b69335"
+   }
+  },
+  {
+   "key": "func DebugLogger.flushToDiskSync()",
+   "hash": "45b4202847d56516",
+   "does": "Runs flushPendingLines synchronously on the logger queue (deadlocks if called on that queue).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "d6fbafbe56b69335"
+   }
+  },
+  {
+   "key": "func DebugLogger.flushPendingLines()",
+   "hash": "ec9d8b2363df9d45",
+   "does": "Drains pendingLines; if persistent logging is on, scrubs each line with scrubPHI and appends the batch to debug_log.txt (creating it if absent). With persistence off the drained lines are discarded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.createLogFile(with:)",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "mem:DebugLogger.persistentLoggingEnabled"
+   ],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no lines OR persistence off",
+     "effect": "returns (lines already removed — dropped)"
+    },
+    {
+     "at": "+7",
+     "cond": "UTF-8 encoding fails",
+     "effect": "returns, lines dropped"
+    },
+    {
+     "at": "+8",
+     "cond": "log file exists",
+     "effect": "append; otherwise createLogFile"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:)": "cb1c1f39db84b5c9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.createLogFile(with:)": "c8637e716e1e4812",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "00b21e78a01c5f05"
+   }
+  },
+  {
+   "key": "func DebugLogger.append(_:)",
+   "hash": "643491e9aab29258",
+   "does": "Opens debug_log.txt for writing, seeks to end and writes data; NSLogs failures.",
+   "entry": null,
+   "calls": [
+    "ext:FileHandle"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "FileHandle cannot open",
+     "effect": "returns silently; batch lost"
+    },
+    {
+     "at": "+6",
+     "cond": "seek/write/close throws",
+     "effect": "NSLog and try close"
+    },
+    {
+     "at": "+8",
+     "cond": "close in catch throws",
+     "effect": "NSLog"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A FileHandle open failure (e.g. protected file while locked) drops the batch with no NSLog, unlike every other failure path here.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/DebugLog.swift:307"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+   }
+  },
+  {
+   "key": "func DebugLogger.createLogFile(with:)",
+   "hash": "9c8d70c1e12c6565",
+   "does": "Atomically writes data as a new debug_log.txt and sets completeUntilFirstUserAuthentication protection; NSLogs either failure.",
+   "entry": null,
+   "calls": [
+    "ext:Data.write",
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "write throws",
+     "effect": "NSLog; continues to setAttributes"
+    },
+    {
+     "at": "+11",
+     "cond": "setAttributes throws",
+     "effect": "NSLog"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.scrubPHI(_:)",
+   "hash": "467bd4d138624432",
+   "does": "Redacts health values from one log line: '<metric><sep><number><unit>' → '<metric><sep><redacted><unit>', then chained numbers after a redaction, then lat/lon coordinates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "med",
+     "text": "metricPattern has no generic \"score\" term: lines such as \"score=72.00\" and \"frozenScore=…\" (recovery score values) pass through unredacted into debug_log.txt, exports and crash reports.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/DebugLog.swift:364",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:166",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:654",
+      "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift:160",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:237"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "USERS_MANUAL says of Export Diagnostic Log 'Health values and GPS coordinates are removed from it', but scrubPHI's metricPattern has no bare 'score' term, so recovery-score values logged as 'score=72.00' (including a .warning line that also lands in the error catalog export) reach debug_log.txt and the shared export unredacted.",
+     "evidence": [
+      "docs/USERS_MANUAL.md:1575",
+      "Emuqu/Sources/Utilities/DebugLog.swift:364",
+      "Emuqu/Sources/Storage/Archive+Internal.swift:166",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:239"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "507c1db8e611eeaa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57"
+   }
+  },
+  {
+   "key": "func DebugLogger.redactValueChains(in:)",
+   "hash": "4cc8621c99ae530e",
+   "does": "Repeatedly (up to 8 passes, until stable) redacts numbers chained to an existing <redacted> by an arrow/comparator/'to'/'vs'/','/'/'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "output changed and fewer than 8 passes",
+     "effect": "runs another pass; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "3ce0a99266611d57"
+   }
+  },
+  {
+   "key": "func DebugLogger.compiledPattern(_:options:)",
+   "hash": "203c6b11d764f427",
+   "does": "Returns a cached NSRegularExpression for (options, pattern), compiling and caching on first use; NSLogs and returns nil on a malformed pattern.",
+   "entry": null,
+   "calls": [
+    "ext:NSRegularExpression"
+   ],
+   "reads": [
+    "mem:DebugLogger.compiledPatterns"
+   ],
+   "writes": [
+    "mem:DebugLogger.compiledPatterns"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "cached regex present",
+     "effect": "returns it"
+    },
+    {
+     "at": "+6",
+     "cond": "pattern fails to compile",
+     "effect": "NSLog 'REDACTION PATTERN FAILED' and return nil (caller redaction fails open)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.replacing(_:_:with:)",
+   "hash": "d54e7d496915faf7",
+   "does": "Applies compiledPattern(pattern) to text with the template; returns text unchanged when the pattern did not compile.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pattern did not compile",
+     "effect": "returns text unredacted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+   }
+  },
+  {
+   "key": "func DebugLogger.rotateIfNeeded()",
+   "hash": "a840772b7de3c650",
+   "does": "If debug_log.txt exceeds 2 MB, rewrites it keeping the second half of its lines; NSLogs a failed rewrite.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.attributesOfItem",
+    "ext:String.write"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "attributes unreadable, size missing, or size <= 2MB",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "file not readable as UTF-8",
+     "effect": "returns (no rotation)"
+    },
+    {
+     "at": "+10",
+     "cond": "rewrite throws",
+     "effect": "NSLog; file keeps growing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Export header says \"Debug Log (Last 7 Days)\", but the disk file is trimmed only by size (half when >2 MB, at launch when enabled); no age cut is applied to the exported file.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/DebugLog.swift:543",
+      "Emuqu/Sources/Utilities/DebugLog.swift:430"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.loadFromDisk()",
+   "hash": "7712043ecc21d020",
+   "does": "Reads debug_log.txt, parses lines younger than 7 days into LogEntry (level .info), caps to 5000, and hops to main to prepend them to the ring buffer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLogLine(_:notBefore:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [
+    "mem:DebugLogger.entries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file unreadable or empty",
+     "effect": "returns"
+    },
+    {
+     "at": "+7",
+     "cond": "parsed > 5000",
+     "effect": "keeps most recent 5000"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLogLine(_:notBefore:)": "ce68bb66cbaab80f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)": "244d06d8e4ffcc7c"
+   }
+  },
+  {
+   "key": "func DebugLogger.prependLoaded(_:)",
+   "hash": "af1ba28e8aa7d3a0",
+   "does": "Prepends loaded entries older than the first live entry, keeping at most 5000.",
+   "entry": "DispatchQueue.main.async from loadFromDisk",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.entries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entries non-empty",
+     "effect": "filters loaded to those before entries.first; else uses all loaded"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.parseLineDate(_:)",
+   "hash": "e86dd3c256c5b6d4",
+   "does": "Parses a line timestamp with lineDateStyle; nil on failure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "parse throws",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.parseLogLine(_:notBefore:)",
+   "hash": "276b88a77bd4d8b5",
+   "does": "Parses '[date] [category] message' into a LogEntry at .info, nil if malformed or not after notBefore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLineDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no leading '[' or no ']'",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "date unparseable or not after notBefore",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "no second [...] block",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLineDate(_:)": "32f300a505984b7c"
+   }
+  },
+  {
+   "key": "func DebugLogger.clear()",
+   "hash": "2a3304f38fae8e65",
+   "does": "Empties ring buffer, error catalog, pending lines and pending entries, and asynchronously deletes debug_log.txt on the logger queue (NSLog on failure).",
+   "entry": "Settings clear-log buttons (SettingsSubviews.swift:17, SettingsPages+DiagnosticActions.swift:287) and DataPurgeService.purgeDebugLog (DataPurgeService.swift:615)",
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.entries",
+    "mem:DebugLogger.errorCatalog",
+    "mem:DebugLogger.pendingLines",
+    "mem:DebugLogger.pendingEntries",
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "removeItem throws (incl. file already gone)",
+     "effect": "NSLog"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.clearErrorCatalog()",
+   "hash": "a30b7f9700975a0b",
+   "does": "Empties errorCatalog.",
+   "entry": "Settings buttons SettingsSubviews.swift:230, SettingsPages+DiagnosticActions.swift:97",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.exportLogs()",
+   "hash": "96756e35a47d2a26",
+   "does": "Synchronously flushes pending lines, then returns exportHeader(newline count) + the full debug_log.txt contents ('' when unreadable).",
+   "entry": "Copy Log to Clipboard (SettingsPages+DiagnosticActions.swift:82, detached task)",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:)"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [
+    "file:debug_log.txt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "file unreadable/missing",
+     "effect": "diskContent = '' (export is header only)"
+    },
+    {
+     "at": "+9",
+     "cond": "per character is newline",
+     "effect": "counted as an entry"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:)": "97f1ebd5d971aacd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "7b9bf7750ab9705e"
+   }
+  },
+  {
+   "key": "func DebugLogger.exportHeader(entryCount:)",
+   "hash": "a58735cabffefbaf",
+   "does": "Formats the export header: title, export date, device, iOS, app version/build, entry count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "CFBundleShortVersionString missing",
+     "effect": "'Unknown'"
+    },
+    {
+     "at": "+7",
+     "cond": "CFBundleVersion missing",
+     "effect": "'Unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+   }
+  },
+  {
+   "key": "func DebugLogger.exportErrorCatalog()",
+   "hash": "f964e9b48d09829d",
+   "does": "Returns a header plus every errorCatalog entry formatted and scrubbed with scrubPHI.",
+   "entry": "SettingsSubviews.swift:337 export button",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "00b21e78a01c5f05",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "b739712739a61e3f",
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+   }
+  },
+  {
+   "key": "func DebugLogger.exportToFile()",
+   "hash": "afa51761a5cce8e5",
+   "does": "Creates tmp/log-export/, writes exportLogs() to hrv_debug_log_<epoch>.txt atomically, drops file protection, returns the URL; nil if encoding or write fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [
+    "file:tmp/log-export/hrv_debug_log_<epoch>.txt"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "createDirectory throws",
+     "effect": "NSLog, continue (write then fails)"
+    },
+    {
+     "at": "+10",
+     "cond": "UTF-8 encoding fails",
+     "effect": "nil"
+    },
+    {
+     "at": "+13",
+     "cond": "write throws",
+     "effect": "nil, error discarded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.dropFileProtection(at:)": "a65aa8e02ac106f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "f7133ecdeb2cfbab",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func DebugLogger.dropFileProtection(at:)",
+   "hash": "e609de30b201981d",
+   "does": "Sets FileProtectionType.none on the export file; NSLogs failure.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/log-export/*"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "setAttributes throws",
+     "effect": "NSLog"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.exportToFileAsync()",
+   "hash": "d445acc8b3365b99",
+   "does": "Runs exportToFile on a detached userInitiated task via the dependency container's logger and returns its URL.",
+   "entry": "Export log share action, SettingsPages+DiagnosticActions.swift:413",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()": "ee7a2a583e5a96cb"
+   }
+  },
+  {
+   "key": "func debugLog(_:level:file:line:)",
+   "hash": "46e8e14a52620a27",
+   "does": "Global logging function: derives category from the caller's file name, prefixes the correlation tag, prints in DEBUG, and forwards '[line] msg' to the container's DebugLogger.log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func correlationTagged(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.log(_:category:level:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger"
+   ],
+   "reads": [
+    "mem:LogCorrelation.storage"
+   ],
+   "writes": [
+    "mem:DebugLogger.pendingLines"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "8c13bd0b7a08fefd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.log(_:category:level:)": "c0067765d359e81d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func correlationTagged(_:)": "eb29cf4dff19705a"
+   }
+  },
+  {
+   "key": "func correlationTagged(_:)",
+   "hash": "144fe3045d717cd1",
+   "does": "Prefixes '[<flow-tag>] ' when a LogCorrelation scope is open.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::var LogCorrelation.current"
+   ],
+   "reads": [
+    "mem:LogCorrelation.storage"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no active correlation",
+     "effect": "returns raw unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::var LogCorrelation.current": "88583a8a2d9f64ec"
+   }
+  },
+  {
+   "key": "func debugLogExternal(_:cause:file:line:)",
+   "hash": "fbf5e1ee3af32198",
+   "does": "Logs '[external · <cause>] message' at .info through debugLog, attributed to the caller.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

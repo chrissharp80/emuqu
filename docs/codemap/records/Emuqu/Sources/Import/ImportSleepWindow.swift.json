@@ -1,0 +1,150 @@
+{
+ "file": "Emuqu/Sources/Import/ImportSleepWindow.swift",
+ "hash": "28fa9ddf83bdcf20",
+ "role": "Pure helpers for the RR import screen: convert HealthKit sleep start/end Dates into Int64 millisecond offsets into an imported recording without trapping, and compute an artifact percentage that is nil for an empty series.",
+ "types": [
+  "ImportSleepWindow: enum (namespace)",
+  "ImportSleepWindow.Offsets: struct — optional startMs/wakeMs",
+  "ImportSleepWindow.Rejection: enum (String, Error) — notFinite | outOfRange"
+ ],
+ "state": [
+  "mem:ImportSleepWindow.maxOffsetMs (static 100 years in ms; unused)"
+ ],
+ "toplevel": "Callers: ImportDataView+Actions.swift:195 (artifactPercent) and :435 (offsets).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "maxOffsetMs is never read anywhere in the repo (grep finds only its declaration); the actual ±100-year bound is MillisecondOffset.representableLimitMs, so the doc comment at 34-36 describes a constant that has no effect and duplicates another.",
+   "evidence": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift:37",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift:19"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var ImportSleepWindow.Rejection.localizedReason",
+   "hash": "0eda01d1dd15d39d",
+   "does": "Localized user-facing reason string for each Rejection case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .notFinite",
+     "effect": "'timestamp is not a finite date' localized"
+    },
+    {
+     "at": "+3",
+     "cond": "case .outOfRange",
+     "effect": "'timestamp is too far from the recording to represent' localized"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ImportSleepWindow.offsetMs(of:from:)",
+   "hash": "ed8d9969ab2a215a",
+   "does": "Returns boundary - recordingStart as whole Int64 milliseconds, or .failure(.notFinite / .outOfRange).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "interval seconds is finite",
+     "effect": "continue; otherwise .failure(.notFinite)"
+    },
+    {
+     "at": "+6",
+     "cond": "MillisecondOffset.milliseconds returns a value (within ±100 years)",
+     "effect": "success(ms); otherwise .failure(.outOfRange)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)",
+   "hash": "6640241fcf070dfa",
+   "does": "Converts optional sleep start/end Dates to Offsets; a boundary that cannot be represented is left nil and a localized note is passed to `note` (the import log).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::var ImportSleepWindow.Rejection.localizedReason"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sleepStart present",
+     "effect": "convert; otherwise startMs stays nil silently"
+    },
+    {
+     "at": "+9",
+     "cond": "start conversion succeeded",
+     "effect": "set startMs"
+    },
+    {
+     "at": "+11",
+     "cond": "start conversion failed",
+     "effect": "note 'Apple Health sleep start ignored: <reason>', startMs nil"
+    },
+    {
+     "at": "+15",
+     "cond": "sleepEnd present",
+     "effect": "convert; otherwise wakeMs nil"
+    },
+    {
+     "at": "+17",
+     "cond": "end conversion succeeded",
+     "effect": "set wakeMs"
+    },
+    {
+     "at": "+19",
+     "cond": "end conversion failed",
+     "effect": "note 'Apple Health wake time ignored: <reason>', wakeMs nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::var ImportSleepWindow.Rejection.localizedReason": "73f1b9f72674be5c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)",
+   "hash": "679112266e1a724e",
+   "does": "artifactCount / totalBeats x 100, or nil when totalBeats <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "totalBeats > 0",
+     "effect": "return percentage; otherwise nil (avoids NaN)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

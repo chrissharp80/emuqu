@@ -1,0 +1,84 @@
+{
+ "file": "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift",
+ "hash": "60b945b0c09f8ef2",
+ "role": "UserDefaults-backed 30-day last-known-good wrist temperature baseline cache used when HealthKit is unreachable; same shape as RespiratoryBaselineCache.",
+ "types": [
+  "WristTemperatureBaselineCache: enum — static read/write/clear"
+ ],
+ "state": [
+  "ud:WristTemperatureBaselineCache.v1 (standard suite; JSON BaselineSnapshot)",
+  "WristTemperatureBaselineCache.maxAgeSeconds = 30*86400"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "WristTemperatureBaselineCache is a line-for-line copy of RespiratoryBaselineCache differing only in key and log label; could be one parameterised type.",
+   "evidence": [
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift:26",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift:49"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WristTemperatureBaselineCache.read()",
+   "hash": "ff09ee4a21fc7d36",
+   "does": "Returns the cached wrist temperature baseline snapshot (<=30 days old) via BaselineSnapshot.read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)"
+   ],
+   "reads": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)": "66b4800cd4f00eb8"
+   }
+  },
+  {
+   "key": "func WristTemperatureBaselineCache.write(value:sampleCount:)",
+   "hash": "958d4ab798e206ec",
+   "does": "Encodes BaselineSnapshot(value, sampleCount, now) and stores it under WristTemperatureBaselineCache.v1. Called from VitalsHealthQueries+Queries.swift:262.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "JSON encoding succeeds",
+     "effect": "true: written; false: error logged by attempt, nothing written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func WristTemperatureBaselineCache.clear()",
+   "hash": "c6fb1bf52bd8739e",
+   "does": "Removes WristTemperatureBaselineCache.v1. Called by DataPurgeService.swift:702.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:WristTemperatureBaselineCache.v1"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

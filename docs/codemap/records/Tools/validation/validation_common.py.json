@@ -1,0 +1,221 @@
+{
+ "file": "Tools/validation/validation_common.py",
+ "hash": "998f8eb91a7e588c",
+ "role": "Shared helpers for the PhysioNet validation scripts (not ports of app code): WFDB beat-symbol sets, RR-point construction, agreement statistics (confusion/kappa/Bland-Altman), a minimal EDF channel reader.",
+ "types": [],
+ "state": [
+  "DATA_ROOT (validation_common.py:11) = absolute path inside another Claude session's scratchpad (/tmp/claude-0/-home-user/62b78298-.../scratchpad/physionet); every validate_* / cap_extract script reads data from it",
+  "COMMIT = 'e028039' (line 12, unused by importers; they hard-code the string)",
+  "BEAT_SYMBOLS / NORMAL_SYMBOLS (N,L,R,e,j) / ECTOPIC_SYMBOLS (A,a,J,S,V,r,F,n,E,B) lines 15-17",
+  "CLASSES = ['wake','core','deep','rem'] line 43"
+ ],
+ "toplevel": "Module-level constants only (DATA_ROOT, COMMIT, symbol sets, CLASSES); imports numpy.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "DATA_ROOT is hard-coded to a scratchpad directory of a different (past) Claude session, so every validation script except test_ports.py/make_results.py fails with FileNotFoundError on any other machine until the constant is edited; RESULTS_template.md 'Reproducing' only says DATA_ROOT 'is set in validation_common.py'.",
+   "evidence": [
+    "Tools/validation/validation_common.py:11",
+    "Tools/validation/RESULTS_template.md:300"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def beats_from_ann",
+   "hash": "5fbad69bb607f411",
+   "does": "Filters a wfdb Annotation to [(sample:int, symbol)] keeping only symbols in BEAT_SYMBOLS, in annotation order.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def nn_rr_points",
+   "hash": "9acc561655cbfce9",
+   "does": "Builds app-style RR points (t_ms, rr_ms) from consecutive beat pairs where BOTH beats are normal (N,L,R,e,j); t_ms = round(first beat sample/fs*1000), rr_ms = round(sample diff/fs*1000). Pairs touching a non-normal beat are skipped (a time gap in the output).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "both beats of the pair are in NORMAL_SYMBOLS",
+     "effect": "true: append the (t_ms, rr_ms) point; false: pair omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def all_beat_rr_points",
+   "hash": "35e975ce86a3fbe4",
+   "does": "Builds RR points (t_ms, rr_ms) from every consecutive annotated beat pair regardless of beat class (strap-like series).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def confusion",
+   "hash": "8ec1fd6f3e14ae1e",
+   "does": "Builds a len(classes)xlen(classes) integer confusion matrix (rows = reference, cols = prediction) from parallel label lists; an unknown label raises KeyError.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def kappa_from_cm",
+   "hash": "253712c8de787e32",
+   "does": "Cohen's kappa from a confusion matrix: (po-pe)/(1-pe).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "matrix total n == 0",
+     "effect": "returns NaN"
+    },
+    {
+     "at": "+6",
+     "cond": "pe < 1",
+     "effect": "true: returns kappa; false (all mass on one class in both marginals): returns NaN"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def summary_from_cm",
+   "hash": "b8a8bb1d6805df3a",
+   "does": "Returns dict n, accuracy, kappa and per-class sens_<c> (recall over the reference row) and prec_<c> (over the prediction column); empty denominators yield NaN.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/validation_common.py::def kappa_from_cm"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "n > 0",
+     "effect": "accuracy = trace/n, else NaN"
+    },
+    {
+     "at": "+3",
+     "cond": "for each class",
+     "effect": "per-class sens/prec computed"
+    },
+    {
+     "at": "+5",
+     "cond": "row sum > 0",
+     "effect": "sens = tp/row else NaN"
+    },
+    {
+     "at": "+6",
+     "cond": "column sum > 0",
+     "effect": "prec = tp/col else NaN"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/validation_common.py::def kappa_from_cm": "ecda049001ae64d6"
+   }
+  },
+  {
+   "key": "def bland_altman",
+   "hash": "150546641ffabac1",
+   "does": "Bland-Altman of device-reference: returns n, bias (mean diff), sample SD (ddof=1), and 95% limits bias +/- 1.96 SD. Inputs containing None raise TypeError in np.asarray(..., float).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 2 differences",
+     "effect": "returns bias=mean (NaN if empty) and NaN sd/loa"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def fmt",
+   "hash": "e07f5afd2d786c42",
+   "does": "Formats a number with nd decimals; None or NaN become 'n/a'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "x is None or a NaN float",
+     "effect": "returns 'n/a', else f'{x:.nd f}'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def edf_read_channel",
+   "hash": "e80c68ce6681b10a",
+   "does": "Reads one EDF channel by exact label: parses the 256-byte header and per-signal headers, memory-maps the int16 data records, returns (physical float32 signal scaled by (pmax-pmin)/(dmax-dmin), sample rate nsamp/duration, start time string 'hh.mm.ss', all labels). Raises ValueError (labels.index) when the label is absent.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/validation_common.py::def edf_read_channel.field",
+    "ext:numpy.memmap",
+    "ext:os.path.getsize"
+   ],
+   "reads": [
+    "file:<edf path>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "for each EDF per-signal header field",
+     "effect": "accumulates field offsets"
+    },
+    {
+     "at": "+27",
+     "cond": "header record count < 0 (unknown, -1)",
+     "effect": "derives record count from file size; always then clamps nrec to what the file size can hold (line 119)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/validation_common.py::def edf_read_channel.field": "522d7747a64da539"
+   }
+  },
+  {
+   "key": "def edf_read_channel.field",
+   "hash": "a550e8b4f5624ac0",
+   "does": "Nested helper: returns the stripped latin-1 text of per-signal header field i given the field's block offset and width (ns*off + i*width).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

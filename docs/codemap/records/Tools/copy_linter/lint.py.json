@@ -1,0 +1,810 @@
+{
+ "file": "Tools/copy_linter/lint.py",
+ "hash": "ba2e1bc273d5d77b",
+ "role": "FDA copy-perimeter linter: scans Swift string literals and .xcstrings catalogue keys and stringUnit values under prohibited_terms.json scan_paths for regulated-claim regexes, plus multilingual neverInStaticCopy patterns from MedicalTermLexicon.swift over catalogues; exit 0 clean, 1 violations, 2 config/IO error. Run by Makefile:172 (copy-perimeter, in `make ci`), .github/workflows/ci.yml:154, .github/workflows/gates.yml:54 (via make) and scripts/verify_gates_fail.sh mutation checks.",
+ "types": [
+  "Violation: dataclass — path/line/snippet/pattern/reason of one hit",
+  "MissingScanPath: Exception — configured scan path or lexicon section missing"
+ ],
+ "state": [
+  "file:Tools/copy_linter/prohibited_terms.json (default config)",
+  "file:Emuqu/Sources/Assistant/MedicalTermLexicon.swift (LEXICON_PATH, read for translated patterns)",
+  "INTERPOLATION_RE = r\"\\\\\\([^)]*\\)\"",
+  "_SENTENCE_END = r\"[.!?\\n]\""
+ ],
+ "toplevel": "Module docstring; imports; Violation dataclass (40-46); INTERPOLATION_RE (190); _SENTENCE_END (277); MissingScanPath (409); LEXICON_PATH (413); `if __name__ == \"__main__\": sys.exit(main())` (586-587). Running it on main @ 8d32097 prints \"copy_linter: clean. FDA perimeter holds.\" (exit 0) and all 12 neverInStaticCopy concepts parse.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "scan_xcstrings only reads loc[\"stringUnit\"]; localizations stored under \"variations\" (plural/device) are skipped (`unit = loc.get(\"stringUnit\") or {}` → value None → continue). Emuqu/Localizable.xcstrings has 1,902 such localization units (e.g. key \"Your resting heart rate this morning was %lld beats per minute.\" in zh-Hans), none of which the perimeter ever checks; a prohibited claim in a plural form passes clean.",
+   "evidence": [
+    "Tools/copy_linter/lint.py:394",
+    "Tools/copy_linter/lint.py:395",
+    "Tools/copy_linter/lint.py:397"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "silent-failure",
+   "sev": "low",
+   "text": "Emuqu/InfoPlist.xcstrings (9 user-visible permission/Info.plist strings) is not under any scan_path (scan_paths are Emuqu/Sources/, EmuquWatch Watch App/, and the two named catalogues), so the iOS permission prompts are never linted while the Watch InfoPlist.xcstrings is.",
+   "evidence": [
+    "Tools/copy_linter/prohibited_terms.json:317",
+    "Tools/copy_linter/lint.py:507"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def load_config",
+   "hash": "9daa5c4c22a48bda",
+   "does": "Reads and parses the JSON config; exits the process with code 2 on missing file or JSON decode error.",
+   "entry": null,
+   "calls": [
+    "ext:Path.read_text",
+    "ext:json.loads"
+   ],
+   "reads": [
+    "file:prohibited_terms.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "except FileNotFoundError",
+     "effect": "write error to stderr, sys.exit(2)"
+    },
+    {
+     "at": "+6",
+     "cond": "except JSONDecodeError",
+     "effect": "write error, sys.exit(2)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Only FileNotFoundError and JSONDecodeError are caught; a config that is not valid UTF-8 (UnicodeDecodeError) or a directory path (IsADirectoryError) escapes as a traceback with exit 1, the code the module docstring reserves for 'at least one violation' (config errors are documented as exit 2).",
+     "evidence": [
+      "Tools/copy_linter/lint.py:21",
+      "Tools/copy_linter/lint.py:23",
+      "Tools/copy_linter/lint.py:51",
+      "Tools/copy_linter/lint.py:52",
+      "Tools/copy_linter/lint.py:55"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def is_allowlisted",
+   "hash": "59ab94cdfe7649e0",
+   "does": "Returns True when the repo-relative posix path starts with any allowlist_paths entry (prefix match so split sibling files like AIProvider+SystemPromptText.swift stay exempt).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "any prefix matches",
+     "effect": "True → main skips the file entirely; else False"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Prefix matching on a full filename entry without a separator also exempts any file whose name merely extends it (e.g. allowlist \"Emuqu/Sources/Assistant/Providers/AIProvider.swift\" is exact, but \"Emuqu/Sources/Assistant/MedicalTermLexicon\" exempts every file beginning with that string). Two allowlist entries name paths that do not exist (Emuqu/Sources/Views/Onboarding/OnboardingDisclaimerPage.swift, CHANGELOG.md) and several (EmuquTests/, docs/, README.md, Tools/copy_linter/) are outside every scan_path, so they are inert and nothing reports staleness.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:77",
+      "Tools/copy_linter/prohibited_terms.json:297"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96"
+   }
+  },
+  {
+   "key": "def strip_swift_comments",
+   "hash": "28195305ffb20041",
+   "does": "Returns the source with /* */ block comments (non-nested, regex) and // line comments replaced by spaces, preserving line numbers. Used only to build the lines is_prohibition_context searches.",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def strip_swift_comments._block"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The // regex is not string-aware, so it blanks everything after \"//\" inside string literals (e.g. \"https://...\") in the comment-stripped lines that is_prohibition_context uses; a prohibition sentence containing a URL or \"//\" is truncated there. iter_swift_strings documents this exact problem (lines 119-120) but this pre-pass still has it.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:91",
+      "Tools/copy_linter/lint.py:304"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def strip_swift_comments._block": "e922d12092a33945"
+   }
+  },
+  {
+   "key": "def strip_swift_comments._block",
+   "hash": "5bdeba3743c46550",
+   "does": "Regex callback: replaces every non-newline character of a matched block comment with a space.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def iter_swift_strings",
+   "hash": "5730969e940a19ea",
+   "does": "Single-pass Swift lexer yielding (line, content) for every string literal: skips // and nestable /* */ comments, handles \"\"\" multi-line and #-delimited raw literals (no escape processing when hashes present), and single-line literals ending at the closing quote or newline.",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def iter_swift_strings.line_of"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+33",
+     "cond": "index < length",
+     "effect": "main scan loop"
+    },
+    {
+     "at": "+36",
+     "cond": "\"//\" at index",
+     "effect": "skip to newline (or end)"
+    },
+    {
+     "at": "+41",
+     "cond": "\"/*\" at index",
+     "effect": "walk nested depth to matching */ ; unterminated comment consumes rest of file"
+    },
+    {
+     "at": "+43",
+     "cond": "cursor < length and depth",
+     "effect": "continue nested-comment scan"
+    },
+    {
+     "at": "+44",
+     "cond": "\"/*\" inside comment",
+     "effect": "depth+1"
+    },
+    {
+     "at": "+47",
+     "cond": "\"*/\" inside comment",
+     "effect": "depth-1; else advance 1"
+    },
+    {
+     "at": "+56",
+     "cond": "char == \"#\"",
+     "effect": "count hashes; if not followed by a quote skip them and continue, else treat as raw literal opener"
+    },
+    {
+     "at": "+60",
+     "cond": "no quote after hashes",
+     "effect": "skip hash run (e.g. #if, #available)"
+    },
+    {
+     "at": "+67",
+     "cond": "char == \"\\\"\"",
+     "effect": "string literal"
+    },
+    {
+     "at": "+68",
+     "cond": "starts with \"\"\"",
+     "effect": "multi-line: body up to closing \"\"\"+hashes (or EOF if unterminated), yield, continue after closing"
+    },
+    {
+     "at": "+78",
+     "cond": "cursor < length and not newline",
+     "effect": "scan single-line literal body"
+    },
+    {
+     "at": "+80",
+     "cond": "non-raw and backslash",
+     "effect": "consume escape pair (so \\( of an interpolation is consumed but the interpolation's inner quotes are not understood: a nested string literal in \\(...) ends the outer literal early, re-phasing quotes for the rest of that line)"
+    },
+    {
+     "at": "+84",
+     "cond": "closing delimiter found",
+     "effect": "end of literal"
+    },
+    {
+     "at": "+89",
+     "cond": "closing present at cursor",
+     "effect": "advance past it; else stop at newline (unterminated)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "A string literal nested inside an interpolation is never scanned: the scanner consumes only the two characters `\\(` and then treats the inner `\"` as the outer literal's closing quote, so the inner literal's text is treated as code. Verified: for `\"\\(x ? \"Injury risk is high\" : \"ok\") today\"` it yields only `\\(x ? `, ` : `, `) today`. 52 lines in Emuqu/Sources and the Watch app contain such nested literals, including user-visible copy (e.g. SleepTimelineEditModel.swift:177 `\"\\(side == .start ? \"Start\" : \"End\") moved to ...\"`); a prohibited claim written in a ternary inside an interpolation passes the perimeter clean.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:175",
+      "Tools/copy_linter/lint.py:176",
+      "Tools/copy_linter/lint.py:179",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:177"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def iter_swift_strings.line_of": "87d217b4d14d22ac"
+   }
+  },
+  {
+   "key": "def iter_swift_strings.line_of",
+   "hash": "9d6bf96fb23370d2",
+   "does": "Converts a character offset to a 1-based line number by bisecting the newline offsets list.",
+   "entry": null,
+   "calls": [
+    "ext:bisect.bisect_right"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def strip_interpolations",
+   "hash": "596f4ab8ae481189",
+   "does": "Blanks Swift \\(expr) interpolation spans to a space before matching. The regex stops at the first \")\", so nested calls leave trailing text of the expression in the matched string.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def is_prohibition_context",
+   "hash": "f426467e0b20a289",
+   "does": "Returns True when a guard regex matches in a 4-line window of the comment-stripped source (raw_lines[line-3:line+1] = the two lines above the literal's opening line, that line, and the line below) AND the first 40 chars of the snippet (whitespace and trailing punctuation stripped) appear in the sentence around the FIRST match of that guard; such strings are skipped for every pattern.",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def _sentence_around",
+    "Tools/copy_linter/lint.py::def _snippet_in_sentence"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+46",
+     "cond": "for each guard",
+     "effect": "try each negation guard"
+    },
+    {
+     "at": "+48",
+     "cond": "guard does not match window",
+     "effect": "continue to next guard"
+    },
+    {
+     "at": "+51",
+     "cond": "snippet fragment inside prohibiting sentence",
+     "effect": "return True (string excused from every pattern); else continue; after all guards return False"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The window is four lines (two above, the literal's line, one below), not the 'three-line window' stated in the code comment and in prohibited_terms.json _negation_guards_note, nor 'two lines either side' as the comment in scan_swift_file says.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:232",
+      "Tools/copy_linter/lint.py:249",
+      "Tools/copy_linter/lint.py:250",
+      "Tools/copy_linter/lint.py:320",
+      "Tools/copy_linter/prohibited_terms.json:327"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def _sentence_around": "df1398814d57f0a8",
+    "Tools/copy_linter/lint.py::def _snippet_in_sentence": "7854db9a532e0761"
+   }
+  },
+  {
+   "key": "def _snippet_in_sentence",
+   "hash": "eaabca397ac9fcf3",
+   "does": "True when the snippet, stripped of whitespace and trailing punctuation/quotes, is at least 3 chars and its first 40 chars occur inside the sentence.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "len(fragment) < 3",
+     "effect": "return False"
+    },
+    {
+     "at": "+12",
+     "cond": "fragment[:40] in sentence",
+     "effect": "True/False"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def _sentence_around",
+   "hash": "42b30992465fb66f",
+   "does": "Returns the substring of text between the last sentence terminator ([.!?\\n]) before index and the next one at/after index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "each terminator before index",
+     "effect": "start moves past it; none → start 0"
+    },
+    {
+     "at": "+6",
+     "cond": "end_match found",
+     "effect": "end at it; else len(text)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def scan_swift_file",
+   "hash": "65f1b79525a62651",
+   "does": "Reads one Swift file, iterates its string literals, strips interpolations, and for each literal not in allowlist_strings and not excused by is_prohibition_context reports one Violation per matching pattern unless _forbidden_in_place excuses that match. Unreadable file → SystemExit(2).",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def strip_swift_comments",
+    "Tools/copy_linter/lint.py::def iter_swift_strings",
+    "Tools/copy_linter/lint.py::def strip_interpolations",
+    "Tools/copy_linter/lint.py::def is_prohibition_context",
+    "Tools/copy_linter/lint.py::def _forbidden_in_place",
+    "Tools/copy_linter/lint.py::def _snippet_around",
+    "ext:Path.read_text"
+   ],
+   "reads": [
+    "file:<scanned .swift>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "except reading file",
+     "effect": "stderr message, raise SystemExit(2) (fail closed)"
+    },
+    {
+     "at": "+19",
+     "cond": "for each literal",
+     "effect": "scan"
+    },
+    {
+     "at": "+21",
+     "cond": "stripped content in allowlist_strings",
+     "effect": "skip literal"
+    },
+    {
+     "at": "+23",
+     "cond": "is_prohibition_context True",
+     "effect": "skip literal for all patterns"
+    },
+    {
+     "at": "+25",
+     "cond": "for each pattern",
+     "effect": "test"
+    },
+    {
+     "at": "+27",
+     "cond": "no match",
+     "effect": "next pattern"
+    },
+    {
+     "at": "+36",
+     "cond": "_forbidden_in_place",
+     "effect": "skip this match; else append Violation with line offset of the match inside a multi-line literal"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "med",
+     "text": "Any Swift string whose sentence contains a negation guard is excused, in all source files, not only the system prompt the docstring describes. Guard 2 is \"(do not|don't|never) (tell|say|use|describe|call|label|refer|frame|claim|imply)\", which is ordinary user-copy phrasing: a user-facing literal such as \"Don't use this as an early warning system\" or \"Never call this a diagnosis tool…\" (or a claim joined by a comma to such a clause in the same sentence) is skipped. The config note claims guards are only for phrases that \"cannot appear in user-facing copy\".",
+     "evidence": [
+      "Tools/copy_linter/lint.py:313",
+      "Tools/copy_linter/lint.py:326",
+      "Tools/copy_linter/lint.py:350",
+      "Tools/copy_linter/prohibited_terms.json:327"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def _forbidden_in_place": "b290e7ec8c4aba70",
+    "Tools/copy_linter/lint.py::def _snippet_around": "8a061932fb014e25",
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96",
+    "Tools/copy_linter/lint.py::def iter_swift_strings": "f90bdec3a7efbb5c",
+    "Tools/copy_linter/lint.py::def strip_interpolations": "30cc738a92e3b909",
+    "Tools/copy_linter/lint.py::def strip_swift_comments": "3273dffb9acac793"
+   }
+  },
+  {
+   "key": "def _forbidden_in_place",
+   "hash": "3fd2baeb51e69aad",
+   "does": "True when any negation guard matches inside the sentence (within the literal) containing the match offset.",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def _sentence_around"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "any guard matches sentence",
+     "effect": "True → match excused; else False"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/copy_linter/lint.py::def _sentence_around": "df1398814d57f0a8",
+    "Tools/copy_linter/lint.py::def is_prohibition_context": "88330c702ee73d96"
+   }
+  },
+  {
+   "key": "def _snippet_around",
+   "hash": "ffe81e23607e5878",
+   "does": "Returns a whitespace-collapsed 120-char excerpt starting 40 chars before the match offset.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def scan_xcstrings",
+   "hash": "df3db7cf4b09ac31",
+   "does": "Parses an .xcstrings catalogue and reports a Violation (line 0) for each pattern matching a source key or a localization stringUnit value; a key in allowlist_strings also clears all its translations. Unparseable file → SystemExit(2).",
+   "entry": null,
+   "calls": [
+    "ext:json.loads"
+   ],
+   "reads": [
+    "file:Emuqu/Localizable.xcstrings",
+    "file:Emuqu/Help.xcstrings",
+    "file:EmuquWatch Watch App/InfoPlist.xcstrings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "except parse error",
+     "effect": "stderr, SystemExit(2)"
+    },
+    {
+     "at": "+13",
+     "cond": "for each key",
+     "effect": "check key and its localizations"
+    },
+    {
+     "at": "+27",
+     "cond": "key not allowlisted",
+     "effect": "test key against each pattern"
+    },
+    {
+     "at": "+29",
+     "cond": "pattern matches key",
+     "effect": "append Violation"
+    },
+    {
+     "at": "+34",
+     "cond": "for each localization",
+     "effect": "check value"
+    },
+    {
+     "at": "+37",
+     "cond": "value not a str (no stringUnit, e.g. plural/device variations)",
+     "effect": "skip silently"
+    },
+    {
+     "at": "+39",
+     "cond": "key allowlisted or value allowlisted",
+     "effect": "skip"
+    },
+    {
+     "at": "+42",
+     "cond": "pattern matches value",
+     "effect": "append Violation"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def translated_claim_patterns",
+   "hash": "661a05a8ada64ab6",
+   "does": "Builds multilingual claim regexes from MedicalTermLexicon.swift: regex-extracts the identifiers in `static let neverInStaticCopy: [Concept] = [...]`, finds each `static let <name> = Concept(` block in the same file, collects its `latin:` (word-bounded) and `unbounded:` string arrays, and compiles one case-insensitive alternation per concept. Raises MissingScanPath if the array or every concept is missing.",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives",
+    "ext:Path.read_text"
+   ],
+   "reads": [
+    "file:Emuqu/Sources/Assistant/MedicalTermLexicon.swift"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "neverInStaticCopy not found",
+     "effect": "raise MissingScanPath → main exits 2"
+    },
+    {
+     "at": "+24",
+     "cond": "for each concept name",
+     "effect": "build pattern"
+    },
+    {
+     "at": "+30",
+     "cond": "Concept block not found in MedicalTermLexicon.swift (e.g. moved to a +Sibling file or formatted with different indentation)",
+     "effect": "silently continue — that concept is dropped from catalogue scanning"
+    },
+    {
+     "at": "+58",
+     "cond": "latin alternatives present",
+     "effect": "add \\b-bounded branch"
+    },
+    {
+     "at": "+60",
+     "cond": "unbounded alternatives present",
+     "effect": "add unbounded branch"
+    },
+    {
+     "at": "+62",
+     "cond": "no branches",
+     "effect": "continue silently"
+    },
+    {
+     "at": "+66",
+     "cond": "except re.error",
+     "effect": "continue silently — concept dropped"
+    },
+    {
+     "at": "+69",
+     "cond": "no patterns at all",
+     "effect": "raise MissingScanPath"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Concepts whose definition is not literally in MedicalTermLexicon.swift with the exact `Concept(\\n id: \"...\",...\\n    )\\n` layout, or whose regex fails to compile, are skipped with `continue` and no message; only the all-missing case fails. The lexicon is already being split into siblings (MedicalTermLexicon+MetricVerdict.swift per prohibited_terms.json _lexicon_family_note_2026_09_02), so moving any neverInStaticCopy concept to a sibling silently removes its translated-catalogue check. This contradicts the file's own fail-loudly rule (collect_targets comment, lines 495-497). All 12 concepts currently parse.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:441",
+      "Tools/copy_linter/lint.py:446",
+      "Tools/copy_linter/lint.py:482",
+      "Tools/copy_linter/lint.py:495"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "read_text of MedicalTermLexicon.swift is not guarded; if the file is moved/renamed the FileNotFoundError escapes main (only MissingScanPath is caught) and the script exits 1 with a traceback, the code documented for 'violations', instead of the config-error exit 2 the function uses for a missing neverInStaticCopy.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:431",
+      "Tools/copy_linter/lint.py:436",
+      "Tools/copy_linter/lint.py:529",
+      "Tools/copy_linter/lint.py:531",
+      "Tools/copy_linter/lint.py:21"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def translated_claim_patterns.alternatives": "5b3628c2cb629004"
+   }
+  },
+  {
+   "key": "def translated_claim_patterns.alternatives",
+   "hash": "0d59f02eeb29e149",
+   "does": "Nested helper: in the current concept body finds `<tag>: [`, bracket-matches to the closing `]` (handles one-line and multi-line arrays), strips // comments and returns the quoted strings with \\\\ unescaped to \\.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "tag not present",
+     "effect": "return []"
+    },
+    {
+     "at": "+11",
+     "cond": "scan until matching bracket",
+     "effect": "loop"
+    },
+    {
+     "at": "+13",
+     "cond": "char == \"[\"",
+     "effect": "depth+1"
+    },
+    {
+     "at": "+15",
+     "cond": "char == \"]\"",
+     "effect": "depth-1; at 0 stop"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def collect_targets",
+   "hash": "e13f5df8a51b3521",
+   "does": "Expands scan_paths to files: missing path → raise MissingScanPath; a file entry is added as-is; a directory contributes rglob(\"*.swift\") and rglob(\"*.xcstrings\").",
+   "entry": null,
+   "calls": [
+    "ext:Path.rglob"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each entry",
+     "effect": "resolve"
+    },
+    {
+     "at": "+4",
+     "cond": "path does not exist",
+     "effect": "raise MissingScanPath (main exits 2)"
+    },
+    {
+     "at": "+9",
+     "cond": "path is a file",
+     "effect": "append and continue (any extension; main ignores non-.swift/.xcstrings)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says 'No scan_path names a catalog file, so without this scan_xcstrings is unreachable', but scan_paths names Emuqu/Localizable.xcstrings and Emuqu/Help.xcstrings directly; the directory rglob('*.xcstrings') now only adds EmuquWatch Watch App/InfoPlist.xcstrings.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:503",
+      "Tools/copy_linter/lint.py:504",
+      "Tools/copy_linter/lint.py:507",
+      "Tools/copy_linter/prohibited_terms.json:320",
+      "Tools/copy_linter/prohibited_terms.json:321"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "951707df6d48ce8e",
+   "does": "CLI entry: parses --root (default repo root from __file__) and --config, loads config, compiles user_facing_prohibited patterns (no implicit flags), builds translated patterns, compiles negation_guards, collects targets, skips allowlisted paths, runs scan_swift_file on .swift files and scan_xcstrings twice (English patterns, then translated patterns) on .xcstrings; prints \"clean\" and returns 0, or lists violations on stderr and returns 1; config/regex/path errors return 2. The JSON key coach_response_prohibited is never read here (used by scripts/check_perimeter_sync.sh).",
+   "entry": "Invoked as a script via `python3 Tools/copy_linter/lint.py` from Makefile:172 (target copy-perimeter, part of `make ci` Makefile:272), .github/workflows/ci.yml:154, .github/workflows/gates.yml:54 (`make copy-perimeter ...`) and scripts/verify_gates_fail.sh mutation checks (lines 100, 233 and the copy_perimeter check).",
+   "calls": [
+    "Tools/copy_linter/lint.py::def load_config",
+    "Tools/copy_linter/lint.py::def translated_claim_patterns",
+    "Tools/copy_linter/lint.py::def collect_targets",
+    "Tools/copy_linter/lint.py::def is_allowlisted",
+    "Tools/copy_linter/lint.py::def scan_swift_file",
+    "Tools/copy_linter/lint.py::def scan_xcstrings"
+   ],
+   "reads": [
+    "file:Tools/copy_linter/prohibited_terms.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "--config given",
+     "effect": "use it; else <root>/Tools/copy_linter/prohibited_terms.json"
+    },
+    {
+     "at": "+14",
+     "cond": "pattern compile error",
+     "effect": "stderr, return 2"
+    },
+    {
+     "at": "+20",
+     "cond": "MissingScanPath from lexicon",
+     "effect": "stderr, return 2"
+    },
+    {
+     "at": "+28",
+     "cond": "guard compile error",
+     "effect": "return 2"
+    },
+    {
+     "at": "+33",
+     "cond": "MissingScanPath from scan_paths",
+     "effect": "stderr explanation, return 2"
+    },
+    {
+     "at": "+43",
+     "cond": "for each target",
+     "effect": "scan"
+    },
+    {
+     "at": "+44",
+     "cond": "allowlisted",
+     "effect": "skip file"
+    },
+    {
+     "at": "+46",
+     "cond": "suffix .swift",
+     "effect": "Swift scan"
+    },
+    {
+     "at": "+48",
+     "cond": ".xcstrings",
+     "effect": "two catalogue scans; other suffixes ignored"
+    },
+    {
+     "at": "+54",
+     "cond": "no violations",
+     "effect": "print clean, return 0"
+    },
+    {
+     "at": "+59",
+     "cond": "for each violation",
+     "effect": "print location (path:line, or path only when line 0), pattern, reason, snippet; return 1"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A user_facing_prohibited entry without a \"pattern\" key raises KeyError, which is not caught (only re.error is), so the run dies with a traceback and exit 1 rather than the documented config-error exit 2.",
+     "evidence": [
+      "Tools/copy_linter/lint.py:524",
+      "Tools/copy_linter/lint.py:525",
+      "Tools/copy_linter/lint.py:23"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Tools/copy_linter/lint.py::def collect_targets": "ae28deef98c39a37",
+    "Tools/copy_linter/lint.py::def is_allowlisted": "02d22168ca2edf90",
+    "Tools/copy_linter/lint.py::def load_config": "838e319c60b328d5",
+    "Tools/copy_linter/lint.py::def scan_swift_file": "2119d1a831202458",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3",
+    "Tools/copy_linter/lint.py::def translated_claim_patterns": "ff4c71db88aa20f1"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/copy_linter/lint.py::def iter_swift_strings": "f90bdec3a7efbb5c",
+  "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+ }
+}

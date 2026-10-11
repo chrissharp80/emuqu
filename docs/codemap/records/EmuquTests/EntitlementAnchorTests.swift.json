@@ -1,0 +1,951 @@
+{
+ "file": "EmuquTests/EntitlementAnchorTests.swift",
+ "hash": "30226639ef901c23",
+ "role": "XCTest suite for the pure parts of the entitlement system: EntitlementAnchor.merged/adopting/advanced/recordingStoreTrialStart/effectiveNow/evaluatedHistory monotonic rules (beta OR, earliest device trial start, latest high-water mark, later App Store trial start, earliest history check) and TrialPolicy arithmetic (30-day trial, days remaining rounded up, isActive/hasExpired), plus Record JSON key compatibility.",
+ "types": [
+  "EntitlementAnchorTests: class (XCTestCase)"
+ ],
+ "state": [
+  "epoch = Date(1_700_000_000)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says the guarantees cannot be exercised through the UI without 'a seven-day wait'; TrialPolicy.durationDays is 30 (the comment there says the 7 was replaced).",
+   "evidence": [
+    "EmuquTests/EntitlementAnchorTests.swift:11",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift:460"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+   "hash": "36de43f2a8575ab0",
+   "does": "Builds an EntitlementAnchor.Record with the given beta flag, device trial start and high-water mark (default epoch 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergedWithBothNilIsNil()",
+   "hash": "d89f37901465bede",
+   "does": "Asserts merged(nil, nil) is nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergedWithOneNilReturnsTheOther()",
+   "hash": "27d1bd4b09a0c45c",
+   "does": "Asserts merged returns the non-nil side unchanged in either order.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testBetaStatusSurvivesATierThatDoesNotKnowAboutIt()",
+   "hash": "ac482dc27985ca35",
+   "does": "Asserts beta true in one tier survives a false tier in either order.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testBetaStatusStaysFalseWhenNoTierClaimsIt()",
+   "hash": "7c5803c7bc982821",
+   "does": "Asserts two false tiers merge to false.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testReinstalledBetaTesterIsStillGrandfathered()",
+   "hash": "38ecb61d7246b576",
+   "does": "Asserts merging Record.empty with a beta keychain record keeps isBetaTester true.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergeKeepsTheEarlierTrialStart()",
+   "hash": "f91047d4dee048d8",
+   "does": "Asserts the earlier device trial start wins in either order.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergeAdoptsATrialStartFromTheTierThatHasOne()",
+   "hash": "da97c3f53f82122a",
+   "does": "Asserts a nil trial start adopts the other tier's start.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testReinstallResumesTheOriginalTrialRatherThanRestartingIt()",
+   "hash": "bcf244e7ae2b28da",
+   "does": "Settings tier nil + anchor started 25 days ago: asserts merged start is the original and 5 days remain.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testALaterDeviceStartKeepsTheEarlierOne()",
+   "hash": "6d4b955066bfae86",
+   "does": "Asserts adopting a later start keeps the earlier one but advances the high-water mark to the candidate.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAnEarlierStartFromTheAppStoreReplacesALaterOne()",
+   "hash": "941c0d92dec8c26d",
+   "does": "Asserts adopting an earlier start replaces a later one.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAFirstTrialStartIsAdopted()",
+   "hash": "a94fcf29ddd2d1c2",
+   "does": "Asserts adopting into a record with no start sets it.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testTheAppStoresTrialStartReplacesAnExpiredDeviceStart()",
+   "hash": "4d2d7a012f4633e9",
+   "does": "Expired device start + App Store start 60 days later: asserts trialStartDate is the store date, device start kept, high-water mark moved, and a full 30 days remain.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testADeviceStartDoesNotOverrideTheAppStoresStart()",
+   "hash": "9ec276698700783d",
+   "does": "Asserts adopting an earlier device start does not change trialStartDate once a store start is recorded.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "19be1a6e446da196",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergeKeepsTheAppStoresStartAndPrefersTheLaterOne()",
+   "hash": "1b268e9da28fcdd4",
+   "does": "Asserts merged(.empty, first store start) keeps it, and merging two different store starts keeps the later in either order.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testTheDeviceStartKeepsItsEncodedKey()",
+   "hash": "5388feaa76872592",
+   "does": "Decodes legacy JSON with 'trialStartDate' 700000000: asserts it lands in deviceTrialStartDate, store start nil, and re-encoding writes 'trialStartDate' again.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "ext:JSONDecoder.decode",
+    "ext:JSONEncoder.encode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EntitlementAnchorTests.testMergeKeepsTheLaterHighWaterMark()",
+   "hash": "eff8b79cecd07fa5",
+   "does": "Asserts merge keeps the later high-water mark.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAdvancedMovesTheMarkForward()",
+   "hash": "81cbc1008f5e48d2",
+   "does": "Asserts advanced moves the mark forward.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAdvancedRefusesToMoveTheMarkBackwards()",
+   "hash": "33c83275c6b5b2df",
+   "does": "Asserts advanced refuses a backwards move.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testEffectiveNowUsesTheWallClockWhenItIsAhead()",
+   "hash": "1a8e7e5186526bfe",
+   "does": "Asserts effectiveNow returns the wall clock when it is ahead.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testEffectiveNowIgnoresAWoundBackClock()",
+   "hash": "b25946c41e183332",
+   "does": "Asserts effectiveNow returns the high-water mark when the clock is wound back 30 days.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testWindingTheClockBackDoesNotReviveAnExpiredTrial()",
+   "hash": "98a69ed8cc73ac22",
+   "does": "Trial started at epoch, high-water 33 days later, clock wound to day 1: asserts not active and 0 days remain.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testTrialIsThirtyDays()",
+   "hash": "5cc85bf9334ebee9",
+   "does": "Asserts durationDays 30 and duration 30×86400 s.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testTrialOutlastsTheBaselineTheScoreNeeds()",
+   "hash": "8e902f7892abd83b",
+   "does": "Asserts durationDays ≥ 28.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Implied by testTrialIsThirtyDays (durationDays == 30); adds no independent check.",
+     "evidence": [
+      "EmuquTests/EntitlementAnchorTests.swift:236",
+      "EmuquTests/EntitlementAnchorTests.swift:242"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func EntitlementAnchorTests.testSettingsManagerReportsTheSameDurationAsThePolicy()",
+   "hash": "540aed5a8a68f288",
+   "does": "Asserts SettingsManager.trialDurationDays equals TrialPolicy.durationDays.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDurationDays"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.trialDurationDays": "3580704d3c0fdb81"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingIsZeroWhenTheTrialNeverStarted()",
+   "hash": "09deac178c39b855",
+   "does": "Asserts 0 days remain with no start.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingIsFullOnTheFirstInstant()",
+   "hash": "98304b5e57977208",
+   "does": "Asserts 30 days remain at the start instant.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingRoundsUpSoTheLastDayIsNotLost()",
+   "hash": "4ea74ba260cdc73f",
+   "does": "Asserts 1 day remains at 29.2 days (ceil).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingCountsDownAcrossTheTrial()",
+   "hash": "889e620c30381d53",
+   "does": "For each day 0…29 asserts 30−day remain.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for day in 0..<30",
+     "effect": "asserts the countdown"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingIsZeroExactlyAtExpiry()",
+   "hash": "71dec0543e28d97d",
+   "does": "Asserts 0 remain exactly at 30 days.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingIsZeroLongAfterExpiry()",
+   "hash": "5dfc0253c1bdb4bc",
+   "does": "Asserts 0 remain at 400 days.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testDaysRemainingClampsWhenNowPrecedesTheStart()",
+   "hash": "bcc88bf73f17d689",
+   "does": "Asserts a clock 3 days before the start reports a full 30 days (elapsed clamped to 0).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testIsActiveThroughoutTheTrialAndFalseAtExpiry()",
+   "hash": "3b7a7351f62a40ce",
+   "does": "Asserts active at 0 and 29.99 days and inactive at 30 days.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testIsActiveIsFalseWhenTheTrialNeverStarted()",
+   "hash": "432417cc2a12e8f0",
+   "does": "Asserts not active without a start.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testHasExpiredDistinguishesNeverStartedFromRanOut()",
+   "hash": "3a1783c939f6ea7d",
+   "does": "Asserts hasExpired false with no start and at the start, true at 31 days.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.hasExpired(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.hasExpired(start:now:)": "6191de85d57e0482",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testEmptyRecordGrantsNothing()",
+   "hash": "9fa9321395f16851",
+   "does": "Asserts Record.empty has no beta, no trial start and grants no active trial at Date().",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration": "c75bf61fc1ccc089"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAClockBehindTheTrialStartDoesNotRestoreAFullTrial()",
+   "hash": "37ec738f0b2375e1",
+   "does": "Asserts advancing .empty to a start and then reading effectiveNow with a clock 10 days earlier returns the start.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testEmptyRecordHighWaterMarkNeverBeatsARealClock()",
+   "hash": "5fe6a4400576da79",
+   "does": "Asserts effectiveNow(.empty, now) == now (distantPast never wins).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testRecordSurvivesAJSONRoundTrip()",
+   "hash": "50b3b48335625fb9",
+   "does": "Asserts a record with beta, device start, high-water and store start survives JSON encode/decode unchanged.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
+    "ext:JSONEncoder.encode",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)": "d56f6e9206929597",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "d6f1aacbd2cd2e71",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testExistingHistoryAtFirstCheckGrandfathersTheUser()",
+   "hash": "1e215852cac16600",
+   "does": "Asserts evaluatedHistory on .empty with history sets beta and stamps storeHistoryCheckedAt with epoch.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431",
+    "EmuquTests/EntitlementAnchorTests.swift::func EntitlementAnchorTests.record(beta:trialStart:highWater:)": "844e63d3690483f8"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testAFreshInstallIsCheckedOnceAndNeverAgain()",
+   "hash": "b03ac6a7fb8b1a6e",
+   "does": "Asserts a first check without history is stamped and not beta, and a later check with history returns the same record unchanged.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testTheHistoryCheckKeepsTheEarliestTimestampOnMerge()",
+   "hash": "93ed77f4d8697492",
+   "does": "Asserts merge keeps the earliest storeHistoryCheckedAt, and merged(nil, late) keeps late's.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.earlier(_:_:)": "e8ad4fb166d50317",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.later(_:_:)": "9057513e5876822c",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.merged(_:_:)": "004de710422586ad",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::init EntitlementAnchor.Record(isBetaTester:trialStartDate:highWaterMark:storeHistoryCheckedAt:storeTrialStartDate:)": "0a4a4f3f7e2fd1b4"
+   }
+  },
+  {
+   "key": "func EntitlementAnchorTests.testALookTakenByATestFlightBuildDoesNotLockTheStoreBuildOut()",
+   "hash": "10eeaf4ad774deea",
+   "does": "Decodes legacy JSON with 'historyCheckedAt' 0: asserts storeHistoryCheckedAt nil and a check with history grants beta.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e8c584ec46ea1431"
+   }
+  }
+ ],
+ "deps": {}
+}

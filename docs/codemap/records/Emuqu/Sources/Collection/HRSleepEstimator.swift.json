@@ -1,0 +1,448 @@
+{
+ "file": "Emuqu/Sources/Collection/HRSleepEstimator.swift",
+ "hash": "01390b93c980fb4b",
+ "role": "Pure HR-based sleep estimation used when no Watch sleep exists: RR-interval path (estimateSleepFromHR) for strap nights and helpers for the passive Apple Watch HR path (HealthKitManager+Sleep.estimateSleepFromHealthKitHR).",
+ "types": [
+  "HRSleepEstimator: enum — static nonisolated estimation functions"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "Three HR-onset detectors with the same midpoint-threshold + 20-min clamp logic exist (this file's RR path, this file's passive-HR path, SleepBoundaryResolver.detectSleepOnset); the header comment records the clamp having to be fixed three separate times.",
+   "evidence": [
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift:133",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift:210",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:219"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
+   "hash": "c2c350a715ae993c",
+   "does": "RR path: needs >=100 RR points and >=3 five-minute HR windows; detects onset/wake by HR midpoint threshold, clamps onset to 20 min (SleepConstants.maxHREstimatedOnsetLatencyMin) after recording start, runs HRVSleepStageClassifier over onset..wake and assembles SleepData (.hrEstimated). Called via HealthKitManager/SleepHealthQueries.estimateSleepFromHR from MorningProcessingService+Sleep:193, MorningResultsViewModel:491, SleepBoundaryResolver:311, DemoSessionSeeder:94.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrPoints.count >= 100",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+3",
+     "cond": "windowedHR.count >= 3",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+9",
+     "cond": "sleepOnsetMs ?? 0",
+     "effect": "no onset detected: classifier starts at beat-sum 0"
+    },
+    {
+     "at": "+10",
+     "cond": "wakeMs ?? last t_ms ?? 0",
+     "effect": "no wake detected: classifier ends at last beat"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 20-minute onset clamp is applied on the beat-sum clock (t_ms) before conversion to wall clock; after a dropped BLE stretch early in the night the wall-clock onset can land later than 20 minutes after recording start.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HRSleepEstimator.swift:45",
+      "Emuqu/Sources/Collection/HRSleepEstimator.swift:74"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)": "f5e8d6f45b4ae323",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)": "383647fc72c68104",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)": "c27a639e20ecde54",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.windowedHR(_:from:to:)": "ff5beec0e7abbab9"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)",
+   "hash": "53536b281bd0aeb5",
+   "does": "Converts onset/wake from beat-sum to wall clock, builds dates from recordingStart, inBed = last exportTimeMs minutes, total sleep = classifier deep+REM+core (or onset→wake duration when classifier returned nil), efficiency = total/inBed, and returns SleepData with boundarySource .hrEstimated, classifier stages/intervals and no segments.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepDuration(rrPoints:sleepOnsetMs:wakeMs:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "max exportTimeMs ?? 0",
+     "effect": "empty points: inBed 0"
+    },
+    {
+     "at": "+13",
+     "cond": "stageResult non-nil",
+     "effect": "true: classifier deep+rem+core minutes, where summarise already folded .unspecified into core (HRVSleepStageClassifier.swift:154), so only awake is excluded; false: estimateSleepDuration onset->wake"
+    },
+    {
+     "at": "+14",
+     "cond": "inBedMinutes > 0",
+     "effect": "true: classified/inBed*100; false: 0"
+    },
+    {
+     "at": "+21",
+     "cond": "stageResult?.awakeMinutes ?? 0",
+     "effect": "no classifier: awake 0"
+    },
+    {
+     "at": "+23",
+     "cond": "stageResult?.stageIntervals ?? []",
+     "effect": "no classifier: no intervals"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says total sleep 'prefers the classifier's staged minutes when it produced any, falling back to the raw onset→wake duration', but the fallback only happens when the classifier returns nil; a non-nil result with zero staged minutes yields totalSleepMinutes 0 (MorningProcessingService.applySleepEstimates applies it without a >0 check).",
+     "evidence": [
+      "Emuqu/Sources/Collection/HRSleepEstimator.swift:58",
+      "Emuqu/Sources/Collection/HRSleepEstimator.swift:80",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:193"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e0b7831edf6d70ef",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepDuration(rrPoints:sleepOnsetMs:wakeMs:)": "743fd736a764bc62",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.computeWindowedHR(rrPoints:)",
+   "hash": "9ed403ff3f47f117",
+   "does": "Steps through the beat-sum timeline in 5-minute windows from 0 to the last t_ms, emitting (window midpoint, mean HR) for windows with >=10 beats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.windowedHR(_:from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "windowStart < last t_ms",
+     "effect": "loop continues; ?? 0 for empty points ends immediately"
+    },
+    {
+     "at": "+5",
+     "cond": "windowedHR returns a value",
+     "effect": "true: appended; false: window dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.windowedHR(_:from:to:)": "ff5beec0e7abbab9"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.windowedHR(_:from:to:)",
+   "hash": "0f20826b8beb8403",
+   "does": "Mean HR (60000/mean RR) of beats with t_ms in [start,end); nil for <10 beats. Raw rr_ms are averaged with no validity/artifact filter.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "window has >= 10 beats",
+     "effect": "false: nil; true: HR"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unlike the sibling detector (SleepBoundaryResolver.windowMeanHR filters HRVConstants.RRInterval.isValid), artifact RR values are averaged in, so a run of dropout/artifact beats shifts window HR and thus the max/min-based threshold and onset/wake.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HRSleepEstimator.swift:116",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:252"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRSleepEstimator.detectSleepBoundariesFromHR(_:)",
+   "hash": "266a553f53156394",
+   "does": "Threshold = max - (max-min)*0.5 over window HRs; onset = first of 3 consecutive windows below it; wake = window after the last below-threshold window (capped at last window).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "any window exists",
+     "effect": "false: (nil, nil)"
+    },
+    {
+     "at": "+4",
+     "cond": "min ?? maxHR",
+     "effect": "fallback never used once max exists"
+    },
+    {
+     "at": "+10",
+     "cond": "loop over i where 3 consecutive windows below threshold",
+     "effect": "first match sets onset and breaks; none: onset nil"
+    },
+    {
+     "at": "+18",
+     "cond": "some window below threshold",
+     "effect": "true: wake = next window's time; false: wake nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.windowedHR(_:from:to:)": "ff5beec0e7abbab9"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.estimateSleepDuration(rrPoints:sleepOnsetMs:wakeMs:)",
+   "hash": "49edf9446c6f2ff8",
+   "does": "Sleep duration minutes: wake-onset when both exist and wake > onset; onset→last beat when only onset (or wake <= onset); else last beat time from 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrPoints.last?.exportTimeMs ?? 0",
+     "effect": "empty: 0"
+    },
+    {
+     "at": "+2",
+     "cond": "onset and wake present and wake > onset",
+     "effect": "(wake-onset)/60000"
+    },
+    {
+     "at": "+4",
+     "cond": "onset present",
+     "effect": "(end-onset)/60000; else end/60000"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)",
+   "hash": "2782ee5b8afbb35d",
+   "does": "Shifts a beat-sum time onto the wall clock by the offset (exportTimeMs - t_ms) of the first beat at/after it, or the last beat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "first beat with t_ms >= ms ?? last beat",
+     "effect": "no later beat: uses last beat; empty array: returns ms unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "64723cc7502a0ba5"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.hrSleepThreshold(_:)",
+   "hash": "9c1b0c32455461e7",
+   "does": "Passive path threshold: midpoint of smoothed max and min HR; nil (logged) when range < 8 bpm or input empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "any smoothed point",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+2",
+     "cond": "min ?? maxHR",
+     "effect": "fallback unreachable"
+    },
+    {
+     "at": "+3",
+     "cond": "max-min >= 8",
+     "effect": "false: log, nil; true: midpoint"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
+   "hash": "158b549d3f018538",
+   "does": "Passive path onset: first of 2 consecutive smoothed points below threshold, clamped to windowStart + 20 min; nil (logged) when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "loop where points i and i+1 below threshold",
+     "effect": "first match sets onset, break"
+    },
+    {
+     "at": "+13",
+     "cond": "onset found",
+     "effect": "false: log, nil; true: min(onset, windowStart+20min)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.sleepWake(_:threshold:)",
+   "hash": "46aa8c1c70674c86",
+   "does": "Passive path wake: point after the last below-threshold smoothed point (capped at last point); falls back to the last point.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "some point below threshold",
+     "effect": "true: next point's date"
+    },
+    {
+     "at": "+6",
+     "cond": "wakeDate ?? smoothed.last?.date",
+     "effect": "no below-threshold point: last point; empty input: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)",
+   "hash": "3a644bce26708617",
+   "does": "Builds the passive-HR SleepData: inBed = sleepStart..sleepEnd minutes, total = sleepMinutes, awake 0, stages nil, efficiency total/inBed (100% by construction), boundarySource .healthKitHREstimated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "inBedMinutes > 0",
+     "effect": "true: ratio*100; false: 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)",
+   "hash": "e61a4b369ae455b8",
+   "does": "Rolling-average smoothing: for each sample computes mean HR within ±window/2, emitting a point for the first sample and then only for samples >= window/2 after the last emitted point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.meanHRAround(_:in:halfWindow:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples non-empty",
+     "effect": "false: []"
+    },
+    {
+     "at": "+4",
+     "cond": "for each sample",
+     "effect": "computes avg"
+    },
+    {
+     "at": "+6",
+     "cond": "smoothed has a last point",
+     "effect": "false: first point appended, continue"
+    },
+    {
+     "at": "+10",
+     "cond": ">= half window since last emitted",
+     "effect": "true: appended; false: skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.meanHRAround(_:in:halfWindow:)": "d8edad1ded265447"
+   }
+  },
+  {
+   "key": "func HRSleepEstimator.meanHRAround(_:in:halfWindow:)",
+   "hash": "1e2db726b3e1b996",
+   "does": "Mean HR of samples within ±halfWindow of date; 0 when none (guards NaN).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "window has samples",
+     "effect": "false: 0; true: mean"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

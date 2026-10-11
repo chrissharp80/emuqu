@@ -1,0 +1,214 @@
+{
+ "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift",
+ "hash": "9a16a4b9f547bebb",
+ "role": "Forwarders from AssistantViewModel to its on-demand AssistantTurnRouter value (router), plus two static predicate forwarders.",
+ "types": [
+  "AssistantViewModel: extension — router accessor and forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantViewModel.router",
+   "hash": "cf6203b8d2ed2cbe",
+   "does": "Returns a new AssistantTurnRouter(owner: self) on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantViewModel.resolveProviderForThisTurn()",
+   "hash": "aaf42369bfb34c7d",
+   "does": "Forwards to router.resolveProviderForThisTurn().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere (grep of Emuqu, EmuquTests and EmuquUITests finds only doc-comment mentions); routing code calls the AssistantTurnRouter method directly.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift:12",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:346"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "71c74a89735eb4bf",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.dispatch()",
+   "hash": "5818f676cefe4c18",
+   "does": "Forwards to router.dispatch().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.liveTurnIndex(for:)",
+   "hash": "823c344f174a47f4",
+   "does": "Forwards to router.liveTurnIndex(for:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)": "5a54c90b632f3664",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.applyPostStreamEffects(turnID:)",
+   "hash": "b3b0d0dac8013032",
+   "does": "Forwards to router.applyPostStreamEffects(turnID:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere (grep of Emuqu, EmuquTests and EmuquUITests finds only doc-comment mentions); routing code calls the AssistantTurnRouter method directly.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift:18",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:291"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "7fc902d72e8c70f3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.recordCoachVoiceInterception(reason:)",
+   "hash": "11c4330b2ebc5fce",
+   "does": "Forwards to router.recordCoachVoiceInterception(reason:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.recordCoachVoiceInterception(reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.recordCoachVoiceInterception(reason:)": "f5cbc2a9a94e0820",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.snapshotUserFacts()",
+   "hash": "86201e4be2265b3e",
+   "does": "Forwards to router.snapshotUserFacts().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.snapshotUserFacts()"
+   ],
+   "reads": [
+    "file:user_facts.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.snapshotUserFacts()": "aca20d7821514c25",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "b9f0cdebbf83d111"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.providerSupportsTools(_:)",
+   "hash": "415006d60c7a863d",
+   "does": "Static forwarder to AssistantTurnRouter.providerSupportsTools.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere (grep of Emuqu, EmuquTests and EmuquUITests finds only doc-comment mentions); routing code calls the AssistantTurnRouter method directly.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift:23",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:59"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)": "3da30af5513ca277"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.messageRequiresTools(_:)",
+   "hash": "e405596523675025",
+   "does": "Static forwarder to AssistantTurnRouter.messageRequiresTools.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere (grep of Emuqu, EmuquTests and EmuquUITests finds only doc-comment mentions); routing code calls the AssistantTurnRouter method directly.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift:27",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:99"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "be5aa3e059590e1a"
+   }
+  }
+ ],
+ "deps": {}
+}

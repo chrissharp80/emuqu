@@ -1,0 +1,84 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift",
+ "hash": "762e279f59cf1e45",
+ "role": "DeepSeek provider: two-model catalog (deepseek-flash default, deepseek-v4-pro) with thinking disabled, availability from the keychain, and send delegated to OpenAICompatibleStreamer's DeepSeek endpoint.",
+ "types": [
+  "DeepSeekProvider: class (AIProvider) — DeepSeek backend"
+ ],
+ "state": [
+  "mem:DeepSeekProvider.models (static catalog, peak-hour prices)",
+  "mem:DeepSeekProvider.reasoning = .thinkingDisabled",
+  "kc:APIKeyStore account deepseek"
+ ],
+ "toplevel": "id is a stored let .deepseek.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DeepSeekProvider.availableModels",
+   "hash": "761626cd7f4ea4b6",
+   "does": "Returns the static DeepSeek catalog.",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DeepSeekProvider.requiresKey",
+   "hash": "e9238caebf755141",
+   "does": "Returns true (key required).",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DeepSeekProvider.isAvailable",
+   "hash": "b8a27d38964d59de",
+   "does": "True when the keychain holds a DeepSeek key.",
+   "entry": "AIProvider conformance",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
+   ],
+   "reads": [
+    "kc:APIKeyStore account deepseek"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+   }
+  },
+  {
+   "key": "func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "432d06e902404c50",
+   "does": "Delegates streaming to OpenAICompatibleStreamer.send with the DeepSeek endpoint and thinking disabled.",
+   "entry": "AIProvider conformance",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+   ],
+   "reads": [],
+   "writes": [
+    "net:api.deepseek.com/chat/completions (via streamer)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "5d45cd0a0c7df49b"
+   }
+  }
+ ],
+ "deps": {}
+}

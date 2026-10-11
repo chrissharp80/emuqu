@@ -1,0 +1,93 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+Store.swift",
+ "hash": "a3480b8409b2736c",
+ "role": "HealthKitManager extension with the biometric-profile read (body mass, sex, birth date) and the type aliases mapping HealthKitManager.* names onto the domain types.",
+ "types": [
+  "HealthKitManager: extension — typealiases SleepTrendStats/TrainingMetrics/TrainingLoad/RecoveryVitals and biometric reads",
+  "HealthKitManager: extension — typealiases WorkoutSummary=HealthWorkoutSummary, BiometricProfile=HealthBiometricProfile, HealthKitError=HealthStoreError"
+ ],
+ "state": [],
+ "toplevel": "Only typealiases and comments outside units.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthKitManager.fetchBiometricProfile()",
+   "hash": "e4853d96e9977ecd",
+   "does": "Reads latest body mass (async let), biological sex and Gregorian date of birth from HealthKit characteristics (each try? → nil on denial) and returns a BiometricProfile. Used by BiometricsSettingsPage 'Fill from Apple Health' and AppFactResolver.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchLatestBodyMassKg()",
+    "ext:HKHealthStore.biologicalSex",
+    "ext:HKHealthStore.dateOfBirthComponents"
+   ],
+   "reads": [
+    "hk:bodyMass",
+    "hk:biologicalSex",
+    "hk:dateOfBirth"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "dateOfBirthComponents throws OR Gregorian date can't be built",
+     "effect": "dob = nil; else the date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchLatestBodyMassKg()": "c993d30fe674b11d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchLatestBodyMassKg()",
+   "hash": "e6f7aed019381e5f",
+   "does": "Returns the newest bodyMass sample in kg (any source, limit 1, 30 s bound) or nil when the type is missing, none exists, read is denied or the query times out.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.firstBodyMassKg(_:)",
+    "ext:HKSampleQuery(bodyMass)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec"
+   ],
+   "reads": [
+    "hk:bodyMass"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bodyMass quantity type nil",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.firstBodyMassKg(_:)": "b5779b7139e558fc"
+   }
+  },
+  {
+   "key": "func HealthKitManager.firstBodyMassKg(_:)",
+   "hash": "4a5f41ed44aa5ceb",
+   "does": "Returns the first sample's quantity in kilograms if it is an HKQuantitySample, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil/empty or first not an HKQuantitySample",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9"
+   }
+  }
+ ],
+ "deps": {}
+}

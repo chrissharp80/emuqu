@@ -1,0 +1,377 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift",
+ "hash": "4b3b630ecec6d2ee",
+ "role": "MorningSessionPipeline extension: wraps MorningProcessingService.processOvernightData, publishes the result to the collector, pre-archives the night for review, retires the raw backup, and implements Discard of the review-archived night.",
+ "types": [
+  "MorningSessionPipeline: extension — overnight processing wrapper, review pre-archive and discard"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "archiveForReview swallows an archive write failure (only debugLog); callers then clear the persisted recording state (analyzeAndFinalizeOvernight / finalizeFallbackSession) so the crash-safety pre-archive the comment promises silently did not happen and no lastError is set.",
+   "evidence": [
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:143",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:671",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift:765"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
+   "hash": "8a06c65103312e48",
+   "does": "Morning/pause/fallback processing entry: refreshes the training-load cache, publishes a temporary .analyzing session (unless background refinement), resolves a fresh TrainingContext, delegates analysis to MorningProcessingService.processOvernightData with a settings snapshot and a status callback writing collector.morningStatus, freezes the training snapshot on the result, publishes it (foreground only) and returns the final session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.fetchTrainingLoadIfEnabled()",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.showAnalyzingSession(baseSession:points:skip:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::init MorningProcessingService.OvernightRequest(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:deviceId:isBackgroundRefinement:settings:trainingContext:cachedTrainingLoad:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.settingsSnapshot(for:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.freezeTrainingSnapshot(on:freshContext:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.publishForeground(_:finalSession:skip:)",
+    "closure:statusCallback set here → writes collector.morningStatus (weak collector)"
+   ],
+   "reads": [
+    "mem:RRCollector.cachedTrainingLoad",
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [
+    "mem:RRCollector.morningStatus",
+    "mem:RRCollector.currentSession"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.fetchTrainingLoadIfEnabled()": "6f774fdbc78d5faf",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "da56eb55b4d86205",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.freezeTrainingSnapshot(on:freshContext:)": "a90bc70ba89cd22e",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.publishForeground(_:finalSession:skip:)": "26b5745913214066",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.settingsSnapshot(for:)": "84ad1f90fee24848",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.showAnalyzingSession(baseSession:points:skip:)": "3181beb5401b6fe3",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)": "cb91edaa220b3c57",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::init MorningProcessingService.OvernightRequest(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:deviceId:isBackgroundRefinement:settings:trainingContext:cachedTrainingLoad:prefetchedSleepData:statusCallback:)": "0742726d0b1cad3f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.publishForeground(_:finalSession:skip:)",
+   "hash": "47a47d6e6145de85",
+   "does": "Unless skip (background refinement), applies the processing result to collector state and pre-archives the session for review.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.applyProcessingResult(_:finalSession:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "skip (isBackgroundRefinement) is true",
+     "effect": "true: return without publishing or archiving; false: applyProcessingResult then archiveForReview"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.applyProcessingResult(_:finalSession:)": "a9e1e82e029d891f",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2de706529f5fcca3"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.settingsSnapshot(for:)",
+   "hash": "002d1f27e6412b0e",
+   "does": "Builds MorningProcessingService.SettingsSnapshot from current user settings (sleep schedule, training-load toggle, typical sleep hours, merge mode/gap) plus the collector's scoring config and the per-session ANS configuration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "3a52960d403cbf6b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "aa1d03c0318867a7",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.showAnalyzingSession(baseSession:points:skip:)",
+   "hash": "8478bf5b9c02116f",
+   "does": "Unless skip, replaces collector.currentSession with a temporary .analyzing HRVSession carrying the base session id/start/type and an RRSeries of the points so the UI has something to show.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.currentSession"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "skip is true",
+     "effect": "true: return, currentSession untouched; false: publish the analyzing placeholder"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.freezeTrainingSnapshot(on:freshContext:)",
+   "hash": "cea6b13bd2039f77",
+   "does": "Ensures finalSession.trainingSnapshot is set once: copies it from the archived copy of the same id when present, else uses freshContext or the sync createTrainingContext(); then mirrors the frozen snapshot into analysisResult.trainingContext.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot nil and the archive holds this session id",
+     "effect": "true: copy the archived snapshot (may itself be nil); false: skip"
+    },
+    {
+     "at": "+4",
+     "cond": "snapshot still nil",
+     "effect": "true: fill from fresh context / cache; false: keep existing"
+    },
+    {
+     "at": "+5",
+     "cond": "freshContext ?? createTrainingContext()",
+     "effect": "fallback to the synchronous cached context when freshContext is nil; may still be nil"
+    },
+    {
+     "at": "+7",
+     "cond": "a frozen snapshot exists",
+     "effect": "true: write it into analysisResult.trainingContext (no-op if analysisResult nil); false: leave analysisResult untouched"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "1115324e6b6eb2ac",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.applyProcessingResult(_:finalSession:)",
+   "hash": "975b2613098e661f",
+   "does": "Publishes the processing result: sets currentSession, verificationResult, recoveryWindow, baselineDeviation, needsAcceptance (true iff state .complete), moves recordingPhase to .awaitingAcceptance for complete sessions, clears sessionStartTime.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.verificationResult",
+    "mem:RRCollector.recoveryWindow",
+    "mem:RRCollector.needsAcceptance",
+    "mem:RRCollector.recordingPhase",
+    "mem:RRCollector.baselineDeviation",
+    "mem:RRCollector.sessionStartTime"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "finalSession.state == .complete",
+     "effect": "true: recordingPhase = .awaitingAcceptance; false: recordingPhase left as is"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "On the pause path (pauseWithFullAnalysis → processOvernightData with isBackgroundRefinement false) this sets needsAcceptance=true and recordingPhase=.awaitingAcceptance and archiveForReview sets reviewArchivedSessionId, before publishPausedState overwrites them; the acceptance state is briefly published for a paused session and reviewArchivedSessionId is left pointing at the paused session.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:122",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:124",
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:142",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:60",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:124"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "85a59852d009664a"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.archiveForReview(_:)",
+   "hash": "a2a67c0604181067",
+   "does": "Pre-archives a .complete session before the user reviews it (crash safety), retires its raw backup when safe, bumps the archive signal, and remembers the id in sessionState.reviewArchivedSessionId when it was not already in the archive so Discard can remove it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.retireRawBackupIfSafe(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "mem:SessionState.reviewArchivedSessionId",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finalSession.state != .complete",
+     "effect": "return without archiving (failed/analyzing sessions are not pre-archived)"
+    },
+    {
+     "at": "+8",
+     "cond": "isNewEntry (id absent from archive index before the write)",
+     "effect": "true: reviewArchivedSessionId = id; false: leave it unchanged"
+    },
+    {
+     "at": "+9",
+     "cond": "archive() throws",
+     "effect": "error logged with debugLog only; no lastError, no raw-backup retire, no signal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.retireRawBackupIfSafe(_:)": "a2768c6a362e5fd2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.retireRawBackupIfSafe(_:)",
+   "hash": "e1a9dadc1054a7e4",
+   "does": "Marks the session's raw RR backup archived unless the archived series holds fewer than half the beats in the backup (truncated download), in which case the backup stays recoverable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)"
+   ],
+   "reads": [
+    "file:RawRRBackup"
+   ],
+   "writes": [
+    "file:RawRRBackup (archived marker)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.rrSeries nil",
+     "effect": "archivedBeats = 0, which skips the <50% guard and marks archived"
+    },
+    {
+     "at": "+2",
+     "cond": "backup count known, >0, archived >0 and archived < backup/2",
+     "effect": "true: log warning and keep backup; false: markAsArchived"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)": "1c2bf9aa7b4280a2",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.markAsArchived(_:)": "324b3ca4c0060dce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.discardReviewArchivedSession()",
+   "hash": "79675a32897800eb",
+   "does": "Discard on the review card: clears reviewArchivedSessionId, and if it named the current session moves that session to Trash, bumps the archive signal, rebuilds the baseline without it and uploads the deletion to CloudKit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineFromArchive()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)"
+   ],
+   "reads": [
+    "mem:SessionState.reviewArchivedSessionId",
+    "mem:RRCollector.currentSession"
+   ],
+   "writes": [
+    "mem:SessionState.reviewArchivedSessionId",
+    "archive:SessionArchive.delete",
+    "ck:session deletion"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "reviewId nil or != currentSession.id",
+     "effect": "return; nothing deleted"
+    },
+    {
+     "at": "+6",
+     "cond": "archive.delete throws",
+     "effect": "log error and return; baseline and iCloud untouched"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says only a night newly saved for this review is touched, never one already in the archive, but finalizeFromPause sets reviewArchivedSessionId for a paused session that was archived at pause time, so Discard after Done deletes a night that was already in the archive.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:166",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:268"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "47c71a985b0f7b54",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineFromArchive()": "efdb0f76e3b8f66a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningSessionPipeline.supersedeSameNightSession(newSession:)",
+   "hash": "52122917438d32f1",
+   "does": "Forwards same-night supersede to MorningProcessingService with the current sleep schedule, merge mode and effective merge gap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "2778c574402344ff"
+   }
+  }
+ ],
+ "deps": {}
+}

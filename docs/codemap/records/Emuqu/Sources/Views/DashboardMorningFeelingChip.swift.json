@@ -1,0 +1,118 @@
+{
+ "file": "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift",
+ "hash": "44cc04312540d264",
+ "role": "Dashboard pill showing the morning feeling answer of the overnight session; tapping presents MorningFeelingPrompt in a medium sheet and hands the answer to the caller.",
+ "types": [
+  "DashboardMorningFeelingChip: struct (View) — feeling pill + prompt sheet"
+ ],
+ "state": [
+  "@State isShowingPrompt (sheet flag)"
+ ],
+ "toplevel": "Stored lets session and onSelect closure.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DashboardMorningFeelingChip.labels",
+   "hash": "b83d026ffa6bdb36",
+   "does": "Builds a 1..5 → (emoji, localized label) table on each access so labels follow in-app language switches.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DashboardMorningFeelingChip.body",
+   "hash": "02dc78563d65f5cf",
+   "does": "Plain Button that sets isShowingPrompt; sheet bound to isShowingPrompt shows prompt.",
+   "entry": "SwiftUI body; button tap opens sheet",
+   "calls": [
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.bodyLabel",
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.prompt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.bodyLabel": "e19a3a342496c745",
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.prompt": "f7db302858d46973"
+   }
+  },
+  {
+   "key": "var DashboardMorningFeelingChip.prompt",
+   "hash": "f0a4a7149f886550",
+   "does": "MorningFeelingPrompt preloaded with session.morningFeeling/tags; onSelect forwards (value, tags) to the caller closure then closes the sheet; onSkip closes the sheet.",
+   "entry": "SwiftUI sheet content",
+   "calls": [
+    "closure:onSelect — set by DashboardV2View.feedbackChipSection → applyMorningFeeling"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "session.morningFeelingTags == nil",
+     "effect": "existingTags = [] fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DashboardMorningFeelingChip.labelContent",
+   "hash": "c9f861adfc937c5a",
+   "does": "Shows emoji + label + \"· Edit\" when the session has a feeling value with a label; else 😊 \"Tap how you feel\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.labels",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.morningFeeling non-nil AND labels has an entry for it (1..5)",
+     "effect": "set-state row; out-of-range value or nil falls to \"Tap how you feel\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.labels": "cccf7bd154f59b32",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var DashboardMorningFeelingChip.bodyLabel",
+   "hash": "5a8f414040412c8c",
+   "does": "Capsule-backed HStack around labelContent, min 44pt tall, full-rect hit area.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.labelContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DashboardMorningFeelingChip.swift::var DashboardMorningFeelingChip.labelContent": "7dac83ccdde15726",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  }
+ ],
+ "deps": {}
+}

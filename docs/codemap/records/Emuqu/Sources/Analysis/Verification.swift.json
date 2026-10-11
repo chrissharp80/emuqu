@@ -1,0 +1,542 @@
+{
+ "file": "Emuqu/Sources/Analysis/Verification.swift",
+ "hash": "acfbd986df74fdc5",
+ "role": "Verification: per-session data-quality check (point count, duration, max gap, RR drift, artifact %, ectopy %, out-of-range %) producing pass/fail, rejection reasons, localized errors/warnings and metrics; result is stored on SessionState.verificationResult and shown in the record view.",
+ "types": [
+  "Verification: struct — verifier with Config",
+  "Verification.RejectionReason: enum String Codable — failure modes",
+  "Verification.Result: struct Codable",
+  "Verification.Metrics: struct Codable",
+  "Verification.Config: struct — thresholds (default, strict)",
+  "Verification.SeriesStats: struct — precomputed stats"
+ ],
+ "state": [
+  "mem:Verification.Config.default",
+  "mem:Verification.Config.strict"
+ ],
+ "toplevel": "Config.default (minPoints 300, 0.083 h, max artifact 15%, warn 5%) and Config.strict (4 h). RRCollector.swift:239 builds a relaxed streaming config (120 pts, 0.025 h, 20%/10%).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "RejectionReason.corruptedData and .unknownDevice are never produced by any check; Config.strict is only used by EmuquTests/VerificationTests.swift:366.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/Verification.swift:25",
+    "Emuqu/Sources/Analysis/Verification.swift:26",
+    "Emuqu/Sources/Analysis/Verification.swift:78"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header calls explicit rejection the 'credibility moat' that ensures data quality, but verify()'s passed/rejectionReasons gate nothing: RRCollector+DeviceRecording.analyzeAndAssemble runs window selection and analysis regardless, and the result is only stored to verificationResult for the record view badge.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/Verification.swift:6",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:183",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:518",
+    "Emuqu/Sources/Views/RecordView+Sections.swift:253"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func Verification.Result.isRejectedFor(_:)",
+   "hash": "ab32f5c63870ba78",
+   "does": "True when rejectionReasons contains the reason.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "isRejectedFor is only called from EmuquTests/VerificationTests.swift.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var Verification.Result.summary",
+   "hash": "1b190564b4f6ecc6",
+   "does": "Log one-liner: 'Passed verification' / 'Passed with warnings' / 'Rejected: <reasons>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "passed / warnings empty",
+     "effect": "passed+no warnings → 'Passed verification'; passed+warnings → 'Passed with warnings'; not passed → 'Rejected: …'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Result.summary has no production reader (grep: only EmuquTests/VerificationTests.swift:398-404) despite its doc saying it is for the diagnostic log.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:41",
+      "Emuqu/Sources/Analysis/Verification.swift:42"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init Verification(config:)",
+   "hash": "1fdee26bb5694629",
+   "does": "Stores the config (default .default).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Verification.verify(_:flags:)",
+   "hash": "7960928aedf4d3f2",
+   "does": "Rejects with tooFewPoints if below minPoints; otherwise computes artifact breakdown, duration, max gap, drift, runs all checks and returns Result(passed = no reasons) with metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.tooFewPointsResult(pointCount:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.classifyArtifacts(points:flags:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeDurationHours(points:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.findMaxGap(points:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeRRDrift(points:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runChecks(points:stats:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.metrics(points:flags:stats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "points.count ≥ minPoints",
+     "effect": "false → tooFewPointsResult"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.classifyArtifacts(points:flags:)": "641ba1f826f4439b",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeDurationHours(points:)": "6ef9833805eed71e",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.computeRRDrift(points:)": "c4bb6296cbf56afb",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.findMaxGap(points:)": "770918271f7030c5",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.metrics(points:flags:stats:)": "fd4b0d8aae491fbd",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runChecks(points:stats:)": "befc2c63f8aab4fb",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.tooFewPointsResult(pointCount:)": "2a4d1408ae3f2e53"
+   }
+  },
+  {
+   "key": "func Verification.runChecks(points:stats:)",
+   "hash": "8a237fb48f07e31f",
+   "does": "Runs duration, signal-quality and threshold checks into reasons/errors/warnings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkDuration(_:reasons:errors:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkDuration(_:reasons:errors:)": "0abe1f14f0dd9000",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)": "20d7b8c61c47a63a",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)": "2c3319da20e16590"
+   }
+  },
+  {
+   "key": "func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)",
+   "hash": "9c60763a27749621",
+   "does": "Runs artifact, ectopy and out-of-bounds checks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkArtifactThresholds(artifactPercent:reasons:errors:warnings:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkOutOfBounds(oobLowCount:oobHighCount:pointCount:reasons:errors:warnings:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkArtifactThresholds(artifactPercent:reasons:errors:warnings:)": "e1302f30f0f1b7d6",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)": "435914377e0bc0cd",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkOutOfBounds(oobLowCount:oobHighCount:pointCount:reasons:errors:warnings:)": "4f37383408e10d2d",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+   }
+  },
+  {
+   "key": "func Verification.metrics(points:flags:stats:)",
+   "hash": "34c1aa4746e3d39d",
+   "does": "Builds Metrics; nnCount = points − all flagged artifacts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+   }
+  },
+  {
+   "key": "func Verification.tooFewPointsResult(pointCount:)",
+   "hash": "b6e7dbe6ced2d27c",
+   "does": "Failed Result with tooFewPoints, localized error and zeroed metrics.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Verification.decimal(_:digits:)",
+   "hash": "21494e8a45337e8c",
+   "does": "Locale-formatted fixed-precision number.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func Verification.computeDurationHours(points:)",
+   "hash": "64172e2318e19aed",
+   "does": "Duration hours = (last.t_ms + last.rr_ms)/3.6e6, i.e. measured from t=0, not from the first beat.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points.last nil",
+     "effect": "fallback 0 (unreachable after minPoints guard)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Duration assumes the series timeline starts at 0; a series whose first t_ms is offset is measured as longer than it is, so the tooShort check can pass on a short recording.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:210"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func Verification.checkDuration(_:reasons:errors:)",
+   "hash": "0e4b420b5c32cb6d",
+   "does": "Appends tooShort and a localized error when duration < minDurationHours.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "durationHours < min",
+     "effect": "true → tooShort + error; false → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Verification.classifyArtifacts(points:flags:)",
+   "hash": "bbe24bc6d56baa54",
+   "does": "Over min(points, flags) indices flagged artifact: ectopic/extra/missed → ectopy count; technical → OOB low/high count by RR; artifact% = all flagged / points ×100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.countOutOfBounds(_:low:high:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "flag isArtifact",
+     "effect": "else skipped"
+    },
+    {
+     "at": "+4",
+     "cond": "type ectopic/extra/missed",
+     "effect": "ectopyCount += 1"
+    },
+    {
+     "at": "+6",
+     "cond": "type technical",
+     "effect": "countOutOfBounds"
+    },
+    {
+     "at": "+8",
+     "cond": "type none or nil",
+     "effect": "ignored"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "artifactPercent counts flags.filter(isArtifact) over the WHOLE flags array but divides by points.count, while the loop above bounds by min(points, flags); a flags array longer than points inflates the percentage.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:230",
+      "Emuqu/Sources/Analysis/Verification.swift:241"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.countOutOfBounds(_:low:high:)": "29aee831d5c66dbe"
+   }
+  },
+  {
+   "key": "func Verification.countOutOfBounds(_:low:high:)",
+   "hash": "2ef6b805338fdafa",
+   "does": "Increments low if RR < 300 ms, high if RR > 2000 ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr < 300",
+     "effect": "low += 1"
+    },
+    {
+     "at": "+2",
+     "cond": "rr > 2000",
+     "effect": "high += 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func Verification.findMaxGap(points:)",
+   "hash": "d68b22274b4921bb",
+   "does": "Largest gap between a beat's end and the next beat's t_ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count > 1",
+     "effect": "false → 0"
+    },
+    {
+     "at": "+4",
+     "cond": "loop",
+     "effect": "each pair"
+    },
+    {
+     "at": "+6",
+     "cond": "gap > max",
+     "effect": "update max"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+   }
+  },
+  {
+   "key": "func Verification.computeRRDrift(points:)",
+   "hash": "889cc3ec948fe144",
+   "does": "Mean RR of last 10% minus first 10% of beats (at least 10 beats each).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Drift is the mean RR of the last 10% of beats minus the first 10% across the WHOLE recording, with artifacts included. Over a normal night heart rate falls, so a sleeper going from 60 to 40 bpm (1000 to 1500 ms) exceeds verificationDriftRejectMs 400 and gets an 'Issues Found' badge with 'Excessive RR drift ... (electrode movement suspected)' shown in RecordVerificationSection.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:267",
+      "Emuqu/Sources/Analysis/Verification.swift:270",
+      "Emuqu/Sources/Analysis/Verification.swift:287",
+      "Emuqu/Sources/Analysis/Verification.swift:289",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:29",
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:34"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)",
+   "hash": "19e18e7c6ad2a36b",
+   "does": "maxGap > 5000 ms → signalLoss + error; |drift| > 200 ms → warning; |drift| > 400 ms → excessiveDrift + error.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "maxGap > 5000 ms",
+     "effect": "signalLoss + error"
+    },
+    {
+     "at": "+11",
+     "cond": "|drift| > 200",
+     "effect": "warning"
+    },
+    {
+     "at": "+14",
+     "cond": "|drift| > 400",
+     "effect": "excessiveDrift + error"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A single >5 s gap anywhere (e.g. one BLE dropout in an 8 h night, or a merged-session seam) marks the whole session as rejected for signal loss.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/Verification.swift:280",
+      "Emuqu/Sources/Analysis/HRVThresholds.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Verification.checkArtifactThresholds(artifactPercent:reasons:errors:warnings:)",
+   "hash": "f4880de18c2662e8",
+   "does": "artifact% > max → excessiveArtifacts + error; else > warn → warning.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "artifact% > maxArtifactPercent",
+     "effect": "reject + error"
+    },
+    {
+     "at": "+10",
+     "cond": "artifact% > warnArtifactPercent",
+     "effect": "warning; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Verification.checkEctopy(ectopyCount:pointCount:reasons:errors:warnings:)",
+   "hash": "4a4aa12e9d309bfd",
+   "does": "ectopy% > 10 → excessiveEctopy + error; else count > 100 → warning.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "ectopy% > 10",
+     "effect": "reject + error"
+    },
+    {
+     "at": "+11",
+     "cond": "ectopyCount > 100",
+     "effect": "warning; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func Verification.checkOutOfBounds(oobLowCount:oobHighCount:pointCount:reasons:errors:warnings:)",
+   "hash": "83d0acf88926ecc8",
+   "does": "OOB% > 5 → outOfBoundsIntervals + error; else warnings when low or high count > 50.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "oob% > 5",
+     "effect": "reject + error; else warnings branch"
+    },
+    {
+     "at": "+16",
+     "cond": "low count > 50",
+     "effect": "short-interval warning"
+    },
+    {
+     "at": "+19",
+     "cond": "high count > 50",
+     "effect": "long-interval warning"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.decimal(_:digits:)": "0b41aeae2ee44fd0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

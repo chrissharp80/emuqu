@@ -1,0 +1,275 @@
+{
+ "file": "Emuqu/Sources/Views/RecordViewHelpers.swift",
+ "hash": "6210c5be463bdb51",
+ "role": "Small Record-tab supporting views: TagChip, TagPickerSheet with its TagRow, a generic Set.toggle helper, and MetricPreviewCard used by MorningPreviewCards.",
+ "types": [
+  "TagChip: struct (View) — capsule tag toggle used by ReadingTagSelector and TagsAndNotesCard",
+  "TagPickerSheet: struct (View) — list of system and custom tags with checkmarks, bound to a Set<ReadingTag>",
+  "Set: extension — mutating toggle(_:)",
+  "TagRow: struct (View, private) — one tag row with colour dot and checkmark",
+  "MetricPreviewCard: struct (View) — value/unit/title tile"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var TagChip.body",
+   "hash": "724d8e202dff6fbf",
+   "does": "Plain button showing the tag name on a capsule tinted with the tag colour (35% opacity selected, 12% unselected), a 1.5pt tag-colour border when selected, and the isSelected accessibility trait.",
+   "entry": "SwiftUI body; created by ReadingTagSelector.swift:44 and TagsAndNotesCard.swift:57.",
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isSelected ? 0.35 : 0.12",
+     "effect": "fill opacity"
+    },
+    {
+     "at": "+8",
+     "cond": "isSelected ? tag.color : .clear",
+     "effect": "border shown only when selected"
+    },
+    {
+     "at": "+11",
+     "cond": "isSelected ? [.isSelected] : []",
+     "effect": "accessibility trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TagPickerSheet.body",
+   "hash": "11dfa28b1053b34f",
+   "does": "NavigationStack with a List of system then custom tag sections, title 'Select Tags', and a Done toolbar.",
+   "entry": "SwiftUI body; sheet from RecordView.tagPickerSheet.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.systemTagsSection",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.customTagsSection",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.doneToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.customTagsSection": "7fbea598de36b596",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.doneToolbar": "8d2196c0f0b8e2ee",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagPickerSheet.systemTagsSection": "dd89a39c545f02b0"
+   }
+  },
+  {
+   "key": "var TagPickerSheet.customTagsSection",
+   "hash": "e4a324130617ea4f",
+   "does": "Section 'Custom Tags' listing non-system tags from availableTags, omitted when there are none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.customTagRows(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "!customTags.isEmpty",
+     "effect": "true: section rendered; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.customTagRows(_:)": "9de9289f716cf2ad"
+   }
+  },
+  {
+   "key": "func TagPickerSheet.customTagRows(_:)",
+   "hash": "c1a857a66d41a740",
+   "does": "ForEach over tags producing tagRow for each.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.tagRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.tagRow(_:)": "3e9038ab05cb751d"
+   }
+  },
+  {
+   "key": "func TagPickerSheet.tagRow(_:)",
+   "hash": "d2f8a4204422a111",
+   "does": "TagRow for a tag with selection state from selectedTags; tap toggles it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.toggleTag(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.toggleTag(_:)": "06ab846c1e56d4cd"
+   }
+  },
+  {
+   "key": "var TagPickerSheet.doneToolbar",
+   "hash": "60bc125dff7a58aa",
+   "does": "Confirmation toolbar item 'Done' that dismisses the sheet.",
+   "entry": "Toolbar content; button tapped by user.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TagPickerSheet.systemTagsSection",
+   "hash": "2e2cd01bb7be4d5d",
+   "does": "Section 'System Tags' listing ReadingTag.systemTags as rows.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.tagRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func TagPickerSheet.tagRow(_:)": "3e9038ab05cb751d"
+   }
+  },
+  {
+   "key": "func TagPickerSheet.toggleTag(_:)",
+   "hash": "2c39417b5d92260f",
+   "does": "Toggles tag membership in the bound selectedTags (RecordView @State).",
+   "entry": "TagRow tap closure.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func Set.toggle(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RecordView.selectedTags (binding)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::func Set.toggle(_:)": "0f1148291cf00114"
+   }
+  },
+  {
+   "key": "func Set.toggle(_:)",
+   "hash": "420121a6ad965bcd",
+   "does": "Generic Set mutation: removes member if present, inserts it otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "contains(member)",
+     "effect": "true: remove; false: insert"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TagRow.body",
+   "hash": "76d734bb86a76be7",
+   "does": "Button wrapping rowContent with isSelected accessibility trait.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagRow.rowContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "isSelected ? .isSelected : []",
+     "effect": "adds selected trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagRow.rowContent": "4b776cc98b968de3"
+   }
+  },
+  {
+   "key": "var TagRow.rowContent",
+   "hash": "3b1401a7a70317c1",
+   "does": "HStack: tag colour dot, tag name, spacer, checkmark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagRow.checkmark"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.color": "fce753720d462aac",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
+    "Emuqu/Sources/Views/RecordViewHelpers.swift::var TagRow.checkmark": "abcb0737a5aafd36",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TagRow.checkmark",
+   "hash": "9e098f15a81f7f04",
+   "does": "Blue checkmark (accessibility-hidden) when selected.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isSelected",
+     "effect": "true: checkmark image; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MetricPreviewCard.body",
+   "hash": "f7d06b9aa5434d7f",
+   "does": "Card showing value (rounded title2 in colour) with unit, and title below; combined accessibility label 'title: value unit'.",
+   "entry": "SwiftUI body; created by MorningPreviewCards.metrics (MorningPreviewCards.swift:31-52).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,166 @@
+{
+ "file": "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift",
+ "hash": "2fa663dd6bdd10d4",
+ "role": "Plain value types carrying last night's sleep and multi-night sleep trend into AnalysisSummaryGenerator; built by MorningResultsViewModel from SleepData / SleepTrendStats.",
+ "types": [
+  "AnalysisSleepInput: struct — one night's sleep minutes/stages/efficiency plus short/good/fragmented gates against HRVThresholds",
+  "AnalysisSleepTrendInput: struct — averaged sleep trend over N nights",
+  "AnalysisSleepTrendInput.SleepTrend: enum — improving/declining/stable/insufficient"
+ ],
+ "state": [
+  "mem:AnalysisSleepInput.empty (static let, all zero/nil)",
+  "mem:AnalysisSleepTrendInput.empty (static let, trend .insufficient, 0 nights)"
+ ],
+ "toplevel": "Two static `empty` instances built via the memberwise inits (AnalysisSleepInputs.swift:36-40, 76-79).",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "AnalysisSleepTrendInput.SleepTrend re-declares the four cases of the SleepTrendStats.SleepTrend enum and init(from:) maps them 1:1, a second copy that must be kept in sync by hand.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:72",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:98",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift:11"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AnalysisSleepInput.isShortSleep",
+   "hash": "a635d24fb0bea161",
+   "does": "True when the night has some sleep but fewer than HRVThresholds.sleepShortMinutes (300) minutes; a 0-minute (no data) night is not short.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same short-sleep (0 < night < 300) and fragmented (awake > 30) gates are re-implemented inline in ContextBuilder for the assistant context instead of reusing AnalysisSleepInput; a threshold change in one copy will not reach the other.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:24",
+      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:32",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:676"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSleepInput.isGoodSleep",
+   "hash": "b600fddb2c484e6d",
+   "does": "True when totalSleepMinutes >= HRVThresholds.sleepMinimumMinutes (420).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnalysisSleepInput.isFragmented",
+   "hash": "d182b79dabaac02a",
+   "does": "True when awakeMinutes > HRVThresholds.sleepFragmentedAwakeMinutes (30).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
+   "hash": "5704efab7e343124",
+   "does": "Memberwise initializer storing the six sleep fields; used to build `.empty`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AnalysisSleepInput(from:)",
+   "hash": "e21b01ed895120f2",
+   "does": "Builds the input from a HealthKit-resolved SleepData: total = nightSleepMinutes (nap excluded), inBed, deep, rem, awake, and measuredSleepEfficiency (nil when wake unmeasured). Called from MorningResultsViewModel.swift:312.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "healthKit SleepData is nil",
+     "effect": "true: self = .empty (all zeros/nil) and return; false: copy fields from the SleepData"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "init AnalysisSleepTrendInput(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)",
+   "hash": "cf8dc09bac692219",
+   "does": "Memberwise initializer for the trend input; used to build `.empty`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AnalysisSleepTrendInput(from:)",
+   "hash": "0260eef84f329a8a",
+   "does": "Builds the trend input from HealthKitManager.SleepTrendStats (averages, nightsAnalyzed) and maps its trend enum case-for-case. Called from MorningResultsViewModel.swift:313.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "SleepTrendStats is nil",
+     "effect": "true: self = .empty (0 avg, trend .insufficient, 0 nights); false: copy fields"
+    },
+    {
+     "at": "+10",
+     "cond": "hk.trend == .improving",
+     "effect": "trend = .improving"
+    },
+    {
+     "at": "+11",
+     "cond": "hk.trend == .declining",
+     "effect": "trend = .declining"
+    },
+    {
+     "at": "+12",
+     "cond": "hk.trend == .stable",
+     "effect": "trend = .stable"
+    },
+    {
+     "at": "+13",
+     "cond": "hk.trend == .insufficient",
+     "effect": "trend = .insufficient"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

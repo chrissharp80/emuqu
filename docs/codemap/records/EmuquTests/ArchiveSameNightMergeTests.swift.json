@@ -1,0 +1,245 @@
+{
+ "file": "EmuquTests/ArchiveSameNightMergeTests.swift",
+ "hash": "88722be9103967f9",
+ "role": "Extension of ArchiveIntegrityTests testing same-night merge decisions under the injected 4.5 h merge gap: separate sleeps stay separate, within-gap recordings merge on one clock (archive and archiveBatch), non-overlapping quick readings stay apart, and relinkSameNightSessions honours the gap.",
+ "types": [
+  "ArchiveIntegrityTests: extension — merge-gap tests and helpers"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ArchiveIntegrityTests.overnightEntries(anchoredAt:)",
+   "hash": "e3ed0e2642e502be",
+   "does": "Returns archive overnight entries whose 22:00/8h overnightWindowStart equals that of start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+   "hash": "eaa60c5cc484a12d",
+   "does": "Builds a synthetic recording via MergeClockFixture.session (start, minutes, mean RR, type) and registers its id for tearDown cleanup.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.session(start:minutes:meanRR:sessionType:withAnalysis:)": "49c3b5fa4ceedef6"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testRecordingsFurtherApartThanTheMergeGapStaySeparate()",
+   "hash": "8b383f9e92a9b664",
+   "does": "Archives a 90-min 23:00 recording and a 120-min one 6h10m later (4h40m gap > 4.5h) and asserts two night entries, the first untouched and the second keeping its start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)": "ee72f3205c2e2671",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)": "08a43b355366c37c"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testRecordingsWithinTheMergeGapMergeOnOneClock()",
+   "hash": "9fad96a53b846c90",
+   "does": "Archives recordings 4h20m apart and asserts one entry whose points equal the sum, no too-soon beats, RMSSD < 30 (not interleaved) and endDate equals the late recording's end ±1 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.rmssd(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "merged.rrSeries is nil",
+     "effect": "points = []; else its points"
+    },
+    {
+     "at": "+11",
+     "cond": "either fixture rrSeries nil",
+     "effect": "counts 0 for it; else its count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)": "ee72f3205c2e2671",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)": "08a43b355366c37c",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.rmssd(_:)": "e733084e8955c7cc"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testBatchImportMergesASameSleepRecordingOnOneClock()",
+   "hash": "c7a776b6d1e1164f",
+   "does": "Archives the early recording then archiveBatch([late]) within the gap and asserts batch count 1, one night entry and no too-soon beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.overnightEntries(anchoredAt:)": "ee72f3205c2e2671",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)": "08a43b355366c37c",
+    "EmuquTests/SessionMergeClockTests.swift::func MergeClockFixture.beatsTooSoon(_:)": "53ea2742ad077749"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testBatchImportKeepsTwoReadingsThatDoNotOverlap()",
+   "hash": "b13981a6d867b7c5",
+   "does": "Batch-archives two 5-minute quick readings 40 min apart and asserts both are written (count 2) and retrievable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "b5be05ffd711fc74",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)": "08a43b355366c37c"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testRelinkHonoursTheMergeGap()",
+   "hash": "61a875608a54688d",
+   "does": "Archives two separate-sleep recordings of one night and two within-gap segments of the next with skipSameNightMerge, runs relinkSameNightSessions, and asserts the separate sleeps stay unlinked while the second segment links to the first.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.relinkSameNightSessions()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each of 4 sessions",
+     "effect": "archive with skipSameNightMerge: true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "relinkSameNightSessions posts flowRecoveryArchiveSessionsNeedReupload on NotificationCenter.default; in the app host the live CloudKitSyncManager observer marks these test UUIDs for re-upload and saves the host's sync_state.json.",
+     "evidence": [
+      "EmuquTests/ArchiveSameNightMergeTests.swift:108",
+      "Emuqu/Sources/Storage/Archive+Migrations.swift:535",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:610",
+      "Emuqu/EmuquApp.swift:87"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.relinkSameNightSessions()": "0241f4a8ac5bb34d",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "7dd5112bc4d61533",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.nightAnchoredDate(daysAgo:)": "2df2ad086b2cbb2c",
+    "EmuquTests/ArchiveSameNightMergeTests.swift::func ArchiveIntegrityTests.recording(_:minutes:meanRR:type:)": "08a43b355366c37c"
+   }
+  }
+ ],
+ "deps": {}
+}

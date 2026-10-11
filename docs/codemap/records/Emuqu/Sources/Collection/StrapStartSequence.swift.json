@@ -1,0 +1,104 @@
+{
+ "file": "Emuqu/Sources/Collection/StrapStartSequence.swift",
+ "hash": "2b6c1effd147b2a8",
+ "role": "Encodes the order of operations when arming a strap recording (rescue existing → clear existing → begin) so the \"rescue precedes clear\" invariant is data testable without a strap.",
+ "types": [
+  "StrapStartSequence: enum (namespace)",
+  "StrapStartSequence.Step: enum — rescueExisting/clearExisting/beginRecording with isDestructive/isRescue"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var StrapStartSequence.Step.isDestructive",
+   "hash": "12dfb0b2975f3172",
+   "does": "True only for .clearExisting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var StrapStartSequence.Step.isRescue",
+   "hash": "49ae82ff4bc81c04",
+   "does": "True only for .rescueExisting.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapStartSequence.steps(for:)",
+   "hash": "77d61ea30ca39606",
+   "does": "Returns [.rescueExisting, .clearExisting, .beginRecording] for every device type; the deviceType argument is ignored.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "The deviceType parameter is unused: every strap gets the same three steps, so the per-device API and the tests that loop over devices assert a constant.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapStartSequence.swift:54",
+      "EmuquTests/StrapStartSequenceTests.swift:20"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func StrapStartSequence.rescuesBeforeClearing(_:)",
+   "hash": "30b6e90be2a8f431",
+   "does": "True when the first rescue step comes before the first destructive step in steps(for:) (true if there is no destructive step, false if destructive with no rescue).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no destructive step",
+     "effect": "returns true"
+    },
+    {
+     "at": "+3",
+     "cond": "no rescue step",
+     "effect": "returns false; else compares indices"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Called only from StrapStartSequenceTests; production arming iterates steps(for:) directly (PolarManager+Recording.swift:90,143), and because steps(for:) is constant this always returns true.",
+     "evidence": [
+      "Emuqu/Sources/Collection/StrapStartSequence.swift:62",
+      "EmuquTests/StrapStartSequenceTests.swift:64"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "4c3b5245dd7a67fe",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "df25396474b2b8c4"
+   }
+  }
+ ],
+ "deps": {}
+}

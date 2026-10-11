@@ -1,0 +1,616 @@
+{
+ "file": "Emuqu/Sources/Export/HolisticDailyReport+Score.swift",
+ "hash": "7e695f5f53428327",
+ "role": "Arithmetic behind page 2 of the Daily Report: the combined readiness value (frozen ScoreBreakdown path or legacy recompute), the prescription tier gated by TrainingAdviceGate, and the \"What's helping / What's hurting\" bullet lists.",
+ "types": [
+  "HolisticDailyReport.GlanceRow: struct — label/value/optional sub-line and colour for page-1 stat rows",
+  "HolisticDailyReport.ScoreContribution: struct — name, 0-10 score, 0-1 weight, note for one contribution bar"
+ ],
+ "state": [],
+ "toplevel": "Only type declarations and the extension; no stored state.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The header says the drawing code stays in HolisticDailyReport and only arithmetic lives here, but GlanceRow (a page-1 drawing type with a UIColor) is declared here, and drawing lives in HolisticDailyReport+Pages.swift.",
+   "evidence": [
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:5",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:23"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init HolisticDailyReport.GlanceRow(_:_:_:_:)",
+   "hash": "cd23e0ef05c4b99b",
+   "does": "Memberwise initializer for GlanceRow with unlabelled arguments (label, value, sub, subColour).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HolisticDailyReport.combinedReadinessScore()",
+   "hash": "2b72c950abe066e8",
+   "does": "Returns (value 0-10, tier text, contributions): from the overnight session's frozen ScoreBreakdown when present, else the legacy 4-factor recompute.",
+   "entry": "Also called by EmuquTests/TrainingAdviceGateTests.swift:206.",
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.frozenReadinessScore(_:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyReadinessScore()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "overnightSession?.scoreBreakdown is non-nil",
+     "effect": "frozen path (identical to the Dashboard pill); otherwise legacy recompute (also taken when there is no overnight session at all)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.frozenReadinessScore(_:)": "47fabc517bff778c",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyReadinessScore()": "aff3fcfc3f972f11",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.frozenReadinessScore(_:)",
+   "hash": "38c48b54187be6a4",
+   "does": "Converts the frozen breakdown to the 0-10 PDF scale: composite/10, each factor as a contribution (localized label, score/10, weight, displayDetail in the user temperature unit), tier from readinessTier with the gate load level and allowsGoHard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.readinessTier(for:loadLevel:goHardAllowed:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.allowsGoHard(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func RecoveryScoreCalculator.ScoreFactor.displayDetail(temperatureUnit:)": "c9b14f11b904eab6",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()": "bd85f5946a7d13b4",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.allowsGoHard(_:)": "72efa872619a09e5",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.readinessTier(for:loadLevel:goHardAllowed:)": "145668a78af15aa5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.allowsGoHard(_:)",
+   "hash": "328c644b6ac81e67",
+   "does": "True only when the rounded composite >= 90, no penalties, the HRV factor (label \"HRV\") scores >= 72 if present, and every factor scores >= 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rounded composite < 90 or any penalty",
+     "effect": "returns false"
+    },
+    {
+     "at": "+2",
+     "cond": "an \"HRV\" factor exists with score < 72",
+     "effect": "returns false; otherwise returns whether every factor >= 60"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "allowsGoHard does not mirror the app's baseline-drift rule. For a frozen breakdown with no penalties, all factors >= 60 and gapFromFactors > 5, ScoreBreakdownCopy returns the drift message and never says \"Go hard\". allowsGoHard still returns true when the rounded composite is >= 90, so page 2 can print \"Tier 1 — go hard\". The doc comment (lines 77-82) claims page 2 never prescribes a hard day the app holds back.",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:84",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:86",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:132",
+      "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:92"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HolisticDailyReport.adviceLoad()",
+   "hash": "20d4f96e73f6e068",
+   "does": "Runs TrainingAdviceGate.assess on the report's gate load and returns the assessment (level + reasons).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad()": "b128a4bfd76116fd"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.adviceGateLoad()",
+   "hash": "9d05cbba5da02493",
+   "does": "Returns the gate Load built from the live snapshot when present (with Foster monotony/strain), else from the workout session's frozen trainingSnapshot, else the overnight session's; nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)"
+   ],
+   "reads": [
+    "mem:HolisticDailyReport.liveLoadSnapshot"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutSession.trainingSnapshot is nil",
+     "effect": "?? overnightSession?.trainingSnapshot as the frozen source"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.legacyReadinessScore()",
+   "hash": "5307f5b40964720e",
+   "does": "Legacy readiness: HRV (35%), sleep (25%), freshness (25%), cardiovascular (15%) contributions on 0-10, summed by weight; tier from readinessTier with goHardAllowed defaulting to true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyHRVContribution(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacySleepContribution(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyFreshnessContribution(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyCardiovascularContribution(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.readinessTier(for:loadLevel:goHardAllowed:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The legacy path calls readinessTier without goHardAllowed, so it defaults to true and a legacy composite >= 8.5 with a clear load prints \"Tier 1 — go hard\" without the HRV/penalty/factor checks the frozen path applies via allowsGoHard (lines 79-82 claim page 2 never prescribes a hard day the app holds back).",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:117",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:186",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:196",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:82"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()": "bd85f5946a7d13b4",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyCardiovascularContribution(bundle:)": "30bc6906925856b6",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyFreshnessContribution(bundle:)": "81fe484c655cedda",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacyHRVContribution(bundle:)": "8bcebdac7c0e918b",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.legacySleepContribution(bundle:)": "e32611536ec78c22",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.readinessTier(for:loadLevel:goHardAllowed:)": "145668a78af15aa5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.legacyHRVContribution(bundle:)",
+   "hash": "2fa7ca0a7e5b3363",
+   "does": "HRV contribution (weight 0.35): 5 with \"No baseline yet\" note unless the analysis has a geometric baseline and percent-vs-baseline, then 5 + pct/4 clamped to 0..10 with \"+x% vs your N ms baseline\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "analysis has recoveryBaselineRMSSD and hrvPercentVsBaseline",
+     "effect": "score = clamp(5 + pct/4); otherwise neutral 5 and \"No baseline yet — need 3+ overnight sessions\" (also shown when the cause is no overnight session)"
+    },
+    {
+     "at": "+8",
+     "cond": "pct >= 0",
+     "effect": "prefixes \"+\"; otherwise no prefix (the minus comes from the number)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "59dcc4120d020599",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "ce69989bb2984f00",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.legacySleepContribution(bundle:)",
+   "hash": "c5420a22b0bdc31b",
+   "does": "Sleep contribution (weight 0.25): from the overnight sleep snapshot, 50% duration score (dur−4h)/3.5×10 clamped, 50% efficiency score (eff−65)/30×10 clamped or neutral 5 when efficiency unmeasured; default 5 with \"No sleep data tonight\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "overnightSession?.sleepSnapshot exists",
+     "effect": "computes the score and note; otherwise neutral 5 with \"No sleep data tonight\""
+    },
+    {
+     "at": "+10",
+     "cond": "measuredSleepEfficiency is nil",
+     "effect": "?? 5 — neutral half credit"
+    },
+    {
+     "at": "+12",
+     "cond": "measured efficiency present",
+     "effect": "note \"<h>h at <eff>% efficiency\"; otherwise \"<h>h, efficiency not measured\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says \"dur 7-8h = full credit; eff 85+ = full credit\", but the formulas give full duration credit only at 7.5h (7h scores 8.6) and full efficiency only at 95% (85% scores 6.7).",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:140",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:142",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:143"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.legacyFreshnessContribution(bundle:)",
+   "hash": "7b48f3edee0d3a4f",
+   "does": "Freshness contribution (weight 0.25): maps TSB −25..+15 to 0..10 from trainingLoadForReport, note \"TSB x (CTL y, ATL z)\"; default 5 with \"No training-load snapshot\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "trainingLoadForReport() non-nil",
+     "effect": "score = clamp((tsb+25)/40×10); otherwise neutral 5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "deb1966504f9047f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.legacyCardiovascularContribution(bundle:)",
+   "hash": "d7ff05f54fdd664d",
+   "does": "Cardiovascular contribution (weight 0.15): maps the workout's best 1-minute HRR drop 8..30 bpm to 0..10, note \"Today's 1-min HRR: N bpm\"; default 5 with \"No HRR captured\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "workoutMetadata.hrrSamples.bestAtOneMinute exists",
+     "effect": "score = clamp((drop−8)/22×10); otherwise neutral 5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.readinessTier(for:loadLevel:goHardAllowed:)",
+   "hash": "0106601255ed702d",
+   "does": "Maps a 0-10 readiness to a localized tier string with the advice-gate ceiling.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "loadLevel == .easier",
+     "effect": "ceiling Tier 3: then lines 192-194"
+    },
+    {
+     "at": "+6",
+     "cond": "(easier) value >= 5.5",
+     "effect": "\"Tier 3 — moderate only (load elevated)\""
+    },
+    {
+     "at": "+7",
+     "cond": "(easier) value >= 3.5",
+     "effect": "\"Tier 4 — easy aerobic\"; else \"Tier 5 — rest\""
+    },
+    {
+     "at": "+10",
+     "cond": "value >= 8.5 and goHardAllowed and loadLevel == .clear",
+     "effect": "\"Tier 1 — go hard\""
+    },
+    {
+     "at": "+11",
+     "cond": "value >= 7.0",
+     "effect": "\"Tier 2 — quality OK\" (also where an 8.5+ score lands when go-hard is disallowed or the load holds the push)"
+    },
+    {
+     "at": "+12",
+     "cond": "value >= 5.5",
+     "effect": "\"Tier 3 — moderate only\""
+    },
+    {
+     "at": "+13",
+     "cond": "value >= 3.5",
+     "effect": "\"Tier 4 — easy aerobic\"; otherwise \"Tier 5 — rest\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Second set of score bands for the same composite. The tiers cut at 8.5/7.0/5.5/3.5 on the unrounded value, while ScoreVerdict (the verdict word the app shows) cuts at 90/75/60/45/30 on the rounded score. For example, a composite of 72 reads \"Fair\" in the app and \"Tier 2 — quality OK\" on page 2.",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:196",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:197",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:198",
+      "Emuqu/Sources/Models/ScoreVerdict.swift:30"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.whatsHelpingPoints()",
+   "hash": "badc74a4671cd857",
+   "does": "Returns up to five positive bullets: HRV >= 5% above baseline, sleep >= 7h at >= 90% measured efficiency, ACWR in [0.8, 1.3), TSB > 5, 1-min HRR >= 18 bpm.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hrvPercentVsBaseline >= 5",
+     "effect": "adds \"HRV is N% above your recent baseline…\""
+    },
+    {
+     "at": "+6",
+     "cond": "sleep snapshot with measured efficiency >= 90 and nightSleepMinutes >= 420",
+     "effect": "adds \"Sleep was <minutes/60>h with N% efficiency…\" (hours truncated: 7h59m prints 7h)"
+    },
+    {
+     "at": "+11",
+     "cond": "trainingLoadForReport() non-nil",
+     "effect": "checks ACWR and TSB lines"
+    },
+    {
+     "at": "+12",
+     "cond": "acuteChronicRatio (atl/ctl, nil when ctl<=0) in [0.8, 1.3)",
+     "effect": "adds \"ACWR x — productive load band, sustainable volume.\""
+    },
+    {
+     "at": "+15",
+     "cond": "tsb > 5",
+     "effect": "adds \"TSB +x — fresh, ready for quality work.\""
+    },
+    {
+     "at": "+17",
+     "cond": "best 1-min HRR drop >= 18",
+     "effect": "adds \"HRR N bpm — vagal recovery on point.\""
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The helping ACWR line ignores the advice gate: it fires for any ratio 0.8–1.3 even when CTL is below the gate's trust threshold, and alongside a \"meaningfully fatigued\" hurting line when TSB <= −15 (possible with ACWR <= 1.3 at higher CTL), so page 2 can list the same load as both \"productive, sustainable\" and \"recovery overdue\".",
+     "evidence": [
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:215",
+      "Emuqu/Sources/Export/HolisticDailyReport+Score.swift:267",
+      "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "ce69989bb2984f00",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "deb1966504f9047f",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "080c4f9acef7ff40",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "EmuquTests/PolarConnectionLifecycleTests.swift::func PolarConnectionLifecycleTests.drop(_:deviceId:loss:)": "13c88f99e05e0173"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.whatsHurtingPoints()",
+   "hash": "f28523b22449a979",
+   "does": "Concatenates the HRV, sleep and load \"hurting\" bullets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingHRVPoints(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingSleepPoints(bundle:)",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingLoadPoints(bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingHRVPoints(bundle:)": "bd33ebc802e0cf2a",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingLoadPoints(bundle:)": "adb8dfc525535b8c",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.hurtingSleepPoints(bundle:)": "1fd34a7121a85d99",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.hurtingHRVPoints(bundle:)",
+   "hash": "f54de3dd39e66d36",
+   "does": "Returns \"HRV is N% below baseline.\" when HRV is at least 10% below the geometric baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "hrvPercentVsBaseline <= -10",
+     "effect": "adds the bullet; otherwise empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "ce69989bb2984f00",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.hurtingSleepPoints(bundle:)",
+   "hash": "d9c7a5bbcf16767d",
+   "does": "Returns sleep bullets: short sleep (< 6h) and low measured efficiency (< 80%).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "overnight sleep snapshot exists",
+     "effect": "checks both; otherwise empty"
+    },
+    {
+     "at": "+3",
+     "cond": "nightSleepMinutes < 360",
+     "effect": "adds \"Only <h m> of sleep — chronic short sleep degrades adaptation…\""
+    },
+    {
+     "at": "+7",
+     "cond": "measured efficiency < 80",
+     "effect": "adds \"Sleep efficiency N% — fragmented sleep blunts recovery.\"; unmeasured efficiency adds nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func HolisticDailyReport.hurtingLoadPoints(bundle:)",
+   "hash": "5fbe00f6f59a72d7",
+   "does": "Returns load bullets driven by the advice-gate reasons: ACWR spike line when the gate reports sharpIncrease and the printed context has a ratio; fatigue line when it reports heavyFatigue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "trainingLoadForReport() non-nil",
+     "effect": "checks the two reasons; otherwise empty"
+    },
+    {
+     "at": "+9",
+     "cond": "context ACWR non-nil and gate reasons contain .sharpIncrease",
+     "effect": "adds \"ACWR x — past spike threshold; load needs to come down.\""
+    },
+    {
+     "at": "+12",
+     "cond": "gate reasons contain .heavyFatigue",
+     "effect": "adds \"TSB x — meaningfully fatigued, recovery overdue.\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceLoad()": "bd85f5946a7d13b4",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.trainingLoadForReport()": "deb1966504f9047f",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

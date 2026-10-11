@@ -1,0 +1,244 @@
+{
+ "file": "EmuquTests/ImportSleepWindowTests.swift",
+ "hash": "acd6dc0cf3d899e2",
+ "role": "XCTest suite for ImportSleepWindow, the import path's sleep-boundary→millisecond-offset arithmetic extracted from ImportDataView: non-finite and out-of-range boundaries rejected, ordinary positive/negative offsets, window assembly with dropped/reported boundaries, and artifactPercent avoiding NaN.",
+ "types": [
+  "ImportSleepWindowTests: class — XCTestCase over ImportSleepWindow static helpers"
+ ],
+ "state": [
+  "mem:ImportSleepWindowTests.start (Date 1_622_534_400)"
+ ],
+ "toplevel": "Stored fixture start.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ImportSleepWindowTests.testNonFiniteBoundaryIsRejectedRatherThanTrapping()",
+   "hash": "0c4c836f75a93480",
+   "does": "Asserts offsetMs of a NaN date returns .failure(.notFinite).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "result is .failure",
+     "effect": "checks reason == .notFinite; a .success fails via XCTFail and returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testAbsurdlyDistantBoundaryIsRejectedRatherThanTrapping()",
+   "hash": "ec73da78f0c07e48",
+   "does": "Asserts offsetMs of Date.distantFuture returns .failure(.outOfRange).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result is .failure",
+     "effect": "checks reason == .outOfRange; .success fails via XCTFail"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The out-of-range rejection this test pins comes from MillisecondOffset.representableLimitMs; ImportSleepWindow.maxOffsetMs, the identical ±100-year constant whose doc comment claims to be the limit, is referenced nowhere in the repo (grep maxOffsetMs), so it is a dead duplicate that can drift from the real limit.",
+     "evidence": [
+      "Emuqu/Sources/Import/ImportSleepWindow.swift:37",
+      "Emuqu/Sources/Utilities/MillisecondOffset.swift:19",
+      "Emuqu/Sources/Utilities/MillisecondOffset.swift:45"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testDistantPastIsAlsoRejected()",
+   "hash": "df8d7afb94b7e053",
+   "does": "Asserts offsetMs of Date.distantPast is a failure (any reason).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result is .failure",
+     "effect": "passes; .success fails via XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testBoundaryAfterStartIsPositiveMilliseconds()",
+   "hash": "a0a1ea498521a363",
+   "does": "Asserts a boundary 90 min after start converts to 5_400_000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "result is .success",
+     "effect": "checks ms; .failure fails via XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testBoundaryBeforeStartIsNegative()",
+   "hash": "6d34bb03df9e6e5e",
+   "does": "Asserts a boundary 20 min before start converts to -1_200_000 ms.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "result is .success",
+     "effect": "checks ms; .failure fails via XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testBothBoundariesPresent()",
+   "hash": "09fcc6acabefd99a",
+   "does": "Asserts offsets() with both boundaries present yields startMs 600_000 and wakeMs 28_800_000.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testMissingBoundariesStayNil()",
+   "hash": "a856cad62ddd7ead",
+   "does": "Asserts offsets() with nil boundaries leaves startMs and wakeMs nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testRejectedBoundaryIsReportedAndDropped()",
+   "hash": "c0f82e6db150422d",
+   "does": "Asserts a distantFuture sleepStart is dropped (startMs nil), the good sleepEnd survives (3_600_000) and exactly one note is emitted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::var ImportSleepWindow.Rejection.localizedReason"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsetMs(of:from:)": "441e15c903bbe105",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.offsets(sleepStart:sleepEnd:recordingStart:note:)": "fbe6931741cf3567",
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::var ImportSleepWindow.Rejection.localizedReason": "73f1b9f72674be5c",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.milliseconds(from:)": "2b65afbfdcc375f7"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testArtifactPercentOfEmptySeriesIsNilNotNaN()",
+   "hash": "40b2c4c34f9665be",
+   "does": "Asserts artifactPercent(0, 0) is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+   }
+  },
+  {
+   "key": "func ImportSleepWindowTests.testArtifactPercentIsAShare()",
+   "hash": "2fa43a2612c63865",
+   "does": "Asserts artifactPercent(25, 100) ≈ 25.0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "artifactPercent(...) ?? 0",
+     "effect": "fallback 0 used only if nil is returned, making the equality to 25 fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935"
+   }
+  }
+ ],
+ "deps": {}
+}

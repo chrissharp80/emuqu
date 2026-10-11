@@ -1,0 +1,626 @@
+{
+ "file": "Emuqu/Sources/Views/SampleDataViews.swift",
+ "hash": "8970df75b826bc18",
+ "role": "UI entry points for loading and removing synthetic sample nights: a shared observable model, shared copy, a Dashboard offer row and banner, a Settings section and a standalone Settings page.",
+ "types": [
+  "SampleDataModel: class — @MainActor @Observable per-screen phase/isPresent/failure state for load/remove",
+  "SampleDataModel.Phase: enum — idle/loading(built,total)/removing",
+  "SampleDataCopy: enum — shared localized strings",
+  "SampleDataOfferRow: struct — Dashboard first-run 'Explore with sample data' button",
+  "SampleDataBanner: struct — Dashboard banner while sample nights exist, with remove",
+  "SampleDataProgress: struct (private) — progress or failure text",
+  "SampleDataRemovalConfirmation: struct (private) — ViewModifier confirmation dialog",
+  "SampleDataSection: struct — Settings section with load/remove",
+  "SampleDataPage: struct — Form wrapping SampleDataSection for Settings search"
+ ],
+ "state": [
+  "mem:SampleDataModel.phase/isPresent/failure (per-view @State instance)"
+ ],
+ "toplevel": "Each view owns its own SampleDataModel @State, so progress and failure are not shared across the offer row, banner and section.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No unit test references SampleDataModel; only UI accessibility identifiers exist for these views.",
+   "evidence": [
+    "Emuqu/Sources/Views/SampleDataViews.swift:12"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var SampleDataModel.isWorking",
+   "hash": "2555957bf49f5e69",
+   "does": "True when phase is not idle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SampleDataModel.refresh(_:)",
+   "hash": "82e5677160beabf9",
+   "does": "Sets isPresent from SampleDataLibrary.isPresent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, standard suite)",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:SampleDataModel.phase/isPresent/failure"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "6c1955020e1cc025"
+   }
+  },
+  {
+   "key": "func SampleDataModel.load(_:)",
+   "hash": "4bbfb6ee5273b050",
+   "does": "Sets loading phase, runs library.load with a progress callback updating phase, records any error's localizedDescription as failure, then returns to idle and refreshes presence.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.load(nights:progress:)",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SampleDataModel.phase/isPresent/failure",
+    "archive:SessionArchive.archive",
+    "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, standard suite)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "library.load throws",
+     "effect": "catch: failure = localizedDescription (shown by SampleDataProgress); phase still reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.load(nights:progress:)": "853411c43471b505",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c"
+   }
+  },
+  {
+   "key": "func SampleDataModel.remove(_:)",
+   "hash": "c2dacc2d30e9d4f5",
+   "does": "Sets removing phase, runs library.remove, records any error as failure, then idle and refresh.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.remove()",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SampleDataModel.phase/isPresent/failure",
+    "archive:SessionArchive.remove",
+    "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, standard suite)",
+    "ck:session deletions"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "library.remove throws",
+     "effect": "catch: failure = localizedDescription; phase reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.remove()": "51c44700e1b50ac9",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c"
+   }
+  },
+  {
+   "key": "var SampleDataModel.progressText",
+   "hash": "edd82dcb4340a255",
+   "does": "Progress text for the phase.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case idle",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "case loading",
+     "effect": "'Analyzing night N of T…' with N = min(built+1,total)"
+    },
+    {
+     "at": "+5",
+     "cond": "case removing",
+     "effect": "'Removing sample data…'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SampleDataModel.progressFraction",
+   "hash": "98bba1a9ab99587b",
+   "does": "Loading fraction built/total, nil otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not loading or total 0",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SampleDataCopy.loadTitle",
+   "hash": "bbb064928ad53f55",
+   "does": "Localized 'Load sample data'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SampleDataCopy.removeTitle",
+   "hash": "9d0a1584b8062087",
+   "does": "Localized 'Remove sample data'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SampleDataCopy.removeConfirmMessage",
+   "hash": "652de5f7db9b7ee2",
+   "does": "Localized removal confirmation message.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SampleDataCopy.explanation",
+   "hash": "1ccefc2c583a3a4e",
+   "does": "Localized sample-data explanation footer.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SampleDataOfferRow.body",
+   "hash": "cc04365a4c33ebb8",
+   "does": "Bordered offer button (disabled while working) plus progress.",
+   "entry": "SwiftUI body (DashboardV2View+Cards.swift:388)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataOfferRow.load()",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataOfferRow.buttonLabel",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataOfferRow.load()": "52d1f9439e0a9461",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataOfferRow.buttonLabel": "2102d68d1336b410",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func SampleDataOfferRow.load()",
+   "hash": "4c4e877ad103d4bb",
+   "does": "Builds a SampleDataLibrary from the collector and CloudKit sync manager and loads sample data in a Task.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "d513eeffc116eb10"
+   }
+  },
+  {
+   "key": "var SampleDataOfferRow.buttonLabel",
+   "hash": "45e90052c482f17e",
+   "does": "Offer button label, 2-line, scaling to 60%.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var SampleDataBanner.body",
+   "hash": "e33b9b9f13e2592c",
+   "does": "Reads collector.archiveVersion to re-evaluate on archive change; shows the banner with removal confirmation while working or while sample nights are present.",
+   "entry": "SwiftUI body (DashboardV2View.swift:330)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version",
+    "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, standard suite)",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "model working or library.isPresent",
+     "effect": "show banner; else nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "library.isPresent (UserDefaults ledger read + scan of all archive entries) runs on every body evaluation of the Dashboard banner.",
+     "evidence": [
+      "Emuqu/Sources/Views/SampleDataViews.swift:157",
+      "Emuqu/Sources/Services/SampleDataLibrary.swift:52"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "a2f9ce0b04a1be11",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "6c1955020e1cc025",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataBanner.remove()": "449c1c872243d8f1",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner": "2328a3b51094676b",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "93179fe60c2ed8d2",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+   }
+  },
+  {
+   "key": "var SampleDataBanner.library",
+   "hash": "a2fc265a1d655c54",
+   "does": "New SampleDataLibrary for collector and CloudKit sync manager.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func SampleDataBanner.remove()",
+   "hash": "7cf55f509caf1941",
+   "does": "Removes sample data in a Task.",
+   "entry": "confirmation dialog destructive button",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.remove"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "bc06cb7a1a83ad51",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "93179fe60c2ed8d2"
+   }
+  },
+  {
+   "key": "var SampleDataBanner.banner",
+   "hash": "bcc839d1ec7abfaa",
+   "does": "Banner card: caption, progress, remove button.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.bannerCaption",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.removeButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.bannerCaption": "31e2f84d5eb63470",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.removeButton": "ee82b4c08857f6e7",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var SampleDataBanner.bannerCaption",
+   "hash": "5a07aee54595fc69",
+   "does": "Banner caption texts.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SampleDataBanner.removeButton",
+   "hash": "a1957ca367091f59",
+   "does": "Destructive remove button opening the confirmation (disabled while working).",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+   }
+  },
+  {
+   "key": "var SampleDataProgress.body",
+   "hash": "506a13a6e451b527",
+   "does": "Shows progress bar and text while working, else the last failure in alert colour.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressText",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.progressBar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "progressText non-nil",
+     "effect": "progress; else check failure"
+    },
+    {
+     "at": "+6",
+     "cond": "failure present",
+     "effect": "show failure; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressText": "585388a63807b640",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.progressBar": "83583144da9607d6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SampleDataProgress.progressBar",
+   "hash": "a8ee6800b0c4fd6c",
+   "does": "Determinate ProgressView while loading, indeterminate otherwise.",
+   "entry": "SwiftUI view body evaluation (called from the parent view's body)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressFraction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fraction available",
+     "effect": "determinate; else indeterminate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressFraction": "644fc98976a38577"
+   }
+  },
+  {
+   "key": "func SampleDataRemovalConfirmation.body(content:)",
+   "hash": "2ee89b536f662daa",
+   "does": "Attaches a confirmation dialog whose destructive button calls onConfirm.",
+   "entry": "ViewModifier body",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeConfirmMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeConfirmMessage": "c662a2b668e13367",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c"
+   }
+  },
+  {
+   "key": "var SampleDataSection.body",
+   "hash": "85ec0db06739c805",
+   "does": "Settings section: progress, load button, remove button when present; refreshes presence on each archiveVersion change; removal confirmation.",
+   "entry": "SwiftUI body (ExportAndArchiveViews.swift:568, SettingsPages+DiagnosticActions.swift:25, SampleDataPage); .task(id: archiveVersion)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.loadButton",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.removeButton",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.explanation"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "model.isPresent",
+     "effect": "show remove button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "a2f9ce0b04a1be11",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataSection.remove()": "449c1c872243d8f1",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.explanation": "bead25070b032711",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.loadButton": "7d5549d79da98c7a",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.removeButton": "61c29faea8d7a4c9"
+   }
+  },
+  {
+   "key": "var SampleDataSection.library",
+   "hash": "a2fc265a1d655c54",
+   "does": "New SampleDataLibrary for collector and CloudKit sync manager.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func SampleDataSection.remove()",
+   "hash": "7cf55f509caf1941",
+   "does": "Removes sample data in a Task.",
+   "entry": "confirmation dialog destructive button",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.remove"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "bc06cb7a1a83ad51",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2"
+   }
+  },
+  {
+   "key": "var SampleDataSection.loadButton",
+   "hash": "95fc4c12cbf6f49f",
+   "does": "Load button running model.load; disabled while working or when sample data is present.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.archive"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "d513eeffc116eb10",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.loadTitle": "ac18ea2412b8d729",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2"
+   }
+  },
+  {
+   "key": "var SampleDataSection.removeButton",
+   "hash": "647b76a9aa52a20a",
+   "does": "Destructive remove button opening the confirmation; disabled while working.",
+   "entry": "Button tap",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+   }
+  },
+  {
+   "key": "var SampleDataPage.body",
+   "hash": "92ccdc19c3ffd821",
+   "does": "Form with SampleDataSection and 'Sample data' title.",
+   "entry": "SwiftUI body (SettingsSearchIndex.swift:301 destination)",
+   "calls": [
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body": "575c025b9196edff"
+   }
+  }
+ ],
+ "deps": {}
+}

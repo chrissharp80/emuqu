@@ -1,0 +1,399 @@
+{
+ "file": "EmuquTests/WorkoutTickStateTests.swift",
+ "hash": "9d6fd2a587bf14bd",
+ "role": "XCTest suites for TrackBackupWatermark.advanceIfChanged (snapshot only on any count change, including drops) and AutoPauseDetector (stationary/moving run-lengths, thresholds, independence and reset).",
+ "types": [
+  "TrackBackupWatermarkTests: class — backup watermark",
+  "AutoPauseDetectorTests: class — auto-pause/resume detector"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrackBackupWatermarkTests.testFirstCallWithAnyCountsRequestsASnapshot()",
+   "hash": "81deb8942555a786",
+   "does": "Asserts the first call with a non-zero track count returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testAllZeroCountsRequestNoSnapshot()",
+   "hash": "91bfa60bf7a9d401",
+   "does": "Asserts all-zero counts on a fresh watermark return false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testRepeatedIdenticalCountsRequestNoSnapshot()",
+   "hash": "a720b7eaffa95b14",
+   "does": "Asserts the first (10,4,30) call is true and 100 identical repeats are false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for 100 repeats",
+     "effect": "each identical call asserted false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testEachStreamIndependentlyTriggersASnapshot()",
+   "hash": "fb6cc44a1528a1d4",
+   "does": "Asserts a change in track, then baro, then samples each returns true and an identical repeat returns false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testCountsDroppingBackToZeroStillRequestASnapshot()",
+   "hash": "16ea91155e80eecd",
+   "does": "Asserts counts dropping to zero after a large first workout return true, and the next growth also true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testEachStreamDroppingAloneStillRequestsASnapshot()",
+   "hash": "000d971eee997039",
+   "does": "For each of the three counts, asserts a drop in that count alone (5→3) returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for dimension 0..<3",
+     "effect": "one fresh watermark per dimension"
+    },
+    {
+     "at": "+6",
+     "cond": "dimension == 0",
+     "effect": "track 3 else 5"
+    },
+    {
+     "at": "+7",
+     "cond": "dimension == 1",
+     "effect": "baro 3 else 5"
+    },
+    {
+     "at": "+8",
+     "cond": "dimension == 2",
+     "effect": "samples 3 else 5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testASnapshotAdvancesTheWatermark()",
+   "hash": "1db35b19409f6fd4",
+   "does": "Asserts a true return advances the watermark so the same counts then return false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func TrackBackupWatermarkTests.testANoOpTickLeavesTheWatermarkUntouched()",
+   "hash": "beaabf29513cc6eb",
+   "does": "Asserts a false return leaves the watermark equal to its prior value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "7ce0a2eb46d06fda"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testStationaryTicksBelowThresholdDoNotPause()",
+   "hash": "b134c8ca04050207",
+   "does": "Asserts the first 14 stationary ticks return false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for threshold-1 ticks",
+     "effect": "each asserted false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testPauseFiresExactlyOnTheThresholdTick()",
+   "hash": "7ecf857e86593b5e",
+   "does": "Asserts the 15th stationary tick returns true and stationarySeconds equals the threshold.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for threshold-1 ticks",
+     "effect": "accrues without asserting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testAMovingTickClearsTheStationaryRunLength()",
+   "hash": "72d5f97c36b8717f",
+   "does": "Asserts a moving input after 14 stationary ticks returns false, zeroes stationarySeconds, and the next stationary tick is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for 14 ticks",
+     "effect": "accrues stationary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testMovingTicksBelowThresholdDoNotResume()",
+   "hash": "bc600a6d65e37e92",
+   "does": "Asserts the first 2 moving ticks return false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for threshold-1 ticks",
+     "effect": "each asserted false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testResumeFiresExactlyOnTheThresholdTick()",
+   "hash": "2712fcf0b12539f7",
+   "does": "Asserts the 3rd moving tick returns true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for threshold-1 ticks",
+     "effect": "accrues without asserting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testAStationaryTickClearsTheMovingRunLength()",
+   "hash": "8cbb4eca056eeb1b",
+   "does": "Asserts a non-moving input after 2 moving ticks returns false, zeroes movingSeconds, and the next moving tick is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testResumeIsQuickerThanPause()",
+   "hash": "23fcdf152f66a919",
+   "does": "Asserts movingSecondsBeforeAutoResume (3) < stationarySecondsBeforeAutoPause (15).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testAccruingStationaryClearsTheMovingCounter()",
+   "hash": "3bd6a337bc99d34c",
+   "does": "Asserts a stationary tick zeroes a 2-tick moving count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testAccruingMovingClearsTheStationaryCounter()",
+   "hash": "812f6c1aeb590b75",
+   "does": "Asserts a moving tick zeroes a 2-tick stationary count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testResetClearsBothCounters()",
+   "hash": "5fa399f14bf05f72",
+   "does": "Asserts reset() after stationary and moving accrual equals a fresh detector.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for 10 ticks",
+     "effect": "accrues stationary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueMoving(isMoving:)": "e1961d3271ca8ae4",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "de55b5f327af29b4"
+   }
+  },
+  {
+   "key": "func AutoPauseDetectorTests.testResetMakesAutoPauseNeedTheFullThresholdAgain()",
+   "hash": "b25f3382a9c4b1ee",
+   "does": "Asserts after 14 stationary ticks and reset, 14 more are false and the 15th true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for 14 ticks",
+     "effect": "accrues stationary before reset"
+    },
+    {
+     "at": "+4",
+     "cond": "for threshold-1 ticks",
+     "effect": "each asserted false after reset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.accrueStationary(isStopped:)": "e093e3b0ed59df6d",
+    "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "de55b5f327af29b4"
+   }
+  }
+ ],
+ "deps": {}
+}

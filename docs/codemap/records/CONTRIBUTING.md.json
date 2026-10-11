@@ -1,0 +1,308 @@
+{
+ "file": "CONTRIBUTING.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Maintainer's own change procedure: no outside contributions, gates are the reviewer, build/test commands, budgets, file registration, localization, PR steps, style, privacy-change rule.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ How a change lands in Emuqu",
+   "hash": "cce508d88e33fa62",
+   "does": "No outside contributions; PolyForm Strict license; Linux gates said to run on every push (gates.yml actually triggers on push to main only, plus pull_request and workflow_dispatch, gates.yml:35); Xcode work runs only on demand; points to docs/MAINTAINERS.md (exists).",
+   "entry": null,
+   "calls": [
+    ".github/workflows/gates.yml::job script-gates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says the Linux gates run 'on every push'. gates.yml triggers on push only for branch main (plus pull_request and workflow_dispatch); a push to any other branch runs nothing. CONTRIBUTING.md:39 says 'every push to main' correctly; lines 11 and 105 do not.",
+     "evidence": [
+      "CONTRIBUTING.md:11",
+      "CONTRIBUTING.md:105",
+      ".github/workflows/gates.yml:35"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > The one rule that matters",
+   "hash": "6e18fcd2f0de6afe",
+   "does": "Every gate enforced, none waived; zero swiftlint:disable directives in Emuqu/Sources — verified by grep (0 hits).",
+   "entry": null,
+   "calls": [
+    "Makefile::target lint"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target lint": "ee78d83b950fa63a"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Before you start",
+   "hash": "d50cf7c36c402696",
+   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
+   "entry": null,
+   "calls": [
+    "Makefile::target setup-hooks",
+    "Makefile::target codemap-setup",
+    ".githooks/pre-commit::fn fail",
+    ".github/workflows/gates.yml::job script-gates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".githooks/pre-commit::fn fail": "c9514843e832b1c2",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    "Makefile::target codemap-setup": "b96ea4c9672c70ec",
+    "Makefile::target setup-hooks": "974b9e2eda3668e0"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work",
+   "hash": "1083e8c6f79c53cd",
+   "does": "Build and unit-test commands via xcodebuild; warnings are errors — SWIFT_TREAT_WARNINGS_AS_ERRORS = YES at project-level Debug and Release (project.pbxproj:4763,4822).",
+   "entry": null,
+   "calls": [
+    "Makefile::target budget-monotonicity",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "Makefile::target debt-budget",
+    "Makefile::target orphan-swift-guard",
+    "scripts/check_no_orphan_swift.sh::fn is_synced",
+    "scripts/add_swift_file.py::def add_file_to_project",
+    "scripts/add_swift_file.py::def target_for_path",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target localization-guard",
+    "Makefile::target copy-perimeter",
+    "Tools/copy_linter/lint.py::def main",
+    "Tools/copy_linter/lint.py::def scan_swift_file",
+    "Tools/copy_linter/lint.py::def scan_xcstrings",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "doc says raising a budget needs a written reason in the commit message and `make budget-monotonicity` is the guard; code: the make target defaults its baseline to HEAD, so a raise that is already committed compares equal and passes with no reason at all, while an uncommitted raise can never be acknowledged because the trailer search covers the empty range HEAD..HEAD; and only the exact trailer `budget-raise-ok: <path>` is accepted, not a free-form reason. Locally the guard (and `make ci`) cannot enforce what the doc promises; only ci.yml, which passes HEAD~1, does.",
+     "evidence": [
+      "CONTRIBUTING.md:66",
+      "Makefile:146",
+      "scripts/check_budget_monotonicity.sh:107",
+      "scripts/check_budget_monotonicity.sh:117"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "doc says every new Swift file must be registered in project.pbxproj at four points; code: the watch app is a PBXFileSystemSynchronizedRootGroup whose files are included by being on disk, and check_no_orphan_swift.sh skips it. Following the four-point rule for a watch file adds a duplicate Sources entry, the 'Multiple commands produce' failure the orphan guard's second half warns about.",
+     "evidence": [
+      "CONTRIBUTING.md:73",
+      "scripts/check_no_orphan_swift.sh:28",
+      "Emuqu.xcodeproj/project.pbxproj"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc",
+    "Tools/copy_linter/lint.py::def scan_swift_file": "2119d1a831202458",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "68ea2595608126f3",
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
+    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_no_orphan_swift.sh::fn is_synced": "858518fd5f060177"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > The code map is part of the change",
+   "hash": "e8e2d84f618224e1",
+   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>); make the change; make codemap-guard and rewrite each listed record, removing fixed flags; re-read each re-check caller and change it or its record if its behaviour changed; stamp after re-reading, callees before callers; lowering .ci/codemap_open_high.txt or .ci/codemap_open_med.txt when a high/medium finding is fixed. Links docs/codemap/README.md. Every command named exists.",
+   "entry": null,
+   "calls": [
+    "Makefile::target codemap-impact",
+    "Makefile::target codemap-guard",
+    "scripts/codemap/codemap.py::def cmd_impact",
+    "scripts/codemap/codemap.py::def cmd_stamp",
+    "scripts/codemap/codemap.py::def dependency_problems",
+    "scripts/codemap/codemap.py::def budget_problems"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-guard": "86407f3ed9c5a020",
+    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
+    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
+    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
+    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
+    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Budgets ratchet down, never up",
+   "hash": "cc7f007f03126463",
+   "does": ".ci/*.txt budgets (shared_usage, try_optional, legacy_observable_object, swiftlint_warning, unchecked_sendable, etc. — all exist) ratchet down; `make budget-monotonicity` (Makefile:146) runs check_budget_monotonicity.sh against BUDGET_BASE_REF or HEAD.",
+   "entry": null,
+   "calls": [
+    "Makefile::target budget-monotonicity",
+    "Makefile::target debt-budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target debt-budget": "8e30dd4714319a14"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Adding a new Swift file",
+   "hash": "290aad2f721412c8",
+   "does": "New Swift files must be registered at PBXBuildFile, PBXFileReference, group children, Sources phase; `make orphan-swift-guard` (Makefile:168, check_no_orphan_swift.sh) fails on files missing from the project; paths with '+' must be quoted.",
+   "entry": null,
+   "calls": [
+    "Makefile::target orphan-swift-guard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target orphan-swift-guard": "d0594e16841f6376"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > While you work > Adding user-facing text",
+   "hash": "8b5d0b5198529048",
+   "does": "Strings localized into 17 languages (Localizable.xcstrings has 17 locales incl. en) with 100% coverage enforced; String(localized:bundle:) with LanguageManager.appBundle (LanguageManager.swift:36) and `make localization-bundle-guard` (Makefile:114); health copy linted by Tools/copy_linter/lint.py via `make copy-perimeter` (Makefile:171).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Makefile::target localization-guard",
+    "Makefile::target localization-bundle-guard",
+    "Makefile::target copy-perimeter",
+    "Tools/copy_linter/lint.py::def main"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target localization-bundle-guard": "f69c0f4e5ada718f",
+    "Makefile::target localization-guard": "6f037f306cd54e75",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Before you open a pull request",
+   "hash": "0afbcd393d358aef",
+   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance (gates.yml step 'Tech-debt budgets and refactor-spec conformance'); build/tests/SwiftLint need macOS and run on demand; `make ci` runs lint, budgets, spec conformance, localization, copy perimeter, doc links and the full test suite with coverage (Makefile:272). Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary (step 'Code map impact of this pull request').",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci",
+    ".github/workflows/gates.yml::job script-gates",
+    "Makefile::target test-coverage",
+    "Makefile::target codemap-impact",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says 'make ci runs every gate'. The thread-sanitizer target is deliberately not part of `ci` (Makefile:159-163 'Slow — its own CI job, not part of ci'; absent from the ci prerequisites at Makefile:272), and README also lists Thread Sanitizer as a ci.yml check.",
+     "evidence": [
+      "CONTRIBUTING.md:109",
+      "Makefile:162",
+      "Makefile:272"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "dee3ea42e8cd6b89",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
+    "Makefile::target test-coverage": "06ed85ce10572ea0"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Style",
+   "hash": "0357731813a20d2b",
+   "does": "Style: docs/REFACTOR_SPEC.md is the standard and `make spec-conformance` (Makefile:61 → check_refactor_spec_conformance.sh) enforces declarations <=20 lines, nesting <=2, no commented-out code, no empty catches.",
+   "entry": null,
+   "calls": [
+    "Makefile::target spec-conformance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Says declarations stay at or under 20 lines. The conformance script allows justified waivers, and .ci/spec_justified_long_budget.txt is 7 while the script's own header says the waiver budgets are zero; so up to 7 declarations may exceed 20 lines.",
+     "evidence": [
+      "CONTRIBUTING.md:122",
+      "scripts/check_refactor_spec_conformance.sh:33",
+      "scripts/check_refactor_spec_conformance.sh:42"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Makefile::target spec-conformance": "060f9ad7c55731da"
+   }
+  },
+  {
+   "key": "§ How a change lands in Emuqu > Security and privacy",
+   "hash": "105131e9652c68ba",
+   "does": "no behavioural claim: report vulnerabilities privately; any change to off-device data must update consent, privacy manifest, policy and App Store Connect together.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

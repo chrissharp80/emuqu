@@ -1,0 +1,166 @@
+{
+ "file": "EmuquTests/VoiceAudioMeasurementTests.swift",
+ "hash": "c7953c62f3b4e8d9",
+ "role": "XCTest suite for VoiceConversationController.rms(of:) (forwarding to VoiceAudioPipeline.rms), the barge-in loudness measurement, over synthetic 48 kHz mono float buffers.",
+ "types": [
+  "VoiceAudioMeasurementTests: class (@MainActor XCTestCase) — RMS arithmetic tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func VoiceAudioMeasurementTests.buffer(frames:_:)",
+   "hash": "76fb2018f9cfb831",
+   "does": "Fixture: builds a 48 kHz mono AVAudioPCMBuffer of `frames` frames filled by the sample closure; nil if format/buffer/channel data cannot be created.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "format or buffer allocation fails",
+     "effect": "returns nil; otherwise continues"
+    },
+    {
+     "at": "+5",
+     "cond": "floatChannelData missing",
+     "effect": "returns nil; otherwise fills"
+    },
+    {
+     "at": "+6",
+     "cond": "for i in 0..<frames",
+     "effect": "writes sample(i) into channel 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testSilenceMeasuresZero()",
+   "hash": "e2b7f8f2fe8b15f0",
+   "does": "Asserts 512 frames of silence measure 0 RMS.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217",
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)": "673b0b4102ecebec"
+   }
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testConstantAmplitudeEqualsThatAmplitude()",
+   "hash": "b9a9bd43d1b21d2f",
+   "does": "Asserts a constant 0.5 signal measures 0.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217",
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)": "673b0b4102ecebec"
+   }
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testSignIsIgnored()",
+   "hash": "190c88692c519655",
+   "does": "Asserts alternating ±0.5 measures 0.5 (sign ignored).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "frame index even",
+     "effect": "sample +0.5; otherwise -0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217",
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)": "673b0b4102ecebec"
+   }
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testLouderSignalMeasuresHigher()",
+   "hash": "fcb7330fd6ff9ebd",
+   "does": "Asserts a 0.8 constant measures higher than a 0.1 constant.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217",
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)": "673b0b4102ecebec"
+   }
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testSineWaveMatchesTheAnalyticRMS()",
+   "hash": "58769106b54be6ad",
+   "does": "Asserts a 100 Hz sine of amplitude 0.7 over 4800 frames measures 0.7/√2 within 0.01.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217",
+    "EmuquTests/VoiceAudioMeasurementTests.swift::func VoiceAudioMeasurementTests.buffer(frames:_:)": "673b0b4102ecebec"
+   }
+  },
+  {
+   "key": "func VoiceAudioMeasurementTests.testBufferWithNoFramesMeasuresNothing()",
+   "hash": "f079216b6360095e",
+   "does": "Asserts a buffer with capacity 512 but frameLength 0 measures nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.rms(of:)": "e58d9fe64f7d0217"
+   }
+  }
+ ],
+ "deps": {}
+}

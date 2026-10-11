@@ -1,0 +1,645 @@
+{
+ "file": "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift",
+ "hash": "ff872004d47b5625",
+ "role": "Frequency-domain HRV: resamples clean RR to 4 Hz with a natural cubic spline, runs Welch PSD (256-sample Hann segments, 50% overlap, per-segment linear detrend) for LF/HF, a separate 1024-sample pass for VLF when the window is >=10 min, falls back to a single zero-padded periodogram for short signals, and integrates band powers. Also owns the process-wide vDSP DFT setup cache.",
+ "types": [
+  "FrequencyDomainAnalyzer: enum — namespace for spectral analysis and DFT-setup cache",
+  "FrequencyDomainAnalyzer.SplineKnots: struct (private) — solved spline coefficients"
+ ],
+ "state": [
+  "mem:FrequencyDomainAnalyzer.dftSetupCache (OSAllocatedUnfairLock<[Int: OpaquePointer]>, never evicted)",
+  "mem:FrequencyDomainAnalyzer.resampleFrequency = 4.0",
+  "mem:FrequencyDomainAnalyzer.vlfRange/lfRange/hfRange (0.003..<0.04, 0.04..<0.15, 0.15...0.4 Hz)",
+  "mem:FrequencyDomainAnalyzer.vlfMinDuration = minimumVLFWindowMinutes*2 = 10 min",
+  "mem:FrequencyDomainAnalyzer.defaultWelchSegmentLength = 256",
+  "mem:FrequencyDomainAnalyzer.vlfWelchSegmentLength = 1024",
+  "mem:FrequencyDomainAnalyzer.welchOverlap = 0.5"
+ ],
+ "toplevel": "Static lets initialised from HRVConstants.FrequencyBands (Constants.swift:170-178). The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift:55); setups are created on demand and leaked for the app lifetime.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "vlfMinDuration doubles HRVConstants.FrequencyBands.minimumVLFWindowMinutes (5.0) in place, so the constant named 'minimum VLF window' is not the gate actually applied (10 min).",
+   "evidence": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:114",
+    "Emuqu/Sources/Utilities/Constants.swift:178"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+   "hash": "dacbb316d88c3692",
+   "does": "Returns the cached vDSP forward complex DFT setup for a size, creating and caching it under the lock on first use; nil if vDSP cannot create one.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_DFT_zop_CreateSetupD",
+    "ext:os.OSAllocatedUnfairLock.withLockUnchecked"
+   ],
+   "reads": [
+    "mem:FrequencyDomainAnalyzer.dftSetupCache"
+   ],
+   "writes": [
+    "mem:FrequencyDomainAnalyzer.dftSetupCache"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cache has setup for size",
+     "effect": "true: returns cached pointer; false: creates"
+    },
+    {
+     "at": "+3",
+     "cond": "vDSP_DFT_zop_CreateSetupD returns non-nil",
+     "effect": "false: returns nil without caching; true: caches and returns"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.teardownDFTCache()",
+   "hash": "b053e3e630d309d6",
+   "does": "Intentional no-op memory-warning hook; destroys nothing.",
+   "entry": "Called from the UIApplication.didReceiveMemoryWarningNotification observer in EmuquApp.observeMemoryWarnings (EmuquApp.swift:234)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "getDFTSetup's doc says teardownDFTCache 'provides explicit cleanup on memory warning or termination' and EmuquApp's observer is documented 'Drop the DFT cache under memory pressure', but the function is an empty no-op, so the observer does nothing.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:68",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:100",
+      "Emuqu/EmuquApp.swift:227",
+      "Emuqu/EmuquApp.swift:234"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
+   "hash": "99eac4118af2371d",
+   "does": "Frequency metrics for series[windowStart..<windowEnd]: validates bounds against points and flags, needs >=120 points and >=60 non-artifact beats, then hands (midpoint seconds, RR ms) pairs to computeFromCleanPairs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "0 <= start <= end <= points.count && end <= flags.count",
+     "effect": "false: nil (stale/invalid window); true: slices"
+    },
+    {
+     "at": "+14",
+     "cond": "windowPoints.count >= 120",
+     "effect": "false: nil; true: collects clean beats"
+    },
+    {
+     "at": "+17",
+     "cond": "for each point where !isArtifact",
+     "effect": "appends its midpoint time and RR; artifact beats dropped (spline bridges the gap)"
+    },
+    {
+     "at": "+21",
+     "cond": "clean beats >= 60",
+     "effect": "false: nil; true: computes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.midpointMs": "f0542bc9ef0a60d7",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)",
+   "hash": "b2a1f496286d695d",
+   "does": "From clean (time s, RR ms) pairs: requires >=60 pairs, positive duration and >=64 resampled samples (16 s), cubic-spline resamples at 4 Hz and returns computePSD with usableWindowMin = duration/60.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "times.count >= 60 && first/last exist",
+     "effect": "false: nil; true: continues"
+    },
+    {
+     "at": "+6",
+     "cond": "duration > 0",
+     "effect": "false: nil; true: computes sample count"
+    },
+    {
+     "at": "+8",
+     "cond": "sampleCount >= 64",
+     "effect": "false: nil; true: resample + PSD"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "5454f889de60989c",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)": "1309e697c4bcdd76"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)",
+   "hash": "9a6405a7e8888bf1",
+   "does": "Mean-removes the 4 Hz signal, then: if long enough for one 256-sample segment and a DFT setup exists, runs Welch, integrates LF/HF, and adds VLF from the 1024-sample pass only when the window is >=10 min; otherwise uses welchFallback.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.welchFallback(data:fs:usableWindowMin:segLen:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.vlfPower(data:fs:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "segmentLength ?? 256",
+     "effect": "no caller passes segmentLength (grep: production and tests), so 256 is always used; rounded down to a power of two"
+    },
+    {
+     "at": "+11",
+     "cond": "data.count >= (segmentLength ?? 256), segment count >= 1, DFT setup exists",
+     "effect": "false: returns welchFallback; true: Welch. The segment-count condition is always true once data.count >= segLen. The '??' uses the unrounded length while segLen is rounded"
+    },
+    {
+     "at": "+24",
+     "cond": "usableWindowMin ?? data duration",
+     "effect": "nil: window minutes derived from sample count / fs"
+    },
+    {
+     "at": "+25",
+     "cond": "windowMin >= 10 ?:",
+     "effect": "true: VLF from vlfPower (may still be nil if <1024 samples); false: VLF nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "87a5fc39e52eaa65",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)": "b612a65c5c8ce2d3",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.vlfPower(data:fs:)": "d3d38bc7e316b03e",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.welchFallback(data:fs:usableWindowMin:segLen:)": "2ae4f42e1ed2825b"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)",
+   "hash": "aaeb8a0df27849a1",
+   "does": "Builds FrequencyDomainMetrics: lfHfRatio = lf/hf when hf>0 else nil; totalPower = (vlf or 0)+lf+hf.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "hf > 0 ?:",
+     "effect": "true: lf/hf; false: nil ratio"
+    },
+    {
+     "at": "+4",
+     "cond": "vlf ?? 0",
+     "effect": "VLF absent contributes 0 to total power"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.vlfPower(data:fs:)",
+   "hash": "6fd36942c0a87cc4",
+   "does": "VLF band power from a Welch pass with 1024-sample (256 s) segments; nil when the signal is shorter than 1024 samples or no DFT setup exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "data.count >= 1024 && DFT setup exists",
+     "effect": "false: nil; true: returns band VLF"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "87a5fc39e52eaa65",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.welchFallback(data:fs:usableWindowMin:segLen:)",
+   "hash": "cd7c4bd821dc7660",
+   "does": "Fallback when Welch cannot run: if a DFT setup for segLen exists or the data is shorter than segLen, computes a single-window periodogram; otherwise returns all-zero LF/HF metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeSingleWindowPSD(signal:fs:usableWindowMin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "getDFTSetup(segLen) != nil || data.count < segLen",
+     "effect": "false (long data but no setup): returns lf=0, hf=0, totalPower=0, ratio nil — zeros rather than nil; true: single-window PSD"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "When vDSP cannot create a DFT setup for a long signal the function returns LF=0/HF=0/total 0 instead of nil, so callers store and display zero spectral power as a measurement.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:254",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:255"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeSingleWindowPSD(signal:fs:usableWindowMin:)": "9c14da662cb52227",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)",
+   "hash": "c8e7b35a3b0abc42",
+   "does": "Welch PSD: builds a Hann window, normalises by fs*segLen*mean(w²), accumulates each linearly detrended, windowed segment's periodogram and averages over segments; returns one-sided PSD of halfN+1 bins.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)",
+    "ext:Accelerate.vDSP_hann_windowD",
+    "ext:Accelerate.vDSP_dotprD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "for each segment",
+     "effect": "detrends and accumulates segment periodogram"
+    },
+    {
+     "at": "+18",
+     "cond": "for each bin",
+     "effect": "divides by numSegments"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "d2a003312f7a9e1a",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)",
+   "hash": "ffe39aa3940fdc41",
+   "does": "Multiplies a segment by the window, runs the forward DFT and adds |X|²/norm into avgPsd, doubling bins 1..<halfN for the one-sided spectrum.",
+   "entry": null,
+   "calls": [
+    "ext:Accelerate.vDSP_vmulD",
+    "ext:Accelerate.vDSP_DFT_ExecuteD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "for k in 1..<halfN",
+     "effect": "adds doubled power for interior bins; DC and Nyquist added once"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.linearlyDetrended(_:)",
+   "hash": "a7d4939da0130321",
+   "does": "Returns the segment minus its least-squares straight line (index as x).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "segment.count > 1",
+     "effect": "false: returns zeros of same length; true: detrends"
+    },
+    {
+     "at": "+6",
+     "cond": "for each sample",
+     "effect": "accumulates sxy, sxx"
+    },
+    {
+     "at": "+11",
+     "cond": "sxx > 0 ?:",
+     "effect": "true: slope sxy/sxx; false: slope 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)",
+   "hash": "68ea753bb1573213",
+   "does": "Resamples (t, values) onto a uniform fs grid of sampleCount points from tStart with a natural cubic spline; constant for <2 knots, linear for exactly 2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearResample(t:values:fs:sampleCount:tStart:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.intervalsAndSlopes(t:values:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.secondDerivatives(h:delta:n:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.evaluateSpline(knots:fs:sampleCount:tStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "n >= 2",
+     "effect": "false: returns sampleCount copies of the first value (0 if empty); true: continues"
+    },
+    {
+     "at": "+5",
+     "cond": "values.first ?? 0",
+     "effect": "empty values: fills with 0"
+    },
+    {
+     "at": "+7",
+     "cond": "n > 2",
+     "effect": "false (2 knots): linearResample; true: spline"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.evaluateSpline(knots:fs:sampleCount:tStart:)": "34707e465554b817",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.intervalsAndSlopes(t:values:)": "22b7b93457ea00bd",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearResample(t:values:fs:sampleCount:tStart:)": "cfa0a54512e66d67",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.secondDerivatives(h:delta:n:)": "22296cec57c3f271"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.linearResample(t:values:fs:sampleCount:tStart:)",
+   "hash": "efe271e258889aa1",
+   "does": "Linear interpolation/extrapolation between the two knots over the uniform grid.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each grid point",
+     "effect": "computes value"
+    },
+    {
+     "at": "+6",
+     "cond": "t[1]-t[0] > 0 ?:",
+     "effect": "true: fraction along the segment; false: 0 (constant values[0])"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.intervalsAndSlopes(t:values:)",
+   "hash": "50c4f03e2baa63d8",
+   "does": "Computes knot spacings h[i] and secant slopes delta[i] (0 when h[i] <= 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each interval",
+     "effect": "fills h and delta"
+    },
+    {
+     "at": "+6",
+     "cond": "h[i] > 0 ?:",
+     "effect": "true: slope; false: 0 for duplicate timestamps"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.secondDerivatives(h:delta:n:)",
+   "hash": "10fa7b7a8a1d5753",
+   "does": "Solves the natural-spline second derivatives with the Thomas algorithm (forward sweep, back substitution), leaving m[0] and m[n-1] = 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for i in 1..<(n-2)",
+     "effect": "forward elimination"
+    },
+    {
+     "at": "+13",
+     "cond": "stride n-3 down to 1",
+     "effect": "back substitution"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.evaluateSpline(knots:fs:sampleCount:tStart:)",
+   "hash": "d5796cf0c8561604",
+   "does": "Evaluates the spline at each uniform grid time, advancing the segment pointer monotonically; uses the knot value when the segment spacing is 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.splineValue(at:segment:knots:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each grid sample",
+     "effect": "evaluates"
+    },
+    {
+     "at": "+10",
+     "cond": "while seg < n-2 && t[seg+1] < targetT",
+     "effect": "advances segment"
+    },
+    {
+     "at": "+14",
+     "cond": "h[s] > 0 ?:",
+     "effect": "true: cubic spline value; false: values[s]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.splineValue(at:segment:knots:)": "3b6f280aa315cdd1",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.splineValue(at:segment:knots:)",
+   "hash": "102d9bfa02b21f5d",
+   "does": "Cubic polynomial value of segment s at offset dt from its knot, from the natural-spline coefficients.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computeSingleWindowPSD(signal:fs:usableWindowMin:)",
+   "hash": "4bf9e865773a79f4",
+   "does": "Single zero-padded periodogram for signals too short for Welch: pads to the next power of two, integrates bands, and includes VLF only when windowMin >= 10 min; returns all-zero metrics when no spectrum could be made.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.singleWindowSpectrum(signal:fs:fftN:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "singleWindowSpectrum non-nil",
+     "effect": "nil: returns zero metrics (lf=0, hf=0); non-nil: band powers"
+    },
+    {
+     "at": "+11",
+     "cond": "usableWindowMin ?? sample duration",
+     "effect": "nil: derived from sample count"
+    },
+    {
+     "at": "+13",
+     "cond": "windowMin >= 10 ?: vlf",
+     "effect": "true: band VLF; false: nil"
+    },
+    {
+     "at": "+16",
+     "cond": "hf > 0 ?:",
+     "effect": "true: ratio; false: nil"
+    },
+    {
+     "at": "+17",
+     "cond": "windowMin >= 10 ?: in total",
+     "effect": "true: adds VLF to total; false: 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "In production this path only runs for signals shorter than one 256-sample Welch segment (<64 s) and usableWindowMin is that same duration (computeFromCleanPairs), so the windowMin >= 10 min VLF branches can never be true; only direct computePSD calls with an inflated usableWindowMin (tests) reach them.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:207",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:185",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:455",
+      "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift:459"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "23bfd3112564120f",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.singleWindowSpectrum(signal:fs:fftN:)": "21ec792663261e8b"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.singleWindowSpectrum(signal:fs:fftN:)",
+   "hash": "64e3b06c6a92db32",
+   "does": "Hann-windows the linearly detrended signal over its own length, zero-pads to fftN, and returns the one-sided periodogram normalised by fs*Σw²; nil if the window energy is 0 or no DFT setup exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)",
+    "ext:Accelerate.vDSP_hann_windowD",
+    "ext:Accelerate.vDSP_vmulD",
+    "ext:Accelerate.vDSP_dotprD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "windowEnergy > 0 && DFT setup exists",
+     "effect": "false: nil; true: computes spectrum"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.accumulateSegment(_:into:window:norm:segLen:dftSetup:)": "d2a003312f7a9e1a",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "e652e500b8bd4f0b",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.linearlyDetrended(_:)": "c1a65a13c32b42ef"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)",
+   "hash": "e3e7a162ee8cd993",
+   "does": "Integrates a one-sided PSD into VLF [0.003,0.04), LF [0.04,0.15) and HF [0.15,0.4] by summing psd*freqRes per bin.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each bin 0...fftN/2",
+     "effect": "classifies by frequency"
+    },
+    {
+     "at": "+10",
+     "cond": "freq in VLF",
+     "effect": "adds to vlf"
+    },
+    {
+     "at": "+12",
+     "cond": "else freq in LF",
+     "effect": "adds to lf"
+    },
+    {
+     "at": "+14",
+     "cond": "else freq in HF",
+     "effect": "adds to hf; other bins (DC, >0.4 Hz) ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

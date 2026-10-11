@@ -1,0 +1,531 @@
+{
+ "file": "Emuqu/Sources/Views/KeyboardCaptureView.swift",
+ "hash": "6745048c2dfa656e",
+ "role": "Settings > Troubleshooting > Keyboard performance screen: starts/stops the KeyboardPerfSignpost in-memory signpost capture, shows elapsed time and event count, and shares the exported JSONL trace via ShareSheet.",
+ "types": [
+  "KeyboardCaptureView: struct (View) — capture controls UI over the KeyboardPerfSignpost.shared singleton"
+ ],
+ "state": [
+  "@State elapsed: TimeInterval (local)",
+  "@State elapsedTimer: Timer? (local, 0.5 s repeating)",
+  "@State sharePresented: Bool (local)"
+ ],
+ "toplevel": "Pushed from SettingsPages+Diagnostics.swift:90 and ExportAndArchiveViews.swift:943. Capture state lives in KeyboardPerfSignpost.shared (mem), not in the view, so leaving the screen does not stop it.",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "low",
+   "text": "The 'Last trace' section labels the previous trace with perf.captureStartedAt, which startCapture overwrites with the new capture's start (KeyboardPerfSignpost.swift:177) and stopCapture never clears; during or after a second capture the 'Captured <date>' line shows the new capture's start next to the old trace's event count and file path.",
+   "evidence": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift:120",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift:97",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:177"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var KeyboardCaptureView.perf",
+   "hash": "b3532bcb723c15a4",
+   "does": "Returns the KeyboardPerfSignpost from dependencies.app (override or KeyboardPerfSignpost.shared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.body",
+   "hash": "31c603dd482b2886",
+   "does": "Form of four sections (description, how-to steps, capture controls, last trace) with inline title; presents the share sheet when sharePresented; on appear re-installs the elapsed timer if a capture is already running; on disappear invalidates the timer (capture keeps running).",
+   "entry": "SwiftUI body; .onAppear/.onDisappear closures run on navigation push/pop.",
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.captureControlsSection",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.howToCaptureSection",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionBody",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.lastTraceSection",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceShareSheet",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer()",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.isCapturing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "perf.isCapturing on appear",
+     "effect": "true: installElapsedTimer() restarts the elapsed counter from captureStartedAt; false: nothing (Start button shown)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer()": "42ec30310620c86d",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.captureControlsSection": "1f8e484f8aa030c7",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.howToCaptureSection": "41397ed3fd753f60",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.lastTraceSection": "be6300f7138e5396",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionBody": "34f8c55c693b78e7",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceShareSheet": "fba1eca55f285c92"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.traceShareSheet",
+   "hash": "613a0e40502dc005",
+   "does": "Share-sheet content: a ShareSheet (UIActivityViewController) with the last trace URL, or empty if there is none.",
+   "entry": "SwiftUI .sheet content when sharePresented is true.",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.lastTraceURL",
+    "file:tmp/keyboard-perf-<ISO stamp>.jsonl"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "perf.lastTraceURL is non-nil",
+     "effect": "true: ShareSheet with the URL; false: empty view (sheet opens blank; unreachable in practice because the Share button is only shown when lastTraceURL is set)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)": "5ac15667ff37e889"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.captureControlsSection",
+   "hash": "3efdab87c43fb214",
+   "does": "Section with a caption explaining what the capture records (render path, keyboard notifications, focus events, 200 ms heartbeat).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.traceSectionBody",
+   "hash": "f0094c8f2d5aff76",
+   "does": "Capture controls section: while capturing shows the recording row and the Stop button, otherwise the Start capture button.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturingRow",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionRows",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.startCaptureButton",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.isCapturing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "perf.isCapturing",
+     "effect": "true: capturingRow + Stop button; false: Start capture button"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturingRow": "1000929166c42f4a",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.startCaptureButton": "acfbc59a57d377a7",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionRows": "848b88323bd37fa8"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.capturingRow",
+   "hash": "4def73b81daa15dd",
+   "does": "Row with a pulsing red record icon, 'Capturing… mm:ss' and the live event count read synchronously from the signpost queue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.formattedElapsed(_:)",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.currentEventCount()",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.events"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.currentEventCount()": "35440227b33f6e89",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "2d2bd0a8021a6c57",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.formattedElapsed(_:)": "a3c9d9af1ffe44dd",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.body": "d12e0ecdda3e59ec",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.traceSectionRows",
+   "hash": "6aeef2189a70385e",
+   "does": "Destructive 'Stop capture' button that calls stopCapture().",
+   "entry": "Button action (user tap).",
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stopCapture()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stopCapture()": "20e9f8558edefeb6"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.lastTraceSection",
+   "hash": "b7eeb4227c6e6dbc",
+   "does": "Shows the Last trace section when a trace URL exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.lastTraceBody(_:)",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.lastTraceURL"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "perf.lastTraceURL non-nil",
+     "effect": "true: lastTraceBody(url); false: section omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.lastTraceBody(_:)": "2c760d8eae935c07",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.lastTraceBody(_:)",
+   "hash": "23b4c43476eac6ec",
+   "does": "Section 'Last trace': captured-at label, event count of the last trace, Share button and the selectable file path of the trace.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturedAtLabel",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.shareTraceButton",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.lastTraceEventCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "2d2bd0a8021a6c57",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturedAtLabel": "ec5a4c75612e2a44",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.shareTraceButton": "f31c850be66973f8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.capturedAtLabel",
+   "hash": "dda56eca6ed02db7",
+   "does": "Caption 'Captured <date time>' formatted in the app locale from perf.captureStartedAt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.captureStartedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "perf.captureStartedAt non-nil",
+     "effect": "true: shows the date; false: nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "captureStartedAt is the start of the most recent capture, not of the trace whose URL is shown; after starting a new capture the label describes the wrong trace.",
+     "evidence": [
+      "Emuqu/Sources/Views/KeyboardCaptureView.swift:120",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:177"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.howToCaptureSection",
+   "hash": "03d298abeabb942f",
+   "does": "Section 'How to capture' with four numbered markdown steps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stepRow(_:_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stepRow(_:_:)": "f915fb63d527c331"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.shareTraceButton",
+   "hash": "669641da03556a5a",
+   "does": "Button 'Share trace…' that sets sharePresented = true.",
+   "entry": "Button action (user tap).",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var KeyboardCaptureView.startCaptureButton",
+   "hash": "4cf765b36e6f3c52",
+   "does": "Button 'Start capture' that calls startCapture().",
+   "entry": "Button action (user tap).",
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.startCapture()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.startCapture()": "712a0f32e4e67177"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.startCapture()",
+   "hash": "315021772a226730",
+   "does": "Starts the signpost capture (KeyboardPerfSignpost.startCapture, which resets the buffer, arms the 600 s auto-stop and heartbeat) and installs the elapsed timer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.startCapture()",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer()",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:KeyboardPerfSignpost.isCapturing",
+    "mem:KeyboardPerfSignpost.captureStartedAt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "perf.startCapture() returns false (a capture is already running)",
+     "effect": "return without installing the timer; true: installElapsedTimer()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.startCapture()": "59f5e4d80507e51f",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer()": "42ec30310620c86d",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.stopCapture()",
+   "hash": "13cccb0f79d19e4b",
+   "does": "Stops the capture and exports the JSONL trace to the temp dir (result URL discarded; KeyboardPerfSignpost publishes it to lastTraceURL), invalidates the timer and zeroes elapsed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:KeyboardPerfSignpost.isCapturing",
+    "mem:KeyboardPerfSignpost.lastTraceURL",
+    "mem:KeyboardPerfSignpost.lastTraceEventCount",
+    "file:tmp/keyboard-perf-<ISO stamp>.jsonl"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "stopCaptureAndExportTrace's nil result is discarded: with no buffered entries (KeyboardPerfSignpost.swift:260) or a failed temp write (catch at :311-312) the screen returns to Start with no message, and if a previous trace exists the 'Last trace' section keeps showing that older trace (lastTraceURL is only replaced on success, :262-266) as if it were the new one.",
+     "evidence": [
+      "Emuqu/Sources/Views/KeyboardCaptureView.swift:161",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:260",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:312",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:262"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "1754228e69946060",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.installElapsedTimer()",
+   "hash": "eaa74383eb2bfa9c",
+   "does": "Sets elapsed from captureStartedAt (or now), invalidates any old timer and schedules a 0.5 s repeating Timer whose closure calls tickElapsed on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.tickElapsed(since:)",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf",
+    "ext:Timer.scheduledTimer"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.captureStartedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "perf.captureStartedAt ?? Date()",
+     "effect": "captureStartedAt is the main-actor mirror set by a Task hop after startCapture returns (KeyboardPerfSignpost.swift:176-178) and never cleared on stop (:243-246). On the first capture it is nil here so now is used; on any later capture in the same process it still holds the PREVIOUS capture's start, which is used. On re-appear during a capture it is the current start."
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "On the second and later captures in one app run, startCapture() (KeyboardCaptureView.swift:156-157) calls installElapsedTimer synchronously before KeyboardPerfSignpost's main-actor Task updates captureStartedAt, so `start` is the previous capture's start date; the 'Capturing… mm:ss' counter shows time since the old capture began for the whole session (the closure captures `start`, :175-176) until the user leaves and re-enters the screen.",
+     "evidence": [
+      "Emuqu/Sources/Views/KeyboardCaptureView.swift:172",
+      "Emuqu/Sources/Views/KeyboardCaptureView.swift:176",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:176",
+      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:178"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.tickElapsed(since:)": "1868b518d1dcf141",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.tickElapsed(since:)",
+   "hash": "554d3dd1c621129c",
+   "does": "Timer tick: updates elapsed; once the capture has ended (Stop elsewhere or the 10-minute auto-stop) invalidates the timer and resets elapsed to 0.",
+   "entry": "Timer.scheduledTimer callback every 0.5 s.",
+   "calls": [
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf"
+   ],
+   "reads": [
+    "mem:KeyboardPerfSignpost.isCapturing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "perf.isCapturing still true",
+     "effect": "true: return (keep ticking); false: invalidate timer, nil it, elapsed = 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.formattedElapsed(_:)",
+   "hash": "a976399b65118eb4",
+   "does": "Formats seconds as a localized minutes:seconds Duration inside 'Capturing… %@'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.eventsText(_:)",
+   "hash": "f939e396660b9620",
+   "does": "Localized '<count> events' string.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func KeyboardCaptureView.stepRow(_:_:)",
+   "hash": "9c8a9ecbc00a9352",
+   "does": "Row with a tinted step number and the markdown-rendered localized step text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,110 @@
+{
+ "file": "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift",
+ "hash": "3d582bdcaf90484d",
+ "role": "Onboarding page 1: three-card paged carousel of fixed, localized value-proposition copy plus a Continue button.",
+ "types": [
+  "OnboardingValuePropPage: struct — carousel page",
+  "OnboardingValuePropPage.Card: struct (private) — id/glyph/headline/body"
+ ],
+ "state": [
+  "@State index (Int) — selected card",
+  "cards: [Card] (private let, 3 localized cards built at init)"
+ ],
+ "toplevel": "cards array is built in a stored-property initializer with String(localized:bundle: LanguageManager.appBundle), so the text is resolved when the view struct is created (lines 18-28).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var OnboardingValuePropPage.body",
+   "hash": "b6b1b976e0ca0438",
+   "does": "VStack of cardPager (page-style tabs with always-visible index) and continueButton.",
+   "entry": "SwiftUI body.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.cardPager",
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.continueButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.cardPager": "88bd4f27a7901a81",
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.continueButton": "63da968d20968965"
+   }
+  },
+  {
+   "key": "var OnboardingValuePropPage.cardPager",
+   "hash": "0765c0495f3d690f",
+   "does": "TabView bound to index iterating cards, each built with cardView and tagged by card.id.",
+   "entry": "SwiftUI view composition.",
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::func OnboardingValuePropPage.cardView(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::func OnboardingValuePropPage.cardView(_:)": "19f87e5074c73691"
+   }
+  },
+  {
+   "key": "var OnboardingValuePropPage.continueButton",
+   "hash": "1f860b3d14840687",
+   "does": "Full-width \"Continue\" button calling advance; identifier \"onboarding.advance\".",
+   "entry": "SwiftUI Button action.",
+   "calls": [
+    "closure:advance — OnboardingView.advanceToNext",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func OnboardingValuePropPage.cardView(_:)",
+   "hash": "fb7758c0c63864e8",
+   "does": "Wraps cardStack(card) in OnboardingFillingScroll.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body",
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::func OnboardingValuePropPage.cardStack(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::func OnboardingValuePropPage.cardStack(_:)": "621c647411105995",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "955c78adee36528d"
+   }
+  },
+  {
+   "key": "func OnboardingValuePropPage.cardStack(_:)",
+   "hash": "78244ad21d9e6e3e",
+   "does": "VStack: 80pt glyph, verbatim (pre-localized) headline 28pt and body 16pt, centered.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

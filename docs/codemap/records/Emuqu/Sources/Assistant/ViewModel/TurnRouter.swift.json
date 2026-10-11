@@ -1,0 +1,331 @@
+{
+ "file": "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift",
+ "hash": "ee75cfbd39862d2f",
+ "role": "Pure routing core: given a value snapshot of mode, selected provider/model, voice flag and per-provider state, decides which provider/model/tier answers a turn plus log lines; also the failure-fallback policy and the PickedModelFailure error.",
+ "types": [
+  "TurnRouter: enum (@MainActor) — pure routing functions",
+  "TurnRouter.ProviderState: struct — availability/consent/tools/default model per provider",
+  "TurnRouter.MappingSnapshot: struct — tier→provider/model mapping",
+  "TurnRouter.TierStage: struct — impure tier-proposal results supplied by shell",
+  "TurnRouter.Inputs: struct — full routing snapshot",
+  "TurnRouter.Decision: struct — routed provider/model/tier + log lines",
+  "TurnRouter.FailureFallback: enum — none/onDeviceOnly/anyAccepted",
+  "PickedModelFailure: struct (LocalizedError) — error when the picked model fails and no fallback is allowed"
+ ],
+ "state": [],
+ "toplevel": "No stored state; all value types. Covered by EmuquTests/TurnRouterTests.swift.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TurnRouter.Inputs.with(tierStage:)",
+   "hash": "71656989e7436995",
+   "does": "Returns a copy of Inputs with tierStage replaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TurnRouter.route(inputs:)",
+   "hash": "f6085ecfaa01ae37",
+   "does": "Returns preTierDecision if it yields an early decision, else tierDecision. Called by AssistantTurnRouter.resolveProviderForThisTurn (AssistantViewModel+Routing.swift:42).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "preTierDecision returns non-nil",
+     "effect": "true: return early decision; false: return tierDecision"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.tierDecision(inputs:)": "8f03b3e5b50f334d"
+   }
+  },
+  {
+   "key": "func TurnRouter.needsTierProposal(inputs:)",
+   "hash": "48b88d4b6b50daa5",
+   "does": "True when preTierDecision returns nil (turn must go through the tier stage).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)": "914e5a48e368e73f"
+   }
+  },
+  {
+   "key": "func TurnRouter.preTierDecision(inputs:)",
+   "hash": "07f2436a74a90d79",
+   "does": "Early decision: any non-Apple selected provider or Manual mode → user's pick (no tier); Apple + voice → appleVoiceBypass; Apple + typed non-Manual → nil (tier stage).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selected provider != .apple OR mode == .manual",
+     "effect": "true: returns userPick (tier nil, no logs); false: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "isVoiceTurn",
+     "effect": "true: returns appleVoiceBypass; false: returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.appleVoiceBypass(inputs:)": "efe8e9a74fd5aea1",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd"
+   }
+  },
+  {
+   "key": "func TurnRouter.appleVoiceBypass(inputs:)",
+   "hash": "2bfba05e5915b97b",
+   "does": "Apple + voice: routes to the first available consented non-Apple cloud with its default/first model and a log line; if none (or it has no model), stays on the user's Apple pick with a log line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a consented cloud exists AND it has a default/first model",
+     "effect": "true: Decision(cloud, model, tier nil); false: userPick with 'no consented cloud' log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func TurnRouter.tierDecision(inputs:)",
+   "hash": "e82d0dcadbb1c3b6",
+   "does": "Tier stage: without a TierStage returns user pick; downgrades Deep→Auto when Tier-3 cap reached; looks up the tier mapping (missing → user pick with tier); logs mapping/collapse; applies action-intent override if applicable; else returns the mapping's provider/model.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "inputs.tierStage is nil",
+     "effect": "true: userPick(tier nil); false: continue"
+    },
+    {
+     "at": "+4",
+     "cond": "proposedTier == .deep AND tier3CapReached",
+     "effect": "true: log + finalTier = .auto; false: keep proposed tier"
+    },
+    {
+     "at": "+8",
+     "cond": "mapping exists for finalTier",
+     "effect": "false: userPick(tier: finalTier) (unreachable by construction per comment 228-232); true: continue"
+    },
+    {
+     "at": "+11",
+     "cond": "mapping.collapsed",
+     "effect": "true: 'collapsed to' log; false: 'tier → provider:model' log"
+    },
+    {
+     "at": "+14",
+     "cond": "actionIntentOverride returns non-nil",
+     "effect": "true: Decision with override provider/model; false: Decision with mapping provider/model"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "aa49beb2ffd15915",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.userPick(_:tier:logLines:)": "0af941b6c4bfe3dd"
+   }
+  },
+  {
+   "key": "func TurnRouter.userPick(_:tier:logLines:)",
+   "hash": "3e7c8b6c3fe9ccfd",
+   "does": "Returns a Decision with the selected provider and model and the given tier/log lines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)",
+   "hash": "0d49bc78fe0d858b",
+   "does": "If the mapped provider lacks tool support and the message requires tools, returns the first consented cloud and its default model (appending a log line); else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "providers[mapping.providerID]?.supportsTools ?? true",
+     "effect": "defaults to true (no override) when the mapped provider has no ProviderState in the snapshot"
+    },
+    {
+     "at": "+7",
+     "cond": "!supportsTools AND messageRequiresTools AND consented cloud with model exists",
+     "effect": "true: log + return (cloudID, model); false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "2da15195f6be226a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func TurnRouter.firstConsentedCloud(inputs:)",
+   "hash": "50f41f4882283ec5",
+   "does": "Returns the first provider id in providerOrder that is not Apple, has a ProviderState, and is available and consented; nil if none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id != .apple AND state exists",
+     "effect": "false: skip id; true: return isAvailable && isConsented as the match predicate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func TurnRouter.failureFallback(mode:selectedProviderID:)",
+   "hash": "c071e785738aaff1",
+   "does": "Static: maps (mode, selected provider) to the allowed failure fallback: non-Apple selection → .none; Apple + Manual → .none; Apple + Quick → .onDeviceOnly; Apple + Auto/Deep → .anyAccepted. Used by AssistantViewModel+Routing.swift:665.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "selectedProviderID == .apple",
+     "effect": "false: .none; true: switch on mode"
+    },
+    {
+     "at": "+3",
+     "cond": "case .manual",
+     "effect": ".none"
+    },
+    {
+     "at": "+4",
+     "cond": "case .quick",
+     "effect": ".onDeviceOnly"
+    },
+    {
+     "at": "+5",
+     "cond": "case .auto, .deep",
+     "effect": ".anyAccepted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TurnRouter.allowedFallbacks(_:under:)",
+   "hash": "86544108e2ddf421",
+   "does": "Static: filters a fallback chain by policy: .none → empty, .onDeviceOnly → only Apple entries, .anyAccepted → whole chain.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "case .none",
+     "effect": "returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "case .onDeviceOnly",
+     "effect": "returns chain entries whose provider id is .apple"
+    },
+    {
+     "at": "+7",
+     "cond": "case .anyAccepted",
+     "effect": "returns chain unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PickedModelFailure.errorDescription",
+   "hash": "75bc76a28dfed6ed",
+   "does": "Localized message naming the failed provider and reason, stating Flo did not hand the question to another model.",
+   "entry": "LocalizedError witness read when the error is surfaced (AssistantViewModel+Routing.swift:672)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "underlying.errorDescription ?? underlying.localizedDescription",
+     "effect": "AIProviderError.errorDescription returns a non-nil String for every case (AIProvider.swift:408-422), so the localizedDescription fallback is never used"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The '?? underlying.localizedDescription' fallback can never fire: AIProviderError.errorDescription is a total switch returning a String for every case.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:342",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:408",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:410"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription": "70711620b8a8d189",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

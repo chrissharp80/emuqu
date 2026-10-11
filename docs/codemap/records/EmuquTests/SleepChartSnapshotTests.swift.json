@@ -1,0 +1,143 @@
+{
+ "file": "EmuquTests/SleepChartSnapshotTests.swift",
+ "hash": "d87223e4e88ef9e2",
+ "role": "Snapshot tests rendering SleepTimelineChart with staged night, no stages, and no boundaries, compared against committed __Snapshots__ references.",
+ "types": [
+  "SleepChartSnapshotTests: class — @MainActor XCTestCase snapshotting SleepTimelineChart"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepChartSnapshotTests.hosted(_:)",
+   "hash": "c817f9f364e9a427",
+   "does": "Wraps a view in .environment(RRCollector()) and .environment(SettingsManager.shared) for rendering.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()"
+   ],
+   "reads": [
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Hosts the view with RRCollector() (convenience init over the app's shared defaults/archive) and the live SettingsManager.shared without useDefaultSettings(), unlike SnapshotFixtures.collector(); SleepTimelineChart reads neither today, so the injection is inert but would make the snapshot host-state dependent if the chart starts reading them.",
+     "evidence": [
+      "EmuquTests/SleepChartSnapshotTests.swift:14",
+      "EmuquTests/SleepChartSnapshotTests.swift:15",
+      "EmuquTests/SnapshotFixtures.swift:171"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same private hosted(_:) helper (.environment(RRCollector()).environment(SettingsManager.shared)) is copied into about ten snapshot suites (Card, RemainingScreen, ChartScreen, BigScreen, SleepChart, State, Page, Overnight, DashboardChip, DetailScreen), although SnapshotFixtures says it is centralised so suites do not each grow their own copy.",
+     "evidence": [
+      "EmuquTests/SleepChartSnapshotTests.swift:12",
+      "EmuquTests/StateSnapshotTests.swift:18",
+      "EmuquTests/CardSnapshotTests.swift:15",
+      "EmuquTests/SnapshotFixtures.swift:13"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+   }
+  },
+  {
+   "key": "func SleepChartSnapshotTests.stageIntervals()",
+   "hash": "34df2178c7b4a385",
+   "does": "Builds 12 SleepStageInterval values (core/deep/REM/awake) over 420 minutes from SnapshotFixtures.anchor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepChartSnapshotTests.testSleepTimelineRenders()",
+   "hash": "3822b56fc183c02e",
+   "does": "Snapshots SleepTimelineChart with the staged night, sleep 0–420 min, in-bed 10 min earlier, against 'chart-sleep-timeline'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-sleep-timeline.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func SleepChartSnapshotTests.testSleepTimelineWithoutStagesRenders()",
+   "hash": "19bae8d542cfdb08",
+   "does": "Snapshots SleepTimelineChart with no stage intervals and no in-bed start against 'chart-sleep-timeline-no-stages'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-sleep-timeline-no-stages.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func SleepChartSnapshotTests.testSleepTimelineWithoutBoundariesRenders()",
+   "hash": "f97a907c1ad2cba1",
+   "does": "Snapshots SleepTimelineChart with stages but nil sleepStart/sleepEnd/inBedStart against 'chart-sleep-timeline-no-boundaries'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/chart-sleep-timeline-no-boundaries.raw"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.body": "2372fdc449425606",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.hosted(_:)": "d6c0dcad145a223c",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

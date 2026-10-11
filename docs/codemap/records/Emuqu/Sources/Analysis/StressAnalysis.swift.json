@@ -1,0 +1,358 @@
+{
+ "file": "Emuqu/Sources/Analysis/StressAnalysis.swift",
+ "hash": "c302873f1c7f8ca1",
+ "role": "Stateless StressAnalyzer enum: Baevsky Stress Index, Emuqu's equal-weight PNS/SNS composite z-scores, and the 1-10 readiness score stored in ANSMetrics.readinessScore by HRVAnalysisPipeline.",
+ "types": [
+  "StressAnalyzer: enum — static stress/PNS/SNS/readiness computations"
+ ],
+ "state": [],
+ "toplevel": "All thresholds/weights come from StressNormativeConstants (Constants.swift:541) and HRVThresholds.dfaAlpha1* ; no state.",
+ "flags": [
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "fitnessAdjustedBaseline multiplies the user's PERSONAL baseline (RRCollector.swift:485 exp(lnRmssdMean)) by a VO2max multiplier (vo2 60 → ×1.2, ≥70 → ×1.3). A fit user sitting exactly at their own typical RMSSD gets ratio 0.83/0.77, falling out of the 0.85–1.15 optimal band to the acceptable band: readiness drops 1 point (+1 instead of +2) for being at baseline. The personal baseline already reflects fitness, so the adjustment double-counts it.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift:158",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift:160",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift:177",
+    "Emuqu/Sources/Collection/RRCollector.swift:485",
+    "Emuqu/Sources/Utilities/Constants.swift:604"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func StressAnalyzer.computeStressIndex(_:)",
+   "hash": "9cbc6c3730e18e38",
+   "does": "Baevsky SI from RR (ms): needs ≥20 beats (stressIndexMinRRCount), builds a 50 ms histogram anchored at min RR, Mo = modal-bin centre (s), AMo = modal count % of beats, MxDMn = range (s); returns AMo/(2·Mo·MxDMn), nil when not computable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rr.count >= 20",
+     "effect": "false → nil"
+    },
+    {
+     "at": "+2",
+     "cond": "rr.min() nil (empty)",
+     "effect": "fallback 0; unreachable since count≥20"
+    },
+    {
+     "at": "+3",
+     "cond": "rr.max() nil",
+     "effect": "fallback 0; unreachable since count≥20"
+    },
+    {
+     "at": "+5",
+     "cond": "range > 0 and histogram built",
+     "effect": "false (constant RR or nil histogram) → nil"
+    },
+    {
+     "at": "+7",
+     "cond": "histogram.max() nil",
+     "effect": "fallback 0; unreachable (histogram has ≥2 bins)"
+    },
+    {
+     "at": "+8",
+     "cond": "firstIndex(of: max) nil",
+     "effect": "fallback 0; unreachable"
+    },
+    {
+     "at": "+12",
+     "cond": "mo > 0",
+     "effect": "false → nil; true → SI"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The ?? fallbacks at 19/20/24/25 can never fire after the count≥20 guard and a non-empty histogram.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:18",
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:24"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)": "183bc72aa67b06b1"
+   }
+  },
+  {
+   "key": "func StressAnalyzer.stressIndexHistogram(_:minRR:maxRR:)",
+   "hash": "daae3e8b96e075df",
+   "does": "Builds an Int histogram of RR values with 50 ms bins starting at minRR (binCount = ceil(range/50)+1); counts each interval in its bin.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "binCount > 0",
+     "effect": "false → nil; never false because ceil(...)+1 ≥ 1"
+    },
+    {
+     "at": "+5",
+     "cond": "for each interval",
+     "effect": "iterates all beats"
+    },
+    {
+     "at": "+7",
+     "cond": "bin index in range",
+     "effect": "true → increment bin; out-of-range beats ignored (cannot occur for min..max inputs)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "guard binCount > 0 cannot fail: ceil(non-negative)+1 ≥ 1.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:36",
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:37"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)",
+   "hash": "e056a689666f3949",
+   "does": "PNS index = mean of z-scores of meanRR (926±90), RMSSD (42±15) and SD1 against StressNormativeConstants references; equal weights, not Kubios' formula.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)",
+   "hash": "3b6a20344e65eba3",
+   "does": "SNS index = mean of z(meanHR vs 66±9), z(SI vs 100±50) and inverted z(SD2 vs 65±20).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)",
+   "hash": "a46cdb9778aa4231",
+   "does": "Readiness 1-10: starts at 5, adds rmssdAdjustment (vs VO2-scaled baseline or absolute bands), DFA α1 adjustment, ANS balance adjustment, and subtracts a negative trainingLoadAdjustment (raising score); clamps to [1,10]. Called by HRVAnalysisPipeline+Metrics readinessScore and stored in ANSMetrics.readinessScore.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "trainingLoadAdjustment < 0",
+     "effect": "true → score -= adj (raises score by |adj|); positive adjustments (doc says range up to +1) are ignored entirely"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says trainingLoadAdjustment ranges -2..+1 but any positive value is silently ignored.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:128",
+      "Emuqu/Sources/Analysis/StressAnalysis.swift:152"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)": "e56cc8abf2fd0ee7",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)": "c68233bcb7a4c5b4",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)": "d7975f119333bee8",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)": "d2f4e9588cdfc0aa"
+   }
+  },
+  {
+   "key": "func StressAnalyzer.fitnessAdjustedBaseline(baselineRMSSD:vo2Max:)",
+   "hash": "d6122370c53b33da",
+   "does": "Returns baselineRMSSD × clamp(1 + (vo2-40)/100, 0.8, 1.3) when both baseline and VO2max are present; otherwise the raw baseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline and vo2Max both non-nil",
+     "effect": "false → returns baselineRMSSD unchanged (possibly nil); true → scaled baseline"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)",
+   "hash": "2a101c23bdb1be62",
+   "does": "RMSSD contribution: with a positive baseline, ratio rmssd/baseline in 0.85–1.15 → +2, 0.70–1.30 → +1, <0.60 or >1.50 → −2, else 0; without a baseline uses absolute bands from rmssdThresholds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdThresholds(vo2Max:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.absoluteRMSSDAdjustment(_:high:mid:low:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline present and > 0",
+     "effect": "false → absolute-band adjustment"
+    },
+    {
+     "at": "+7",
+     "cond": "ratio in optimal band [0.85,1.15]",
+     "effect": "→ +2"
+    },
+    {
+     "at": "+10",
+     "cond": "ratio in acceptable band [0.70,1.30]",
+     "effect": "→ +1"
+    },
+    {
+     "at": "+13",
+     "cond": "ratio <0.60 or >1.50",
+     "effect": "→ −2; otherwise (0.60–0.70 or 1.30–1.50) → 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "ae0e5ba829843964",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.absoluteRMSSDAdjustment(_:high:mid:low:)": "b99c53db3cd60d81",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdThresholds(vo2Max:)": "24fb92e17e0d0ae8"
+   }
+  },
+  {
+   "key": "func StressAnalyzer.rmssdThresholds(vo2Max:)",
+   "hash": "94130217e8190aca",
+   "does": "Absolute RMSSD bands: VO2max > 50 → (60,40,25) ms, else (50,30,20).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "vo2Max present and > 50",
+     "effect": "false → standard bands; true → fit bands"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.dfaAdjustment(_:)",
+   "hash": "f55f4d20019dee12",
+   "does": "DFA α1 contribution: nil → 0; 0.75–1.0 → +2; 0.60–1.25 → +0.5; otherwise −1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1 non-nil",
+     "effect": "false → 0"
+    },
+    {
+     "at": "+3",
+     "cond": "0.75 ≤ a1 ≤ 1.0",
+     "effect": "→ +2"
+    },
+    {
+     "at": "+6",
+     "cond": "0.60 ≤ a1 ≤ 1.25",
+     "effect": "→ +0.5; else → −1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)",
+   "hash": "a6dfc1e3b08d4abe",
+   "does": "ANS balance = PNS−SNS: ≥1 → +1.5, ≥0 → +0.5, ≥−1 → −0.5, else −1.5; 0 when either index missing (SNS is nil when SI is nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both indices present",
+     "effect": "false → 0"
+    },
+    {
+     "at": "+4",
+     "cond": "balance ≥ 1.0",
+     "effect": "→ +1.5"
+    },
+    {
+     "at": "+5",
+     "cond": "balance ≥ 0",
+     "effect": "→ +0.5"
+    },
+    {
+     "at": "+6",
+     "cond": "balance ≥ −1.0",
+     "effect": "→ −0.5; else −1.5"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StressAnalyzer.absoluteRMSSDAdjustment(_:high:mid:low:)",
+   "hash": "e230a8a4f81e0ac4",
+   "does": "Maps absolute RMSSD to +1.5 (> high), +0.5 (> mid), −1.5 (< low), else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "rmssd > high",
+     "effect": "→ +1.5"
+    },
+    {
+     "at": "+7",
+     "cond": "rmssd > mid",
+     "effect": "→ +0.5"
+    },
+    {
+     "at": "+8",
+     "cond": "rmssd < low",
+     "effect": "→ −1.5; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

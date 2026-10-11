@@ -527,6 +527,34 @@ check "uitest_fresh_install/dropped_flag" \
     "EmuquUITests/DashboardUITests.swift" \
     "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
 
+# A unit with no record, and a unit whose code changed after its record was
+# written, must both turn the code map red.
+CODEMAP_PY=python3
+[[ -x .venv-codemap/bin/python ]] && CODEMAP_PY=.venv-codemap/bin/python
+check "codemap/unrecorded_function" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedUnrecorded() -> Int { 1 }'+chr(10))"
+
+check "codemap/stale_record" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "Emuqu/Sources/Utilities/Extensions.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
+
+# A change that records a new high-severity finding, instead of fixing it, must
+# break the open-findings ratchet.
+check "codemap/new_high_finding" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json');r=json.loads(p.read_text());r['flags'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
+
+# A unit whose record now describes different behaviour must send its callers
+# back for a re-check, even though their own code did not change.
+check "codemap/callee_behaviour_changed" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/Extensions.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/Extensions.swift.json');r=json.loads(p.read_text());u=next(u for u in r['units'] if u['key']=='func DurationFormatter.hoursMinutes(minutes:)');u['does']+=' Planted change.';p.write_text(json.dumps(r,indent=1)+chr(10))"
+
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
 echo

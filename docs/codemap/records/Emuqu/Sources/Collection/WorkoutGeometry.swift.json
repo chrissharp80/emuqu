@@ -1,0 +1,355 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutGeometry.swift",
+ "hash": "9cdc468cb049ab37",
+ "role": "Pure static geometry/physiology helpers used by the live workout path and fact resolvers: track length, nearest fix, local pace, route-index lookup, bearings and turn labels, %maxHR zone, breadcrumb decimation, km chunks and the trailing grade window.",
+ "types": [
+  "WorkoutGeometry: enum — namespace of pure static functions",
+  "WorkoutGeometry.SplitChunk: struct — distance span and sample offsets of one >=1 km chunk"
+ ],
+ "state": [],
+ "toplevel": "No state; only type declarations.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutGeometry.trackLengthMeters(_:)",
+   "hash": "1057e546d03c79a9",
+   "does": "Sums great-circle distance (CLLocation.distance) between consecutive fixes of a track and returns metres; 0 for fewer than 2 fixes. Includes every step, paused or not.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track has fewer than 2 fixes",
+     "effect": "returns 0; otherwise loops"
+    },
+    {
+     "at": "+3",
+     "cond": "for each index 1..<count",
+     "effect": "adds distance from previous fix to total"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.nearestFix(in:to:)",
+   "hash": "0c085e0973e5d84f",
+   "does": "Linear scan returning (index, distance) of the fix in track nearest target; returns (0, +infinity) for an empty track. Used by AppFactResolver+WorkoutDetail.swift:719.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each fix",
+     "effect": "computes distance to target"
+    },
+    {
+     "at": "+5",
+     "cond": "distance < best so far",
+     "effect": "records new closest index/distance; otherwise keeps previous"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.localPace(in:at:)",
+   "hash": "2a18aa52d036b506",
+   "does": "Pace in sec/km over fixes [idx-5, idx+5] clamped to the track: (end.timestamp-start.timestamp)/(straight-line distance/1000); nil when the straight-line span <=5 m or <=1 s. Straight-line (not path) distance overstates pace on curves. Crashes (index out of range) on an empty track since hi = -1. Used by AppFactResolver+WorkoutDetail.swift:728 after nearestFix.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "localDist > 5 m AND localDur > 1 s",
+     "effect": "returns duration/(km); otherwise nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Indexes track[lo]/track[hi] without an emptiness guard; an empty track gives hi=-1 and traps. Only safe because the caller passes a non-empty track.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:54",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:55"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.nextIndex(after:atDistance:in:)",
+   "hash": "677dfd8a2a25c725",
+   "does": "Returns the first index after startIdx whose cumulative distance is >= dists[startIdx]+meters; nil when startIdx is out of range or no such index (end of route).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "startIdx >= dists.count",
+     "effect": "returns nil; otherwise searches dists[startIdx+1...] with firstIndex"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.bearing(from:to:)",
+   "hash": "80bc6ae5db9ee00f",
+   "does": "Initial great-circle bearing from Route.Point a to b in degrees, normalised to [0,360) (0=N, 90=E).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same initial-bearing formula is implemented separately in GetMeBackView.bearing, SavedRouteStepBuilder.bearing, RoadGeocodingSupport bearingDegrees and RoadAwarenessEngine.bearingDegrees.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:74",
+      "Emuqu/Sources/Views/GetMeBackView.swift:688",
+      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:365",
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.signedBearingDelta(from:to:)",
+   "hash": "b3b9904486a9bf29",
+   "does": "Returns b-a wrapped into (-180, +180]; positive = right turn.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "d > 180",
+     "effect": "subtracts 360 repeatedly"
+    },
+    {
+     "at": "+3",
+     "cond": "d <= -180",
+     "effect": "adds 360 repeatedly; otherwise d returned unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.turnLabel(deltaDegrees:)",
+   "hash": "0cbb2d088ba30d95",
+   "does": "Maps a signed bearing delta to a spoken label: |d|>=150 \"U-turn\", >=110 \"hard right/left\", >=60 \"right/left\", else \"soft right/left\"; side is right when delta>=0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "delta >= 0",
+     "effect": "side \"right\"; else \"left\""
+    },
+    {
+     "at": "+3",
+     "cond": "|delta| >= 150",
+     "effect": "returns \"U-turn\""
+    },
+    {
+     "at": "+4",
+     "cond": "|delta| >= 110",
+     "effect": "returns \"hard <side>\""
+    },
+    {
+     "at": "+5",
+     "cond": "|delta| >= 60",
+     "effect": "returns \"<side>\"; otherwise falls through to \"soft <side>\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.hrMaxZone(hr:maxHR:)",
+   "hash": "e2b7d69333e886ca",
+   "does": "Returns the 1-5 %maxHR zone for hr: <60% ->1, <70% ->2, <80% ->3, <90% ->4, else 5; nil when hr is nil or maxHR<=0. Used for threshold signals (WorkoutRecorder+Context.swift:401).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hr nil or maxHR <= 0",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "pct < 0.60",
+     "effect": "zone 1"
+    },
+    {
+     "at": "+4",
+     "cond": "pct < 0.70",
+     "effect": "zone 2"
+    },
+    {
+     "at": "+5",
+     "cond": "pct < 0.80",
+     "effect": "zone 3"
+    },
+    {
+     "at": "+6",
+     "cond": "pct < 0.90",
+     "effect": "zone 4; otherwise zone 5"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says anything below 60% reads as zone 1 \"so a zone threshold and the zone shown to the user always agree\", but the displayed zone breakdown WorkoutZoneBreakdown.zoneIndex returns nil (uncounted) below 50%, so a sub-50% HR is zone 1 for thresholds but no zone in the breakdown; two separate implementations of the same band model.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:106",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:111",
+      "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift:294"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)",
+   "hash": "2edafb5d52c01ec0",
+   "does": "Decimates a track into breadcrumb fixes: starts with origin, then appends each later fix with horizontalAccuracy>0 that is >=25 m from or >=30 s after the last committed fix. Returns [] for an empty track.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)",
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track empty",
+     "effect": "returns []"
+    },
+    {
+     "at": "+4",
+     "cond": "for each fix after the first",
+     "effect": "evaluates gates"
+    },
+    {
+     "at": "+5",
+     "cond": "horizontalAccuracy <= 0",
+     "effect": "skips the fix"
+    },
+    {
+     "at": "+8",
+     "cond": "neither moved >=25 m nor >=30 s elapsed",
+     "effect": "skips; otherwise appends BreadcrumbFix and makes it the new reference"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment calls this a 'mirror of BreadcrumbRecorder throttle' but it omits BreadcrumbRecorder's horizontalAccuracy<=100 m rejection, so post-hoc decimated breadcrumbs can include fixes the live recorder would drop; the first track fix is also never accuracy-checked (used only as reference).",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:118",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:126",
+      "Emuqu/Sources/Services/BreadcrumbRecorder.swift:226"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c"
+   }
+  },
+  {
+   "key": "func WorkoutGeometry.kilometreChunks(_:)",
+   "hash": "9ee58c96da622479",
+   "does": "Splits a sample series into consecutive chunks of >=1000 m cumulative distance, each with start/end distance and offsetSec; the trailing partial km is dropped; samples without distance are skipped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each sample",
+     "effect": "checks distance"
+    },
+    {
+     "at": "+5",
+     "cond": "distanceMeters nil or < 1000 m past chunk start",
+     "effect": "skips; otherwise closes a chunk and starts the next at this sample"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutGeometry.trailingGradeWindow(track:)",
+   "hash": "a3b1127a12dcde9e",
+   "does": "Walks the track backwards summing step distances until >=100 m; returns the start index of that window and the metres covered (whole track, start 0, when shorter). Includes paused steps since track keeps paused fixes.",
+   "entry": null,
+   "calls": [
+    "ext:CLLocation.distance(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for i from last down to 1",
+     "effect": "adds step distance"
+    },
+    {
+     "at": "+5",
+     "cond": "accumulated >= 100 m",
+     "effect": "sets startIdx=i-1 and stops; otherwise continues to start (startIdx stays 0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "`1 ..< track.count` traps (lowerBound > upperBound) on an empty track; safe only because the sole caller guards track.count >= 2.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:155",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:517"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

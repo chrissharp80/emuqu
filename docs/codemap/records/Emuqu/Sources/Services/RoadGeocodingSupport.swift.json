@@ -1,0 +1,132 @@
+{
+ "file": "Emuqu/Sources/Services/RoadGeocodingSupport.swift",
+ "hash": "a09c1f37a660b7aa",
+ "role": "Free helpers: runWithTimeout (continuation race with FirstResultGate) used across the app, and the great-circle bearingDegrees.",
+ "types": [
+  "FirstResultGate: class — one-shot continuation resumer"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func runWithTimeout(seconds:operation:)",
+   "hash": "84849d9b294b9adc",
+   "does": "Races an async throwing operation against a timer via a checked continuation and FirstResultGate: whichever finishes first resumes; errors become nil; on timeout resumes nil and cancels the work task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "closure:operation — caller-supplied work (geocoder, MKLocalSearch, CloudKit, HealthKit queries)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The timer task is never cancelled when the work finishes first, so every call leaves a task sleeping for the full timeout; the work task is unstructured and does not inherit the caller's cancellation (reset() cancelling a lookup does not stop an in-progress search).",
+     "evidence": [
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:32",
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)": "bca9802160dc3850",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func resultOrNil(_:)": "f3401e4487e3b53d",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "1da9d4e53b559769",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func resultOrNil(_:)",
+   "hash": "194102bceeda3d8f",
+   "does": "Awaits the operation; on throw logs the error and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "operation throws (catch)",
+     "effect": "error logged to debug log, swallowed, nil returned"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "init FirstResultGate(_:)",
+   "hash": "1e151f4fa3006aab",
+   "does": "Wraps the continuation in an OSAllocatedUnfairLock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FirstResultGate.isResolved",
+   "hash": "b4f2e0be6ac83246",
+   "does": "True once the stored continuation has been taken (resume called).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FirstResultGate.resume(_:)",
+   "hash": "6d58ff88820659ff",
+   "does": "Atomically takes the continuation out of the lock and resumes it with the value; later calls find nil and do nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func bearingDegrees(from:to:)",
+   "hash": "bb14217558fca2e2",
+   "does": "Great-circle initial bearing from a to b, degrees [0,360).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The same great-circle initial-bearing formula is written out five times: the global bearingDegrees, RoadAwarenessEngine.bearingDegrees (Point), SavedRouteStepBuilder.bearing, GetMeBackView.bearing and WorkoutGeometry.bearing (Route.Point).",
+     "evidence": [
+      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
+      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709",
+      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:365",
+      "Emuqu/Sources/Views/GetMeBackView.swift:688",
+      "Emuqu/Sources/Collection/WorkoutGeometry.swift:74"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

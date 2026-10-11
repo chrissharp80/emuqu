@@ -1,0 +1,433 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift",
+ "hash": "361caf43f97114c3",
+ "role": "H10 device-internal RR backup for workouts: arms the strap's own recording once the link allows (tied to the workout id), decides at finalize whether to download it (density gate), reconnects/downloads/time-bounds and merges it with the streamed beats via DataSourceSelector, and resets to idle after the summary is acknowledged.",
+ "types": [
+  "WorkoutRecorder: extension — device backup",
+  "WorkoutRecorder.DeviceFetchDecision: enum — skipFetch(density, expectedBeats) | fetch(belowThresholdDensity)"
+ ],
+ "state": [
+  "DeviceFetchDecision.skipFetchDensityThreshold = 0.95",
+  "DeviceFetchDecision.minPlausibleAvgRRMs = 300",
+  "DeviceFetchDecision.minElapsedSecForDensityCheck = 60 s",
+  "DeviceFetchDecision.deviceWindowToleranceMs = 60000",
+  "mem:WorkoutRecorder.deviceBackupArmedAt (declared WorkoutRecorder.swift:306)"
+ ],
+ "toplevel": "Two file-private @MainActor free functions (selectMergedWorkoutRR, boundedToWorkoutWindow) follow the extension.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecorder.startDeviceInternalBackupIfPossible(workoutId:)",
+   "hash": "686ad62aa1229271",
+   "does": "At workout start, unless the connected strap is a Verity Sense, spawns a Task that arms the device-internal backup for this workout id. Caller: beginPolarStreamingOrDefer (WorkoutRecorder+Start.swift:276).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.armDeviceInternalBackup(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connected device is Verity Sense",
+     "effect": "logs skip and returns; otherwise launches arming task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.armDeviceInternalBackup(for:)": "de5bc29f97bcb8ea",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.armDeviceInternalBackup(for:)",
+   "hash": "126a796a1fae891c",
+   "does": "Waits (no deadline) on StrapLinkCoordinator.whenFeatureUsable(.h10Recording) while this workout is still recording, then runs armBackup. Errors are logged as a warning only if phase is still .recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.armBackup(for:manager:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.phase"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "whenFeatureUsable/armBackup threw",
+     "effect": "enters catch"
+    },
+    {
+     "at": "+8",
+     "cond": "phase != .recording",
+     "effect": "error swallowed silently; else warning that the workout is streaming-only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.armBackup(for:manager:)": "ea60ce0f746796e0",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)": "ea27bdece584f879",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.isRecording(_:)",
+   "hash": "97e4823aca1a4234",
+   "does": "True when phase is .recording and currentSession.id equals the workout id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSession"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.phase",
+    "mem:WorkoutLifecycle.currentSession"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSession": "5f7f872e0580112c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.keepOrStopArmedBackup(for:manager:)",
+   "hash": "21dff392750111e3",
+   "does": "After the strap recording started: if the arming workout is no longer recording, stops the device recording (streamHoldsIt false); else stamps deviceBackupArmedAt=now.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.deviceBackupArmedAt",
+    "ble:H10 device recording"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout no longer recording",
+     "effect": "logs and stops the strap recording; otherwise records armed time"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "1f11e7478669097b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)": "ea27bdece584f879",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.armBackup(for:manager:)",
+   "hash": "84279f91bc558311",
+   "does": "Starts a fresh H10 recording (checking the workout is still wanted before each destructive step) then keeps or stops it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.startH10Backup(_:while:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.keepOrStopArmedBackup(for:manager:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:H10 device recording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.isRecording(_:)": "ea27bdece584f879",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.keepOrStopArmedBackup(for:manager:)": "512ea7890b30c4fa",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.startH10Backup(_:while:)": "87cb0eacc626ab88"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.startH10Backup(_:while:)",
+   "hash": "0af190fdc91b17f2",
+   "does": "Unless Verity Sense, calls StrapRecordingCoordinator.startFreshRecording(while:) (clears/rescues old exercise and starts recording) and logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [
+    "ble:H10 device recording"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "device is Verity Sense",
+     "effect": "returns without starting"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)",
+   "hash": "071d2ca5bfc6cf94",
+   "does": "Pure density gate: fetch (nil density) when elapsed <=60 s, no streamed points, or integer mean RR <=300 ms; else expected beats = elapsed x (60000/avgRR)/60 and skipFetch when streamed/expected >= 0.95, otherwise fetch(density). Tested in WorkoutTickLogicTests.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "elapsed <= 60 s or zero points",
+     "effect": "fetch(nil)"
+    },
+    {
+     "at": "+9",
+     "cond": "avg RR <= 300 ms",
+     "effect": "fetch(nil)"
+    },
+    {
+     "at": "+15",
+     "cond": "density >= 0.95",
+     "effect": "skipFetch; else fetch(density)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecorder.mergeWorkoutRRWithDeviceFetch(session:streamingPoints:startDate:stopDate:)",
+   "hash": "d1ea21b912232285",
+   "does": "At finalize: if the strap holds this workout and the density gate says fetch, downloads the H10 recording since startDate, shifts it onto the workout clock (fallback start = deviceBackupArmedAt), bounds it to the workout window and merges with streaming via DataSourceSelector; returns streaming points on any miss. Caller: gatherFinalRRPoints (WorkoutRecorder+Stop.swift:102).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.strapHoldsThisWorkout()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.shouldFetchDeviceRecording(streamingPoints:startDate:stopDate:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func boundedToWorkoutWindow(_:startDate:stopDate:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func selectMergedWorkoutRR(streamingPoints:bounded:session:startDate:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.deviceBackupArmedAt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "strap does not hold this workout, or density gate skips",
+     "effect": "returns streaming points unchanged"
+    },
+    {
+     "at": "+10",
+     "cond": "no recording or empty",
+     "effect": "logs and returns streaming"
+    },
+    {
+     "at": "+18",
+     "cond": "no device points inside window",
+     "effect": "logs and returns streaming; otherwise merge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "dfd25ec011b46b1c",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "124778dc78766fbb",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.shouldFetchDeviceRecording(streamingPoints:startDate:stopDate:)": "2920228cfcb06978",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.strapHoldsThisWorkout()": "5c17ea326e16f3c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func boundedToWorkoutWindow(_:startDate:stopDate:)": "943244e20be10693",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func selectMergedWorkoutRR(streamingPoints:bounded:session:startDate:)": "d8b5162662cc4795",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.strapHoldsThisWorkout()",
+   "hash": "39ea3adafb2e7ec8",
+   "does": "True only for a strap workout whose backup was armed or whose strap reports recording; resets the transfer-cancel flag and reconnects the strap (bounded) for the transfer; on reconnect failure logs an external note and returns false (strap keeps recording off-body).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.activeHRSource",
+    "mem:WorkoutRecorder.deviceBackupArmedAt",
+    "mem:PolarManager.isRecordingOnDevice"
+   ],
+   "writes": [
+    "mem:PolarManager.fetchCancelled"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not a strap workout, or neither armed nor recording",
+     "effect": "returns false"
+    },
+    {
+     "at": "+4",
+     "cond": "reconnect fails",
+     "effect": "logs user-facing external message and returns false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "bfa6d138e9e66b85",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "daaf8ce19213f55e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.shouldFetchDeviceRecording(streamingPoints:startDate:stopDate:)",
+   "hash": "f64c39c1325d801c",
+   "does": "Runs deviceFetchDecision on the streamed buffer (elapsed = stop-start wall clock, summed rr_ms); on skip logs and still stops the device recording (streamHoldsIt true) and returns false; on fetch logs the density if computed and returns true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:H10 device recording"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "case .skipFetch",
+     "effect": "logs, stops strap recording, returns false"
+    },
+    {
+     "at": "+14",
+     "cond": "case .fetch",
+     "effect": "returns true"
+    },
+    {
+     "at": "+15",
+     "cond": "density computed",
+     "effect": "logs below-threshold density; else no log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "1f11e7478669097b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.deviceFetchDecision(streamingPointCount:elapsedSec:summedRRMs:)": "9c3751db0034bba6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.acknowledgeFinished()",
+   "hash": "5634befa2372471d",
+   "does": "When phase is .finished: clears finishedSession, sets phase .idle and stops a lingering Polar stream (HRR capture) if still streaming. No-op in any other phase. Callers: FitnessTabView (lines 221, 226) and the Watch acknowledgeFinished command via AppLaunchTasks.",
+   "entry": "User dismissing the workout summary (FitnessTabView) or Watch \"Save & Done\" message",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:WorkoutLifecycle.phase",
+    "mem:PolarManager.isStreaming"
+   ],
+   "writes": [
+    "mem:WorkoutLifecycle.finishedSession",
+    "mem:WorkoutLifecycle.phase"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "phase == .finished",
+     "effect": "resets to idle; otherwise does nothing"
+    },
+    {
+     "at": "+4",
+     "cond": "Polar still streaming",
+     "effect": "stops stream (discarding returned points) and logs"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "61f032bd39cc3856",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func selectMergedWorkoutRR(streamingPoints:bounded:session:startDate:)",
+   "hash": "70e80709e1e6707e",
+   "does": "File-private: asks DataSourceSelector.selectBestSource to pick/merge streaming vs bounded device points (session id from the session, or a throwaway HRVSession id when nil); returns streaming when the selector returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "session nil",
+     "effect": "?? builds a temporary HRVSession(startDate:, .workout) just for an id"
+    },
+    {
+     "at": "+8",
+     "cond": "selector returns nil",
+     "effect": "logs and returns streaming; else returns selection.points"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "31c50995ae40ae2b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func boundedToWorkoutWindow(_:startDate:stopDate:)",
+   "hash": "da063fb39e7ad52b",
+   "does": "File-private: keeps device points with 0 <= t_ms <= workout duration + 60 s and logs how many were discarded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "some points discarded",
+     "effect": "logs count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  }
+ ],
+ "deps": {}
+}

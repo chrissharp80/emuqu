@@ -1,0 +1,255 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift",
+ "hash": "911d1ecb6ba1fdf6",
+ "role": "Forwarders from FitnessPostSummaryView to WorkoutStatsCards (charts, elevation, HRR banner/card, best split) built per access from the current session, settings and track.",
+ "types": [
+  "FitnessPostSummaryView: extension — WorkoutStatsCards forwarders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessPostSummaryView.stats",
+   "hash": "0bb79da16ddfa2c0",
+   "does": "Constructs WorkoutStatsCards(session:settingsManager:track:) on every access.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "cc1e3419b78fc3c4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.bestSplitDisplay",
+   "hash": "53d0ffe543758282",
+   "does": "Forwards to WorkoutStatsCards.bestSplitDisplay.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.bestSplitDisplay"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.bestSplitDisplay": "e184b4d598eec7fa"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.hrrNarrative(drop:)",
+   "hash": "6535051fc07dcf2d",
+   "does": "Forwards to static WorkoutStatsCards.hrrNarrative(drop:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "FitnessPostSummaryView.hrrNarrative forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:674) directly.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:674"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "2b5f9b943f7dc12b"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.hrChartCard(samples:)",
+   "hash": "c6cb72a98bc11808",
+   "does": "Forwards hrChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)": "6b36d64529625f43"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.paceChartCard(samples:)",
+   "hash": "a0b6f90fe4afd3d2",
+   "does": "Forwards paceChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)": "41eb0dbe9b128005"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.powerChartCard(samples:)",
+   "hash": "60b20eef03af8313",
+   "does": "Forwards powerChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)": "11c354841b7958e8"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.cadenceChartCard(samples:)",
+   "hash": "992e1f68098b24f6",
+   "does": "Forwards cadenceChartCard(samples:).",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)": "48ce4195a33a013a"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.elevationCard",
+   "hash": "a22c1c42a55db228",
+   "does": "Forwards elevationCard.",
+   "entry": "Rendered from summaryChartCards.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard": "d524a1d5f47a6e8c"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.hrrCaptureBanner",
+   "hash": "b5833ca9090f6502",
+   "does": "Forwards hrrCaptureBanner.",
+   "entry": "Rendered from summaryBanners.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner": "98615339edd21e59"
+   }
+  },
+  {
+   "key": "var FitnessPostSummaryView.hrrCard",
+   "hash": "85216376f1860acb",
+   "does": "Forwards hrrCard.",
+   "entry": "Rendered from summaryFeelingAndAlpha1.",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "18abec93c15cf4e2",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard": "8f98b64544303007"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.elevationSeries(_:)",
+   "hash": "c72eb40b920086db",
+   "does": "Forwards to static WorkoutStatsCards.elevationSeries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "FitnessPostSummaryView.elevationSeries forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:432) directly.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:432"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationSeries(_:)": "62c14c26260f8d24"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.hrrProvenanceLabel(_:)",
+   "hash": "1267621956324702",
+   "does": "Forwards to static WorkoutStatsCards.hrrProvenanceLabel.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "FitnessPostSummaryView.hrrProvenanceLabel forwarder has no caller in app or tests; WorkoutStatsCards calls its own static (Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:779) directly.",
+     "evidence": [
+      "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:779"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "0efc498f4a7ec53f"
+   }
+  }
+ ],
+ "deps": {}
+}

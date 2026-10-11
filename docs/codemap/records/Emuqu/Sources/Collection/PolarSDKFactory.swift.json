@@ -1,0 +1,29 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarSDKFactory.swift",
+ "hash": "10dc5b6d4faae1c8",
+ "role": "Builds the PolarBleApi handle with the six SDK features the app uses and Polar-only scan filtering.",
+ "types": [
+  "PolarSDKFactory: enum — factory for PolarBleApi"
+ ],
+ "state": [],
+ "toplevel": "makeApi exists only under `#if canImport(PolarBleSdk)`.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PolarSDKFactory.makeApi(queue:)",
+   "hash": "d7a27f389c3dd629",
+   "does": "Creates PolarBleApiDefaultImpl.polarImplementation on the given queue with features hr, battery_info, device_info, h10_exercise_recording, offline_recording, online_streaming, enables polarFilter(true) so scans return only Polar devices, and returns it.",
+   "entry": null,
+   "calls": [
+    "ext:PolarBleApiDefaultImpl.polarImplementation",
+    "ext:PolarBleApi.polarFilter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

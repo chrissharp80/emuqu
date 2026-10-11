@@ -1,0 +1,1734 @@
+{
+ "file": "docs/whitepapers/04-claims-governance.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "White paper (v1.3) describing Emuqu's build-time governance: constants-hash version lock, scoring-version stamp on stored scores, science register gate, gate meta-checks (plants, preflight, wiring), targeted test mutations with leak detector and tree lock, direction-aware budget ratchets, CI posture.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score",
+   "hash": "f8e73e62a9693a03",
+   "does": "Title block: v1.3 white paper (8 Oct 2026) describing Emuqu at e028039 (2026-10-07), scoring version v3.1.oct2026, consumer wellness app. Checked: e028039 is in history (merge of PR #7); ScoringVersion.current is \"v3.1.oct2026\" (Emuqu/Sources/Analysis/ScoringVersion.swift:29).",
+   "entry": null,
+   "calls": [
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants",
+    "Makefile::target scoring-governance",
+    "Makefile::target science-register",
+    "Makefile::target verify-gates",
+    "Makefile::target gate-preflight",
+    "Makefile::target gates-wired-guard",
+    "Makefile::target leaked-mutations-guard",
+    "Makefile::target budget-monotonicity",
+    "Makefile::target doc-links",
+    ".github/workflows/gates.yml::job script-gates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Executive Summary",
+   "hash": "aa9f4d7022e78f43",
+   "does": "Summary claims: 155 numeric constants in two files hashed with SHA-256, build fails if digest moves under the same version; stored scores carry version, old ones decode to `unversioned`; register of 19 heuristics (3 validated, 4 supported-transfer, 12 awaiting-validation) with claim/waive discovery; 64 plants; 125 targeted mutations; direction-from-filename budget ratchets. All counts verified at 8d32097 (155=91+64, hash 541b56e600080795 matches .ci baseline; register 19/3/4/12; 64 `check \"` plants; 125 `mutate \"` cases). The 'every stored score carries its version' claim fails for legacy sessions without a stored breakdown (see 3.1.3).",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The ratchet skips any .ci file whose value is not a bare integer (read_int requires ^[0-9]+$), and .ci/min_coverage_views.txt holds 43.5 (raised 42.0 -> 43.5 in a0a230f). The views-coverage floor is therefore never compared: it can be lowered to any value with no budget-raise-ok trailer and the gate prints clean. Contradicts 'Each CI budget file may move only in the tightening direction its filename declares' and README's 'Fails any diff that raises/loosens a value in .ci/*.txt'; check_coverage.sh enforces whatever value is committed.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:24",
+      "docs/whitepapers/04-claims-governance.md:370",
+      "scripts/check_budget_monotonicity.sh:134",
+      "scripts/check_budget_monotonicity.sh:143",
+      ".ci/min_coverage_views.txt:1",
+      "scripts/check_coverage.sh:56"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 1. The Problem",
+   "hash": "bb38004e64c421a8",
+   "does": "no behavioural claim: section heading for the problem statement.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 1. The Problem > 1.1 Composite scores are calibrated, not validated",
+   "hash": "b2ae409118d907f4",
+   "does": "no behavioural claim about code: literature framing (composite scores calibrated not validated; LF/HF and ACWR criticism); says the register records composite weights as calibrated, which register entry composite-weights-60-25-15 (awaiting-validation) does.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 1. The Problem > 1.2 Sources of drift",
+   "hash": "a32a3ee55df3796d",
+   "does": "no behavioural claim about code: Table 1.1 lists seven drift modes (algorithm mixing, claim creep, dead evidence, resurrected errors, fail-open gates, unwired gates, goalpost moves) that the later gates target.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 1. The Problem > 1.3 What existing approaches provide",
+   "hash": "1a96e56fc8442ecf",
+   "does": "no behavioural claim: names prior tool families compared in Section 4.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 1. The Problem > 1.4 The approach",
+   "hash": "4875e365ef58500f",
+   "does": "no behavioural claim about code: states the approach binds scoring numbers, stored version string and per-heuristic evidence/wording; cross-references Paper 5.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 2. Architecture Overview",
+   "hash": "0fb0f1acbbd08853",
+   "does": "Claims the governance layer is scripts run by two CI workflows (gates.yml per push/PR on Linux, ci.yml manual/called) and `make ci`; gates never run on device; on-device parts are the version stamp and its display. Figure 2.1 chain: constant edit -> hash gate -> version change -> new scores stamped and register scoring_version must match -> register edit -> perimeter lint. Matches workflows and Makefile at 8d32097.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "Makefile::target ci",
+    "Makefile::target ci-local",
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::job lint-and-budgets",
+    ".github/workflows/testflight.yml::job quality-gate",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/testflight.yml::job quality-gate": "cbcc490220e8dd12",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods",
+   "hash": "8db6d2b5b832d267",
+   "does": "no behavioural claim: Methods section heading.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock",
+   "hash": "1ecf7ce8c342ab8d",
+   "does": "no behavioural claim: subsection heading for hash lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock > 3.1.1 Hash and version lock",
+   "hash": "8e09010d835fef1a",
+   "does": "Specifies check_scoring_governance.sh: hash files Constants+RecoveryScore.swift then HRVThresholds.swift (missing -> exit 2), strip // comments, regex-extract static let numeric literals, sort per file, SHA-256 over 'path:symbol=value\\n', first 16 hex; read ScoringVersion.current; baseline '<version> <hash>' (v3.1.oct2026 541b56e600080795); violation iff hash differs and version equals recorded version -> exit 1. Verified: recomputation gives 155 constants and 541b56e600080795; script logic matches. Both files contain only bare-literal static lets. Gaps: version-bump without baseline refresh leaves the gate open; missing version file / malformed baseline exit 1 not 2.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The lock compares only against the recorded (version, hash) line, and the gate passes whenever version != recorded_version. A maintainer who bumps ScoringVersion.current but does not rewrite .ci/scoring_constants_hash.txt leaves the gate permanently open: every later constant change under the new version also passes, because the recorded version still differs. Nothing forces the baseline to be refreshed, so 'a change to a constant forces a version change' (Sections 3.8/N1) holds only for the first change after each baseline update.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:132",
+      "scripts/check_scoring_governance.sh:91",
+      "scripts/check_scoring_governance.sh:92"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Paper step 7/Appendix A say the gate exits 2 when the version cannot be read and 2 for configuration errors. A missing ScoringVersion.swift raises an uncaught FileNotFoundError (Python exit 1, i.e. reported as a violation), and a baseline file without exactly two whitespace-separated tokens raises ValueError (exit 1).",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:129",
+      "scripts/check_scoring_governance.sh:80",
+      "scripts/check_scoring_governance.sh:91"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The baseline line is rewritten by hand and nothing audits that edit: .ci/scoring_constants_hash.txt is not an integer so the monotonicity ratchet ignores it, and the gate only compares against whatever line is committed. History shows it: commit 14ecd58 (2026-10-06) changed Constants+RecoveryScore.swift (removed severeStrainThreshold, renamed moderateStrainThreshold) and rewrote the hash b81e8c3b2a364000 -> 541b56e600080795 under the unchanged version v3.1.oct2026, which is exactly 'digest moves while the version stays the same' passing CI.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:132",
+      ".ci/scoring_constants_hash.txt:1",
+      "scripts/check_scoring_governance.sh:91",
+      "scripts/check_scoring_governance.sh:92",
+      "scripts/check_budget_monotonicity.sh:134"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Step 3 says a declaration whose right-hand side is not a bare numeric literal is not matched. CONST_RE only anchors the start of the value (`=\\s*([-\\d.]+)`), so an expression such as `= 60 * 0.5` or `= -someConst` is matched and only its leading literal (or a lone '-') is hashed; changing the rest of the expression would not move the hash. All 155 current declarations are bare literals, so this is latent.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:125",
+      "scripts/check_scoring_governance.sh:62",
+      "scripts/check_scoring_governance.sh:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock > 3.1.2 Ranking-weight confinement",
+   "hash": "ae4f4ae48dbcf7aa",
+   "does": "Claims the same script fails on any line containing `rankingWeight` in a Swift file under Emuqu/Sources outside Analysis/CauseDetection/. Matches check_scoring_governance.sh (ALLOWED_PREFIX 'Emuqu/Sources/Analysis/CauseDetection/', substring test per line).",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.1 Scoring-constants hash and version lock > 3.1.3 Version stamp at runtime",
+   "hash": "82f87e29418bdbc5",
+   "does": "Claims ScoreBreakdown defaults scoringVersion to current on construction, decodes missing key as 'unversioned', derived copies (vitals refresh, iCloud stripped copy) carry it forward, detail screen shows 'Scored by <stored>' or 'Scored before score versions were recorded' plus the calibrated-not-validated line, and the assistant fact score.algorithm.version / context block report the current version. Construction/decoding (RecoveryScoreCalculator.swift:120,149-150), VitalsScoring.swift:274, CloudKitSyncSupport.swift:626/725, display (Sections.swift:264-280), AppFactResolver.swift:391-396 and ContextBuilder.swift:239 match. Not true for legacy sessions with no stored breakdown: the live/pinned breakdown is stamped current. Table 3.2 version dates are history, not checkable from code.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Paper says unstamped history is shown as 'Scored before score versions were recorded' and every derived copy carries the stamp. A legacy session with a frozen recoveryScore but no stored scoreBreakdown is rendered by recomputing a live breakdown (stamped ScoringVersion.current by the init default) and, in MorningResultsViewModel, pinning that breakdown's composite to the frozen old score while again defaulting scoringVersion to current. The detail screen therefore shows the frozen pre-version score above 'Scored by v3.1.oct2026', attributing an old (v1/v2) number to today's algorithm.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:149",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:150",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:168",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:182",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:206",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:244",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:129",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:276"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)": "b463408c2148f4e1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "75fa66139d5209fc",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "994575427acd0d39",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.pinnedToFrozenScore(_:)": "866c0c0b534912f6",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()": "cde8ca2df2aec214",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.2 The science register",
+   "hash": "99b1d544e8d40a1e",
+   "does": "no behavioural claim: subsection heading for the science register.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.2 The science register > 3.2.1 Data model",
+   "hash": "eaa6775d932f436a",
+   "does": "Describes Tools/science_register/register.json: top-level keys _purpose, _what_the_gate_can_and_cannot_prove, _retracted_claims (3 claims), _status_meanings (4 statuses), _waived_symbols (1: displayPenalty), scoring_version, entries (19: 3 validated, 4 supported-transfer, 12 awaiting-validation, 0 scheduled-for-removal) with the listed ids; entry fields id/status/affects/evidence/allowed_language/tests/symbols/notes. Verified against register.json at 8d32097: keys, counts and ids all match.",
+   "entry": null,
+   "calls": [
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    "Makefile::target science-register": "7d38d351a8e872c3"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.2 The science register > 3.2.2 Register gate",
+   "hash": "168829dd8d6d6b23",
+   "does": "Specifies check_science_register.sh: exit 2 on missing register/floor/version file, unparseable JSON or empty _status_meanings; per-entry duplicate id, unknown status, empty affects/evidence/allowed_language, missing tests path; version must equal ScoringVersion.current; retracted strings scanned in entry fields and every .swift/.md under Emuqu/Sources and docs; discovery regex over Analysis excluding CauseDetection/, dropping *Descriptions/*Message; unclaimed and stale claimed/waived names are problems; tally; floor from .ci/min_science_register_entries.txt (19). Matches the script line for line; discovery yields 13 names (12 claimed, displayPenalty waived).",
+   "entry": null,
+   "calls": [
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The 'discard names ending in Descriptions or Message' filter can never fire: SYMBOL_RE requires the captured name to end in Adjustment|Penalty|Bonus|Modifier|Damper|Fraction followed by \\b, so no captured name can end in Descriptions or Message. The paper (step 5, Table A.1 'Discovery exclusions') describes a filter that excludes nothing.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:227",
+      "docs/whitepapers/04-claims-governance.md:695",
+      "scripts/check_science_register.sh:138",
+      "scripts/check_science_register.sh:149"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    "Makefile::target science-register": "7d38d351a8e872c3"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.2 The science register > 3.2.3 Why it works",
+   "hash": "af7af1e7578b59be",
+   "does": "no behavioural claim beyond 3.2.2: rationale for closed vocabulary, per-entry wording, version agreement, retracted list, name-shape discovery and rising floor.",
+   "entry": null,
+   "calls": [
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    "Makefile::target science-register": "7d38d351a8e872c3"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.3 The regulated-claim perimeter, briefly",
+   "hash": "9fc14ffec8572823",
+   "does": "Summarises Paper 3 perimeter: Python linter over Swift string literals and string catalogs against a JSON prohibited-regex list with comment stripping and an allowlist; a sync gate synthesizes a match for each build-time regex and requires a runtime lexicon concept to match. Implemented by Tools/copy_linter/lint.py and scripts/check_perimeter_sync.sh (Makefile perimeter-sync).",
+   "entry": null,
+   "calls": [
+    "Tools/copy_linter/lint.py::def main",
+    "Makefile::target copy-perimeter",
+    "Makefile::target perimeter-sync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates",
+   "hash": "74d00e18de2f3fdc",
+   "does": "Claims 45 gate scripts named check_*/enforce_* and that meta-gates prove each goes red, fails closed and is wired. Verified: 45 such files in scripts/ at 8d32097.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates > 3.4.1 Goes red: planted violations",
+   "hash": "6c3e045c0d1162e0",
+   "does": "Specifies verify_gates_fail.sh: per plant (name, gate, file, python mutation) skip on filter mismatch, SKIP if gate already red, backup, SKIP+restore if mutation fails, rerun gate, restore, nonzero=PASS else FAIL; 64 plants; then every check_*/enforce_* except check_gate_preflight.sh and NEEDS_BUILD (check_coverage.sh, check_thread_sanitizer.sh) must have its filename in the harness source, else exit 1; exit 1 on any FAIL, SKIP does not fail. Matches script (check() at :61, NEEDS_BUILD :550-553, grep at :565). The filename-presence check is satisfied by any mention including comments/echo text.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The every-gate-has-a-plant check is `grep -q \"$base\" \"$0\"` over the harness's whole source, so a gate filename mentioned only in a comment or echo string counts as planted; the check proves a filename is mentioned, not that a plant exists.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:275",
+      "scripts/verify_gates_fail.sh:565",
+      "scripts/verify_gates_fail.sh:534"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The orphan_swift plant creates Emuqu/Sources/Utilities/PlantedOrphan.swift, which restore_all cannot remove (it only restores backed-up files); the file stays in the tree for every later plant and is deleted only at the very end (line 580). If the run is killed, or the unplanted-gate meta-check exits 1 (line 577) first, the planted file is left in Emuqu/Sources, and check_no_leaked_mutations.sh (which only parses verify_tests_fail.sh) does not detect it.",
+     "evidence": [
+      "scripts/verify_gates_fail.sh:264",
+      "scripts/verify_gates_fail.sh:50",
+      "scripts/verify_gates_fail.sh:577",
+      "scripts/verify_gates_fail.sh:580",
+      "scripts/check_no_leaked_mutations.sh:1"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates > 3.4.2 Fails closed: temp-file preflight",
+   "hash": "2b7433ff1f6a5acc",
+   "does": "Specifies lib/preflight.sh helpers (gate_mktemp explicit template, exit 70 on failure/unwritable; gate_mktemp_dir 'same for directories'; gate_require_nonempty exit 70) and check_gate_preflight.sh scanning every scripts/*.sh except itself for bare mktemp, gate_mktemp without '|| exit' on the same line, and unresolved `source \"$(dirname \"$0\")/...\"`; 53 scripts, 10 guarded uses. Verified 53/10 by recomputation; gate logic matches. gate_mktemp_dir uses `mktemp -d -t label`, which fails on GNU.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Paper says gate_mktemp uses an explicit template that behaves the same under BSD and GNU mktemp and that gate_mktemp_dir 'does the same for directories'. gate_mktemp_dir actually calls `mktemp -d -t \"$label\"`, the exact BSD-only form the gate_mktemp comment warns against: on GNU coreutils it fails ('too few X's in template'), so verify_gates_fail.sh and verify_tests_fail.sh exit 70 at startup on Linux. It fails closed, but both harnesses are unrunnable off macOS for a reason the paper does not state.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:288",
+      "scripts/lib/preflight.sh:77",
+      "scripts/lib/preflight.sh:43",
+      "scripts/verify_gates_fail.sh:38",
+      "scripts/verify_tests_fail.sh:62"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "verify_gates_fail.sh takes the tree lock (line 37) before creating BACKUP_DIR with gate_mktemp_dir (line 38) and before installing the EXIT trap (line 39). Where gate_mktemp_dir fails (always on GNU mktemp, which rejects `-d -t label`), the script exits 70 with the lock directory left under .git holding a dead PID; every later mutator and simulate_ci.sh then prints 'stale lock ... that run never restored', a false leak warning.",
+     "evidence": [
+      "scripts/verify_gates_fail.sh:37",
+      "scripts/verify_gates_fail.sh:38",
+      "scripts/verify_gates_fail.sh:39",
+      "scripts/lib/preflight.sh:76",
+      "scripts/lib/preflight.sh:159"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates > 3.4.3 Is wired: CI reachability",
+   "hash": "b340bc21168455b1",
+   "does": "Specifies check_gates_wired.sh: reads GATES_WORKFLOW_FILE or .github/workflows/ci.yml (missing -> exit 2), reports any check_*/enforce_* filename not a substring of the file except NOT_A_STEP {check_coverage.sh}; prints 44 wired, 1 by another step. Matches script; the '44' is computed as len(gates)-len(NOT_A_STEP), not counted from the workflow.",
+   "entry": null,
+   "calls": [
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The wiring check is `gate.name not in workflow` over the whole ci.yml text, so a gate filename that appears only in a YAML comment counts as wired. At 8d32097 every gate does appear on a non-comment line, so this is latent; the paper's 'named in the full-CI workflow' is satisfied by a mention, not a step.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:307",
+      "scripts/check_gates_wired.sh:48"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.5 Tests that must catch defects",
+   "hash": "92c64591d24fc7c8",
+   "does": "no behavioural claim: subsection heading for test mutations.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.5 Tests that must catch defects > 3.5.1 Targeted test mutations",
+   "hash": "b804abf66a00d8de",
+   "does": "Specifies verify_tests_fail.sh: 125 curated mutations each naming a suite; run suite alone with -only-testing and parallel testing off; classify 0 pass/1 fail/2 build-or-runner failure (banner or no 'Test Suite'/'Test Case'); retry baseline once on 2; SKIP if baseline not 0 or mutation not applicable; PASS if mutated run nonzero (including 2 = build failure of the mutated tree); any FAIL or SKIP exits 1; not in make ci or any workflow. Verified: 125 `mutate \"` cases; run_suite uses -only-testing and -parallel-testing-enabled NO; exit 1 when FAIL or SKIP nonzero; no Makefile/workflow reference.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Paper says 'Classifying build failures separately stops a broken build from counting as a catch'. The classification is only used for the baseline run; the mutated run is scored `code != 0 -> PASS`, so a mutation that fails to compile, or a transient build/runner failure (return 2) during the mutated run, is reported as 'caught'. A mutation whose replacement text does not compile proves nothing about the suite yet counts as PASS.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:331",
+      "scripts/verify_tests_fail.sh:92",
+      "scripts/verify_tests_fail.sh:128",
+      "scripts/verify_tests_fail.sh:131"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.5 Tests that must catch defects > 3.5.2 Leaked-mutation detection and the tree lock",
+   "hash": "3257bd1e1354c8ca",
+   "does": "Specifies check_no_leaked_mutations.sh (split on '\\nmutate \"', target = first quoted Emuqu/...swift, original from o='...';assert or s.count('...') followed by comparator, unescape, resolve chr(N) concatenations, unparsed or leaked -> exit 1; runs on push/PR via gates.yml) and the tree lock in lib/preflight.sh (mkdir lock under git dir, owner+pid, live pid -> exit 75, dead -> warn and take over; reader gate_require_unmutated_tree used by simulate_ci.sh). Matches code (lock path from `git rev-parse --git-dir`, simulate_ci.sh:47). Leak check only detects mutations that remove the original text.",
+   "entry": null,
+   "calls": [
+    "Makefile::target leaked-mutations-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock",
+    "scripts/lib/preflight.sh::fn gate_release_tree_lock",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree",
+    "Makefile::target ci-local",
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "Lock takeover reads the holder's pid file; between a holder's mkdir and its write of pid, a second mutator reads pid 0, treats the lock as stale, deletes it and takes it, so two mutators can run concurrently. The 'atomic mkdir' claim covers creation only.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:348",
+      "scripts/lib/preflight.sh:116",
+      "scripts/lib/preflight.sh:120",
+      "scripts/lib/preflight.sh:137"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "The reader side has the same window as the takeover race: gate_require_unmutated_tree treats a lock with no pid file yet (pid read as 0) as stale and rm -rf's it, so a simulate_ci.sh run that starts between a mutator's mkdir and its pid write deletes the live mutator's lock and proceeds to measure a tree that is about to be mutated.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:348",
+      "scripts/lib/preflight.sh:116",
+      "scripts/lib/preflight.sh:137",
+      "scripts/lib/preflight.sh:152",
+      "scripts/lib/preflight.sh:161"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+    "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "654f69c47cb8b3b9",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets",
+   "hash": "d28a232fc0e3b01d",
+   "does": "no behavioural claim: subsection heading for ratchets.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets > 3.6.1 Policy and counting",
+   "hash": "89bc676ad1915924",
+   "does": "Claims ADR 004 sets measured ceilings that only fall, no per-site escape hatch, zero swiftlint:disable in app sources; counters blank block and line comments preserving length/newlines and blank a fixed list of platform singletons (.shared) before counting. Verified: docs/adr/004-ratcheted-budgets.md:19; 0 swiftlint:disable under Emuqu/Sources; enforce_tech_debt_budgets.sh strip_comments (:120) and PLATFORM_SINGLETONS (:137-142). FileManager and NotificationCenter in that list are accessed as .default, so their .shared blanking is a no-op.",
+   "entry": null,
+   "calls": [
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget",
+    "Makefile::target debt-budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets > 3.6.2 Monotonicity gate",
+   "hash": "e8f753a16cf74f96",
+   "does": "Specifies check_budget_monotonicity.sh: baseline from arg, origin/$GITHUB_BASE_REF, BUDGET_BASE_REF, else none; none/all-zero/unresolvable -> exit 1 if BUDGET_REQUIRE_BASELINE else skip exit 0; trailers '^budget-raise-ok:' case-insensitive from baseline..HEAD; per .ci/*.txt sorted: skip non-integer current, absent or non-integer baseline; min_* floors loosen on decrease, others on increase; acknowledged loosening ALLOWED else violation -> exit 1. CI wiring: ci.yml uses input or HEAD~1, root commit with .ci edits compares to HEAD, sets require; gates.yml passes origin/base on PR (no require flag) and HEAD~1 with require on push. Matches code; push path only compares the last commit; the non-integer files (.ci/min_coverage_views.txt = 43.5 and .ci/scoring_constants_hash.txt) are never compared.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "On push to main the per-push workflow compares budgets only against HEAD~1 of the pushed head. A push of several commits in which an earlier commit raises a budget (and the last does not touch it) is never compared against the pre-push state, so the loosening passes with no budget-raise-ok trailer. 'A push to main therefore cannot skip the comparison' is true only for single-commit pushes.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:377",
+      ".github/workflows/gates.yml:81",
+      ".github/workflows/gates.yml:82"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The ratchet skips any .ci file whose value is not a bare integer (read_int requires ^[0-9]+$), and .ci/min_coverage_views.txt holds 43.5 (raised 42.0 -> 43.5 in a0a230f). The views-coverage floor is therefore never compared: it can be lowered to any value with no budget-raise-ok trailer and the gate prints clean. Contradicts 'Each CI budget file may move only in the tightening direction its filename declares' and README's 'Fails any diff that raises/loosens a value in .ci/*.txt'; check_coverage.sh enforces whatever value is committed.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:24",
+      "docs/whitepapers/04-claims-governance.md:370",
+      "scripts/check_budget_monotonicity.sh:134",
+      "scripts/check_budget_monotonicity.sh:143",
+      ".ci/min_coverage_views.txt:1",
+      "scripts/check_coverage.sh:56"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Deleting .ci/min_coverage.txt, min_coverage_logic.txt or min_coverage_views.txt is not seen by the ratchet (it only iterates files present in the tree) and check_coverage.sh silently falls back to hard-coded floors 16/30/0 instead of the committed 44/45/43.5, so the coverage floors can be dropped with no trailer and no failure.",
+     "evidence": [
+      "scripts/check_budget_monotonicity.sh:169",
+      "scripts/check_coverage.sh:45",
+      "scripts/check_coverage.sh:48",
+      "scripts/check_coverage.sh:54",
+      "scripts/check_coverage.sh:60"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets > 3.6.3 Documentation may not restate a ratcheting value",
+   "hash": "e97a6eec8f2fbb42",
+   "does": "Claims check_doc_links.sh flags any Markdown line naming an integer-valued .ci budget file with a bare 2-6 digit number in that line or the next (regex (?<![\\w.])(\\d{2,6})(?![\\w.%])), unless the window has a backtick span containing cat/head/read_budget. Matches check_doc_links.sh rule 2 (:162-189).",
+   "entry": null,
+   "calls": [
+    "Makefile::target doc-links",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    "Makefile::target doc-links": "a8f084188e2d717b"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.6 One-way budget ratchets > 3.6.4 Why it works",
+   "hash": "2c403a50e274b656",
+   "does": "no new behavioural claim: rationale for measured ceilings, filename direction, audited trailer, required CI baseline, no restated values; 'Observed history' says 28 public commits to 2026-10-07 tightened only and no budget-raise-ok trailer exists. At 8d32097 git log contains no budget-raise-ok trailer. The claim 'in CI the require flag makes the same condition a failure' does not hold on the PR path.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Section 3.6.4 says 'in CI the require flag makes the same condition a failure', but the per-push workflow's pull-request path calls the ratchet with origin/<base> and no BUDGET_REQUIRE_BASELINE, so an unresolvable base ref skips with exit 0 on PRs.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:388",
+      ".github/workflows/gates.yml:80",
+      "scripts/check_budget_monotonicity.sh:75"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.7 Costed CI posture and the evidence report",
+   "hash": "d8ab7777df85eb80",
+   "does": "Claims macOS minutes bill 10x, 3,000-minute plan ~300 macOS minutes, full run ~108 wall/~1,080 billable (matches docs/CI_POSTURE.md:24-30 and ci.yml comment); Table 3.7: gates.yml on push-to-main/PR on Linux runs the bash/python gates incl. leak backstop, wiring, preflight, budgets and ratchet; ci.yml manual or called, scopes gates/unit/full; make ci runs every gate, plant harness and tests; mutation harness manual. Plant harness excluded from Linux because of SwiftLint (gates.yml comment). evidence_report.sh prints live counts without coverage. Workflow content matches; make ci omits thread-sanitizer.",
+   "entry": null,
+   "calls": [
+    "Makefile::target ci",
+    "Makefile::target ci-local",
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::job lint-and-budgets",
+    ".github/workflows/testflight.yml::job quality-gate",
+    "scripts/evidence_report.sh::fn budget",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Table 3.7 says local `make ci` runs every gate, but the ci target omits thread-sanitizer (check_thread_sanitizer.sh), which only has its own target; scripts/README.md says the same ('not in make ci').",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:403",
+      "Makefile:272",
+      "Makefile:162",
+      "scripts/README.md:109"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Paper says the evidence report prints 'every budget value'. The text output prints 13 of the 28 .ci files (omitting e.g. min_coverage_views, unchecked_sendable, aggregate_type_size, dated_comment, localization_orphan, try_optional_write budgets) and the --json output 5; the JSON also hardcodes the localization floor as 100 instead of reading .ci/min_localization_coverage.txt and states 'No workflow runs automatically', which gates.yml (push/pull_request) contradicts.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:408",
+      "scripts/evidence_report.sh:71",
+      "scripts/evidence_report.sh:77",
+      "scripts/evidence_report.sh:87",
+      ".github/workflows/gates.yml:26"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/testflight.yml::job quality-gate": "cbcc490220e8dd12",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/evidence_report.sh::fn budget": "7b60743b6aec5438",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.8 How the parts form one chain",
+   "hash": "2b2cd9ea62b298de",
+   "does": "Claims the gates compose into one chain: constant edit fails scoring governance until version changes, new version fails the register until scoring_version and entries are revisited, new/removed adjusting functions fail discovery/stale check, new copy passes the perimeter. Each link exists, but the first link only holds while the hash baseline is current (see 3.1.1), and the register gate checks only that scoring_version string changed, not that any entry was revisited.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "Tools/copy_linter/lint.py::def main",
+    "Makefile::target copy-perimeter",
+    "Makefile::target perimeter-sync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The lock compares only against the recorded (version, hash) line, and the gate passes whenever version != recorded_version. A maintainer who bumps ScoringVersion.current but does not rewrite .ci/scoring_constants_hash.txt leaves the gate permanently open: every later constant change under the new version also passes, because the recorded version still differs. Nothing forces the baseline to be refreshed, so 'a change to a constant forces a version change' (Sections 3.8/N1) holds only for the first change after each baseline update.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:132",
+      "scripts/check_scoring_governance.sh:91",
+      "scripts/check_scoring_governance.sh:92"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 4. Comparison with Existing Approaches",
+   "hash": "528c6d8c416de775",
+   "does": "no behavioural claim about code: prior-art comparison table (SwiftLint baseline, betterer, jest-ratchet, CoverageRatchet, hash-without-bump checks, model cards, MLflow, sphinx-needs, Doorstop, reqcov, PIT/Stryker, canfail, didrun, restore-verified, IEC 62304/ISO 13485) and Emuqu's row restating Sections 3.1-3.6.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 5. What Is New",
+   "hash": "ae03fbf843cb1f19",
+   "does": "Novelty statements N1-N14 restating mechanisms of Sections 3.1-3.8 with prior-art and dated private-repo records (not verifiable here). Mechanism descriptions match the scripts as noted per section; N2 'the stamp is carried through every derived copy' is contradicted by the legacy pinned/live breakdown path; N12 'a CI-set flag turns a missing baseline into a failure' does not apply to the PR path of gates.yml.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "Makefile::target leaked-mutations-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "Makefile::target doc-links",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Paper says unstamped history is shown as 'Scored before score versions were recorded' and every derived copy carries the stamp. A legacy session with a frozen recoveryScore but no stored scoreBreakdown is rendered by recomputing a live breakdown (stamped ScoringVersion.current by the init default) and, in MorningResultsViewModel, pinning that breakdown's composite to the frozen old score while again defaulting scoringVersion to current. The detail screen therefore shows the frozen pre-version score above 'Scored by v3.1.oct2026', attributing an old (v1/v2) number to today's algorithm.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:149",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:150",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:168",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:182",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:206",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:244",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:129",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:276"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Section 3.6.4 says 'in CI the require flag makes the same condition a failure', but the per-push workflow's pull-request path calls the ratchet with origin/<base> and no BUDGET_REQUIRE_BASELINE, so an unresolvable base ref skips with exit 0 on PRs.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:388",
+      ".github/workflows/gates.yml:80",
+      "scripts/check_budget_monotonicity.sh:75"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 6. Verification",
+   "hash": "09bdffab7da1b537",
+   "does": "Table 6.1 claims counts printed at e028039: 155 constants (91+64), 13 discovered (12 claimed, 1 waived), 64 plants, 53 preflight scripts with 10 guarded uses, 44 wired + 1 coverage, 125/125 mutations parsed, budgets only tightened; Python reimplementation results in Tools/validation/RESULTS.md. All counts reproduce at 8d32097; Tools/validation/RESULTS.md exists.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    "Makefile::target leaked-mutations-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 7. Design Tradeoffs",
+   "hash": "525dbcc2060c56e0",
+   "does": "Design tradeoffs: one recorded baseline line trusted; only two files' literal static lets hashed while composite weights in Constants.swift are governed by register entry composite-weights-60-25-15; 16-hex digest; lexical checks; register checks structure not truth (quotes register scope statement, which register.json contains); manual mutation; measured ceilings ('debt inventories rather than assurance targets', docs/adr/004-ratcheted-budgets.md:43). Matches code.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates",
+   "hash": "65dbfe529598aea7",
+   "does": "no behavioural claim: Provenance heading.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.1 Project origin",
+   "hash": "9ad013c2dd0f900e",
+   "does": "no behavioural claim about code: project origin history (AI-Fitness-Coach repo, 2025-02-22 ChatGPT proposal).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.2 Repository lineage",
+   "hash": "d4a6c12c16f5b56e",
+   "does": "no behavioural claim about code: Table 8.1 repository lineage and history gaps; public repo first commit 9d89933 2026-09-08 (present in this checkout's history).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.3 Dated records outside git",
+   "hash": "2075435045eb74db",
+   "does": "no behavioural claim about code: lists Google Drive documents from 2026-05-10 as dated records.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.4 Public disclosures",
+   "hash": "56653eef45ddad7d",
+   "does": "no behavioural claim about code: public disclosure dates (TestFlight 2026-01-27, Substack posts, public repo 2026-09-08, papers 2026-10-08).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.5 Authorship",
+   "hash": "7aca84625578b7c5",
+   "does": "no behavioural claim about code: authorship statement.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.6 Document history",
+   "hash": "ecc5a0c1f4f3cd22",
+   "does": "no behavioural claim: document version history v1.0-v1.3, all 2026-10-08.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > References",
+   "hash": "d77bf2a8edcb0b92",
+   "does": "no behavioural claim: 31 bibliographic references; [31] cites Tools/validation/RESULTS.md, which exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix A: Parameters",
+   "hash": "a1789eb8003f051f",
+   "does": "Table A.1 parameter list restating Sections 3.1-3.7 values (2 hashed files, 155 constants, regexes, digest length, v3.1.oct2026, unversioned, rankingWeight, 19 entries, 4 statuses, 3 retracted, 6 suffixes, 13 discovered, 45 gates, 64 plants, 125 mutations, 1 retry, 1 wiring exemption, 53 preflight scripts, exit codes 0/1/2, 70, 75, trailer, min_ prefix, BUDGET_REQUIRE_BASELINE, doc regex, billing). All values match code at 8d32097 except the claim that the scoring gate exits 2 for every configuration error.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "Makefile::target doc-links",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Paper step 7/Appendix A say the gate exits 2 when the version cannot be read and 2 for configuration errors. A missing ScoringVersion.swift raises an uncaught FileNotFoundError (Python exit 1, i.e. reported as a violation), and a baseline file without exactly two whitespace-separated tokens raises ValueError (exit 1).",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:129",
+      "scripts/check_scoring_governance.sh:80",
+      "scripts/check_scoring_governance.sh:91"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode",
+   "hash": "83839b7de529c7d1",
+   "does": "no behavioural claim: Appendix B heading.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.1 Constants-hash version lock",
+   "hash": "9a26d44a24e6d6a8",
+   "does": "Pseudocode for the hash lock and ScoreBreakdown decode default; matches check_scoring_governance.sh order (ranking scan, hash, version, baseline, compare) and RecoveryScoreCalculator.swift:149-150, except the script raises (exit 1) rather than exit 2 when the version file itself is missing.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.2 Science register gate",
+   "hash": "a4eb5bf9a96afa60",
+   "does": "Pseudocode for the register gate; matches check_science_register.sh except ordering detail: the script prints problems and the tally before exiting 1, and checks the floor only after problems are clear, as the pseudocode states.",
+   "entry": null,
+   "calls": [
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    "Makefile::target science-register": "7d38d351a8e872c3"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.3 Planted-violation harness",
+   "hash": "bf867e6e2acaec99",
+   "does": "Pseudocode for the plant harness and completeness check; matches verify_gates_fail.sh check() and the unplanted loop (:555-578).",
+   "entry": null,
+   "calls": [
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The every-gate-has-a-plant check is `grep -q \"$base\" \"$0\"` over the harness's whole source, so a gate filename mentioned only in a comment or echo string counts as planted; the check proves a filename is mentioned, not that a plant exists.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:275",
+      "scripts/verify_gates_fail.sh:565",
+      "scripts/verify_gates_fail.sh:534"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.4 Preflight and wiring",
+   "hash": "018539ed80395ba4",
+   "does": "Pseudocode for preflight and wiring; matches check_gate_preflight.sh rules 1-3 and check_gates_wired.sh NOT_A_STEP logic.",
+   "entry": null,
+   "calls": [
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.5 Targeted test mutations and leak detector",
+   "hash": "fd01277d49cce4da",
+   "does": "Pseudocode for run_suite classification, mutation loop (retry once on 2, any FAIL or SKIP exits 1), leak detector parsing, and tree lock acquire/reader. Matches verify_tests_fail.sh, check_no_leaked_mutations.sh and lib/preflight.sh:114-170.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "Makefile::target leaked-mutations-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock",
+    "scripts/lib/preflight.sh::fn gate_release_tree_lock",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree",
+    "Makefile::target ci-local"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "Lock takeover reads the holder's pid file; between a holder's mkdir and its write of pid, a second mutator reads pid 0, treats the lock as stale, deletes it and takes it, so two mutators can run concurrently. The 'atomic mkdir' claim covers creation only.",
+     "evidence": [
+      "docs/whitepapers/04-claims-governance.md:348",
+      "scripts/lib/preflight.sh:116",
+      "scripts/lib/preflight.sh:120",
+      "scripts/lib/preflight.sh:137"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+    "scripts/lib/preflight.sh::fn gate_release_tree_lock": "7a8e2c68b3650dea",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "654f69c47cb8b3b9",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix B: Pseudocode > B.6 Direction-aware ratchet",
+   "hash": "ace4a67de990eaa0",
+   "does": "Pseudocode for the direction-aware ratchet and comment/singleton blanking counter; matches check_budget_monotonicity.sh and enforce_tech_debt_budgets.sh strip_comments/PLATFORM.",
+   "entry": null,
+   "calls": [
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget",
+    "Makefile::target debt-budget"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target debt-budget": "8e30dd4714319a14",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+   }
+  },
+  {
+   "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix C: Source Map",
+   "hash": "f50c0a07080c7c32",
+   "does": "Source map: every path listed exists at 8d32097 (check_scoring_governance.sh, .ci/scoring_constants_hash.txt, Constants+RecoveryScore.swift, HRVThresholds.swift, ScoringVersion.swift, RecoveryScoreCalculator.swift, VitalsScoring.swift, CloudKitSyncSupport.swift, RecoveryScoreDetailView+Sections.swift, AppFactResolver.swift, ContextBuilder.swift, Constants.swift, register.json, check_science_register.sh, lint.py, prohibited_terms.json, check_perimeter_sync.sh, verify_gates_fail.sh, lib/preflight.sh, check_gate_preflight.sh, simulate_ci.sh, check_gates_wired.sh, ci.yml, verify_tests_fail.sh, check_no_leaked_mutations.sh, ADR 004, check_budget_monotonicity.sh, enforce_tech_debt_budgets.sh, enforce_swiftlint_budget.sh, check_doc_links.sh, CI_POSTURE.md, gates.yml, evidence_report.sh, Makefile). Omits MorningResultsViewModel.swift and RecoveryScoreDetailView.swift, which also build breakdowns shown with a version line.",
+   "entry": null,
+   "calls": [
+    "Makefile::target scoring-governance",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance",
+    "Makefile::target science-register",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)",
+    "Tools/copy_linter/lint.py::def main",
+    "Makefile::target copy-perimeter",
+    "Makefile::target perimeter-sync",
+    "scripts/verify_gates_fail.sh::fn check",
+    "scripts/verify_gates_fail.sh::fn backup",
+    "scripts/verify_gates_fail.sh::fn restore_all",
+    "Makefile::target verify-gates",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/lib/preflight.sh::fn gate_mktemp",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir",
+    "Makefile::target gate-preflight",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed",
+    "Makefile::target gates-wired-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "Makefile::target leaked-mutations-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn read_int",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "Makefile::target doc-links",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants",
+    "Makefile::target ci",
+    "Makefile::target ci-local",
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::job lint-and-budgets",
+    ".github/workflows/testflight.yml::job quality-gate",
+    "scripts/evidence_report.sh::fn budget",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    ".github/workflows/ci.yml::job lint-and-budgets": "e8fbfbf528bb1174",
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "7123856c78189975",
+    ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "88f60acd02668637",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "2d10106236edd3ae",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "9b353c1b8e398485",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "7fb0e21ee5f44f0c",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "a6db432637722f65",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "9e5b7f6ce70661ff",
+    ".github/workflows/ci.yml::step lint-and-budgets/Science register (every heuristic classified)": "56feb721e0de6eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)": "489a2d5b99cdec0d",
+    ".github/workflows/gates.yml::job script-gates": "a3719763dec17ea7",
+    ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "cb4f724309ba1d92",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "4d1433bd1c0ca96c",
+    ".github/workflows/testflight.yml::job quality-gate": "cbcc490220e8dd12",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(from:)": "64e9bc9bc5ab879d",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "06335fbd097cdaa4",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildUserProfile(settings:customTagNames:effectiveVO2Max:)": "b463408c2148f4e1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "337f02ee28379cbd",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "75fa66139d5209fc",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "994575427acd0d39",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringProvenance": "d68df7407da1b095",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "28b7a4a190ecf3a7",
+    "Makefile::target budget-monotonicity": "734b517fa2d98f72",
+    "Makefile::target ci": "b679f3a8965b735e",
+    "Makefile::target ci-local": "2f301710427d57ea",
+    "Makefile::target copy-perimeter": "42858b4dd6c79830",
+    "Makefile::target doc-links": "a8f084188e2d717b",
+    "Makefile::target gate-preflight": "6920a992e5fe9a61",
+    "Makefile::target gates-wired-guard": "92331e51f325e1f5",
+    "Makefile::target leaked-mutations-guard": "4944d2f5b2b6a744",
+    "Makefile::target perimeter-sync": "acc9ff850493b808",
+    "Makefile::target science-register": "7d38d351a8e872c3",
+    "Makefile::target scoring-governance": "d9d60ece0349b2d6",
+    "Makefile::target verify-gates": "585e699b6307cf8d",
+    "Tools/copy_linter/lint.py::def main": "2a9cc3da78e5e6bc",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
+    "scripts/check_budget_monotonicity.sh::fn read_int": "f177c3dac57c9863",
+    "scripts/evidence_report.sh::fn budget": "7b60743b6aec5438",
+    "scripts/lib/preflight.sh::fn gate_mktemp": "2bf9e9cec64b1ffe",
+    "scripts/lib/preflight.sh::fn gate_mktemp_dir": "db452e7a5baf7d20",
+    "scripts/lib/preflight.sh::fn gate_require_nonempty": "7b1ef223e8fe987e",
+    "scripts/verify_gates_fail.sh::fn backup": "25552251e285cbb5",
+    "scripts/verify_gates_fail.sh::fn check": "b61e3693876460cc",
+    "scripts/verify_gates_fail.sh::fn restore_all": "2fd629e6dda69604",
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,185 @@
+{
+ "file": "Emuqu/Sources/Storage/UIStateCache.swift",
+ "hash": "5e0faad8e48df9d4",
+ "role": "UIStateCache: @MainActor singleton read model holding last dashboard and fitness display snapshots, persisted as JSON in Application Support so tabs paint instantly at cold start.",
+ "types": [
+  "UIStateCache: class (@MainActor) — singleton cache",
+  "UIStateCache.RecentDaySnapshot / DashboardSnapshot / FitnessSnapshot: struct (Codable) — display values",
+  "UIStateCache.Store: struct (private, Codable) — on-disk envelope with schema"
+ ],
+ "state": [
+  "mem:UIStateCache.shared",
+  "mem:UIStateCache.dashboard",
+  "mem:UIStateCache.fitness",
+  "file:ApplicationSupport/UIStateCache.json (schema 1, plaintext JSON)",
+  "mem:UIStateCache.writeQueue (serial com.emuqu.uistatecache.write)"
+ ],
+ "toplevel": "static shared, schemaVersion = 1, persistenceURL lazy closure, writeQueue serial queue.",
+ "flags": [
+  {
+   "kind": "privacy",
+   "sev": "low",
+   "text": "Dashboard snapshot (recovery score, RMSSD, sleep minutes, vitals, 7-day scores) is written as plaintext JSON with default file protection, outside the encrypted archive the type's comment calls the write model.",
+   "evidence": [
+    "Emuqu/Sources/Storage/UIStateCache.swift:109",
+    "Emuqu/Sources/Storage/UIStateCache.swift:10"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func UIStateCache.setDashboard(_:)",
+   "hash": "9ad13f929579d80a",
+   "does": "Stores a new dashboard snapshot and persists it when it differs from the current one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIStateCache.dashboard",
+    "file:ApplicationSupport/UIStateCache.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot == dashboard",
+     "effect": "return (no-op)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "55eb3cbcf0e29503"
+   }
+  },
+  {
+   "key": "func UIStateCache.setFitness(_:)",
+   "hash": "48fd26c12c4aacad",
+   "does": "Stores a new fitness snapshot and persists it when changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIStateCache.fitness",
+    "file:ApplicationSupport/UIStateCache.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot == fitness",
+     "effect": "return (no-op)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "55eb3cbcf0e29503"
+   }
+  },
+  {
+   "key": "let UIStateCache.persistenceURL",
+   "hash": "54bb92e2b0ea7f77",
+   "does": "Lazy static: Application Support directory (created if needed) + UIStateCache.json; nil when the directory cannot be obtained.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.url(for:in:appropriateFor:create:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Application Support URL obtained",
+     "effect": "false: nil (cache never persists or loads)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init UIStateCache()",
+   "hash": "490a41aac8105313",
+   "does": "Private init: loads persisted snapshots.",
+   "entry": "Lazy creation of UIStateCache.shared via AppDependencies.storage.uiStateCache",
+   "calls": [
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()": "4c37164d9035bdb2"
+   }
+  },
+  {
+   "key": "func UIStateCache.persist()",
+   "hash": "7660399dfe0bd1e0",
+   "does": "Snapshots both values and writes them as JSON atomically on the serial writeQueue; failures logged.",
+   "entry": null,
+   "calls": [
+    "ext:DispatchQueue.async",
+    "ext:JSONEncoder",
+    "ext:Data.write",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:ApplicationSupport/UIStateCache.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "persistenceURL nil",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "encode/write throws",
+     "effect": "catch: warning log; next launch starts without a seed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "6a88940e6d7da68c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func UIStateCache.loadFromDisk()",
+   "hash": "b70ee0b50a9f163c",
+   "does": "Reads and decodes UIStateCache.json and restores dashboard/fitness when schema == 1; otherwise leaves both nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:ApplicationSupport/UIStateCache.json"
+   ],
+   "writes": [
+    "mem:UIStateCache.dashboard",
+    "mem:UIStateCache.fitness"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "URL, data, decode and schema all succeed",
+     "effect": "false: return with empty cache; true: assign and log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "6a88940e6d7da68c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  }
+ ],
+ "deps": {}
+}

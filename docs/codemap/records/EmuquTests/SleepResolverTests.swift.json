@@ -1,0 +1,1084 @@
+{
+ "file": "EmuquTests/SleepResolverTests.swift",
+ "hash": "3b8a1af7b335c6f1",
+ "role": "Proof suite for SleepResolver: the four-row decision matrix (session+Watch, session only, Watch only, empty), envelope clipping edge cases, AutoSleep back-to-bed and pause/resume merging, cross-source overlap resolution, iPhone early-guess filter, time-in-bed derivation and SleepData time-in-bed repair.",
+ "types": [
+  "SleepResolverTests: class — XCTestCase for SleepResolver and SleepData time-in-bed helpers"
+ ],
+ "state": [
+  "bedtime: fixed 2026-01-15 22:00 UTC built via TestDate.from"
+ ],
+ "toplevel": "The `bedtime` stored-property initializer builds 2026-01-15 22:00 UTC with a Gregorian calendar via TestDate.from (EmuquTests/TestDate.swift:17).",
+ "flags": [],
+ "units": [
+  {
+   "key": "let SleepResolverTests.bedtime",
+   "hash": "8a7c66457dc42bc9",
+   "does": "Closure initializer for the bedtime anchor: DateComponents 2026-01-15 22:00 UTC resolved via TestDate.from on a Gregorian calendar.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.t(_:from:)",
+   "hash": "46661371b1302df2",
+   "does": "Returns (anchor ?? bedtime) + offsetMinutes minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "anchor is nil (??)",
+     "effect": "falls back to bedtime as the anchor"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepResolverTests.swift::let SleepResolverTests.bedtime": "c03e6b5895d03ff5"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+   "hash": "98778b0efe8f4d7d",
+   "does": "Builds a SleepStageInterval of the stage between t(startMin) and t(endMin) with the given provenance (default .watch).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.makeSession(startMin:endMin:)",
+   "hash": "945c5923b04f6ce5",
+   "does": "Builds an HRVSession starting t(startMin) ending t(endMin) and the matching DateInterval.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.makeBedtimeWindow()",
+   "hash": "a737fd23d39c774d",
+   "does": "Returns the 22:00–06:00 bedtime DateInterval.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepResolverTests.swift::let SleepResolverTests.bedtime": "c03e6b5895d03ff5"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.makeHKSample(_:from:to:)",
+   "hash": "25fd1bf75f0a0ed8",
+   "does": "Builds a real HKCategorySample of sleepAnalysis with the given value between t(startMin) and t(endMin).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "ext:HealthKit.HKCategorySample"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+   "hash": "fd3f221c0d873e30",
+   "does": "Builds a SleepResolver.Context with the given bounds/samples/RR/enhance/extension, bedtime window 22–06, fallbackDate bedtime and splitGapMinutes 20.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeBedtimeWindow()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "linkedBounds is empty",
+     "effect": "true: uses [sessionBounds] or [] when sessionBounds is nil (map ?? []); false: uses linkedBounds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeBedtimeWindow()": "280d1a07e9ee98c4",
+    "EmuquTests/SleepResolverTests.swift::let SleepResolverTests.bedtime": "c03e6b5895d03ff5"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test01_row1_cleanNight()",
+   "hash": "509827d27f0a45f9",
+   "does": "Row 1: session 0–510 with Watch core 15–495; asserts 480 sleep min, 0 awake, no HealthKit write.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test02_row1_enhanceToggleWithInsufficientRR_passThrough()",
+   "hash": "03d34cb46731dccc",
+   "does": "Row 1 with enhanceWithRR true and no RR: asserts 480 min passes through unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test03_row1_autoSleepBackToBed_sumsBothExcludesGap()",
+   "hash": "6c3dd39c20998490",
+   "does": "Row 1 AutoSleep back-to-bed: session 0–420 core plus extension 450–510 hrvDerived core; asserts 480 min, 0 awake, source .hrValidated, 2 segments.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test04_row1_pauseResume_sumsAcrossLinked()",
+   "hash": "df93c1f7c5e5fe24",
+   "does": "Pause/resume: linked bounds 0–240 and 250–480 over a Watch core 0–480; asserts 470 min (gap excluded).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test05_row2_sessionOnly_insufficientRRReturnsEmpty()",
+   "hash": "12bdd006263a68d2",
+   "does": "Row 2 with no Watch and no RR: asserts 0 sleep and no HealthKit write.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test06_row3_watchOnly_usesBedtimeWindow()",
+   "hash": "b0541d1845bce311",
+   "does": "Row 3 Watch only (nil session) core 30–450: asserts 420 min and no HealthKit write.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test07_row4_empty()",
+   "hash": "26fe729a49775059",
+   "does": "Row 4 nothing: asserts 0 sleep, 0 awake, no write.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test08_edge_watchPrefixBeforeSessionClipped()",
+   "hash": "306bb1a486b86a90",
+   "does": "Session 60–420 with Watch 0–420: asserts the 60-min pre-session prefix is clipped (360 min).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test09_edge_watchSuffixAfterSessionClipped()",
+   "hash": "567812be804bf1b5",
+   "does": "Session 0–420 with Watch 0–480 and no extension: asserts the suffix is clipped (420 min).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test10_edge_crossSourceDuplicatesMerged()",
+   "hash": "82a09424797c3b72",
+   "does": "mergeStagesAcrossSources of Watch core 0–240 and iPhone core 60–300: asserts one interval totalling 300 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test10b_edge_crossStageOverlapCountedOnce()",
+   "hash": "ec9cc15c01e1b371",
+   "does": "Merges Watch core/deep/REM 0–480 with unspecified 0–480: asserts 480 total and stages [core, deep, rem].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test10c_edge_awakeOverlapResolvedOnce()",
+   "hash": "937843d4d41021a9",
+   "does": "Asserts awake 100–130 under an unspecified block yields total 450/awake 30, and under core yields total 480/awake 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test10d_edge_detailedOverlapKeepsTheStageInProgress()",
+   "hash": "c3585956a7f49695",
+   "does": "Merges core 0–100 and deep 50–150: asserts [core, deep], deep starts at 100, total 150 (stage in progress keeps overlap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test10e_zeroDeepOnAStagedNightIsZeroNotMissing()",
+   "hash": "a7187fdf53fb2a58",
+   "does": "Resolves core 0–400 + REM 400–480 (asserts deep 0, REM 80) and core-only 0–480 (asserts deep and REM nil).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test11_edge_multiDaySpilloverClipped()",
+   "hash": "70a0a118ef413cc1",
+   "does": "A Watch core sample spanning 2 days before to 1 day after an 8h session: asserts 480 min after clipping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "ext:HealthKit.HKCategorySample"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test12_edge_awakeInsideEnvelopeExcludedFromTotal()",
+   "hash": "7fa22a2ec02ae72b",
+   "does": "Core 0–420, awake 420–450, core 450–510, awake 510–570: asserts 480 sleep and 90 awake.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test12b_row1_collapsedEnvelopeDoesNotEraseWatchSleep()",
+   "hash": "59ae2211de1bc3fe",
+   "does": "Collapsed zero-length envelope with Watch core 0–480: asserts 480 min and non-nil sleepStart/sleepEnd.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test13_idempotence()",
+   "hash": "fef6f5a8c87be23a",
+   "does": "Resolves the same context twice and asserts the Resolution values are equal.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Idempotence is checked with Resolution.==, which compares only writeToHealthKit, night/awake minutes, sleepStart/sleepEnd and stageIntervals.count; differing stage contents, segments, boundarySource or inBedMinutes between runs would still pass.",
+     "evidence": [
+      "EmuquTests/SleepResolverTests.swift:373",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)": "a52918b6fdf39066",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test14_autoSleep_envelopeAndSegmentIntegrity()",
+   "hash": "af08e84387748f45",
+   "does": "Session 0–420 plus extension 480–540: asserts sleepStart t(0), sleepEnd t(540), 2 segments, 480 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testUnion_mergesOverlapping()",
+   "hash": "84e7d688927ab5b8",
+   "does": "Asserts unionIntervals of 0–120 and 60–180 gives one interval 0–180.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testUnion_preservesGap()",
+   "hash": "0fd66841e316b79f",
+   "does": "Asserts unionIntervals keeps 0–60 and 90–180 separate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testClipToEnvelope_keepsOnlyOverlaps()",
+   "hash": "69353aa97045e23a",
+   "does": "Asserts clipToEnvelope of core 0–120 to envelope 30–90 yields one interval 30–90.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testClipToEnvelope_resultIsChronological()",
+   "hash": "0ca9c68975a90e92",
+   "does": "Asserts clipToEnvelope over a split envelope returns stages sorted by start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testClipToEnvelope_emptyEnvelopeProducesEmpty()",
+   "hash": "a441e5942620e3bf",
+   "does": "Asserts clipToEnvelope with an empty envelope returns nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test15_integration_row2_triggersHealthKitWrite()",
+   "hash": "702288aa584571b5",
+   "does": "Row 2 with 26,000 RR points at 1090 ms and no Watch: asserts boundarySource is hrEstimated or healthKitHREstimated, and writeToHealthKit only if sleep minutes > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for 26,000 iterations",
+     "effect": "appends 1090 ms RR points"
+    },
+    {
+     "at": "+23",
+     "cond": "nightSleepMinutes > 0",
+     "effect": "true: asserts writeToHealthKit; false: no assertion on writeToHealthKit at all"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The writeToHealthKit contract the comment calls the guarantee of HealthKit export is asserted only inside `if nightSleepMinutes > 0`; if the classifier returns no stages for this flat RR input the test passes without checking the flag. The source check is near-tautological because resolveSessionOnly hard-codes .hrEstimated.",
+     "evidence": [
+      "EmuquTests/SleepResolverTests.swift:475",
+      "EmuquTests/SleepResolverTests.swift:476",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:164"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The test (and its comment) treats writeToHealthKit as the export gate ('If this test breaks, the export gate upstream will silently no-op'), but no production code reads Resolution.writeToHealthKit; it is used only in Resolution.== and the export path keys on boundarySource. Since writeToHealthKit is defined as nightSleepMinutes > 0 in resolveSessionOnly, the guarded assertion is a tautology.",
+     "evidence": [
+      "EmuquTests/SleepResolverTests.swift:446",
+      "EmuquTests/SleepResolverTests.swift:451",
+      "EmuquTests/SleepResolverTests.swift:475",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:68",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:75",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:166"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test16_integration_autoSleepBackToBed_fullShape()",
+   "hash": "dae81276c45fde0a",
+   "does": "Session 0–420 with Watch core 15–405 plus extension 465–555: asserts 480 min, 0 awake, 2 segments with a >20 min gap, sleepStart t(15), sleepEnd t(555), source .hrValidated, no write, and idempotent re-resolve.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+24",
+     "cond": "first and last segments exist",
+     "effect": "true: asserts the gap is positive and > 20 min; false: skips gap assertions (count already asserted 2)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Same weak Resolution.== used for the idempotence assertion (compares only totals, boundary dates and stage count); the comment's '10:15pm → 4:45pm' should be 4:45am.",
+     "evidence": [
+      "EmuquTests/SleepResolverTests.swift:490",
+      "EmuquTests/SleepResolverTests.swift:539",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)": "a52918b6fdf39066",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIphoneEarlyUnspecifiedDoesNotPullSleepStartBack()",
+   "hash": "95b23c8254164e0c",
+   "does": "dropIphoneEarlySleepGuesses on an iPhone unspecified −120..−30 plus Watch stages from −30: asserts no iPhone interval starting >15 min before Watch onset survives and earliest sleep start equals Watch onset.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testWatchOnlyNotAffectedByFilter()",
+   "hash": "e93b793a62b240d4",
+   "does": "Asserts Watch-only stages pass the iPhone filter unchanged (count 2).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIphoneOnlyKeptWhenNoWatchDetail()",
+   "hash": "96f70f739fa2be4f",
+   "does": "Asserts an iPhone-only interval is kept when there is no Watch detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIphoneLaterSampleKeptForWatchGap()",
+   "hash": "88a9f21ae2eb000d",
+   "does": "Asserts an iPhone interval starting inside the Watch window (60–360) is kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIphoneFilterToleranceBoundary()",
+   "hash": "0e778b77a96f4423",
+   "does": "Asserts an iPhone interval starting 14 min before Watch onset is kept and one 16 min before is dropped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testTimeInBedIsTheStagedTimeNotTheSearchWindow()",
+   "hash": "1b43b8f0dcce59eb",
+   "does": "Search window −120..600 with awake 30–45 and core 45–480: asserts 435 sleep, 15 awake, in-bed 450 (staged time, not window).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testOverlappingSourcesCountEachMinuteOnce()",
+   "hash": "6b6e3e970e17492f",
+   "does": "resolvingOverlaps of unspecified 0–480, core 0–420, awake 420–450: asserts stages [core, awake, unspecified] at 0/420/450, total 450, awake 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)": "1778960dd5fbe59b",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIphoneGuessGivesWayToWatchAwake()",
+   "hash": "af247754115b1126",
+   "does": "resolvingOverlaps of Watch awake 400–420 and iPhone unspecified 400–460: asserts awake keeps 400–420 and unspecified becomes 420–460.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)": "1778960dd5fbe59b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "0ed9b5792a836e8f"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testIntervalsThatOverlapNothingPassThroughUnchanged()",
+   "hash": "34f5c009a548a9d9",
+   "does": "Asserts non-overlapping core and awake pass through resolvingOverlaps unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)": "1778960dd5fbe59b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testOverlappingSamplesDoNotInflateTimeInBed()",
+   "hash": "04353f12cf04830b",
+   "does": "Resolves unspecified 0–480, core 0–420, awake 420–450 through the full resolver: asserts 450 sleep, 30 awake, in-bed 480.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "8248230ef071fa5d"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testStoredNightTimeInBedRepair()",
+   "hash": "0895e81794e51baa",
+   "does": "Asserts a stored SleepData with in-bed 480 but stages awake 15 + core 435 reports timeInBedIsSleepPlusAwake, and withTimeInBedFromSleepAndAwake gives in-bed 450, efficiency 435/450·100, night 435, nap 30, stages unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withTimeInBedFromSleepAndAwake()",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withTimeInBedFromSleepAndAwake()": "c12eaf4ae29bd507",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake": "d424247ba89e3198",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "01fef8efa46ac404",
+    "EmuquTests/SleepResolverTests.swift::let SleepResolverTests.bedtime": "c03e6b5895d03ff5"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testStrapOnlyEstimateKeepsItsTimeInBed()",
+   "hash": "977bcca86cf8e852",
+   "does": "Asserts an hrEstimated SleepData does not report timeInBedIsSleepPlusAwake.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake": "d424247ba89e3198",
+    "EmuquTests/SleepResolverTests.swift::let SleepResolverTests.bedtime": "c03e6b5895d03ff5"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.testWatchOnlyTimeInBedIsTheStagedTime()",
+   "hash": "c4df250f1e9fa65a",
+   "does": "Watch-only awake 60–70 + core 70–420: asserts in-bed 360.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "2555b51f92ac0e14",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "2df9f5c728371c82",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "2a0a6747eaf3b76b"
+   }
+  }
+ ],
+ "deps": {}
+}

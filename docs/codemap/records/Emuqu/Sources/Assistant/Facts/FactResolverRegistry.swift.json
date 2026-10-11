@@ -1,0 +1,1151 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift",
+ "hash": "c07b248a687c52ec",
+ "role": "FactResolverRegistry: aggregates namespaces, resolves fact keys (sync and async), builds the per-entry provider tool schema and catalog hash, dispatches per-entry tool calls (actions and reads) with rate-limit/size/time gates; plus FactResolveTimeout (suspending timeout race) and CompositeResult (partial-data envelope).",
+ "types": [
+  "FactResolverRegistry: final class (Sendable) — namespace aggregation, resolution, tool schema, dispatch gates",
+  "FactResolverRegistry.KeyResolution: enum — success(key)/failure(value)",
+  "FactResolveTimeout: enum — withTimeout race helper",
+  "CompositeResult: enum — composite present/missing envelope builder"
+ ],
+ "state": [
+  "mem:FactResolverRegistry.namespacesBox (OSAllocatedUnfairLock<[FactNamespaceResolver]>)",
+  "mem:FactResolverRegistry.callCountsThisTurn (lock-guarded [signature: missCount])",
+  "mem:FactResolverRegistry.prefetchedChildren (lock-guarded [key: FactValue])",
+  "FactResolverRegistry.rateLimitMissRetries = 2",
+  "FactResolverRegistry.outputSizeCapBytes = 80_000",
+  "FactResolverRegistry.defaultResolveBudgetSec = 2.0",
+  "FactResolverRegistry.watchdogWarnSec = 4.0",
+  "FactResolverRegistry.resolveWarnBudgetSec = 0.5"
+ ],
+ "toplevel": "#if canImport(CryptoKit) wraps the file-private _sha256HexCrypto helper; the file also imports CryptoKit unconditionally at line 1.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FactResolverRegistry.namespaces",
+   "hash": "e5826c48d7bb2e97",
+   "does": "Returns a snapshot of the registered namespaces under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.register(_:)",
+   "hash": "1e09cd65b1e98527",
+   "does": "Appends a namespace resolver under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)",
+   "hash": "8287c96490383894",
+   "does": "Final gate on a tool result: missing values go through the per-turn miss counter (3rd identical miss becomes .rateLimited); non-missing values over 80,000 bytes of tool JSON become .missing(.tooMuchData).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is missing",
+     "effect": "returns rateLimited(signature) or the original missing value"
+    },
+    {
+     "at": "+2",
+     "cond": "rateLimited returned nil",
+     "effect": "?? original missing value"
+    },
+    {
+     "at": "+6",
+     "cond": "payload <= 80,000 bytes",
+     "effect": "returns value; else .missing(.tooMuchData) with size detail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)": "a7adcd082afdd54f",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "6bb98d051f1fc0e2",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON": "01e0921b265d1ba5"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.beginTurn()",
+   "hash": "3fe9b4847986d5a8",
+   "does": "Clears the per-turn miss counters.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FactResolverRegistry.callCountsThisTurn"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)",
+   "hash": "a96bd6dcdacd35f0",
+   "does": "Gate for compact read-tool results: logs a warning when elapsed > 0.5 s (never discards), then applies postResolveGates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "elapsed > 0.5 s",
+     "effect": "logs slow warning; continues either way"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)": "6d657b087ee82dc8",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.rateLimited(signature:)",
+   "hash": "a424e091334270ab",
+   "does": "Increments the miss count for the signature and returns a .rateLimited missing envelope once the count exceeds 2; nil otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:FactResolverRegistry.callCountsThisTurn"
+   ],
+   "writes": [
+    "mem:FactResolverRegistry.callCountsThisTurn"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "signature has no prior count",
+     "effect": "?? 0 → count 1"
+    },
+    {
+     "at": "+6",
+     "cond": "count <= 2",
+     "effect": "nil; else .rateLimited envelope"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the 3rd call short-circuits after the 2nd CONSECUTIVE miss; the counter is never reset by an intervening success, so any 3 misses of the same signature in a turn trip it.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:32",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:88"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says the 3rd identical miss 'short-circuits'; the limiter runs in postResolveGates AFTER the resolver or action has executed, so the 3rd call still does the full HealthKit/network work and runs an action's side effects - only its returned value is replaced with .rateLimited.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:33",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:52",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:311",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:315",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:361",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:366"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.resolve(_:)",
+   "hash": "2a2fc8bbe3e9647b",
+   "does": "Sync resolve: returns a prefetched child value if present; otherwise parses the key, tries every namespace whose name equals the head token, then every other namespace (composite fallback); missing envelopes for malformed/empty/unknown keys.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)"
+   ],
+   "reads": [
+    "mem:FactResolverRegistry.prefetchedChildren",
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key present in prefetchedChildren",
+     "effect": "returns prefetched value"
+    },
+    {
+     "at": "+2",
+     "cond": "FactKey.parse failed",
+     "effect": "missing(invalidParameter,'malformed key')"
+    },
+    {
+     "at": "+5",
+     "cond": "no head token",
+     "effect": "missing(invalidParameter,'empty key') (unreachable: parse guarantees ≥1 token)"
+    },
+    {
+     "at": "+8",
+     "cond": "namespaces whose namespace == head",
+     "effect": "tries each in order"
+    },
+    {
+     "at": "+9",
+     "cond": "namespace resolved",
+     "effect": "returns it"
+    },
+    {
+     "at": "+11",
+     "cond": "namespaces with other names",
+     "effect": "fallback scan"
+    },
+    {
+     "at": "+12",
+     "cond": "fallback namespace resolved",
+     "effect": "returns it; after all → missing(notRecorded,'no such key')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolve(_:registry:)": "a8e38e40811c02b5",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)": "fe40b9e4cdfbd158",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.resolveAsync(_:)",
+   "hash": "ead9b4a4ca3795f7",
+   "does": "Async twin of resolve: same head-namespace then fallback scan using ns.resolveAsync (awaitable bodies awaited, composites prefetch children); does not consult prefetchedChildren.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveAsync(_:registry:)"
+   ],
+   "reads": [
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "parse failed",
+     "effect": "missing(invalidParameter,'malformed key')"
+    },
+    {
+     "at": "+5",
+     "cond": "no head token",
+     "effect": "missing 'empty key' (unreachable after successful parse)"
+    },
+    {
+     "at": "+12",
+     "cond": "namespaces matching head",
+     "effect": "tries each"
+    },
+    {
+     "at": "+13",
+     "cond": "resolved",
+     "effect": "returns it"
+    },
+    {
+     "at": "+17",
+     "cond": "other namespaces",
+     "effect": "fallback scan"
+    },
+    {
+     "at": "+18",
+     "cond": "resolved",
+     "effect": "returns it; else missing(notRecorded,'no such key')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveAsync(_:registry:)": "1034c193e87cc79c",
+    "Emuqu/Sources/Assistant/Facts/FactKey.swift::func FactKey.parse(_:)": "fe40b9e4cdfbd158",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.withPrefetchedChildren(_:run:)",
+   "hash": "daebaa138f595e2b",
+   "does": "Awaits each distinct child key via resolveAsync, merges them into prefetchedChildren, runs the synchronous composite body, then restores the previous map (defer).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
+    "closure:composite body passed by FactNamespaceResolver.compositeValueAsync"
+   ],
+   "reads": [
+    "mem:FactResolverRegistry.prefetchedChildren"
+   ],
+   "writes": [
+    "mem:FactResolverRegistry.prefetchedChildren"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "key already fetched (duplicate in list)",
+     "effect": "skipped; otherwise awaited"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.toolSchema()",
+   "hash": "562b84e3f185a152",
+   "does": "Builds one ToolSpec per catalog entry whose availability hasData (actions included), sorted by tool name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSpec(for:)"
+   ],
+   "reads": [
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "062bfe524f063982",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSpec(for:)": "7cfd95e73749c36b",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.catalogHash()",
+   "hash": "fca374708b1a3e36",
+   "does": "SHA-256 hex of the sorted-keys JSON of toolSchema(); 'unknown' if encoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encoding failed (attempt nil)",
+     "effect": "returns 'unknown'; else hash"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Called twice per turn (AssistantViewModel+Routing.swift:524 and :551), each rebuilding and encoding the full 200+-entry schema and re-running every availability closure, while the schema actually sent is CompactToolRouter.schema; hash changes in per-entry descriptions that are never sent are reported as cache drift.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:524",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:551"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.sha256Hex(_:)": "17f7751609beb7b3",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.sha256Hex(_:)",
+   "hash": "8246dc5caed78518",
+   "does": "Returns lowercase SHA-256 hex via CryptoKit; the #else branch returns 'hash-unavailable'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func _sha256HexCrypto(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "#else fallback can never compile in: the file imports CryptoKit unconditionally at line 1; its comment claims a CC_SHA256 fallback that does not exist (it returns a constant).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:1",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:243",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:247"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func _sha256HexCrypto(_:)": "e840033fd17e3667"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.resolveActionTool(name:argsJSON:entry:)",
+   "hash": "868591eb9494e56f",
+   "does": "Dispatches an .action entry: validates the case, parses declared args, returns a gated missing envelope for the first absent required param, else runs the sync or awaitable execute body, logs duration and applies postResolveGates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parseActionArgs(_:expecting:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)",
+    "closure:FactExecuteBody — action bodies declared in AppFactResolver+* namespaces"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "entry is not .action",
+     "effect": "gated missing(invalidParameter,'could not be dispatched') (unreachable: caller checked)"
+    },
+    {
+     "at": "+13",
+     "cond": "a required param is absent from parsed args",
+     "effect": "gated missing(invalidParameter,'missing required arg')"
+    },
+    {
+     "at": "+20",
+     "cond": "body .sync",
+     "effect": "runs execute inline"
+    },
+    {
+     "at": "+21",
+     "cond": "body .awaitable",
+     "effect": "awaits execute"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)": "845fecd2cf79e387",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parseActionArgs(_:expecting:)": "3ed5d88f225a0da6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)": "6d657b087ee82dc8"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.logActionDuration(name:elapsed:)",
+   "hash": "bb18477dd5559725",
+   "does": "Logs a warning when an action took > 2 s, and a WATCHDOG-WARN when > 4 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "elapsed > 2 s",
+     "effect": "budget warning"
+    },
+    {
+     "at": "+4",
+     "cond": "elapsed <= 4 s",
+     "effect": "returns; else watchdog warning"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.resolveTool(name:argsJSON:)",
+   "hash": "c5e628b249864d3a",
+   "does": "Per-entry tool dispatch: finds the entry by tool name; actions go to resolveActionTool; reads build the key from args, resolveAsync it, replace with .internalError if it took > 2 s, then apply postResolveGates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.findEntry(forToolName:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveActionTool(name:argsJSON:entry:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolvedKey(for:toolName:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no entry with that tool name",
+     "effect": "missing(invalidParameter,'unknown tool') — not rate-limited/gated"
+    },
+    {
+     "at": "+4",
+     "cond": "entry is .action",
+     "effect": "resolveActionTool"
+    },
+    {
+     "at": "+9",
+     "cond": "key resolved",
+     "effect": "continue with key"
+    },
+    {
+     "at": "+10",
+     "cond": "key resolution failed",
+     "effect": "returns the failure envelope directly (not counted by the rate limiter)"
+    },
+    {
+     "at": "+17",
+     "cond": "budgetOverrun nil",
+     "effect": "?? keeps resolved value; else the internalError envelope replaces a finished value"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "A read that finishes after 2 s (awaitable HealthKit/network entries are legitimately that slow) has its completed value thrown away and replaced with internalError, while CompactToolRouter's read path keeps the same value; reachable when a provider calls an underlying tool name.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:365",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:413",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:78"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)": "40f9e06a4cd740b9",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.findEntry(forToolName:)": "a91f6eb46f21b17e",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)": "6d657b087ee82dc8",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveActionTool(name:argsJSON:entry:)": "def0d931a665aa90",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolvedKey(for:toolName:argsJSON:)": "52d93a63a199635a"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.resolvedKey(for:toolName:argsJSON:)",
+   "hash": "f3c1f829f7010519",
+   "does": "Builds the fact key for a read entry: fixed key verbatim; parameterized pattern or parameterized composite via substituted(); literal composite verbatim; action → internalError failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.substituted(_:kind:toolName:argsJSON:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed",
+     "effect": "success(k)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .parameterized",
+     "effect": "substituted(pattern)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .composite",
+     "effect": "see 385"
+    },
+    {
+     "at": "+8",
+     "cond": "composite key has no '('",
+     "effect": "success(k); else substituted"
+    },
+    {
+     "at": "+10",
+     "cond": "case .action",
+     "effect": "failure internalError (unreachable)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.substituted(_:kind:toolName:argsJSON:)": "e9afd43dd7e034de",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.substituted(_:kind:toolName:argsJSON:)",
+   "hash": "aa1ad2671424818e",
+   "does": "Replaces $param in the pattern with the call's single argument value parsed from argsJSON.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parseSingleStringArg(_:key:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no placeholder in pattern",
+     "effect": "failure internalError 'has no parameter placeholder'"
+    },
+    {
+     "at": "+4",
+     "cond": "argument missing/not string or number",
+     "effect": "failure invalidParameter 'missing or bad arg'; else success(substituted key)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parseSingleStringArg(_:key:)": "9cf2806a99c7df0e",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)": "aca96196b80ed887",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.budgetOverrun(name:elapsed:)",
+   "hash": "53bc9d2581cca83a",
+   "does": "Returns an internalError envelope when elapsed > 2 s (with warning log); logs a slow warning when > 0.5 s; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "elapsed > 2 s",
+     "effect": "log + returns internalError envelope"
+    },
+    {
+     "at": "+8",
+     "cond": "elapsed > 0.5 s",
+     "effect": "logs slow warning; returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.findEntry(forToolName:)",
+   "hash": "2d441df05fb6f6bd",
+   "does": "Linear scan of all namespaces' entries for the first whose derived tool name equals the given name (availability not checked).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)"
+   ],
+   "reads": [
+    "mem:FactResolverRegistry.namespacesBox"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each namespace",
+     "effect": "scan"
+    },
+    {
+     "at": "+2",
+     "cond": "entry tool name matches",
+     "effect": "returns entry; nil after full scan"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.toolName(for:)",
+   "hash": "804c2acfbf3fd911",
+   "does": "Derives the tool name: key with dots→underscores; parameterized and parameterized composites first strip the '($param)' section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stripPlaceholder(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .fixed",
+     "effect": "key dots→underscores"
+    },
+    {
+     "at": "+4",
+     "cond": "case .parameterized",
+     "effect": "stripPlaceholder then dots→underscores"
+    },
+    {
+     "at": "+8",
+     "cond": "case .composite",
+     "effect": "see 447"
+    },
+    {
+     "at": "+9",
+     "cond": "composite key contains '('",
+     "effect": "strip placeholder; else key as is"
+    },
+    {
+     "at": "+11",
+     "cond": "case .action",
+     "effect": "key dots→underscores"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stripPlaceholder(from:)": "3e71b284709797ab"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.toolSpec(for:)",
+   "hash": "fab355236a73f8aa",
+   "does": "Builds a ToolSpec for one entry: fixed → no-arg schema; parameterized → parameterizedSpec with evaluated availability; composite → compositeSpec; action → actionSpec.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parameterizedSpec(name:pattern:example:description:availability:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.compositeSpec(name:key:description:availability:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.actionSpec(name:description:params:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)",
+    "closure:availability — namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .fixed",
+     "effect": "empty input schema"
+    },
+    {
+     "at": "+5",
+     "cond": "case .parameterized",
+     "effect": "parameterizedSpec(availability())"
+    },
+    {
+     "at": "+9",
+     "cond": "case .composite",
+     "effect": "compositeSpec"
+    },
+    {
+     "at": "+11",
+     "cond": "case .action",
+     "effect": "actionSpec"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.actionSpec(name:description:params:)": "294f234a8eb3495a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.compositeSpec(name:key:description:availability:)": "416b09a064360725",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parameterizedSpec(name:pattern:example:description:availability:)": "0c635656b0bd098c",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.compositeSpec(name:key:description:availability:)",
+   "hash": "dc74c9644217a97f",
+   "does": "Composite spec: literal key → no-arg schema; parameterized → parameterizedSpec with example = placeholder name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parameterizedSpec(name:pattern:example:description:availability:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)",
+    "closure:availability — namespace declarations"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "key has no '('",
+     "effect": "no-arg ToolSpec"
+    },
+    {
+     "at": "+10",
+     "cond": "placeholderName nil",
+     "effect": "?? example 'value'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.parameterizedSpec(name:pattern:example:description:availability:)": "0c635656b0bd098c",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)": "aca96196b80ed887",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.actionSpec(name:description:params:)",
+   "hash": "3ca9c28c80ce6257",
+   "does": "Action spec: one string property per ActionParam, required list = required params sorted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each param",
+     "effect": "adds property"
+    },
+    {
+     "at": "+9",
+     "cond": "param required",
+     "effect": "appended to required list"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.parseActionArgs(_:expecting:)",
+   "hash": "38f5d878e0d5fdb1",
+   "does": "Parses action args JSON into declared-param strings, coercing String/Int/Double/Bool; undeclared keys dropped; [] on bad JSON.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "JSON unparseable or not an object",
+     "effect": "returns [:] -> required-param check then reports the first required param as missing"
+    },
+    {
+     "at": "+5",
+     "cond": "for each declared param",
+     "effect": "checks types in order String, Int, Double, Bool"
+    },
+    {
+     "at": "+6",
+     "cond": "value is String",
+     "effect": "stored as is"
+    },
+    {
+     "at": "+8",
+     "cond": "value bridges to Int",
+     "effect": "String(n); JSON booleans from JSONSerialization are NSNumber and bridge here (true -> '1', false -> '0')"
+    },
+    {
+     "at": "+10",
+     "cond": "value bridges to Double (non-integral number)",
+     "effect": "String(d)"
+    },
+    {
+     "at": "+12",
+     "cond": "value is Bool",
+     "effect": "unreachable for JSON booleans (already taken by the Int branch at 526)"
+    },
+    {
+     "at": "+13",
+     "cond": "Bool true",
+     "effect": "'true' else 'false' - never produced for JSONSerialization input; arrays/objects/null are dropped silently"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Bool coercion comes after 'as? Int'; JSONSerialization booleans are NSNumber and bridge to Int, so an action receives '1'/'0' instead of the documented 'true'/'false'. No current action parses a bool, so no wrong behaviour today.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:516",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:526",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:530"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same JSON-to-[String:String] coercion (String/Int/Double/Bool, same order) reimplemented in CompactToolRouter.parseArgs.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:518",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:471",
+      "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift:477"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.parameterizedSpec(name:pattern:example:description:availability:)",
+   "hash": "3fbcfb33cdad4599",
+   "does": "Parameterized spec: single required string argument named after the placeholder with an 'Example: …' description that inlines the availability's validRange start month; no-arg schema if no placeholder.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.paramDescription(example:availability:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "pattern has no $placeholder",
+     "effect": "no-arg ToolSpec"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.paramDescription(example:availability:)": "08f6861868f0c080",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.placeholderName(in:)": "aca96196b80ed887",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.paramDescription(example:availability:)",
+   "hash": "b140408f83f1dd3c",
+   "does": "'Example: <example>' plus '. Data available as early as <Month yyyy>; do not request earlier dates.' when availability has a validRange.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "validRange nil",
+     "effect": "returns only the example text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197"
+   }
+  },
+  {
+   "key": "func FactResolverRegistry.placeholderName(in:)",
+   "hash": "a1026624f2173061",
+   "does": "Returns the placeholder name between the first '(' and first ')' when it starts with '$'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no '(' / ')' or ')' before '('",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "inner text not $-prefixed",
+     "effect": "nil; else name without '$'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.stripPlaceholder(from:)",
+   "hash": "b26e2447fd60e287",
+   "does": "Removes the first '(…)' section from a pattern.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no valid paren pair",
+     "effect": "returns pattern unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolverRegistry.parseSingleStringArg(_:key:)",
+   "hash": "e9e36de52da3322d",
+   "does": "Extracts one argument from a JSON object as String, Int-string or Double-string.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "JSON unparseable / not an object",
+     "effect": "nil -> substituted() returns invalidParameter 'missing or bad arg'"
+    },
+    {
+     "at": "+4",
+     "cond": "value is String",
+     "effect": "returns it"
+    },
+    {
+     "at": "+5",
+     "cond": "value bridges to Int",
+     "effect": "String(n); a JSON boolean (NSNumber) also bridges here and becomes '1'/'0' rather than being rejected"
+    },
+    {
+     "at": "+6",
+     "cond": "value bridges to Double",
+     "effect": "String(d); else nil (array/object/null rejected)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func _sha256HexCrypto(_:)",
+   "hash": "06f987dc9c5bf93a",
+   "does": "SHA-256 of data via CryptoKit, hex-encoded lowercase.",
+   "entry": null,
+   "calls": [
+    "ext:CryptoKit.SHA256.hash"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolveTimeout.withTimeout(seconds:_:)",
+   "hash": "d61eeea5479a5980",
+   "does": "Races an async operation (detached) against a sleep of `seconds` (detached); resumes with the operation's value or nil at the deadline, exactly once; the losing task is not cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.singleShotClaim()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.resumeWithOperation(_:_:_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.resumeWithTimeout(_:_:_:)",
+    "closure:operation — awaitable fact/action bodies in AppFactResolver+* (Settings, Sleep, RoutesAndDevices, LiveNavigation...)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.resumeWithOperation(_:_:_:)": "ae7f8544e3737928",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.resumeWithTimeout(_:_:_:)": "b2299b07bde4e159",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.singleShotClaim()": "bafc75ee5d08474b"
+   }
+  },
+  {
+   "key": "func FactResolveTimeout.resumeWithOperation(_:_:_:)",
+   "hash": "e09591469477c4e6",
+   "does": "Awaits the operation and resumes the continuation with its value if it wins the single-shot claim.",
+   "entry": null,
+   "calls": [
+    "closure:operation passed to withTimeout",
+    "closure:claimWin from singleShotClaim"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "claimWin() true (first finisher)",
+     "effect": "resumes with value; otherwise the result is discarded"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactResolveTimeout.resumeWithTimeout(_:_:_:)",
+   "hash": "320fa0a1355c3cc0",
+   "does": "Sleeps for the timeout (sleepQuietly swallows cancellation) and resumes with nil if it wins the claim.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "closure:claimWin from singleShotClaim"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "claimWin() true",
+     "effect": "resumes with nil (timeout); otherwise does nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+   }
+  },
+  {
+   "key": "func FactResolveTimeout.singleShotClaim()",
+   "hash": "20fd5145c0dad1bf",
+   "does": "Returns a lock-guarded closure that answers true only on its first invocation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func CompositeResult.recordFromChildren(_:)",
+   "hash": "c872e7beef2e2599",
+   "does": "Builds a composite record {present:[{key,value}], missing:[{key,reason,detail?}]} plus status 'partialData' when any child is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.missingItem(key:reason:detail:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each child",
+     "effect": "classify"
+    },
+    {
+     "at": "+6",
+     "cond": "child value is .missing",
+     "effect": "added to missing list; else to present"
+    },
+    {
+     "at": "+13",
+     "cond": "missing list non-empty",
+     "effect": "adds status 'partialData'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.missingItem(key:reason:detail:)": "4bd9e7b8d7de14d5"
+   }
+  },
+  {
+   "key": "func CompositeResult.missingItem(key:reason:detail:)",
+   "hash": "d853ac563a700c60",
+   "does": "One missing-list record: key, reason raw value and detail when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "detail non-nil",
+     "effect": "adds detail field"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,808 @@
+{
+ "file": "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift",
+ "hash": "5a52a6a002eb425d",
+ "role": "Draws the three HRV charts of report page 2 — Poincaré plot with SD1/SD2 ellipse, power-spectral-density graph (chart-only periodogram on a 4 Hz resampled grid with VLF/LF/HF shading), and RR tachogram with artifact dots — plus file-scope geometry/spectrum helpers.",
+ "types": [
+  "ReportSectionRenderer: extension — chart drawing",
+  "ReportSectionRenderer.PoincareScale: struct — RR→plot coordinate mapping"
+ ],
+ "state": [
+  "psdResampleHz = 4.0 (file-private global let)",
+  "psdMaxSamples = 2048 (file-private global let, ~8.5 min at 4 Hz)"
+ ],
+ "toplevel": "File-private global lets psdResampleHz (4 Hz) and psdMaxSamples (2048) configure the chart periodogram.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ReportSectionRenderer.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
+   "hash": "dbcdd2f190417926",
+   "does": "Draws the 'Poincaré Plot' heading and a 180pt framed plot; computes clean consecutive RR pairs in the analysis window; if any, draws the identity line, SD1/SD2 ellipse, dots, x-axis label and SD1/SD2/ratio/point-count stats. Returns y below the plot +20.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareFrame(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::init ReportSectionRenderer.PoincareScale(pairs:plotSize:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareIdentityLine(in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareDots(_:scale:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareLabels(in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "PoincareScale init fails (no clean pairs)",
+     "effect": "returns y+plotSize+20 leaving an empty framed box with no stats; else draws contents"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Poincaré pairs require artifact flags for both beats (isCleanPair returns false when i ≥ flags.count), while the tachogram and PSD on the same page treat missing flags as clean. A session with raw RR but nil/short artifactFlags (SessionMerger sets them nil; generateReportURL never passes flags) gets an empty Poincaré box with no SD1/SD2 stats beside a populated tachogram and PSD.",
+     "evidence": [
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:54",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:414",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:454",
+      "Emuqu/Sources/Export/PDFReportGenerator.swift:409",
+      "Emuqu/Sources/Storage/SessionMerger.swift:349"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareDots(_:scale:in:)": "ebe5c90ae1ef35a0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)": "a2e64fe6d91a5d23",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareLabels(in:)": "fda21a6c429b2b0e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)": "1cbc53cc83712dbc",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)": "b7415ab5b145e1a0",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareFrame(_:)": "5d15670328a1f7ad",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareIdentityLine(in:)": "27309849da784c3e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::init ReportSectionRenderer.PoincareScale(pairs:plotSize:)": "816e5e21d5351827",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.poincarePairs(series:flags:result:)",
+   "hash": "4aa8ac2d2e9cc0be",
+   "does": "Collects (RR[i], RR[i+1]) pairs for i in windowStart..<min(windowEnd,count)-1 whose both beats are flagged clean.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "clamped windowEnd <= windowStart+1 (degenerate window)",
+     "effect": "returns [] to avoid an invalid range; else iterates"
+    },
+    {
+     "at": "+5",
+     "cond": "pair is not clean",
+     "effect": "pair dropped (nil in compactMap); else included"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "Re-implements PoincarePlotView.beatPairs with a different missing-flag policy: the on-screen plot treats beats beyond artifactFlags as clean, the PDF drops them, so for a session whose artifactFlags is nil (SessionMerger, streaming/device-recording builders) the app shows a populated Poincare plot while the PDF shows an empty box.",
+     "evidence": [
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:54",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:66",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:73",
+      "Emuqu/Sources/Storage/SessionMerger.swift:349"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)": "3aad87ce9961b0e5",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.isCleanPair(at:flags:)",
+   "hash": "66c28bc2511a56fe",
+   "does": "True only when both i and i+1 are inside the flags array and neither is an artifact.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "i or i+1 is beyond flags.count",
+     "effect": "returns false (pair treated as dirty, so empty/short flags drop every pair); else returns !artifact(i) && !artifact(i+1)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init ReportSectionRenderer.PoincareScale(pairs:plotSize:)",
+   "hash": "bc088a0d256c91fd",
+   "does": "Failable: flattens pairs to all RR values; fails when empty; otherwise sets plotMin/plotMax as min/max padded by 10% of max(range,100 ms), stores plotSize and mean RR.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "allRR is empty",
+     "effect": "returns nil; else builds scale"
+    },
+    {
+     "at": "+3",
+     "cond": "allRR.min() nil",
+     "effect": "fallback 600 ms — unreachable after the empty guard"
+    },
+    {
+     "at": "+4",
+     "cond": "allRR.max() nil",
+     "effect": "fallback 1200 ms — unreachable after the empty guard"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportSectionRenderer.PoincareScale.scaled(_:)",
+   "hash": "59f44a15c4b51c71",
+   "does": "Maps an RR value into plot points: normalised over [plotMin,plotMax] then scaled to plotSize-20 with a 10pt inset.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ReportSectionRenderer.PoincareScale.pixelsPerMs",
+   "hash": "85fb7a7994795a9c",
+   "does": "Points per millisecond: (plotSize-20)/(plotMax-plotMin), used to size the ellipse axes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)",
+   "hash": "cdd86d0c0c43dc38",
+   "does": "Draws the SD1/SD2 ellipse centred at (meanRR, meanRR), rotated -45°, semi-axes SD2 (along identity) and SD1 in plot points, filled 20% / stroked 50% primary colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::var ReportSectionRenderer.PoincareScale.pixelsPerMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "86082e2e1aa09795",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::var ReportSectionRenderer.PoincareScale.pixelsPerMs": "5ec3deb992ef3d09",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPoincareDots(_:scale:in:)",
+   "hash": "4647d0e8269e2525",
+   "does": "Plots up to ~500 pairs (stride count/500) as 3pt dots in 60% primary colour.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each strided index",
+     "effect": "one dot per sampled pair; an empty array draws nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "86082e2e1aa09795",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPoincareLabels(in:)",
+   "hash": "38543ad3c796aa34",
+   "does": "Draws the x-axis caption 'RR(n) ms' under the plot (no y-axis caption is drawn).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)",
+   "hash": "7c47f8f07a9a9a7f",
+   "does": "Draws SD1, SD2 (ms), SD1/SD2 ratio and the pair count to the right of the plot, 14pt per row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each of the 4 stats",
+     "effect": "draws name and value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)",
+   "hash": "0dff6a1c550e82ff",
+   "does": "Draws the 'Power Spectral Density' heading and a grey graph box; computes the chart periodogram over `window` (default whole series); if non-empty draws bands, curve, axis, labels and LF/HF stats. Returns y+graphHeight+30 (or +20 when empty).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func chartPeriodogram(series:flags:window:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDContents(_:fd:in:y:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+17",
+     "cond": "window argument is nil",
+     "effect": "uses 0..<series.points.count — the only production caller (PDFReportGenerator+Pages.swift:146) always passes the analysis window, so this fallback is test-only"
+    },
+    {
+     "at": "+18",
+     "cond": "periodogram empty (<64 clean beats or grid)",
+     "effect": "returns y+120 with an empty box and no LF/HF stats; else draws contents"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDContents(_:fd:in:y:)": "5077d9acc334c9c6",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func chartPeriodogram(series:flags:window:)": "e22cf13be7ffe84b",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDContents(_:fd:in:y:)",
+   "hash": "fea1dc41b5a76091",
+   "does": "With freq→x mapping over 0–0.5 Hz, draws band shading, the curve, the border, frequency axis, band labels and LF/HF/ratio/total stats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDBands(freqToX:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDCurve(_:freqToX:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDFrequencyAxis(freqToX:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBandLabels(freqToX:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDStats(_:x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDBands(freqToX:in:)": "c958080835878d2c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDCurve(_:freqToX:in:)": "97aa024190448c13",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDFrequencyAxis(freqToX:in:)": "a8fdbcace2bbefed",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDStats(_:x:y:)": "fa1eafbdd1e2bfba",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBandLabels(freqToX:in:)": "70a74e9616aa5967"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDBands(freqToX:in:)",
+   "hash": "5cfd7f2fdde8790c",
+   "does": "Shades VLF 0.003–0.04 (light grey), LF 0.04–0.15 (15% primary), HF 0.15–0.4 Hz (15% secondary).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBand(from:to:colour:freqToX:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBand(from:to:colour:freqToX:in:)": "cf4ae245511fe276",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDCurve(_:freqToX:in:)",
+   "hash": "9c839347f29211de",
+   "does": "Strokes the PSD curve path in primary colour, 1.5pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)": "1e07c0e68d0a2863",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDFrequencyAxis(freqToX:in:)",
+   "hash": "4d44ad682748e251",
+   "does": "Draws x-axis tick labels 0.0–0.5 Hz and the 'Frequency (Hz)' caption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each of 6 tick frequencies",
+     "effect": "draws its label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawPSDStats(_:x:y:)",
+   "hash": "37d3dc23b5ab8a41",
+   "does": "Draws LF, HF (ms²), LF/HF and total power beside the graph; LF/HF prints an em dash when the ratio is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fd.lfHfRatio is nil",
+     "effect": "'—'; else 2-decimal ratio"
+    },
+    {
+     "at": "+10",
+     "cond": "for each stat",
+     "effect": "draws name/value row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawTachogram(series:flags:result:yPosition:in:pageRect:)",
+   "hash": "522424e37dd10008",
+   "does": "Draws the 'RR Tachogram' heading and graph box; builds (offset, RR, isArtifact) values over the analysis window; with ≥2 values draws the trace with artifact dots, border and min/max/ms axis labels. Returns y+graphHeight+15.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func tachogramValues(series:flags:result:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramTrace(_:minRR:range:in:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramAxisLabels(minRR:maxRR:in:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "fewer than 2 values",
+     "effect": "returns early with an empty box (avoids divide-by-zero in x scale); else draws"
+    },
+    {
+     "at": "+21",
+     "cond": "min() nil",
+     "effect": "fallback 600 — unreachable (≥2 values)"
+    },
+    {
+     "at": "+22",
+     "cond": "max() nil",
+     "effect": "fallback 1200 — unreachable (≥2 values)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramAxisLabels(minRR:maxRR:in:)": "17235626ab4a94d8",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramTrace(_:minRR:range:in:)": "f3782f2538205c13",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func tachogramValues(series:flags:result:)": "77482103b89fff8f",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawTachogramTrace(_:minRR:range:in:)",
+   "hash": "e08a286c13fb9a40",
+   "does": "Tints the plot area 5% primary and strokes the tachogram path in primary, 0.8pt.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.tachogramPath(_:minRR:range:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.tachogramPath(_:minRR:range:in:)": "183cbb0b92c352d9",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.tachogramPath(_:minRR:range:in:)",
+   "hash": "5191096811d5984d",
+   "does": "Builds the RR trace: x = offset × width/(n-1), y scaled into 85% of the height from range (≥50 ms); moves to the first point, lines to the rest, and draws a red dot at each artifact beat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.markTachogramArtifact(x:y:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each value",
+     "effect": "adds one path point"
+    },
+    {
+     "at": "+8",
+     "cond": "first element (offset 0)",
+     "effect": "move(to:); else addLine(to:)"
+    },
+    {
+     "at": "+13",
+     "cond": "beat is an artifact",
+     "effect": "draws a 4pt accent-colour dot; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.markTachogramArtifact(x:y:)": "0cea93673be667a3"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.markTachogramArtifact(x:y:)",
+   "hash": "313a381575113fa4",
+   "does": "Fills a 4pt accent-colour circle at (x,y).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+   }
+  },
+  {
+   "key": "func ReportSectionRenderer.drawTachogramAxisLabels(minRR:maxRR:in:)",
+   "hash": "182d76283f675090",
+   "does": "Draws max and min RR and 'ms' to the right of the tachogram.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func drawPoincareFrame(_:)",
+   "hash": "208bc25dd28c8db8",
+   "does": "Fills the plot rect light grey and strokes a light-grey border.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func drawPoincareIdentityLine(in:)",
+   "hash": "9396c84888c7933b",
+   "does": "Strokes a 0.5pt light-grey identity diagonal inset 10pt from the plot corners.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+   }
+  },
+  {
+   "key": "func drawPSDBand(from:to:colour:freqToX:in:)",
+   "hash": "bd1fed600f86314e",
+   "does": "Fills the rect between two frequencies (via freqToX) across the full graph height with the given colour.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func psdCurvePath(_:freqToX:in:)",
+   "hash": "6e7787eab6dbe93d",
+   "does": "Builds the PSD curve path: each (freq, power) normalised by the maximum power to 90% of the graph height.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "psdData empty (max nil)",
+     "effect": "maxPower = 1 — unreachable from drawPSDGraph, which returns early on empty data"
+    },
+    {
+     "at": "+6",
+     "cond": "for each bin",
+     "effect": "adds one point"
+    },
+    {
+     "at": "+11",
+     "cond": "first point",
+     "effect": "move(to:); else addLine(to:)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func drawPSDBandLabels(freqToX:in:)",
+   "hash": "6f1fe8a5a04ff2f7",
+   "does": "Draws 'VLF', 'LF', 'HF' 7pt labels at the top of their bands.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+   }
+  },
+  {
+   "key": "func tachogramValues(series:flags:result:)",
+   "hash": "9551968518b729c4",
+   "does": "Returns (offset within window, RR ms, isArtifact) for every beat in windowStart..<min(windowEnd,count).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "clamped windowEnd <= windowStart",
+     "effect": "returns []"
+    },
+    {
+     "at": "+7",
+     "cond": "for each beat in window",
+     "effect": "appends a tuple"
+    },
+    {
+     "at": "+8",
+     "cond": "i < flags.count",
+     "effect": "uses flags[i].isArtifact; beyond flags → treated as not an artifact"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func chartPeriodogram(series:flags:window:)",
+   "hash": "66830f77039c7438",
+   "does": "Chart-only spectrum: clean beat times in the window, linearly interpolated onto a 4 Hz grid (≤2048 samples), mean-removed; returns (k·4/n Hz, DFT power) for bins 1…n/8 (up to 0.5 Hz).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func cleanBeatTimes(series:flags:window:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolatedGrid(_:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func dftPower(_:bin:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer than 64 clean beats",
+     "effect": "returns [] (no chart)"
+    },
+    {
+     "at": "+4",
+     "cond": "grid has fewer than 64 samples",
+     "effect": "returns []"
+    },
+    {
+     "at": "+9",
+     "cond": "maxBin < 1",
+     "effect": "returns []; else maps bins"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func cleanBeatTimes(series:flags:window:)": "694b6bccf32eafe9",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func dftPower(_:bin:)": "e6df841ca52b0abe",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolatedGrid(_:)": "86392c899121286b"
+   }
+  },
+  {
+   "key": "func cleanBeatTimes(series:flags:window:)",
+   "hash": "56dc7bdc53aba5a4",
+   "does": "Returns (seconds since window's first beat, RR ms) for each non-artifact beat in the window clamped to the series.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "clamped range is empty",
+     "effect": "returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "beat index beyond flags OR not an artifact",
+     "effect": "kept; flagged artifact → dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func interpolatedGrid(_:)",
+   "hash": "411248ad11fa93df",
+   "does": "Linearly interpolates beat RR values at 4 Hz from the first to the last clean beat time, capped at psdMaxSamples (2048 ≈ 512 s), walking a cursor j through the beats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolate(_:_:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no first/last beat or end <= start",
+     "effect": "returns []"
+    },
+    {
+     "at": "+6",
+     "cond": "for each grid sample",
+     "effect": "appends one interpolated value"
+    },
+    {
+     "at": "+8",
+     "cond": "next beat time <= t (while)",
+     "effect": "advances cursor j (bounded at beats.count-2)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolate(_:_:at:)": "900df393d244e8b5"
+   }
+  },
+  {
+   "key": "func interpolate(_:_:at:)",
+   "hash": "d18e78a190c8f34c",
+   "does": "Linear interpolation between two (t, RR) points at time t.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "b.t <= a.t (non-increasing time)",
+     "effect": "returns a's RR; else interpolates"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func dftPower(_:bin:)",
+   "hash": "cd91a8dbfd3f3926",
+   "does": "Naive DFT power at bin k: (Re²+Im²)/n² over the whole signal (O(n) per bin).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each sample",
+     "effect": "accumulates cos/sin terms"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

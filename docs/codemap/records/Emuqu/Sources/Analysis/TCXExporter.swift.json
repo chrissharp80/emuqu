@@ -1,0 +1,457 @@
+{
+ "file": "Emuqu/Sources/Analysis/TCXExporter.swift",
+ "hash": "1e428fb5046e581f",
+ "role": "TCX v2 writer: one Activity/Lap with total time, distance, Calories 0, mean HR, and trackpoints (position, altitude, cumulative distance, median-smoothed HR) or time+HR-only points every 5 s for indoor sessions; writes to the temp directory.",
+ "types": [
+  "TCXExporter: enum — TCX builder",
+  "HRTrack: struct (private) — HR series by offset with ±3 s median lookup"
+ ],
+ "state": [
+  "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.tcx (writeToTempFile)",
+  "TCXExporter.indoorStepSec = 5 s"
+ ],
+ "toplevel": "indoorStepSec static constant (5 s); HRTrack.halfWindow = 3 s.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TCXExporter.export(session:track:)",
+   "hash": "a760c6d4ee5372a3",
+   "does": "Builds the TCX document: header (activity type, Id), lap header, GPS trackpoints or time-only trackpoints, then Notes with the human summary and closing tags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata nil",
+     "effect": "sport defaults to .walk → 'Other'"
+    },
+    {
+     "at": "+9",
+     "cond": "track empty",
+     "effect": "timeOnlyTrackpoints; else GPS trackpoints"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)": "d7149ace8d57bc92",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "dcf9122333b9ce6f",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "016c138a088221bc",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)": "7255eb219a0819d6",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)": "735bbf1e12a8c831",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2"
+   }
+  },
+  {
+   "key": "func TCXExporter.humanSummary(session:)",
+   "hash": "38621ed6a9f7acc3",
+   "does": "Builds the summary line (preferred units, distance, elevation gain, m:ss duration, 'values below are metric') used in the XML comment and <Notes>.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "distanceMeters nil",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "elevationGainMeters nil",
+     "effect": "0"
+    },
+    {
+     "at": "+4",
+     "cond": "duration nil",
+     "effect": "0"
+    },
+    {
+     "at": "+7",
+     "cond": "imperial",
+     "effect": "miles else km"
+    },
+    {
+     "at": "+11",
+     "cond": "imperial",
+     "effect": "feet else metres"
+    },
+    {
+     "at": "+19",
+     "cond": "imperial",
+     "effect": "'imperial' else 'metric' text"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-implements GPXExporter.summaryDesc/distanceLabel/elevationLabel/durationLabel line for line instead of calling them.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/GPXExporter.swift:44",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:53"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+   }
+  },
+  {
+   "key": "func TCXExporter.header(session:activityType:summary:iso:)",
+   "hash": "7a026652e698c256",
+   "does": "Returns the XML prologue, an XML comment with the summary, the TrainingCenterDatabase root, <Activities><Activity Sport=...> and <Id> (ISO start with fractional seconds).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "dcf9122333b9ce6f"
+   }
+  },
+  {
+   "key": "func TCXExporter.lapHeader(session:iso:)",
+   "hash": "2e4d0ea50faa3b26",
+   "does": "Returns the <Lap StartTime> opening with TotalTimeSeconds, DistanceMeters, Calories 0, AverageHeartRateBpm when mean HR>0, Intensity Active, TriggerMethod Manual and <Track>.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "duration nil",
+     "effect": "TotalTimeSeconds 0.0"
+    },
+    {
+     "at": "+3",
+     "cond": "distance nil",
+     "effect": "DistanceMeters 0.0"
+    },
+    {
+     "at": "+7",
+     "cond": "meanHR nil",
+     "effect": "0 → AverageHeartRateBpm omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "meanHR > 0",
+     "effect": "writes AverageHeartRateBpm (truncated Int)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0"
+   }
+  },
+  {
+   "key": "func TCXExporter.trackpoints(session:track:iso:)",
+   "hash": "f96b5cb0d56bd9a3",
+   "does": "Writes one GPS trackpoint per fix with cumulative distance and the median HR within ±3 s of the fix offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each fix",
+     "effect": "one trackpoint"
+    },
+    {
+     "at": "+5",
+     "cond": "idx > 0",
+     "effect": "adds distance from previous fix"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "003f01482895df64",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "b80311b1250e0a09",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "68345dad019e67d0"
+   }
+  },
+  {
+   "key": "func TCXExporter.timeOnlyTrackpoints(session:iso:)",
+   "hash": "12effad7b301d6d6",
+   "does": "Indoor trackpoints: every 5 s from 0 to duration, writes a time+HR trackpoint where a median HR exists, always writing the start point.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "duration nil",
+     "effect": "0 → only the start point"
+    },
+    {
+     "at": "+4",
+     "cond": "each 5 s offset",
+     "effect": "iterates"
+    },
+    {
+     "at": "+6",
+     "cond": "hr nil and offset != 0",
+     "effect": "skip; start is always written (schema needs ≥1 trackpoint)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "003f01482895df64",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)": "118c90e86bb330db",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "68345dad019e67d0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)",
+   "hash": "506b2775acfcf461",
+   "does": "Returns a <Trackpoint> with Time and, when present, rounded HeartRateBpm.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "heartRate non-nil",
+     "effect": "writes HR; else time only"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)",
+   "hash": "bf34e8d1584d41b3",
+   "does": "Returns a GPS <Trackpoint> with Time, Position, AltitudeMeters, DistanceMeters and optional HeartRateBpm.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "heartRate non-nil",
+     "effect": "writes HR; else omitted"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "AltitudeMeters is always written from fix.altitude, so tracks with no stored altitudes export 0.0 m at every point instead of omitting the element.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TCXExporter.swift:168",
+      "Emuqu/Sources/Analysis/GPXExporter.swift:152"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TCXExporter.writeToTempFile(session:track:)",
+   "hash": "8b0a10dcfced28a1",
+   "does": "Renders the TCX, writes it atomically to '<sport>-<UTC yyyyMMdd-HHmmss>.tcx' in the temp directory and logs; throws NSError on UTF-8 failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [
+    "file:tmp/<sport>-<yyyyMMdd-HHmmss>.tcx"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutMetadata nil",
+     "effect": "sport part 'workout'"
+    },
+    {
+     "at": "+10",
+     "cond": "UTF-8 encoding nil",
+     "effect": "throws NSError; else writes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func TCXExporter.tcxActivityType(for:)",
+   "hash": "ebf2ecd2af69d66d",
+   "does": "Maps Sport to TCX Activity Sport attribute: run/trailRun/treadmill → Running; bike/indoorBike/airBike → Biking; everything else → Other.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run, trailRun, treadmill",
+     "effect": "'Running'"
+    },
+    {
+     "at": "+3",
+     "cond": "bike, indoorBike, airBike",
+     "effect": "'Biking'"
+    },
+    {
+     "at": "+4",
+     "cond": "walk, hike",
+     "effect": "'Other'"
+    },
+    {
+     "at": "+5",
+     "cond": "row",
+     "effect": "'Other'"
+    },
+    {
+     "at": "+6",
+     "cond": "crossFit",
+     "effect": "'Other'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init HRTrack(session:)",
+   "hash": "58620a0c792c5efe",
+   "does": "Builds the HR series: positive-HR WorkoutSamples (offsetSec, HR) when any exist, else per-beat HR from the RR series via WorkoutAnalyzer.hrSamplesWithWallClock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata or samples nil",
+     "effect": "treated as []; filters HR > 0 (nil HR → 0 → excluded)"
+    },
+    {
+     "at": "+2",
+     "cond": "positive-HR samples exist",
+     "effect": "uses them and returns"
+    },
+    {
+     "at": "+4",
+     "cond": "heartRate nil",
+     "effect": "?? 0 (unreachable after the filter)"
+    },
+    {
+     "at": "+8",
+     "cond": "rrSeries nil",
+     "effect": "[] points → empty series"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "HR offsets come from WorkoutSample.offsetSec, which stops during pauses, while trackpoints()/timeOnlyTrackpoints() query by wall-clock offset (evenly spread fix times / startDate+offset); after a pause every exported HeartRateBpm is taken from the wrong time (shifted by the cumulative pause length).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TCXExporter.swift:227",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:119",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:138",
+      "Emuqu/Sources/Analysis/TCXExporter.swift:140",
+      "Emuqu/Sources/Collection/WorkoutLifecycle.swift:73",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:548",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:558",
+      "Emuqu/Sources/Analysis/GPXExporter.swift:155"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6"
+   }
+  },
+  {
+   "key": "func HRTrack.median(near:)",
+   "hash": "3f9b4d333eccc326",
+   "does": "Advances a moving start index past readings older than offset−3 s, collects readings up to offset+3 s, and returns their (upper) median; nil when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reading older than window",
+     "effect": "advance start"
+    },
+    {
+     "at": "+4",
+     "cond": "reading within window",
+     "effect": "collect"
+    },
+    {
+     "at": "+8",
+     "cond": "window empty",
+     "effect": "nil; else sorted[count/2]"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The moving start index assumes queries come in non-decreasing offset order and offsets are sorted; a track with a backwards timestamp would permanently skip readings.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/TCXExporter.swift:239"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

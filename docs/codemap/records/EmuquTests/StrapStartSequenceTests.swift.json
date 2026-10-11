@@ -1,0 +1,212 @@
+{
+ "file": "EmuquTests/StrapStartSequenceTests.swift",
+ "hash": "ff451e29199ff978",
+ "role": "XCTest suite pinning StrapStartSequence: rescue precedes clear, beginRecording is last, every strap clears before recording, no repeated steps, both straps' sequence equals [rescue, clear, begin], and every known strap rescues before clearing.",
+ "types": [
+  "StrapStartSequenceTests: class — XCTestCase over StrapStartSequence.steps/rescuesBeforeClearing"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "low",
+   "text": "StrapStartSequence.steps(for:) ignores its deviceType argument and returns the same constant [.rescueExisting, .clearExisting, .beginRecording] for every strap (StrapStartSequence.swift:54-56), so per-device loops and the unknown-device comparison cannot detect a routing difference; they only pin the single constant.",
+   "evidence": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift:54",
+    "EmuquTests/StrapStartSequenceTests.swift:161"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func StrapStartSequenceTests.testARescueAlwaysPrecedesTheClearItProtects()",
+   "hash": "5c4bfa44551c927f",
+   "does": "For Verity Sense and H10, asserts that when the sequence has a rescue step it also has a destructive step and the rescue index is lower.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each device in [veritySense, h10]",
+     "effect": "runs the checks per device"
+    },
+    {
+     "at": "+3",
+     "cond": "steps.firstIndex(where: isRescue) is nil",
+     "effect": "nil: continue (device skipped with no assertion); present: asserts a destructive step exists after it"
+    },
+    {
+     "at": "+6",
+     "cond": "destructive ?? .max",
+     "effect": "nil destructive index compares as Int.max so the LessThan passes, but the preceding XCTAssertNotNil fails"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isDestructive": "4c3b5245dd7a67fe",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::var StrapStartSequence.Step.isRescue": "df25396474b2b8c4"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testRecordingBeginsLast()",
+   "hash": "3851cb4c5d6f5143",
+   "does": "For both straps asserts the last step is .beginRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each device in [veritySense, h10]",
+     "effect": "asserts steps.last == .beginRecording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testEveryStrapClearsBeforeRecording()",
+   "hash": "b38348b21ad38823",
+   "does": "For both straps asserts .clearExisting is present and precedes .beginRecording.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each device in [veritySense, h10]",
+     "effect": "computes clear and begin indexes and asserts"
+    },
+    {
+     "at": "+6",
+     "cond": "clear ?? .max / begin ?? .min",
+     "effect": "missing clear → Int.max, missing begin → Int.min, either makes XCTAssertLessThan fail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testNoStepRunsTwice()",
+   "hash": "14ed32512299e5d2",
+   "does": "For both straps asserts the step set size equals the step count (no duplicate step).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each device in [veritySense, h10]",
+     "effect": "asserts Set(steps).count == steps.count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testVeritySenseRescuesBeforeClearing()",
+   "hash": "45ef932d3794a661",
+   "does": "Asserts Verity Sense steps are exactly [rescueExisting, clearExisting, beginRecording] and rescuesBeforeClearing(.veritySense) is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testH10RescuesBeforeClearing()",
+   "hash": "9fc7a6104e38f2ca",
+   "does": "Asserts H10 steps are exactly [rescueExisting, clearExisting, beginRecording] and rescuesBeforeClearing(.h10) is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testAnUnknownStrapUsesTheH10Sequence()",
+   "hash": "2a4b8d752dcc089a",
+   "does": "Asserts steps(for: nil) equals steps(for: .h10).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  },
+  {
+   "key": "func StrapStartSequenceTests.testEveryStrapRescuesBeforeClearing()",
+   "hash": "6e3887c58c947d2c",
+   "does": "Asserts no known strap (veritySense, h10) has rescuesBeforeClearing false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "rescuesBeforeClearing has no production caller: grep of Emuqu/ finds only its declaration (StrapStartSequence.swift:62); production iterates steps(for:) directly (PolarManager+Recording.swift:90,143). These assertions (also :64,:76) pin a test-only helper, not the start path.",
+     "evidence": [
+      "EmuquTests/StrapStartSequenceTests.swift:89",
+      "Emuqu/Sources/Collection/StrapStartSequence.swift:62",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:90"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.rescuesBeforeClearing(_:)": "e26b0e40644a1de5",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+   }
+  }
+ ],
+ "deps": {}
+}

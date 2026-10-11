@@ -1,0 +1,637 @@
+{
+ "file": "Emuqu/Sources/Assistant/WorkoutAIContext.swift",
+ "hash": "9eb2348521644fc1",
+ "role": "Per-tick factual snapshot of a live workout (HR, α1, motion, GPS/terrain/route topology, address, trends, cross-workout baselines, readiness, time-in-zone, race predictions, thresholds) consumed by WorkoutTriggerEngine rules and serialised by asFactSheet() into the voice-coach LLM preamble.",
+ "types": [
+  "WorkoutAIContext: struct (Equatable) — workout snapshot + fact-sheet serializer",
+  "WorkoutAIContext.WeatherSnapshot: struct — temperature/wind/humidity/conditions",
+  "WorkoutAIContext.UpcomingClimb: struct — distance ahead, grade, length, gain, road name",
+  "WorkoutAIContext.RouteTopology: struct — climbs queue, ascent remaining, peak, turns ahead",
+  "WorkoutAIContext.UpcomingTurn: struct — distance, signed bearing change, direction label"
+ ],
+ "state": [],
+ "toplevel": "Only stored `let`/`var` properties with doc comments; UpcomingClimb.lengthMeters/gainMeters default 0, roadName nil; RouteTopology.turnsAhead defaults []. Built by WorkoutRecorder+Context.buildContext (Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:70).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "`weather` is populated every tick from WeatherService.current (WorkoutRecorder+Context.swift:77) but nothing reads WorkoutAIContext.weather: asFactSheet() does not emit it (comment line 111) and no trigger rule uses it; the voice AI therefore never sees weather through this path.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:112",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:77"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "unreachable-branch",
+   "sev": "low",
+   "text": "`hrDriftPercent` is always passed nil by the only production builder, so the hrDriftPercent fact-sheet line never appears.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:46",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:484",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift:73"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "targetZone doc says the coach nudges back to zone only after a sustained drift ('not single-tick'), but zone.drifted.high/low test a single tick's HR (elapsedSeconds is total workout time, not drift duration) and both rules are .silent, so nothing is ever said.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift:331",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:360",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:388",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:342"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutAIContext.asFactSheet()",
+   "hash": "bbdfc467cc18e0e3",
+   "does": "Concatenates all twelve fact-sheet sections (identity, HR, α1, motion, terrain, equipment, target, live trends, historical baselines, readiness, time-in-zone, race predictions) into newline-separated key=value lines for the voice-coach LLM preamble.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.identityLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.heartRateLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.alpha1Lines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.motionLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.equipmentLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.liveTrendLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalBaselineLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.readinessLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.racePredictionLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "asFactSheet() and its twelve section builders are the voice coach's live context (installed at WorkoutRecorder+Start.swift:334) but no file in EmuquTests calls asFactSheet; tests only construct WorkoutAIContext for other engines.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/WorkoutAIContext.swift:437",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:334"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.alpha1Lines()": "c370dfcef48748f2",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.equipmentLines()": "9bfdc3e7cb0c0b1e",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.heartRateLines()": "8c8c258a5f9ab7d9",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalBaselineLines()": "53d0ecf438734fef",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.identityLines()": "5e815af064e7d409",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.liveTrendLines()": "723563a3fb263354",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.motionLines()": "97cd0f2f37c3ea66",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.racePredictionLines()": "086ceea277134344",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.readinessLines()": "f694a780da3cebc0",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.targetLines()": "858e1a61ad00fdee",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainLines()": "9ed9f0b80d864928",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.timeInZoneLines()": "70faa71d59f6b90a"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.identityLines()",
+   "hash": "268b32b72bb797ef",
+   "does": "Emits sport rawValue, nowAt and sessionStart as ISO-8601 internet date-time strings (new ISO8601DateFormatter each call), elapsedSec and userUnits rawValue.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.heartRateLines()",
+   "hash": "ee9e1a738910228f",
+   "does": "Emits currentHR (if known), sessionPeakHR, sessionAverageHR (if known), userMaxHR, and when HR is known with a positive max HR the integer percentOfMaxHR and zone label from HRZone.classify (\"below_z1\" when classify returns nil); then hrDriftPercent if set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)",
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "heartRate non-nil",
+     "effect": "adds currentHR line; nil: omitted"
+    },
+    {
+     "at": "+4",
+     "cond": "sessionAverageHR non-nil",
+     "effect": "adds sessionAverageHR=%.0f; nil: omitted"
+    },
+    {
+     "at": "+6",
+     "cond": "heartRate non-nil and userMaxHR > 0",
+     "effect": "adds percentOfMaxHR and zone lines; otherwise neither line emitted"
+    },
+    {
+     "at": "+8",
+     "cond": "HRZone.classify returns nil (HR < 50% max) — `?? \"below_z1\"`",
+     "effect": "emits zone=below_z1; otherwise zone=Zone N (English label)"
+    },
+    {
+     "at": "+10",
+     "cond": "hrDriftPercent non-nil",
+     "effect": "adds hrDriftPercent=%.1f; nil (always in production, buildContext passes nil): omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HRZone.swift::func HRZone.classify(hr:userMaxHR:)": "26516487f738767e",
+    "Emuqu/Sources/Views/HRZone.swift::var HRZone.label": "f0cf986d3646699e"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.alpha1Lines()",
+   "hash": "6a047c2b624df36a",
+   "does": "Emits alpha1 (2 dp) when known, always band label and alpha1Status label, and alpha1FitR2 when a fit quality exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Band.label",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "alpha1 non-nil",
+     "effect": "adds alpha1=%.2f; nil: omitted (status line explains why)"
+    },
+    {
+     "at": "+7",
+     "cond": "alpha1FitQuality non-nil",
+     "effect": "adds alpha1FitR2=%.2f; nil: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Band.label": "eca50adaab9646e8",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.label": "10bfaf49e728454a"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.motionLines()",
+   "hash": "b95ab488fc0ea810",
+   "does": "Emits distance (unit-formatted and raw metres) when > 0, pace sec/km plus unit-formatted pace when > 0, speed when > 0, cadence/power lines, METs when known, then the recent split-pace lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.cadenceAndPowerLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.splitPaceLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "distanceMeters > 0",
+     "effect": "adds distance and distanceM lines; 0: both omitted"
+    },
+    {
+     "at": "+6",
+     "cond": "currentPaceSecPerKm non-nil and > 0",
+     "effect": "adds paceSecPerKm, and paceFormatted if formatting succeeds; else no pace lines"
+    },
+    {
+     "at": "+8",
+     "cond": "userUnits.formatPace returns non-nil",
+     "effect": "adds paceFormatted; nil (non-finite/≤0): omitted"
+    },
+    {
+     "at": "+12",
+     "cond": "currentSpeedMS non-nil and > 0",
+     "effect": "adds speedMS=%.2f; else omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "currentMETs non-nil",
+     "effect": "adds currentMETs=%.1f; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.cadenceAndPowerLines()": "82c562026cb4f28b",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.splitPaceLines()": "6f37f164fbb1ca04",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.splitPaceLines()",
+   "hash": "c6fef2df53468464",
+   "does": "For up to three most recent split paces, emits splitMinus<i>SecPerKm and, when formattable, splitMinus<i>Formatted in the user's units.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of recentSplitPaces.prefix(3)",
+     "effect": "one or two lines per split; empty array emits nothing"
+    },
+    {
+     "at": "+4",
+     "cond": "formatPace returns non-nil",
+     "effect": "adds splitMinus<i>Formatted; nil: only the raw line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.cadenceAndPowerLines()",
+   "hash": "1aed2373e9aad594",
+   "does": "Always emits footPodConnected; emits cadenceSpm value when > 0 else 'silent' if a foot pod is active; same for powerW.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cadenceStepsPerMin non-nil and > 0",
+     "effect": "adds cadenceSpm=%.0f; else falls to 544"
+    },
+    {
+     "at": "+4",
+     "cond": "footPodActive (cadence missing/0)",
+     "effect": "adds cadenceSpm=silent; false: no cadence line"
+    },
+    {
+     "at": "+7",
+     "cond": "powerWatts non-nil and > 0",
+     "effect": "adds powerW=<n>; else falls to 549"
+    },
+    {
+     "at": "+9",
+     "cond": "footPodActive (power missing/0)",
+     "effect": "adds powerW=silent; false: no power line"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.terrainLines()",
+   "hash": "13fd5ba0eb29feed",
+   "does": "Returns resolved-address lines followed by GPS/terrain geometry lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.addressLines()",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainGeometryLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.addressLines()": "d834e988b51703cc",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.terrainGeometryLines()": "89f7a101f16bb136"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.addressLines()",
+   "hash": "2488a00b055eb8e8",
+   "does": "Emits currentRoadName, locality, administrative area, country code, compact address (only if non-empty), nearest cross street and nearest intersection, each only when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "currentCompactAddress is empty string",
+     "effect": "flatMap yields nil and the line is omitted; non-empty: emitted; nil: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.terrainGeometryLines()",
+   "hash": "161a1fd5eac0100a",
+   "does": "Emits gpsLat/gpsLon (6 dp) when both known, altitude formatted in user units, heading degrees plus 8-way cardinal, gps accuracy, elevation gain when > 0, current grade, and upcoming climb distance@grade.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.compassCardinal(degrees:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "currentLatitude and currentLongitude both non-nil",
+     "effect": "adds gpsLat and gpsLon; else neither"
+    },
+    {
+     "at": "+5",
+     "cond": "currentAltitudeMeters non-nil",
+     "effect": "adds altitude in user units; else omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "currentHeadingDegrees non-nil",
+     "effect": "adds headingDeg and headingCardinal; else omitted"
+    },
+    {
+     "at": "+12",
+     "cond": "gpsAccuracyMeters non-nil",
+     "effect": "adds gpsAccuracyM; else omitted"
+    },
+    {
+     "at": "+13",
+     "cond": "elevationGainMeters > 0",
+     "effect": "adds elevationGain in user units; else omitted"
+    },
+    {
+     "at": "+16",
+     "cond": "currentGradePercent non-nil",
+     "effect": "adds currentGradePercent=%.1f; else omitted"
+    },
+    {
+     "at": "+17",
+     "cond": "upcomingClimb non-nil",
+     "effect": "adds upcomingClimbM=<m>@<grade>pct; else omitted (routeTopology is never emitted)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.compassCardinal(degrees:)": "895a944b104952ce",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.equipmentLines()",
+   "hash": "d8228f1426bdf2d4",
+   "does": "Emits strapConnected and, when known, strapSilentSec.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "strapSilentSec non-nil",
+     "effect": "adds strapSilentSec=%.0f; nil: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.targetLines()",
+   "hash": "fa0d96d6dd103478",
+   "does": "Emits targetZone=Zone<N> when a target zone is set.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "targetZone non-nil",
+     "effect": "adds targetZone line; nil: returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.liveTrendLines()",
+   "hash": "78efc5dd79613176",
+   "does": "Emits signed reverse-split delta, live HR drift, aerobic decoupling and cadence drift when present, grade-adjusted pace raw + formatted, up to three grade-adjusted split paces, and projected minutes until fade.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "gradeAdjustedPaceSecPerKm non-nil",
+     "effect": "adds raw GAP line and, if formattable, formatted GAP; nil: omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "formatPace returns non-nil",
+     "effect": "adds gradeAdjustedPaceFormatted; nil: omitted"
+    },
+    {
+     "at": "+13",
+     "cond": "for each of recentSplitGradeAdjustedPaces.prefix(3)",
+     "effect": "one line per split; empty: none"
+    },
+    {
+     "at": "+16",
+     "cond": "projectedMinutesUntilFade non-nil",
+     "effect": "adds projectedMinutesUntilFade=%.0f; nil: omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.historicalBaselineLines()",
+   "hash": "dedc3166df3327e9",
+   "does": "When at least one prior workout contributed, emits historicalSportSampleCount, pace lines, avg HR and avg α1 when present; otherwise returns nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalPaceLines()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "historicalSportSampleCount > 0",
+     "effect": "false: returns [] (all historical lines suppressed even if averages are set); true: continues"
+    },
+    {
+     "at": "+4",
+     "cond": "historicalSportAvgHR non-nil",
+     "effect": "adds historicalSportAvgHR; else omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "historicalSportAvgAlpha1 non-nil",
+     "effect": "adds historicalSportAvgAlpha1; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.historicalPaceLines()": "4e686ff3c6232b4a"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.historicalPaceLines()",
+   "hash": "c9b0e4ae2750b0be",
+   "does": "Emits historical avg pace sec/km and, when formattable, the user-unit rendering.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "historicalSportAvgPaceSecPerKm non-nil",
+     "effect": "nil: returns []; else adds raw line"
+    },
+    {
+     "at": "+3",
+     "cond": "formatPace returns non-nil",
+     "effect": "adds historicalSportAvgPaceFormatted; nil: only raw line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6"
+   }
+  },
+  {
+   "key": "func WorkoutAIContext.readinessLines()",
+   "hash": "00c141d3237753ec",
+   "does": "Emits today's recovery score, training readiness, ATL, CTL, signed TSB, projected days until fresh, steady-state TSB tomorrow and recovery hours needed, each only when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "todayRecoveryScore non-nil",
+     "effect": "adds line; else omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "todayTrainingReadiness non-nil",
+     "effect": "adds line; else omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "todayATL non-nil",
+     "effect": "adds todayATL=%.1f; else omitted"
+    },
+    {
+     "at": "+9",
+     "cond": "todayCTL non-nil",
+     "effect": "adds todayCTL; else omitted"
+    },
+    {
+     "at": "+10",
+     "cond": "todayTSB non-nil",
+     "effect": "adds signed todayTSB; else omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "projectedDaysUntilFresh non-nil",
+     "effect": "adds line; else omitted"
+    },
+    {
+     "at": "+14",
+     "cond": "projectedTSBTomorrowSteadyState non-nil",
+     "effect": "adds signed line; else omitted"
+    },
+    {
+     "at": "+17",
+     "cond": "recoveryHoursNeeded non-nil",
+     "effect": "adds recoveryHoursNeeded=%.0f; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.timeInZoneLines()",
+   "hash": "77995a5e265faf42",
+   "does": "When any zone time has accrued, emits the zone model note, zone1..zone5 seconds and dominantZone if known.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sum of zone1..5 seconds > 0",
+     "effect": "true: emits model note and five zone lines; false: returns [] (dominantZone also suppressed)"
+    },
+    {
+     "at": "+10",
+     "cond": "dominantZone non-nil",
+     "effect": "adds dominantZone=Z<n>; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.racePredictionLines()",
+   "hash": "a4a3e25657656d4f",
+   "does": "Emits Riegel-predicted 5K, 10K, half-marathon and marathon seconds, each only when present.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "predictedRaceTime5KSec non-nil",
+     "effect": "adds line; else omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "10K non-nil",
+     "effect": "adds line; else omitted"
+    },
+    {
+     "at": "+8",
+     "cond": "half non-nil",
+     "effect": "adds predictedRaceTimeHalfMarathonSec; else omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "marathon non-nil",
+     "effect": "adds line; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutAIContext.compassCardinal(degrees:)",
+   "hash": "b916d46dce1ecbc2",
+   "does": "Normalises degrees into [0,360) and maps to one of eight 45° compass sectors (N, NE, E, SE, S, SW, W, NW).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

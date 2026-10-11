@@ -1,0 +1,207 @@
+{
+ "file": "EmuquTests/WindowSelectionMethodTests.swift",
+ "hash": "1f195ca59ef4a1a8",
+ "role": "XCTest suite for WindowSelectionMethod: stable raw values, raw round trip, unknown raw rejected by init(rawValue:), automaticMethods excludes only custom, default is consolidatedRecovery, and non-empty distinct labels.",
+ "types": [
+  "WindowSelectionMethodTests: class (XCTestCase) — enum contract tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WindowSelectionMethodTests.testRawValuesAreStable()",
+   "hash": "6385c1cb9d939753",
+   "does": "Asserts raw values consolidatedRecovery, peakRMSSD, peakSDNN, peakTotalPower, custom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Header and inline comment justify pinning the raw values because they are 'written into archived sessions' and a change 're-labels every historical reading', but no session/result model stores a WindowSelectionMethod (grep of Emuqu/Sources/Models finds only UserSettings.defaultWindowSelectionMethod); the only persisted use is the settings default, which decodes an unknown raw back to .consolidatedRecovery.",
+     "evidence": [
+      "EmuquTests/WindowSelectionMethodTests.swift:7",
+      "EmuquTests/WindowSelectionMethodTests.swift:13",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:46",
+      "Emuqu/Sources/Models/UserSettings+Codable.swift:73"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testEveryCaseRoundTripsThroughItsRawValue()",
+   "hash": "117517709236800d",
+   "does": "Asserts every case round-trips through init(rawValue:).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each case",
+     "effect": "asserts round trip"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testDecodingAnUnknownMethodFails()",
+   "hash": "b505d1e8374310db",
+   "does": "Asserts WindowSelectionMethod(rawValue: 'peakSomethingElse') is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says an unknown method is better rejected than silently falling back, but the only persisted decode (UserSettings.defaultWindowSelectionMethod) falls back to .consolidatedRecovery on an unknown value; the test checks only init(rawValue:).",
+     "evidence": [
+      "EmuquTests/WindowSelectionMethodTests.swift:30",
+      "EmuquTests/WindowSelectionMethodTests.swift:32",
+      "Emuqu/Sources/Models/UserSettings+Codable.swift:73"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testCustomIsNotAnAutomaticMethod()",
+   "hash": "43d1e31b80401858",
+   "does": "Asserts automaticMethods does not contain .custom.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testAutomaticMethodsAreEveryCaseExceptCustom()",
+   "hash": "6232a94d08e2352c",
+   "does": "Asserts automaticMethods equals allCases minus .custom (as sets).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testDefaultMethodIsAutomatic()",
+   "hash": "fe58af34a5b7b0c8",
+   "does": "Asserts defaultMethod is in automaticMethods.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "1e815bfa47a76391",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "3bbcfe53c32067a7"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testDefaultIsConsolidatedRecovery()",
+   "hash": "08376134512bdbc8",
+   "does": "Asserts defaultMethod == .consolidatedRecovery.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.defaultMethod": "3bbcfe53c32067a7"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testEveryCaseHasNonEmptyLabels()",
+   "hash": "2c71a1318e25a79e",
+   "does": "Asserts every case has non-empty displayName, shortName, tooltip and icon.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each case",
+     "effect": "four non-empty assertions"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "1e1001bbb0161e08",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41",
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.tooltip": "5f08ccd4613a5adc"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testDisplayNamesAreDistinct()",
+   "hash": "75d001714e69a841",
+   "does": "Asserts display names are pairwise distinct.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "921e5727692ec43d"
+   }
+  },
+  {
+   "key": "func WindowSelectionMethodTests.testShortNamesAreDistinct()",
+   "hash": "d9bffa09a0113fcd",
+   "does": "Asserts short names are pairwise distinct.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.shortName": "196bda7df9419c41"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,787 @@
+{
+ "file": "Emuqu/Sources/Services/MorningProcessingService+Merging.swift",
+ "hash": "86dc8e0aad370d18",
+ "role": "Extension of MorningProcessingService holding composite-point selection, same-night supersede/merge logic (merge gap, night segments, rebasing), and the analysis/final-session/scoring helpers used by the morning pipeline.",
+ "types": [
+  "MorningProcessingService.MergeResult: struct — merged series, effective start, same-night link ids",
+  "MorningProcessingService.NightSegment: struct — one recording of a night (start, points, archive id or nil for base)",
+  "MorningProcessingService.SleepPollResult: struct — sleep start/wake offsets, boundary source, segments, fetched SleepData"
+ ],
+ "state": [],
+ "toplevel": "No top-level code beyond type declarations; sameNightSegments' default argument constructs a default UserSettings() to read effectiveMergeGapSeconds (4.5 h).",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Default merge gap comes from constructing a fresh default UserSettings() (mergeGap and sameNightSegments' default argument) rather than the user's settings; for mode .custom with seconds nil, mergeGap returns the default 4.5 h, not the custom value the comment calls 'the mode's own'. Production callers always pass seconds (RRCollector+MorningProcessing.swift:76,192), so only tests/defaults hit it.",
+   "evidence": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:125",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:199",
+    "Emuqu/Sources/Models/UserSettings+Model.swift:38",
+    "Emuqu/Sources/Models/UserSettings+Model.swift:765"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func MorningProcessingService.createCompositePoints(internalSeries:streamingSeries:)",
+   "hash": "54d77a2f56b9ea81",
+   "does": "Returns DataSourceSelector.selectBestSource's merged/selected points for an internal (device) series plus a streaming series, or nil when either is empty or the selector returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "either series has no points",
+     "effect": "return nil"
+    },
+    {
+     "at": "+11",
+     "cond": "selectBestSource returned a selection",
+     "effect": "return selection.points; else return nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "createCompositePoints has no production caller; grep finds only EmuquTests/MorningProcessingServiceTests.swift:473.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:16",
+      "EmuquTests/MorningProcessingServiceTests.swift:473"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+   "hash": "cfe33f2ef36beb8f",
+   "does": "For an overnight session with merging on, appends to newSession.linkedSessionIds every archived same-night overnight entry that is not already linked, lies within the merge gap of the new session's span, and that the new session may claim (beat-count rule).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.gapBetween(_:_:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.span(of:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (index)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sessionType != .overnight or merge mode .off",
+     "effect": "return without linking"
+    },
+    {
+     "at": "+6",
+     "cond": "newSession.endDate nil or before start",
+     "effect": "span end = max(endDate ?? startDate, startDate), i.e. collapses to start"
+    },
+    {
+     "at": "+8",
+     "cond": "linkedSessionIds nil",
+     "effect": "empty set of existing links"
+    },
+    {
+     "at": "+9",
+     "cond": "rrSeries nil",
+     "effect": "newBeatCount = 0 (which newSessionMayClaimNight treats as 'may claim')"
+    },
+    {
+     "at": "+10",
+     "cond": "for each same-night archive entry",
+     "effect": "loop over sameNightEntries"
+    },
+    {
+     "at": "+11",
+     "cond": "entry already linked, or gap > merge gap, or new session may not claim",
+     "effect": "continue (skip entry); otherwise link it"
+    },
+    {
+     "at": "+15",
+     "cond": "linkedSessionIds nil when appending",
+     "effect": "starts from [] then appends entry.sessionId"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.gapBetween(_:_:)": "fbfb5763b2a3518d",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "fc37e5f1dff51905",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)": "77844ba75d5ad555",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "01908654605cac89",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.span(of:)": "335755a6efb1f2b0"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)",
+   "hash": "7c10768eabcbaec4",
+   "does": "Returns whether a new session may become primary over an archived entry: true unless the entry is a real overnight (has recoveryScore and meanRMSSD) and the new session has a positive beat count below 1,000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry is not a real overnight OR newBeatCount == 0",
+     "effect": "return true (may claim); otherwise return newBeatCount >= 1000"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The doc says the new session 'may claim the night over it only with at least 1,000 beats', but `newBeatCount > 0` in the guard makes a zero-beat new session (rrSeries nil) always claim a real scored overnight, demoting the real night to a linked segment.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:88",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:101",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:68"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.backupRawDataAsync(points:sessionId:deviceId:dataSource:)",
+   "hash": "2fb60045ebca162a",
+   "does": "Writes the raw RR points to RawRRBackup on a detached utility task and awaits it; a thrown error (e.g. would replace a larger backup, no data) is only logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:RawRRBackup directory <sessionId>_<ts>.json + backup index"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "backup throws",
+     "effect": "error logged with dataSource label and swallowed; processing continues without a fresh backup"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e15f84c94869d1a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.mergeGap(mode:seconds:)",
+   "hash": "a6ec4452e272bb5f",
+   "does": "Merge gap seconds: 0 when mode .off, else the caller's seconds or default UserSettings().effectiveMergeGapSeconds (4.5 h).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "mode == .off",
+     "effect": "return 0"
+    },
+    {
+     "at": "+2",
+     "cond": "seconds nil",
+     "effect": "fallback to a default UserSettings' effectiveMergeGapSeconds (4.5 h, regardless of mode .custom)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.gapBetween(_:_:)",
+   "hash": "24e0d413edffad0f",
+   "does": "Forwards to SessionMerger.gapBetween: seconds between the earlier span's end and the later span's start, 0 when touching/overlapping.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "08fd193c19fa98a7"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.span(of:)",
+   "hash": "f32c1eac5c9aa982",
+   "does": "Forwards to SessionMerger.span(of: entry): DateInterval from entry.date to endDate (collapsed to start if missing).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "5a5f691630e9fec2"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
+   "hash": "861f304d8ca710e5",
+   "does": "Builds the RRSeries for the base points; for overnight sessions with merging on, merges in archived same-night segments within the merge gap, sorted by start, rebased onto the earliest start, returning the merged series, effective start and linked archive ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.offsetPoints(_:to:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries + retrieve of same-night sessions"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "not overnight or merge mode .off",
+     "effect": "return the unmerged series, base start, no links"
+    },
+    {
+     "at": "+15",
+     "cond": "no same-night segment ids were merged",
+     "effect": "return the unmerged series, base start, no links"
+    },
+    {
+     "at": "+19",
+     "cond": "segments empty",
+     "effect": "effectiveStartDate falls back to baseSession.startDate (segments always contain the base here)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "fc37e5f1dff51905",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.offsetPoints(_:to:)": "2ba25ab8c32707e0",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "b70004b39f7abeb1"
+   }
+  },
+  {
+   "key": "var MorningProcessingService.NightSegment.endDate",
+   "hash": "842bf75ee36e4623",
+   "does": "NightSegment end: startDate + last point's t_ms (beat start, not endMs) / 1000; startDate when no points.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "points empty",
+     "effect": "t_ms defaults to 0 → endDate = startDate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)",
+   "hash": "1916c335c13fd036",
+   "does": "Collects archived same-night overnight entries not already linked from the base or from each other, loads each as a NightSegment (skipping empty/short ones), adds the base segment, and keeps only the run within the merge gap that contains the base; returns the segments and their archive ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeableSegment(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "baseSession.linkedSessionIds nil",
+     "effect": "treated as empty set"
+    },
+    {
+     "at": "+6",
+     "cond": "entry.linkedSessionIds nil",
+     "effect": "contributes no ids to alreadyLinked"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "a032844ad65e2bb1",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "fc37e5f1dff51905",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeableSegment(_:)": "7d9817e5beb6d868",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "01908654605cac89",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)": "4593ef25ea0dc863"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.segmentsWithinGap(_:gap:)",
+   "hash": "764a450eba94e9c1",
+   "does": "Splits segments into time-ordered runs with gaps <= gap (SessionMerger.runsWithinGap on start..endDate spans) and returns the run containing the base segment (sessionId nil), or [] if none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no run contains the base segment",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "a8100fed5d739c51",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)": "9d0a68e89de1e721",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "d1c97d2e8b4a93e2"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.mergeableSegment(_:)",
+   "hash": "c7ee297d4029a29d",
+   "does": "Retrieves the archived session for an entry and returns it as a NightSegment, or nil when retrieval fails, it has no/empty rrSeries, or the series is shorter than 30 minutes (logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "retrieve fails/nil or no rrSeries or empty points",
+     "effect": "return nil (retrieve errors logged by retrieveOrLog)"
+    },
+    {
+     "at": "+4",
+     "cond": "series duration < 30 min",
+     "effect": "log and return nil; else NightSegment(start, points, sessionId)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes": "67f80c7be07e0044",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.sameNightEntries(of:sleepSchedule:)",
+   "hash": "5524f4df39bf8315",
+   "does": "Returns archive index entries that are overnight, not the base session, and whose overnightWindowStart equals the base session's.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.offsetPoints(_:to:)",
+   "hash": "f471893153e99610",
+   "does": "Concatenates each segment's points rebased from its own start onto effectiveStartDate (SessionMerger.rebased) so real-time gaps between segments are preserved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "7b9af85ecd99f554"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.logGapDetection(series:)",
+   "hash": "dc4625fd79ce2367",
+   "does": "No-op placeholder for gap diagnostics.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "logGapDetection has an empty body; its only call (MorningProcessingService.swift:281, 'Step 3: Log gap detection') does nothing.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:259",
+      "Emuqu/Sources/Services/MorningProcessingService.swift:281"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func MorningProcessingService.timedAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)",
+   "hash": "6904de358b2e2390",
+   "does": "Runs runAnalysis and logs its wall-clock duration under [MorningTiming].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.runAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.runAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)": "7df8998f774775db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.runAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)",
+   "hash": "4eeaa12485593097",
+   "does": "Runs HRV analysis: with a recovery window → pipeline.analyzeWithWindow; otherwise fetches daytime resting HR and runs analyzeFullSeriesWithCapacity when a peak capacity exists, else analyzeFullSeries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)"
+   ],
+   "reads": [
+    "hk:resting heart rate (daytime) via fetchDaytimeRestingHR"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "windowResult has a recoveryWindow",
+     "effect": "return analyzeWithWindow(...) result"
+    },
+    {
+     "at": "+18",
+     "cond": "windowResult has peakCapacity (but no window)",
+     "effect": "return analyzeFullSeriesWithCapacity; else analyzeFullSeries"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)": "aa6488cd2fa1a209",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "6aad7214a42011a0",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "71a0b9279559af80",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "7f3278f31052cc1b"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.buildFinalSession(analyzingSession:request:merged:phase:)",
+   "hash": "7c127730a1e9cf62",
+   "does": "Builds the final HRVSession: state .complete if an analysis result exists else .failed, merged series, flags, provenance, sleep boundaries clamped to [0, last beat endMs], sleep segments and DataSourceSummary; then carries forward base+merge links and the fetched sleep snapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.carryForward(links:sleep:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "series empty",
+     "effect": "recordingDurationMs = 0, so any sleep offsets clamp to 0"
+    },
+    {
+     "at": "+14",
+     "cond": "phase.analysisResult != nil",
+     "effect": "state .complete; else .failed"
+    },
+    {
+     "at": "+22",
+     "cond": "baseSession.linkedSessionIds nil",
+     "effect": "treated as [] before appending merged links"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.carryForward(links:sleep:to:)": "60909262bccf4455",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "79391780177697bc",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "29773b84e855dfb0"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.carryForward(links:sleep:to:)",
+   "hash": "32f9236aac820e99",
+   "does": "Sets session.linkedSessionIds when links non-empty and session.sleepSnapshot when sleep data exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "links non-empty",
+     "effect": "assign linkedSessionIds; else left as built (nil)"
+    },
+    {
+     "at": "+6",
+     "cond": "sleep non-nil",
+     "effect": "assign sleepSnapshot; else unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)",
+   "hash": "5f11557bf42ad844",
+   "does": "Builds HRVSession.DataSourceSummary from the request (source label, streaming/device beats, reconnects), total beats and device model, with beat difference percent |device-streaming|/max*100.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "deviceBeats nil or <= 0, or streamingBeats <= 0",
+     "effect": "beatDifferencePercent = nil; else computed percentage"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "384527f56b6b17e5"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.ansBalance(of:)",
+   "hash": "4a9ff1aca48f4d3e",
+   "does": "Returns pnsIndex - snsIndex from the analysis result's ANS metrics, nil when either is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pnsIndex or snsIndex nil",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Three identical (pnsIndex - snsIndex) helpers: MorningProcessingService.ansBalance(of:), ReanalysisService.ansBalance(from:) and ReanalysisService.ansBalance(of:); the doc comments above two of them ('Compute composite recovery score.', 'Recalculate the recovery score when sleep data changes...') describe the neighbouring function, not the helper.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:396",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:397",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:188",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:428",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:432"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The pnsIndex - snsIndex ANS-balance helper exists in at least 10 copies: MorningProcessingService+Merging.swift:397, ReanalysisService+Sleep.swift:188 and :432, ReanalysisService.swift:568, SessionAcceptanceService.swift:308 (inline), RRCollector+Analysis.swift:79, SessionDataMigrations+TrainingRecalibration.swift:171, SessionDataMigrations+InsufficientDataMigration.swift:114, MorningResultsViewModel.swift:196, RecoveryScoreDetailView.swift:199.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:397",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:188",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:432",
+      "Emuqu/Sources/Services/ReanalysisService.swift:568",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:308",
+      "Emuqu/Sources/Collection/RRCollector+Analysis.swift:79",
+      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:171",
+      "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift:114",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:196",
+      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:199"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)",
+   "hash": "2d8fbbd68f1d4c1e",
+   "does": "Computes the composite recovery score: gets sleep/vitals (frozen snapshot or fresh), builds ScoreInputs from the analysis result, prior-nights baseline, sleep, vitals and typical sleep hours, calls calculateWithBreakdown (trainingContext from result or passed, scoring config, ANS balance; no useBaselineHRV, no referenceDate) and returns (0-10 score, breakdown).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.ansBalance(of:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker baseline history"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "analysisResult nil",
+     "effect": "return nil (no score)"
+    },
+    {
+     "at": "+20",
+     "cond": "result.trainingContext nil",
+     "effect": "uses the passed trainingContext (only feeds the unused trainingContext parameter of calculateWithBreakdown)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The gate's comment says it runs before scoring 'so the score computation uses the baseline-HRV fallback', but computeRecoveryScore never passes useBaselineHRV (default false), so the morning score of a night marked .insufficient uses its own low HRV. That score is what the results screen shows before acceptance, what archiveForReview pre-archives (RRCollector+MorningProcessing.swift:56), what paused sessions are archived with (RRCollector+PauseResume.swift:59-68) and what the past-night repair archives (RRCollector+BackupRecovery.swift:744-753); acceptance re-scores with baseline HRV (SessionAcceptanceService.swift:245-248), so the number changes on Accept. The comment's 'Reanalysis applies the identical check' also does not hold for acceptance, which uses classifyHRVQuality (window-less result counts session length as the window, plus .preSleep), so the morning mark and the accepted mark can differ.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService.swift:403",
+      "Emuqu/Sources/Services/MorningProcessingService.swift:414",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:482",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:104",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:245",
+      "Emuqu/Sources/Collection/RRCollector+PauseResume.swift:68"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "18aa103b513d602d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.ansBalance(of:)": "6dd2c1e55b7c24fe",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "c1b042f4dde87fd7",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "e063c5c4aca0bc87"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.scoringHealthData(for:result:)",
+   "hash": "2ee49b3463c8c871",
+   "does": "Returns (sleep, vitals) for scoring: the session's frozen sleepSnapshot with its vitalsSnapshot when a sleep snapshot exists; otherwise a fresh sleep fetch and fresh HealthKit vitals with strap nocturnal RHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.freshSleepData(for:sessionEnd:)",
+    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift:21|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
+   ],
+   "reads": [
+    "hk:recovery vitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session.sleepSnapshot non-nil",
+     "effect": "return (snapshot, session.vitalsSnapshot) — vitalsSnapshot can be nil (background refinement), and then no vitals are scored"
+    },
+    {
+     "at": "+6",
+     "cond": "session.endDate nil",
+     "effect": "sessionEnd = startDate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Background-refinement passes (used by the past-night repair in RRCollector+BackupRecovery.swift:744-751) skip attachVitalsSnapshot, and scoringHealthData then returns session.vitalsSnapshot (nil) whenever the poll produced a sleepSnapshot, so the repaired night is scored with no vitals; computeRecoveryScore also leaves referenceDate at its Date() default, so a repaired past night's baseline-staleness penalty is measured against today rather than that night (rescore paths pass sessionEnd).",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService.swift:362",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:436",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:437",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:412",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:750",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:157"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.freshSleepData(for:sessionEnd:)": "a580d66c3b1ec425"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.freshSleepData(for:sessionEnd:)",
+   "hash": "8250bd8f9e195a8e",
+   "does": "Fetches HealthKit sleep for the session (validated against its RR points) and credits the previous day's nap minutes; returns nil on fetch error (logged).",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "dyn:HealthKitServiceProtocol.fetchDaytimeNapMinutes → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:37|Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:) (default, used by MockHealthKitService)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "napMinutes > 0",
+     "effect": "returns sleep with nap minutes added; else the fetched sleep as-is"
+    },
+    {
+     "at": "+12",
+     "cond": "fetchSleepData throws",
+     "effect": "error logged and swallowed; return nil so the score is computed without sleep"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

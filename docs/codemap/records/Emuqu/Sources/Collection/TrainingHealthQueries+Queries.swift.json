@@ -1,0 +1,1217 @@
+{
+ "file": "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift",
+ "hash": "d16daf5a1b5dc066",
+ "role": "HealthKit + archive training queries: VO2max, workout fetch/dedup, archive-authoritative merge, workout route recovery, passive distance, resting HR, ATL/CTL/TSB metrics and weekly training load.",
+ "types": [
+  "extension TrainingHealthQueries — all query methods"
+ ],
+ "state": [
+  "mem:TrainingHealthQueries.ewmaLookbackDays=180 (const)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "mergeArchiveAuthoritative / collapseDuplicates (the archive-vs-HealthKit precedence rule) have no direct test; WorkoutDeduplicationTests covers deduplicateWorkouts only.",
+   "evidence": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:102",
+    "EmuquTests/WorkoutDeduplicationTests.swift:30"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func TrainingHealthQueries.fetchVO2MaxTrend(days:)",
+   "hash": "15c99bbfbfc2fed4",
+   "does": "Queries all VO2max samples in the last `days` days ascending by end date (bounded) and returns latest, oldest and count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.vo2Trend(from:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:vo2Max"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable or vo2Max type nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "date arithmetic ?? now",
+     "effect": "window start falls back to now (empty window)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.vo2Trend(from:)": "f0a03360b4284246"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.vo2Trend(from:)",
+   "hash": "c4499c27f9f234d2",
+   "does": "Converts samples to ml/kg*min values; nil when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "samples ?? []",
+     "effect": "nil samples (error/timeout) treated as empty"
+    },
+    {
+     "at": "+3",
+     "cond": "no values",
+     "effect": "nil; else (last, first, count)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.deduplicateWorkouts(_:)",
+   "hash": "b986745e8b4d2d56",
+   "does": "Sorts summaries by start and collapses those describing the same session, keeping the richest copy of each cluster.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count <= 1",
+     "effect": "return input unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "for each index not consumed",
+     "effect": "collapse cluster"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says both rules are required with start times within 5 minutes, but collapseDuplicates scans up to 30 min and merges any overlap >=60 % regardless of start gap.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:40",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:41",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:77",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)": "ef8d75c92178244a"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)",
+   "hash": "74a77a5b308d67dc",
+   "does": "From index i, absorbs later summaries starting within 30 min of the current best that are same-type within 5 min or overlap >=60 % of the shorter; keeps the higher data score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each later unconsumed j",
+     "effect": "test"
+    },
+    {
+     "at": "+5",
+     "cond": "gap from current best > 1800 s",
+     "effect": "break"
+    },
+    {
+     "at": "+7",
+     "cond": "neither same-type-within-300s nor overlapping",
+     "effect": "continue (keep separate)"
+    },
+    {
+     "at": "+9",
+     "cond": "other's score > best's",
+     "effect": "other becomes best"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The same-type rule needs no time overlap: two genuinely separate same-type workouts starting <=5 min apart (e.g. a 2-minute aborted start then a restart) collapse into one and the lower-scoring one's load is dropped from ATL/CTL; mergeArchiveAuthoritative feeds archive workouts through this while asserting archive workouts never duplicate each other.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:78",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:118",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:120"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The 30-min gap and the comparisons use `best.date`, which moves when a later copy wins, so cluster membership depends on processing order.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:76",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:82"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "af22d142fcf62ad8",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutDataScore(_:)": "3dff8a910c9f9a0b"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+   "hash": "0d148244906cf724",
+   "does": "Keeps every archive workout, drops HealthKit workouts overlapping any archive workout by >=60 %, then dedups archive + remaining HealthKit + additional.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "af22d142fcf62ad8"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.endDate(of:)",
+   "hash": "c46c87ae6122ccc8",
+   "does": "End date = start + durationMinutes*60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.overlaps(_:_:)",
+   "hash": "68162ccca4f50ae6",
+   "does": "True when the time intersection is >= 60 % of the shorter workout's duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.endDate(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no positive intersection",
+     "effect": "false"
+    },
+    {
+     "at": "+7",
+     "cond": "shorter duration <= 0",
+     "effect": "false; else ratio test"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.endDate(of:)": "462b6a9c24014307"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.workoutDataScore(_:)",
+   "hash": "dfc37b4b64c3184b",
+   "does": "Data-richness score: precomputedLoad 8, averageHR 4, maxHR 2, calories 1.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "has precomputedLoad",
+     "effect": "+8"
+    },
+    {
+     "at": "+3",
+     "cond": "has averageHR",
+     "effect": "+4"
+    },
+    {
+     "at": "+4",
+     "cond": "has maxHR",
+     "effect": "+2"
+    },
+    {
+     "at": "+5",
+     "cond": "has calories",
+     "effect": "+1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchRecentWorkouts(days:relativeTo:)",
+   "hash": "2289391479695376",
+   "does": "Recent workouts (default 7 days) via fetchWorkouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "fafda8431040904b"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)",
+   "hash": "eaad4da1b087d7b8",
+   "does": "Bounded HKSampleQuery for workouts starting from start-of-day minus `days` to referenceDate (strict start), newest first, mapped to deduplicated summaries; [] on any failure/timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "[]"
+    },
+    {
+     "at": "+4",
+     "cond": "date arithmetic fails",
+     "effect": "[]"
+    },
+    {
+     "at": "+7",
+     "cond": "query timed out (nil)",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:)": "ba0daea3a2115b95",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.workoutSummaries(_:)",
+   "hash": "77a6a86c42b47ea0",
+   "does": "Casts samples to HKWorkout, builds summaries (dropping <1 min) and dedups.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples not [HKWorkout] (nil on error)",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)": "c08f99eb5e367da3"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.summary(for:)",
+   "hash": "1204da8a4417b985",
+   "does": "Summary from HKWorkout (start, type, minutes, active kcal, avg/max HR); nil when shorter than 1 minute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.heartRateStats(for:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.activeCalories(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "duration < 1 min",
+     "effect": "nil (ghost workout dropped)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.activeCalories(for:)": "928dcf8f4065e1d9",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.heartRateStats(for:)": "7ccb0508976e1c5d"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.activeCalories(for:)",
+   "hash": "e4953df853a53547",
+   "does": "Sum of the workout's activeEnergyBurned statistics in kcal.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type unavailable or no statistics",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.heartRateStats(for:)",
+   "hash": "3dc83168d75a8285",
+   "does": "Average and max HR (bpm) from the workout's heartRate statistics.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type unavailable or no statistics",
+     "effect": "(nil,nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchWorkoutRoute(from:to:)",
+   "hash": "363356881eb43fbb",
+   "does": "Recovers a GPS route for [start,end] from the best overlapping HealthKit workout's route series, sorted by timestamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.bestOverlappingWorkout(from:to:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeSeries(for:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeLocations(_:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable or end <= start",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "no overlapping workout",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no route series",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "no locations",
+     "effect": "nil; else sorted locations"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.bestOverlappingWorkout(from:to:)": "d85c4ee3b9066645",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeLocations(_:)": "34e27b9793be6ee3",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeSeries(for:)": "55fc552a1e0f565e"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.bestOverlappingWorkout(from:to:)",
+   "hash": "289dde1e81baf1d8",
+   "does": "Bounded query for workouts within [start-15min, end+15min] and picks preferredWorkout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.preferredWorkout(_:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "samples not [HKWorkout]",
+     "effect": "treated as empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.preferredWorkout(_:)": "319888b11811d675"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.preferredWorkout(_:)",
+   "hash": "aa567ca323b270c8",
+   "does": "Among workouts >= 60 s, prefers those from other sources (e.g. Apple Watch) and returns the longest.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no external workouts",
+     "effect": "use all usable (own copies); returns nil if none"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "preferredWorkout picks the LONGEST external workout anywhere in the ±15 min padded window without checking that it overlaps [start,end]; a separate, longer Apple Watch workout that ended up to 15 min before the session (or began up to 15 min after it) wins, and recoverRouteFromAppleWatch then rebuilds the session with that other workout's route and distance.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:259",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:261",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:262",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:280",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:282",
+      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:235"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.routeSeries(for:)",
+   "hash": "fe4ca8285171e0f3",
+   "does": "Bounded query for the workout's HKWorkoutRoute samples; returns the first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.routeLocations(_:)",
+   "hash": "75ad7a8005ab159b",
+   "does": "Bounded HKWorkoutRouteQuery collecting all CLLocations; [] on error or timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeQuery(_:resolve:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutRoute"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result nil (error or timeout)",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.routeQuery(_:resolve:)": "af97c49bedd455db"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.routeQuery(_:resolve:)",
+   "hash": "0a9c08aa95e1443d",
+   "does": "Builds an HKWorkoutRouteQuery whose handler accumulates batches under a lock and resolves once on done; resolves nil on error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.accumulateRouteBatch(_:locs:done:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKWorkoutRouteQuery"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "query error",
+     "effect": "log warning, resolve nil"
+    },
+    {
+     "at": "+10",
+     "cond": "batch not final (or already resolved)",
+     "effect": "return; else resolve with full accumulation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.accumulateRouteBatch(_:locs:done:)": "03c3d0cde284029b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.accumulateRouteBatch(_:locs:done:)",
+   "hash": "4a1b8416d75b4225",
+   "does": "Appends a batch under the lock and returns the whole accumulation exactly once when done.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "locs non-nil",
+     "effect": "append"
+    },
+    {
+     "at": "+7",
+     "cond": "not done or already resumed",
+     "effect": "nil; else mark resumed and return accumulation"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchPassiveDistanceMeters(from:to:)",
+   "hash": "7bdd700b2575b4b9",
+   "does": "Bounded HKStatisticsQuery cumulative sum of distanceWalkingRunning in [start,end] (strict start) excluding this app's own samples; 0 on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKStatisticsQuery"
+   ],
+   "reads": [
+    "hk:distanceWalkingRunning"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unavailable, end<=start, or type nil",
+     "effect": "0"
+    },
+    {
+     "at": "+11",
+     "cond": "timeout ?? 0",
+     "effect": "0"
+    },
+    {
+     "at": "+17",
+     "cond": "no statistics/sum",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.hasWorkoutInRange(from:to:)",
+   "hash": "f804194c5c85ca7b",
+   "does": "Bounded limit-1 query for any workout starting in [start,end]; false on failure/timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.foundWorkout(_:from:to:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unavailable or end<=start",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "timeout ?? false",
+     "effect": "false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.foundWorkout(_:from:to:)": "7f7ec3251fccb6f6"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.foundWorkout(_:from:to:)",
+   "hash": "0c9ee9de1e19147c",
+   "does": "True when samples non-empty; logs that a sleep merge is skipped.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples?.count ?? 0",
+     "effect": "nil samples count as none"
+    },
+    {
+     "at": "+2",
+     "cond": "found",
+     "effect": "log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)",
+   "hash": "0605797591aded93",
+   "does": "Extended workouts (default 60 days) via fetchWorkouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "fafda8431040904b"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchAppleRestingHR()",
+   "hash": "a80da7ca8d39c7fa",
+   "does": "Latest-ever Apple resting heart rate (no date bound); records it into WorkoutLoadRestingHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantityValue(_:unit:)",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::func WorkoutLoadRestingHR.record(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:restingHeartRate"
+   ],
+   "writes": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "nil"
+    },
+    {
+     "at": "+2",
+     "cond": "type unavailable",
+     "effect": "log, nil"
+    },
+    {
+     "at": "+7",
+     "cond": "value found",
+     "effect": "record it"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "latestQuantityValue uses predicate nil, so the 'Apple resting HR' that anchors every HR-only TRIMP (trainingHeartRateAnchors) is the most recent sample ever recorded, however old; a user who stopped wearing an Apple Watch months ago gets that stale value instead of their resting-HR setting, shifting all HR-based training load.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:413",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:438",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:489",
+      "Emuqu/Sources/Analysis/TrainingLoadSeries.swift:21"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantityValue(_:unit:)": "172863e34022055b",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::func WorkoutLoadRestingHR.record(_:)": "a2c76ad5f2698bd7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchVO2Max()",
+   "hash": "ec0e907df541a874",
+   "does": "Latest-ever VO2max value (ml/kg*min).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantityValue(_:unit:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:vo2Max"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unavailable or type nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no value",
+     "effect": "log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantityValue(_:unit:)": "172863e34022055b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.latestQuantityValue(_:unit:)",
+   "hash": "38825ade25466198",
+   "does": "Bounded limit-1 newest-first sample query with no predicate; returns its value in unit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)",
+   "hash": "2e4ca540e28c04f0",
+   "does": "Resolves HR anchors, merges archive+HealthKit workouts over 180 days, builds daily TRIMP, runs the EWMA through yesterday (morning) or today, and adds VO2max fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.heartRateAnchors(restingHR:maxHR:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergedTrainingWorkouts(referenceDate:additionalWorkouts:preloadedHealthKitWorkouts:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.applyVO2Max(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.applyVO2Max(to:)": "5a51e74fa785ae37",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)": "0058ec3b86912664",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.heartRateAnchors(restingHR:maxHR:)": "9ac039b184433424",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergedTrainingWorkouts(referenceDate:additionalWorkouts:preloadedHealthKitWorkouts:)": "b27ff9114d63c637",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.trainingHeartRateAnchors()",
+   "hash": "9b6a1b92183f13f1",
+   "does": "Anchors = Apple resting HR (latest) else settings effectiveRestingHR; max = settings effectiveMaxHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings",
+    "hk:restingHeartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "dfdd44d3d02fa987",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR()": "b06f3bc87a1fe324",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.heartRateAnchors(restingHR:maxHR:)",
+   "hash": "af0928bf63890fce",
+   "does": "Uses caller anchors; resolves any nil one via trainingHeartRateAnchors.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "both provided",
+     "effect": "use as-is without querying"
+    },
+    {
+     "at": "+3",
+     "cond": "restingHR ?? resolved / maxHR ?? resolved",
+     "effect": "nil inputs filled from resolved anchors"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)",
+   "hash": "fab3bb28c28a0a92",
+   "does": "Builds TrainingMetrics: today's TRIMP, EWMA point through last day, today's and last-14-day workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.recentWorkouts(_:today:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "dailyTrimp[today] ?? 0",
+     "effect": "0 when today has no bucket"
+    },
+    {
+     "at": "+8",
+     "cond": "forMorningReading",
+     "effect": "last day = yesterday; else today"
+    },
+    {
+     "at": "+8",
+     "cond": "date arithmetic ?? today",
+     "effect": "falls back to today"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.recentWorkouts(_:today:calendar:)": "4e55e32e5eb171c7",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.mergedTrainingWorkouts(referenceDate:additionalWorkouts:preloadedHealthKitWorkouts:)",
+   "hash": "b134754b41b80387",
+   "does": "Gets HealthKit workouts (preloaded or 180-day fetch) and archive summaries (detached task) and merges archive-authoritatively with additional workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "archive:SessionArchive (lightweight retrieve via fromAppArchive)",
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "preloaded list supplied",
+     "effect": "use it; else fetch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "bff2d08aed4fed7c",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtended(days:relativeTo:)": "e4d6f625296bd29e",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "4e23a88ccff23cef",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.recentMergedWorkouts(days:relativeTo:)",
+   "hash": "8873e138491e43df",
+   "does": "Last `days` of HealthKit + archive workouts merged archive-authoritatively.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchRecentWorkouts(days:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "archive:SessionArchive (via fromAppArchive)",
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "bff2d08aed4fed7c",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchRecentWorkouts(days:relativeTo:)": "4ec1cb18a9753201",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "4e23a88ccff23cef",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.recentWorkouts(_:today:calendar:)",
+   "hash": "a5643968ed5276cd",
+   "does": "Workouts from the last 14 days, newest first.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "date arithmetic ?? today",
+     "effect": "only today's workouts"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingHealthQueries.applyVO2Max(to:)",
+   "hash": "d242701c92c952b2",
+   "does": "Sets vo2MaxLatest and, when a trend exists, 30-day change and sample count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no trend",
+     "effect": "leave change/count defaults"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()": "05078d437dff4243",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)": "cb2dbca7be07ec77",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)",
+   "hash": "ccbfa3284aaa9157",
+   "does": "Daily load buckets from (ewmaEnd - 179 days) through today using TrainingLoadSeries.dailyLoad; logs load sources.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.logLoadSources(_:from:through:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "forMorningReading",
+     "effect": "EWMA end = yesterday; else today"
+    },
+    {
+     "at": "+5",
+     "cond": "date ?? today",
+     "effect": "fallback today"
+    },
+    {
+     "at": "+7",
+     "cond": "date ?? ewmaEndDate",
+     "effect": "fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "ae19a0c882de1d1c",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.logLoadSources(_:from:through:calendar:)": "8871ea47947e98c8"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.logLoadSources(_:from:through:calendar:)",
+   "hash": "b9caa5e9d76fac62",
+   "does": "Logs how many in-window workouts are power-backed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "none in window",
+     "effect": "no log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.calculateTrainingLoad(days:forMorningReading:relativeTo:)",
+   "hash": "18c1f77eb1e5a8b6",
+   "does": "Weekly TrainingLoad: merged recent workouts, VO2max + trend, anchors, ATL/CTL metrics, then intensity score, days since hard and ACWR; adds VO2 trend.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.recentMergedWorkouts(days:relativeTo:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingLoad(workouts:days:anchors:vo2Max:metrics:relativeTo:)"
+   ],
+   "reads": [
+    "hk:vo2Max",
+    "hk:restingHeartRate",
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "VO2 trend available",
+     "effect": "set change and count"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "fetchVO2Max and fetchVO2MaxTrend are queried here and again inside calculateTrainingMetrics -> applyVO2Max, doubling the HealthKit VO2 queries per call.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:642",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:643",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:588",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:589"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "recentMergedWorkouts(days: 7) fetches from start-of-day minus 7 days through now (both fetchWorkouts and fromAppArchive), i.e. up to 8 calendar days, but trainingLoad normalises the intensity sum by `days` (7) and TrainingLoad documents recentWorkouts as 'Last 7 days', so the weekly load score can include an eighth day.",
+     "evidence": [
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:179",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:180",
+      "Emuqu/Sources/Collection/HealthDataTypes.swift:202",
+      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:675",
+      "Emuqu/Sources/Collection/TrainingLoad.swift:14"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)": "957d5965c00b1d86",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2Max()": "05078d437dff4243",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchVO2MaxTrend(days:)": "cb2dbca7be07ec77",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.recentMergedWorkouts(days:relativeTo:)": "40c28a7f981090b5",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingLoad(workouts:days:anchors:vo2Max:metrics:relativeTo:)": "0888e8bb7c4646cc",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.vo2Trend(from:)": "f0a03360b4284246"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.trainingLoad(workouts:days:anchors:vo2Max:metrics:relativeTo:)",
+   "hash": "93225bc44f9c95cf",
+   "does": "Builds TrainingLoad: weekly score = min(sum intensityScore / days * 7, 100), daysSinceHardWorkout, ACWR from metrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.intensityScore(anchors:)": "e6141d599ba16aaa",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "8457ef6dcff2944b",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)": "5f83f00abb777e3c",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "fee4f972f248039e"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,538 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift",
+ "hash": "3154770e7c650572",
+ "role": "Per-provider data-sharing consent sheet shown before the first send to a hosted AI provider (AssistantChatView.consentSheet, AssistantChatView.swift:293-299); lists what the vendor sees, how data leaves, vendor data-use terms, PRC residency for DeepSeek, and the vendor privacy policy link. Its static dataUseNotes is also used by AIAssistantSettingsPage.swift:286 and tests.",
+ "types": [
+  "ProviderConsentSheet: struct — SwiftUI consent View with onAccept/onDecline closures"
+ ],
+ "state": [
+  "mem:ProviderConsentSheet.locationServicesBullet (static computed String)"
+ ],
+ "toplevel": "Comment header (lines 1-14) states the sheet is shown on first send per provider and never for Apple Intelligence.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ProviderConsentSheet.residencyNote",
+   "hash": "06bea9ce8de7a1c5",
+   "does": "Returns the DeepSeek PRC-hosting warning for .deepseek, nil for all other providers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider == .deepseek",
+     "effect": "returns the PRC data-residency sentence"
+    },
+    {
+     "at": "+4",
+     "cond": "default (any other provider)",
+     "effect": "returns nil, so dataResidencyNote renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.body",
+   "hash": "0e7c9b213e11c6ee",
+   "does": "NavigationStack wrapping consentScroll.",
+   "entry": "SwiftUI body; presented via .sheet(item: pendingConsentBinding) in AssistantChatView.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentScroll"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentScroll": "3be43bd26958c643"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.consentScroll",
+   "hash": "9ec8500caec5ba6c",
+   "does": "ScrollView of consentBody titled 'Share data with <displayName>?', with consentActionBar inset at the bottom and interactive dismissal disabled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentBody",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentActionBar",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentActionBar": "7cea074d2ece29b4",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentBody": "f3c7eafb73ad1ac1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.consentActionBar",
+   "hash": "694756650b0e7f62",
+   "does": "Bottom bar: prominent 'Send and remember for <displayName>' button calling onAccept() then dismiss(), plus dontSendButton, on an adaptive ultra-thin material background.",
+   "entry": "Accept button tap by user.",
+   "calls": [
+    "closure:onAccept — set by AssistantChatView to viewModel.acknowledgeConsentAndContinue()",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dontSendButton",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dontSendButton": "13909ad928c41dc9",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Utilities/AdaptiveMaterial.swift::func AdaptiveMaterial.ultraThin(_:)": "c4738b7db48b800b"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.consentBody",
+   "hash": "cb6ccb83eccd40cd",
+   "does": "VStack of header, what-they-see, how-it-leaves, data-use, residency, what-we-don't-share and privacy-link sections, padded 20.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentHeader",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatTheyWillSeeSection",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.howItLeavesSection",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataUseSection",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataResidencyNote",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatWeDontShareSection",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLink"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.consentHeader": "79d8b66238f65323",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataResidencyNote": "787bffe431c5373f",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataUseSection": "d90534835e57c5cb",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.howItLeavesSection": "1ab9de94653de11e",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLink": "18b8c4c1b9581d3e",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatTheyWillSeeSection": "f0a9b38ce26ef5d8",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatWeDontShareSection": "ea6749882617c961"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.consentHeader",
+   "hash": "39556d7401f27634",
+   "does": "Provider SF Symbol, 'First send to <displayName>' and 'Vendor: <vendorName>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName": "66f4ed752cc89e1b",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.whatTheyWillSeeSection",
+   "hash": "acdb18b78c00a9e8",
+   "does": "Heading 'What <displayName> will see' and a 13-item bullet list of shared data (HRV/HR, sleep, training load, steps, overnight vitals, profile, route/GPS, home address, weather/street, memory facts, recording notes/check-ins, email contacts, full message text).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "101d6b4609022e70",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.howItLeavesSection",
+   "hash": "b87c4d735cc6246d",
+   "does": "Heading 'How it leaves your device' followed by howItLeavesBullets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.howItLeavesBullets"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.howItLeavesBullets": "5981222a0dfa88b2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.howItLeavesBullets",
+   "hash": "329f21945537f5ab",
+   "does": "Bullet list: direct HTTPS to vendor API, Keychain API key, Anthropic server-search bullet (Claude only), Tavily web search disclosure, location services bullet, MET Norway weather, vendor privacy policy, on-device conversation history not synced to iCloud.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.serverSearchBullets",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "101d6b4609022e70",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet": "4002d927e05dddd5",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.serverSearchBullets": "a93f087e24996956",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.locationServicesBullet",
+   "hash": "7d9708740702eee3",
+   "does": "Static string naming the location services that receive approximate coordinates: Overpass at overpass.private.coffee and overpass-api.de (matching OverpassClient.endpoints, OverpassClient.swift:59-62), MET Norway, OpenTopoData and Apple's geocoder.",
+   "entry": "Also read by EmuquTests/ProviderConsentTrackerTests.swift:160.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.serverSearchBullets",
+   "hash": "184865e951bc6022",
+   "does": "Returns the Anthropic server-side web search disclosure for .anthropic, otherwise an empty array.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider != .anthropic",
+     "effect": "guard returns [] (no bullet); for .anthropic returns the one-element array"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.dataUseSection",
+   "hash": "45585af320b2a189",
+   "does": "Computes dataUseNotes(for: provider) and, when non-empty, shows 'How <vendorName> may use it' and the notes as bullets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "notes non-empty",
+     "effect": "renders heading + bullets; for .apple (empty) renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "101d6b4609022e70",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "a5c541f8cf1df5b0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ProviderConsentSheet.dataUseNotes(for:)",
+   "hash": "b8774bbb32d2714d",
+   "does": "Maps a ProviderID to its vendor data-use notes.",
+   "entry": "Also called by AIAssistantSettingsPage.swift:286 and EmuquTests/ProviderConsentTrackerTests.swift:144-154.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.anthropicDataUse",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.openAIDataUse",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.geminiDataUseNotes",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.xAIDataUse",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.deepSeekDataUse"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "[] (no notes)"
+    },
+    {
+     "at": "+3",
+     "cond": "case .anthropic",
+     "effect": "[anthropicDataUse]"
+    },
+    {
+     "at": "+4",
+     "cond": "case .openai",
+     "effect": "[openAIDataUse]"
+    },
+    {
+     "at": "+5",
+     "cond": "case .gemini",
+     "effect": "geminiDataUseNotes (two notes: free vs billed key)"
+    },
+    {
+     "at": "+6",
+     "cond": "case .grok",
+     "effect": "[xAIDataUse]"
+    },
+    {
+     "at": "+7",
+     "cond": "case .deepseek",
+     "effect": "[deepSeekDataUse]"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.anthropicDataUse": "2a3f1dff03f8e554",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.deepSeekDataUse": "9e64f8b7e2d332ee",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.geminiDataUseNotes": "73a79758b8a9cbaf",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.openAIDataUse": "1cf34d48993cf8be",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.xAIDataUse": "f920c2064b4295a8"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.anthropicDataUse",
+   "hash": "17f0c29d9daac4de",
+   "does": "Localized note: Anthropic does not train on API content, deletes within 30 days, keeps flagged content up to 2 years.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.openAIDataUse",
+   "hash": "f3b97159fb811eba",
+   "does": "Localized note: OpenAI does not train on API data unless opted in, keeps up to 30 days for abuse, staff may review flagged content.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.xAIDataUse",
+   "hash": "1fc5c999861b8af2",
+   "does": "Localized note: xAI does not train on API data without permission, stores 30 days for abuse checks.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.deepSeekDataUse",
+   "hash": "c9a4687b58fa6938",
+   "does": "Localized note: DeepSeek uses input to train models, opt-out via privacy@deepseek.com, policy silent on human review.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.geminiDataUseNotes",
+   "hash": "3cc270f1ee453d82",
+   "does": "Two localized notes: free Gemini keys' content is used to improve Google products and may be human-reviewed; billed Cloud-project keys are not used for improvement and kept briefly for misuse detection; recommends a paid key.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.dataResidencyNote",
+   "hash": "834f35d72e5d7816",
+   "does": "Shows 'Where your data is processed' and the residency note as a bullet when residencyNote is non-nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.residencyNote",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "residencyNote non-nil (provider is .deepseek)",
+     "effect": "renders heading + bullet; otherwise renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "101d6b4609022e70",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.residencyNote": "d37db2ec2954ba13",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.whatWeDontShareSection",
+   "hash": "7a3d87f93ccce6de",
+   "does": "Heading 'What we don't share' with bullets: switch to Apple Intelligence to avoid sharing with the vendor; no analytics SDK/ad tracking and only the listed destinations receive data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Bullet under 'What we don't share' says 'If you'd rather not share with <vendor>, switch to Apple Intelligence in Settings'. (1) There is no model switch in Settings: the only setActive(model:) caller is ModelOptionRow in the Flo tab's Choose model sheet (model badge). (2) After the user accepts this sheet, turns asked while Apple Intelligence is selected (voice, email/directions/web search, Auto/Deep routing, fallback) still go to this vendor, as AIAssistantSettingsPage and DisclaimerSheet say, so switching to Apple does not stop sharing.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift:277",
+      "Emuqu/Sources/Assistant/Views/ModelPicker.swift:18",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:471",
+      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift:298",
+      "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift:61",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:433"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "101d6b4609022e70",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.privacyPolicyLink",
+   "hash": "24b9507ee92ef544",
+   "does": "Link to provider.privacyPolicyURL with privacyPolicyLabel when the URL is non-nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider.privacyPolicyURL non-nil",
+     "effect": "renders Link; all ProviderID cases return a literal URL (AIProvider.swift:53-62), so the nil path only occurs if URL(string:) fails, which it does not for these literals"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL": "934f55e51085b9e8",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLabel": "53b14133b4e084a2"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.privacyPolicyLabel",
+   "hash": "3067162427f8b0b0",
+   "does": "HStack of arrow.up.right.square icon and '<vendorName> privacy policy'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ProviderConsentSheet.dontSendButton",
+   "hash": "c0b5e940be73bd51",
+   "does": "Button 'Don't send' calling onDecline() then dismiss().",
+   "entry": "Button tap by user.",
+   "calls": [
+    "closure:onDecline — set by AssistantChatView to viewModel.cancelPendingConsent()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func ProviderConsentSheet.bulletList(_:)",
+   "hash": "4d4b22301a2c6bc9",
+   "does": "VStack with one bulletRow per item (ForEach id \\.self).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletRow(_:)": "7653d7209ccd902f"
+   }
+  },
+  {
+   "key": "func ProviderConsentSheet.bulletRow(_:)",
+   "hash": "42787e813e5c3d17",
+   "does": "HStack of a secondary '•' and the item text, callout font, vertical fixedSize for wrapping.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

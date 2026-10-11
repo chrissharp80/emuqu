@@ -1,0 +1,44 @@
+{
+ "file": "Emuqu/Sources/Export/DeepDiveReportRenderer.swift",
+ "hash": "b682b01605853037",
+ "role": "Declares DeepDiveReportRenderer, a stateless value built per access by PDFReportGenerator.deepDive (PDFReportGenerator+DeepDiveForwarding.swift:16-18) that draws the clinical deep-dive pages (HRV, sleep, training, vitals) of the overnight/recovery PDF; it borrows only the generator config and page-break helper.",
+ "types": [
+  "DeepDiveReportRenderer: struct — deep-dive page renderer holding a strong reference to its PDFReportGenerator; extended by DeepDiveReportRenderer+Pages.swift and +Body.swift"
+ ],
+ "state": [
+  "mem:DeepDiveReportRenderer.generator (stored let PDFReportGenerator)"
+ ],
+ "toplevel": "Struct with one stored property `generator`; synthesized memberwise init used at PDFReportGenerator+DeepDiveForwarding.swift:17. A new renderer is constructed on every `deepDive` access (computed property), so each forwarded call builds a fresh value.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DeepDiveReportRenderer.config",
+   "hash": "af019438def0108a",
+   "does": "Computed property returning generator.config (PDFReportGenerator.Config) so the deep-dive drawing code reads margins, colours and fonts of the owning generator.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+   "hash": "1a05f042c7c274c8",
+   "does": "Forwards a page-break request to PDFReportGenerator.ensureSpace (which forwards to ReportSectionRenderer.ensureSpace): if `needed` does not fit below `y`, the generator starts a new page and increments pageNumber; returns the y to draw at.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "b785048fbb2042e7"
+   }
+  }
+ ],
+ "deps": {}
+}

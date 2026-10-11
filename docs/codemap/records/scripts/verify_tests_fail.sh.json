@@ -1,0 +1,152 @@
+{
+ "file": "scripts/verify_tests_fail.sh",
+ "hash": "7de7a2129ff1284b",
+ "role": "Manual mutation-testing harness (not in make ci or any workflow; ci.yml only comments on it) that applies 125 targeted source mutations one at a time, requiring the named XCTest class to go red for each. All 125 anchors apply and all named suite classes exist at 8d32097 (checked on a scratch copy).",
+ "types": [],
+ "state": [
+  "env:FILTER ($1)",
+  "env:MUTATION_DERIVED_DATA (build/MutationDerivedData)",
+  "file:<lock>",
+  "file:temp backup dir + run.log",
+  "file:production Swift sources (mutated and restored)"
+ ],
+ "toplevel": "set -uo pipefail; cd to repo root; sources preflight. DEST from select_simulator_destination.sh (exit 70 if empty). gate_mktemp_dir (fails on GNU mktemp), then acquire lock and set trap restore_all/rm/release. Runs `mutate` for each case (lines 145-975; anchors and suite classes verified to exist at 8d32097 — two named suites (AutoPauseDetectorTests, TrackBackupWatermarkTests) are classes inside WorkoutTickStateTests.swift). Prints totals; exits 1 if any FAIL or SKIP (skips explicitly treated as unverified). A build failure caused by the mutation itself counts as 'caught' (see mutate flag); e.g. import_cadence_divides_by_zero_window substitutes `sample.count`, a member HealthSampleWindow does not have (HealthSampleWindow.swift:15-23), so that case can only ever 'pass' via a compile error. The comment at 167-168 about the encrypted-write branch sits above the unrelated import_offset_unguarded case; the encryption mutation is at line 337.",
+ "flags": [],
+ "units": [
+  {
+   "key": "fn backup",
+   "hash": "957046922b6add27",
+   "does": "Copies file $1 into the backup dir ('/'->'_' name) and adds it to TOUCHED.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:backup dir"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn restore_all",
+   "hash": "d737b90302b72d4b",
+   "does": "Copies each TOUCHED file's backup back over it and clears TOUCHED.",
+   "entry": "also called from the EXIT/INT/TERM/HUP trap",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:restored sources"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "empty entry",
+     "effect": "skip; otherwise cp (a missing backup makes cp fail silently, file left as is)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn run_suite",
+   "hash": "a5c9b95c4c2defde",
+   "does": "Runs `xcodebuild test -only-testing:<suite> -parallel-testing-enabled NO` into run.log; returns 0 on success, 2 if the log has BUILD/TEST BUILD FAILED or 'error: Building|Failed to' or contains no 'Test Suite'/'Test Case' line, else 1.",
+   "entry": null,
+   "calls": [
+    "ext:xcodebuild test"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<backup>/run.log",
+    "file:build/MutationDerivedData"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "xcodebuild exits 0",
+     "effect": "return 0"
+    },
+    {
+     "at": "+8",
+     "cond": "build-failure marker or no test ran",
+     "effect": "return 2; else return 1"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "fn mutate",
+   "hash": "a9bd0e7c71368732",
+   "does": "Runs one mutation: FILTER check; baseline run_suite (one retry on build failure); SKIP if baseline not green; backup, apply python mutation (SKIP on failure); run_suite again; restore; PASS if the post-mutation result is non-zero (1 or 2), FAIL 'SURVIVED' if 0.",
+   "entry": null,
+   "calls": [
+    "scripts/verify_tests_fail.sh::fn run_suite",
+    "scripts/verify_tests_fail.sh::fn backup",
+    "scripts/verify_tests_fail.sh::fn restore_all",
+    "ext:python3 -c <mutation>"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<mutated source> (temporarily)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "FILTER set and not in name",
+     "effect": "return"
+    },
+    {
+     "at": "+8",
+     "cond": "baseline == 2 (build failed)",
+     "effect": "retry baseline once"
+    },
+    {
+     "at": "+13",
+     "cond": "baseline != 0",
+     "effect": "SKIP (build failed / already red), return"
+    },
+    {
+     "at": "+14",
+     "cond": "baseline == 2",
+     "effect": "message 'BUILD failed'; else 'already red'"
+    },
+    {
+     "at": "+23",
+     "cond": "mutation script fails",
+     "effect": "restore, SKIP, return"
+    },
+    {
+     "at": "+31",
+     "cond": "post-mutation code != 0",
+     "effect": "PASS++ (includes code 2 = build failure); else FAIL++"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "run_suite distinguishes build failure (2) from test failure (1) for the baseline, but after the mutation any non-zero code counts as 'caught'. A mutation that does not compile is reported PASS without any test asserting anything — e.g. import_cadence_divides_by_zero_window rewrites the guard to `sample.count >= 0`, and HealthSampleWindow has no `count` member, so that case passes on a compile error and HealthWorkoutImporterTests' coverage of the zero-window guard is never actually verified.",
+     "evidence": [
+      "scripts/verify_tests_fail.sh:128",
+      "scripts/verify_tests_fail.sh:131",
+      "scripts/verify_tests_fail.sh:906",
+      "Emuqu/Sources/Import/HealthSampleWindow.swift:15"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+    "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d",
+    "scripts/verify_tests_fail.sh::fn run_suite": "2627647aca12e8c4"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/select_simulator_destination.sh::": "bb43a2c585c332e5",
+  "scripts/verify_tests_fail.sh::fn backup": "70119fbe023b417f",
+  "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
+  "scripts/verify_tests_fail.sh::fn restore_all": "0cdb4c7320082e7d"
+ }
+}

@@ -1,0 +1,990 @@
+{
+ "file": "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift",
+ "hash": "d41c8c0c10e87121",
+ "role": "Anthropic Messages API (Claude) provider: static model catalog, availability from the keychain, request body types and encoders, message-history assembly with conversation cache breakpoint, live-state splice into the last user turn, streaming request and SSE event handling into AIStreamEvents, and HTTP error mapping.",
+ "types": [
+  "AnthropicProvider: class (AIProvider, Sendable) — Claude provider",
+  "AnthropicProvider.RequestBody: struct — Messages API body (model, max_tokens, system, messages, stream, tools)",
+  "RequestBody.MessageContent: enum — plain/blocks/cachedBlocks",
+  "RequestBody.ContentBlock: enum — text/toolUse/toolResult",
+  "RequestBody.CachedContentBlock: struct — block + optional cache_control",
+  "RequestBody.Message: struct",
+  "RequestBody.SystemBlock: struct — system text block with optional cache_control",
+  "SystemBlock.CacheControl: struct — type + optional ttl",
+  "RequestBody.ToolDecl: enum — custom tool or server web search",
+  "ToolDecl.AnyKey: struct (CodingKey) — string keys",
+  "AnthropicProvider.PendingToolUse: struct — accumulating tool_use input",
+  "AnthropicProvider.StreamState: struct — open tool blocks + start usage + recorded flag"
+ ],
+ "state": [
+  "mem:AnthropicProvider.streamSession (static URLSession: waitsForConnectivity, 30s request/180s resource timeouts, 4 conns/host, no URL cache)",
+  "mem:AnthropicProvider.models (static catalog: claude-haiku-4-5-20251001, claude-sonnet-4-6 default, claude-opus-4-7)",
+  "net:https://api.anthropic.com/v1/messages",
+  "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic"
+ ],
+ "toplevel": "id is a stored let .anthropic. RequestBody and nested types declare Encodable conformances; ContentBlock/CachedContentBlock/SystemBlock.CacheControl/ToolDecl encoders live in extensions at the file end. max_tokens is hard-coded 2048 at stream().",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "med",
+   "text": "No test exercises AnthropicProvider's request assembly or SSE parsing (grep of EmuquTests finds no call to handle/consumeSSE/spliceLiveState/toolDeclarations/statusError/cacheAwareSystemBlocks; JSONOrderingTests claims to guard provider encoders but only encodes its own Payload struct).",
+   "evidence": [
+    "EmuquTests/JSONOrderingTests.swift:14",
+    "EmuquTests/JSONOrderingTests.swift:26"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "let AnthropicProvider.streamSession",
+   "hash": "3cc612d312a5a579",
+   "does": "Static initializer closure building the dedicated streaming URLSession (waitsForConnectivity, 30 s request / 180 s resource timeouts, cellular/constrained/expensive allowed, 4 connections per host, urlCache nil).",
+   "entry": "Lazy static initialization on first use of AnthropicProvider.streamSession",
+   "calls": [
+    "ext:URLSession(configuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnthropicProvider.availableModels",
+   "hash": "761626cd7f4ea4b6",
+   "does": "Returns the static Claude model catalog.",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnthropicProvider.requiresKey",
+   "hash": "e9238caebf755141",
+   "does": "Returns true (Claude needs an API key).",
+   "entry": "AIProvider conformance",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnthropicProvider.isAvailable",
+   "hash": "8cca839ced020dab",
+   "does": "True when the keychain holds a non-empty Anthropic key (SecItemCopyMatching on every read).",
+   "entry": "AIProvider conformance (ProviderRegistry / routing availability)",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
+   ],
+   "reads": [
+    "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "5a0347f6fc0a3094",
+   "does": "Returns ProviderStream.make wrapping stream(...), so cancellation/URLError are mapped to AIProviderError.",
+   "entry": "AIProvider conformance — called by AssistantViewModel+Tools.swift:198 tool loop and the 4-arg extension send",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "66f37bf953ced4c3",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.MessageContent.encode(to:)",
+   "hash": "36eb8818a5ffce9f",
+   "does": "Encodes MessageContent as a bare string or an array of blocks.",
+   "entry": "Encodable — JSONEncoder in makeRequest",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".plain",
+     "effect": "encodes the string"
+    },
+    {
+     "at": "+4",
+     "cond": ".blocks",
+     "effect": "encodes [ContentBlock]"
+    },
+    {
+     "at": "+5",
+     "cond": ".cachedBlocks",
+     "effect": "encodes [CachedContentBlock]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.applyCacheControl(to:)",
+   "hash": "3dacd7aaa8488416",
+   "does": "Converts a message to cachedBlocks form with cache_control on its last block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.cachedMessage(role:blocks:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".plain(s)",
+     "effect": "becomes one cached text block"
+    },
+    {
+     "at": "+5",
+     "cond": ".blocks(raw)",
+     "effect": "all blocks wrapped, last tagged"
+    },
+    {
+     "at": "+6",
+     "cond": "raw empty",
+     "effect": "returns message unchanged"
+    },
+    {
+     "at": "+8",
+     "cond": ".cachedBlocks(existing)",
+     "effect": "re-wraps underlying blocks with tail tagged"
+    },
+    {
+     "at": "+11",
+     "cond": "existing empty",
+     "effect": "returns message unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.cachedMessage(role:blocks:)": "4cfa0ba193a9e8ab",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.cachedMessage(role:blocks:)",
+   "hash": "4f80d534d8d39123",
+   "does": "Wraps blocks as CachedContentBlocks, only the last carrying cache_control {type: ephemeral} (5-minute TTL), and returns a cachedBlocks Message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "idx == last index",
+     "effect": "cacheControl = ephemeral breakpoint; otherwise nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.buildMessageHistory(messages:toolRounds:)",
+   "hash": "c9be94a3de323d50",
+   "does": "Maps ChatTurns to plain user/assistant messages, appends an assistant tool_use / user tool_result pair per non-empty tool round, and when ≥2 messages tags the second-to-last message as the conversation cache breakpoint.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.toolRoundMessages(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.applyCacheControl(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "turn.role == .user",
+     "effect": "role \"user\"; else \"assistant\""
+    },
+    {
+     "at": "+10",
+     "cond": "round non-empty",
+     "effect": "appends the pair; empty rounds skipped"
+    },
+    {
+     "at": "+13",
+     "cond": "mapped.count >= 2",
+     "effect": "second-to-last message converted to cached form; otherwise no history breakpoint"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.applyCacheControl(to:)": "6aae604d2899b53d",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.toolRoundMessages(_:)": "9ea8df4c474f4ffa"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.toolRoundMessages(_:)",
+   "hash": "c8373c827f318e43",
+   "does": "Builds the assistant message of tool_use blocks and the user message of matching tool_result blocks for one round.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Only the client tool_use calls are replayed. Any assistant text, server_tool_use and web_search_tool_result blocks the model streamed in the same response (server web search, AnthropicProvider+Request.swift:76) are not carried in ToolExchange, so the continuation request loses the web-search results and the model's preamble.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:275",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:76",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:285"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolUseID(counter:thoughtSignature:)": "0e1707e59e7b617f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.makeSystemBlocks(stable:variable:)",
+   "hash": "1cf1def2abb4ecbe",
+   "does": "Returns the system blocks: the stable text with cache_control ephemeral, plus the variable text as an uncached second block when non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "variable non-empty",
+     "effect": "appends uncached block; else only the stable block"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "5749510a6d10807f"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)",
+   "hash": "11169e0c53188884",
+   "does": "Appends \"<live_state>…</live_state>\" with contextRendered to the last user message (via appending), or, if no user message exists, adds contextRendered as an uncached system block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.appending(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "contextRendered empty",
+     "effect": "returns without change"
+    },
+    {
+     "at": "+7",
+     "cond": "no message with role user",
+     "effect": "appends a raw (unwrapped) system block and returns; else rewrites that message's content"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.appending(_:to:)": "2e7af743a312c584"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.appending(_:to:)",
+   "hash": "eea0449f2cd0d9d3",
+   "does": "Returns the content with the live-state block appended in a form matching its case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": ".plain(s)",
+     "effect": "string concatenation"
+    },
+    {
+     "at": "+7",
+     "cond": ".blocks(bs)",
+     "effect": "last block extended or new text block"
+    },
+    {
+     "at": "+9",
+     "cond": "last block is .text",
+     "effect": "appends to that text; else appends a new .text block (e.g. after tool_result blocks)"
+    },
+    {
+     "at": "+15",
+     "cond": ".cachedBlocks(cbs)",
+     "effect": "appends an uncached text block after the cached ones"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)",
+   "hash": "fc3cfca1cb88eacd",
+   "does": "Performs one Claude request: reads the key from the keychain, builds history, system blocks, live-state splice and tool declarations, POSTs with max_tokens 2048 and stream true over streamSession, throws mapped errors for non-2xx, then parses the SSE stream into the continuation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.toolDeclarations(for:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)",
+    "ext:URLSession.bytes(for:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [
+    "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic",
+    "net:api.anthropic.com/v1/messages"
+   ],
+   "writes": [
+    "net:api.anthropic.com/v1/messages (conversation, system prompt, live_state context, tool catalog)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no Anthropic key in keychain",
+     "effect": "throws AIProviderError.missingKey(.anthropic) (fallbackable)"
+    },
+    {
+     "at": "+12",
+     "cond": "URL literal fails to parse",
+     "effect": "throws invalidResponse(\"bad endpoint\") — unreachable with the constant URL"
+    },
+    {
+     "at": "+25",
+     "cond": "response is HTTP and status outside 200...299",
+     "effect": "throwForStatus drains ≤4 KB and throws mapped error; else SSE consumed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "med",
+     "text": "max_tokens is fixed at 2048 and the stop_reason in message_delta (max_tokens, pause_turn from server web search) is never read (handle() only reads usage), so a reply cut at the token cap or paused mid server-tool turn is delivered as a complete answer with no indication.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:380",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:446",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:77"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "33c627035da22f46",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)": "239c3e24a8b3ff4a",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "aceb61033faf4585",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "ba53547df7938cb8",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.toolDeclarations(for:)": "aa81e5603d2a1f42",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "de70871e15feb073",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)": "93c6255b72c27020",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)": "2501f113d19f9d9b",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::let AnthropicProvider.streamSession": "4793560a6712d9df",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9563ff5ba87e76de"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.yieldUsage(_:to:)",
+   "hash": "f863f20711cbd633",
+   "does": "Yields one .usage event from a usage dictionary (input, output, cache_read, cache_creation tokens, missing fields 0) when any counter is non-zero.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "usage nil",
+     "effect": "returns, no event"
+    },
+    {
+     "at": "+5",
+     "cond": "input_tokens missing/not Int",
+     "effect": "0"
+    },
+    {
+     "at": "+6",
+     "cond": "output_tokens missing",
+     "effect": "0"
+    },
+    {
+     "at": "+7",
+     "cond": "cache_read_input_tokens missing",
+     "effect": "0"
+    },
+    {
+     "at": "+8",
+     "cond": "cache_creation_input_tokens missing",
+     "effect": "0"
+    },
+    {
+     "at": "+9",
+     "cond": "all four are 0",
+     "effect": "returns without yielding; else yields .usage"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.handle(eventName:data:state:continuation:)",
+   "hash": "eb90b717be29b233",
+   "does": "Dispatches one parsed SSE JSON event by its type (falling back to the SSE event name): tracks tool_use blocks, emits text/tool events, records/merges usage, yields .done on message_stop, throws on error events.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.openBlock(_:into:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handleDelta(_:openToolUses:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "payload is not a JSON object",
+     "effect": "returns silently (malformed JSON throws from JSONSerialization instead)"
+    },
+    {
+     "at": "+7",
+     "cond": "type ?? eventName ?? \"\"",
+     "effect": "switch on the resolved event type"
+    },
+    {
+     "at": "+8",
+     "cond": "content_block_start",
+     "effect": "openBlock"
+    },
+    {
+     "at": "+10",
+     "cond": "content_block_delta",
+     "effect": "handleDelta"
+    },
+    {
+     "at": "+12",
+     "cond": "content_block_stop",
+     "effect": "closeBlock"
+    },
+    {
+     "at": "+14",
+     "cond": "message_delta",
+     "effect": "flushUsage with final usage (stop_reason ignored)"
+    },
+    {
+     "at": "+16",
+     "cond": "message_start",
+     "effect": "stores message.usage as startUsage"
+    },
+    {
+     "at": "+18",
+     "cond": "message_stop",
+     "effect": "finishMessage (usage fallback + .done)"
+    },
+    {
+     "at": "+20",
+     "cond": "error",
+     "effect": "throws invalidResponse(error.message)"
+    },
+    {
+     "at": "+21",
+     "cond": "error.message missing",
+     "effect": "uses \"Anthropic stream error\""
+    },
+    {
+     "at": "+23",
+     "cond": "default (ping, unknown)",
+     "effect": "ignored"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "A malformed SSE data payload makes JSONSerialization throw a Cocoa NSError, and nothing maps it to AIProviderError. ProviderStream.failure passes it through unchanged. The chat layer's isFallbackable catch skips it, so the turn goes to handleStreamFailure with the raw system text and no fallback, which is the outcome ProviderStream's doc says it exists to prevent.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:438",
+      "Emuqu/Sources/Assistant/Providers/ProviderStream.swift:55",
+      "Emuqu/Sources/Assistant/Providers/ProviderStream.swift:8",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:636"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)": "c1e218efc7f73509",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)": "a138643020c296e0",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "f1e2a42dfdccdbfb",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handleDelta(_:openToolUses:continuation:)": "49ee7cf620df8f1f",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.openBlock(_:into:)": "ffee43cb243e439a"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.finishMessage(_:continuation:)",
+   "hash": "699c4e0a40870f3e",
+   "does": "On message_stop: flushes usage if not yet recorded, then yields .done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "f1e2a42dfdccdbfb"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.flushUsage(_:final:to:)",
+   "hash": "12352580f4311faf",
+   "does": "Emits exactly one usage event per request by merging message_start usage with final message_delta usage (delta values win).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.yieldUsage(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "already recorded, or both start and final usage nil",
+     "effect": "returns without event"
+    },
+    {
+     "at": "+7",
+     "cond": "startUsage/final nil",
+     "effect": "treated as empty dictionaries in the merge"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.yieldUsage(_:to:)": "fd2a36d4cbc45d17"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.openBlock(_:into:)",
+   "hash": "5223a837378c5a6a",
+   "does": "On content_block_start for a tool_use block, records a PendingToolUse(id,name) under the block index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index/content_block missing, type not tool_use, or id/name missing",
+     "effect": "ignored (text, server_tool_use, web_search_tool_result blocks are not tracked)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.handleDelta(_:openToolUses:continuation:)",
+   "hash": "0176164181947df3",
+   "does": "For content_block_delta: appends input_json_delta partial JSON to the open tool block; otherwise yields non-empty delta text as .textDelta.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no delta object",
+     "effect": "ignored"
+    },
+    {
+     "at": "+6",
+     "cond": "input_json_delta with index of an open tool_use",
+     "effect": "appends partial_json"
+    },
+    {
+     "at": "+11",
+     "cond": "delta.text is a non-empty String",
+     "effect": "yields .textDelta; other deltas (server_tool_use input_json_delta, citations_delta, thinking) dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.closeBlock(_:openToolUses:continuation:)",
+   "hash": "db383628c1ac891a",
+   "does": "On content_block_stop for an open tool block, removes it and yields .toolUse with its accumulated JSON (\"{}\" when empty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "no index or no open block at index",
+     "effect": "ignored (text blocks)"
+    },
+    {
+     "at": "+8",
+     "cond": "inputJSON empty",
+     "effect": "args \"{}\"; else accumulated JSON"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.throwForStatus(_:bytes:)",
+   "hash": "c691fc21b7bd2845",
+   "does": "Drains up to 4096 bytes of an error body, redacts keys, throws outOfCredit when ProviderAccountReply detects credit exhaustion, otherwise throws statusError with the parsed error.message (or first 300 chars of the body).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusError(_:message:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.errorMessage(from:)"
+   ],
+   "reads": [
+    "net:api.anthropic.com error body"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each byte",
+     "effect": "collects bytes"
+    },
+    {
+     "at": "+5",
+     "cond": "collected ≥ 4096",
+     "effect": "stops draining"
+    },
+    {
+     "at": "+7",
+     "cond": "body not UTF-8",
+     "effect": "\"\""
+    },
+    {
+     "at": "+8",
+     "cond": "credit exhausted (402 or marker)",
+     "effect": "throws outOfCredit(.anthropic)"
+    },
+    {
+     "at": "+11",
+     "cond": "errorMessage nil",
+     "effect": "falls back to the redacted body's first 300 chars"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "84c7ba7bcbd4dbfb",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.errorMessage(from:)": "537ddfe14e119991",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusError(_:message:)": "a511cd4924f53b29"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.statusError(_:message:)",
+   "hash": "1b1801b09b10e92a",
+   "does": "Maps an HTTP status to AIProviderError for the chat banner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "401 or 403",
+     "effect": "authFailed"
+    },
+    {
+     "at": "+3",
+     "cond": "429",
+     "effect": "rateLimited"
+    },
+    {
+     "at": "+4",
+     "cond": "404",
+     "effect": "modelUnavailable(message)"
+    },
+    {
+     "at": "+5",
+     "cond": "500...599 (incl. 529 overloaded)",
+     "effect": "modelUnavailable(localized \"Anthropic is overloaded right now...\")"
+    },
+    {
+     "at": "+10",
+     "cond": "any other (e.g. 400, 413)",
+     "effect": "invalidResponse(\"HTTP <status>: <message>\")"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "GeminiProvider has its own private statusError/errorMessage(from:) doing the same status-to-AIProviderError mapping and JSON error extraction.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:543",
+      "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift:435",
+      "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift:452"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.errorMessage(from:)",
+   "hash": "45bccdf3208e28b0",
+   "does": "Parses Anthropic's {\"error\":{\"message\":...}} envelope and returns the redacted message, or nil.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "JSON parse throws (e.g. body truncated at 4096 bytes)",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "no error object or empty message",
+     "effect": "returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "9e0f224221ffe8ed"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.ContentBlock.encode(to:)",
+   "hash": "8c7882d16189ba22",
+   "does": "Encodes a ContentBlock in Anthropic wire format (type + fields); tool_use input is re-encoded as a JSON object.",
+   "entry": "Encodable — JSONEncoder in makeRequest",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.RequestBody.ContentBlock.inputObject(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".text",
+     "effect": "{type:text,text}"
+    },
+    {
+     "at": "+6",
+     "cond": ".toolUse",
+     "effect": "{type:tool_use,id,name,input:object}"
+    },
+    {
+     "at": "+11",
+     "cond": ".toolResult",
+     "effect": "{type:tool_result,tool_use_id,content}"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.RequestBody.ContentBlock.inputObject(_:)": "d01c3e2ac4442487"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.ContentBlock.inputObject(_:)",
+   "hash": "aa1d849bafe0fda4",
+   "does": "Parses the model's tool-input JSON string into a dictionary wrapped in AnyJSON; unparseable or non-object input becomes {}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "string not UTF-8 encodable",
+     "effect": "uses \"{}\" (unreachable for Swift String)"
+    },
+    {
+     "at": "+2",
+     "cond": "not parseable or not an object",
+     "effect": "returns AnyJSON(empty dict) silently, so the replayed tool_use input differs from what the model sent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "9ca17d9e1a71af27"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.CachedContentBlock.encode(to:)",
+   "hash": "20a2a83dda29232a",
+   "does": "Encodes the wrapped block then adds cache_control into the same keyed container when set.",
+   "entry": "Encodable — JSONEncoder",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.RequestBody.ContentBlock.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "cacheControl non-nil",
+     "effect": "adds cache_control; else block encoded alone"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.RequestBody.ContentBlock.encode(to:)": "f6d766c35c8e11b6"
+   }
+  },
+  {
+   "key": "init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)",
+   "hash": "e7781e8a7a03df64",
+   "does": "Creates a CacheControl with type and optional ttl (nil = default 5-minute).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.ToolDecl.encode(to:)",
+   "hash": "ee5c591b4db74eda",
+   "does": "Encodes a tool declaration: custom → name/description/input_schema(+cache_control); server → type web_search_20250305, name web_search, max_uses, blocked_domains (+cache_control).",
+   "entry": "Encodable — JSONEncoder",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.ToolDecl.AnyKey(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".custom",
+     "effect": "name/description/input_schema"
+    },
+    {
+     "at": "+7",
+     "cond": "custom cache set",
+     "effect": "adds cache_control"
+    },
+    {
+     "at": "+8",
+     "cond": ".serverWebSearch",
+     "effect": "server tool fields"
+    },
+    {
+     "at": "+13",
+     "cond": "server cache set",
+     "effect": "adds cache_control"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.ToolDecl.AnyKey(_:)": "c6c56ca616d187df"
+   }
+  },
+  {
+   "key": "init AnthropicProvider.RequestBody.ToolDecl.AnyKey(_:)",
+   "hash": "2303f46771c95fd0",
+   "does": "Creates a string coding key.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AnthropicProvider.RequestBody.ToolDecl.AnyKey(stringValue:)",
+   "hash": "d557e9ea6e3f4bd9",
+   "does": "CodingKey failable init from string; always succeeds.",
+   "entry": "CodingKey protocol requirement",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue",
+   "hash": "f0793270160799c0",
+   "does": "CodingKey intValue: always nil.",
+   "entry": "CodingKey protocol requirement",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init AnthropicProvider.RequestBody.ToolDecl.AnyKey(intValue:)",
+   "hash": "8acd78642b22659c",
+   "does": "CodingKey init from Int: always nil.",
+   "entry": "CodingKey protocol requirement",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

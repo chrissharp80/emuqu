@@ -1,0 +1,25 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessSummaryCards.swift",
+ "hash": "1f3906cb4491c69d",
+ "role": "Declares FitnessSummaryCards, a non-View @MainActor struct holding the post-workout summary's session, track, units, collector, savedRouteStore, settingsManager and 24 bindings to FitnessPostSummaryView state. Its view-building methods live in other files; it is constructed in FitnessPostSummaryView+SummaryForwarding.swift:16.",
+ "types": [
+  "FitnessSummaryCards: struct (@MainActor) — state carrier for export/recap/route-save/reanalysis/elevation-resmooth/PDF summary cards"
+ ],
+ "state": [],
+ "toplevel": "Only stored-property declarations (lets and @Binding vars); no units, no logic.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The doc comment says these surfaces 'drive fourteen pieces of view state' and that 'every one travels back through a binding', but the struct declares 24 @Binding properties.",
+   "evidence": [
+    "Emuqu/Sources/Views/FitnessSummaryCards.swift:11",
+    "Emuqu/Sources/Views/FitnessSummaryCards.swift:29",
+    "Emuqu/Sources/Views/FitnessSummaryCards.swift:52"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

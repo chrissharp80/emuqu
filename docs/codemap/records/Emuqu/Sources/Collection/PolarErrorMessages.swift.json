@@ -1,0 +1,191 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarErrorMessages.swift",
+ "hash": "96e405d559bac34e",
+ "role": "Maps PolarBleSdk PolarErrors cases to localized, action-oriented user messages; non-Polar errors fall back to localizedDescription.",
+ "types": [
+  "PolarErrorMessages: enum (namespace) — error humanizer"
+ ],
+ "state": [],
+ "toplevel": "`#if canImport(PolarBleSdk)` gates the SDK import and both private mappers; without the SDK humanize/humanizeStartFailure always return localizedDescription.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PolarErrorMessages.humanize(_:)",
+   "hash": "ac904916bbf112f7",
+   "does": "Returns humanizePolar(error) when the error is a PolarErrors value (SDK present), else error.localizedDescription. Used for RecordView's error alert and retry card (RecordView.swift:196, RecordView+Sections.swift:146).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolar(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error casts to PolarErrors",
+     "effect": "returns humanizePolar text; otherwise falls through to localizedDescription"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "humanize is used for any lastError shown on the record screen, but its .deviceNotFound/.deviceNotConnected/.timeout/default texts all assert the recording is still on the device; connect/disconnect failures stored raw into PolarManager.lastError (StrapDiscoveryCoordinator.swift:152,173) would show that transfer-only promise when no recording exists.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarErrorMessages.swift:61",
+      "Emuqu/Sources/Collection/PolarErrorMessages.swift:63",
+      "Emuqu/Sources/Collection/PolarErrorMessages.swift:97",
+      "Emuqu/Sources/Views/RecordView.swift:196",
+      "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift:152"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolar(_:)": "a39a468d7171dedc"
+   }
+  },
+  {
+   "key": "func PolarErrorMessages.humanizeStartFailure(_:)",
+   "hash": "b76107e57dfc657d",
+   "does": "Start-recording failure text: deviceNotFound/deviceNotConnected get a 'lost connection before recording started' message; every other error goes through humanize().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error is PolarErrors",
+     "effect": "switches on case; otherwise falls through to humanize"
+    },
+    {
+     "at": "+4",
+     "cond": "case deviceNotFound or deviceNotConnected",
+     "effect": "returns start-specific lost-connection message"
+    },
+    {
+     "at": "+6",
+     "cond": "any other Polar case",
+     "effect": "breaks out and returns humanize(error)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "7c6011f8bc4ab70b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PolarErrorMessages.humanizePolar(_:)",
+   "hash": "9f6ff381c25c9c42",
+   "does": "Maps link/transfer PolarErrors to messages; unmatched cases go to humanizePolarProtocol.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolarProtocol(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deviceNotFound",
+     "effect": "returns 'lost connection mid-transfer … recording is still on the device'"
+    },
+    {
+     "at": "+4",
+     "cond": "deviceNotConnected",
+     "effect": "returns 'strap no longer connected … recording is still on the device'"
+    },
+    {
+     "at": "+6",
+     "cond": "timeout",
+     "effect": "returns 'strap stopped responding … data is still on the strap'"
+    },
+    {
+     "at": "+8",
+     "cond": "notificationNotEnabled or serviceNotFound",
+     "effect": "returns 'handshake not ready, wait 5–10 s'"
+    },
+    {
+     "at": "+10",
+     "cond": "operationNotSupported",
+     "effect": "returns firmware-update suggestion"
+    },
+    {
+     "at": "+12",
+     "cond": "unableToStartStreaming",
+     "effect": "returns reconnect suggestion"
+    },
+    {
+     "at": "+14",
+     "cond": "any other case",
+     "effect": "delegates to humanizePolarProtocol"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizePolarProtocol(_:)": "4b938363fe91adcb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PolarErrorMessages.humanizePolarProtocol(_:)",
+   "hash": "020f60ea3de91b3e",
+   "does": "Maps protocol/data PolarErrors to messages, embedding SDK-provided description strings for deviceError, polarOfflineRecordingError and fileError.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "messageEncodeFailed/messageDecodeFailed/polarBleSdkInternalException",
+     "effect": "returns internal-error restart advice"
+    },
+    {
+     "at": "+4",
+     "cond": "deviceError(description)",
+     "effect": "returns message embedding description"
+    },
+    {
+     "at": "+6",
+     "cond": "polarOfflineRecordingError(description)",
+     "effect": "returns message embedding description"
+    },
+    {
+     "at": "+8",
+     "cond": "invalidArgument",
+     "effect": "returns internal SDK error text"
+    },
+    {
+     "at": "+10",
+     "cond": "invalidSensorSettingValue",
+     "effect": "returns internal SDK error text"
+    },
+    {
+     "at": "+12",
+     "cond": "dateTimeFormatFailed",
+     "effect": "returns timestamp-parse text"
+    },
+    {
+     "at": "+14",
+     "cond": "fileError(description)",
+     "effect": "returns read-failure text embedding description"
+    },
+    {
+     "at": "+16",
+     "cond": "any other case",
+     "effect": "returns generic 'recording is still on the device' text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

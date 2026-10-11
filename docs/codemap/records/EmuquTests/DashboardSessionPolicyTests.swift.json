@@ -1,0 +1,885 @@
+{
+ "file": "EmuquTests/DashboardSessionPolicyTests.swift",
+ "hash": "1e6b3b858bc66271",
+ "role": "XCTest suite for DashboardSessionPolicy session selection: latestOvernightComplete (wake-day night grouping, longest-in-night, reliability gate), latestWithSleep/latestWithVitals, sessionForDay (wake-day attribution via sleepSnapshot/sleepEndMs, workout exclusion, overnight preference, longest), and recentDays (7 cells, score ×10, readinessScore fallback).",
+ "types": [
+  "DashboardSessionPolicyTests: class (XCTestCase)"
+ ],
+ "state": [
+  "calendar = Calendar.current (instance let)"
+ ],
+ "toplevel": "Fixture dates are 2026 wall-clock times in Calendar.current; the class does not pin NSTimeZone.default, so it runs in whatever zone the host or a previous test class left (day keys derived consistently from the same calendar).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func DashboardSessionPolicyTests.date(_:_:_:_:)",
+   "hash": "e4b18a76131dd27b",
+   "does": "Builds a 2026-month-day hour:minute Date in Calendar.current via TestDate.from (XCTFail + epoch fallback on failure).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+   "hash": "b6fb2529c313fe9d",
+   "does": "Builds an HRVAnalysisResult (rmssd 45, 400 clean beats) dated analysisDate, with ANSMetrics only when readinessScore is given.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+   "hash": "cea752b5631709c5",
+   "does": "Builds a .complete HRVSession of the given type/duration with optional analysis result, recoveryScore (default 7.0), sleepEndMs and hrvDataQuality; when sleepEnd is given attaches a SleepData snapshot (startOfDay date, start→sleepEnd minutes, efficiency 95, healthKit boundary).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+18",
+     "cond": "analyzed",
+     "effect": "true: analysisResult from makeAnalysisResult; false: nil"
+    },
+    {
+     "at": "+26",
+     "cond": "sleepEnd non-nil",
+     "effect": "true: sleepSnapshot attached (drives dayOf); false: none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed"
+   }
+  },
+  {
+   "key": "var DashboardSessionPolicyTests.emptyVitals",
+   "hash": "1068f51d34df3355",
+   "does": "RecoveryVitals with every field nil (isEmpty true).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DashboardSessionPolicyTests.populatedVitals",
+   "hash": "3a9dcfd12893ea64",
+   "does": "RecoveryVitals with all fields populated.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompletePicksLongestWithinSameNight()",
+   "hash": "ae83040d03f0703a",
+   "does": "Partial (5/18 23:30, 22 min) listed before an 8 h overnight (5/18 22:00): asserts latestOvernightComplete picks the 8 h one.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "With no sleep snapshot dayOf keys each session on its endDate: the partial ends 5/18 23:52 and the 8 h session ends 5/19 06:00, so they fall in different night groups and the 8 h one wins as the most recent night. The longest-within-a-night tiebreak this regression test is named for is never exercised; replacing max(by: duration) with .first would still pass.",
+     "evidence": [
+      "EmuquTests/DashboardSessionPolicyTests.swift:153",
+      "EmuquTests/DashboardSessionPolicyTests.swift:154",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:182",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:186",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:273"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteIgnoresNewerDaytimeQuickReading()",
+   "hash": "f222b98eac79e210",
+   "does": "Newer 4-min .quick at 5/19 14:00 and an overnight: asserts the overnight is picked (type filter).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteMostRecentNightWinsAcrossNights()",
+   "hash": "b60667182a42084e",
+   "does": "8 h overnight ending 5/18 vs 3 h overnight ending 5/19: asserts the newer night wins despite being shorter.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteKeysNightsOnWakeDay()",
+   "hash": "2e285739fda754d6",
+   "does": "Night starting 5/19 00:30 (ends 5/19) vs night starting 5/19 23:00 (ends 5/20): asserts the latter is picked (wake-day keying).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteExcludesInsufficient()",
+   "hash": "e775f5ac39e73329",
+   "does": "Newer 13-min .insufficient overnight and an 8 h good overnight: asserts the good one is picked.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Both sessions end on 7/31 (real 7/30 22:00+8h, partial 7/31 21:45+13m) so they share a night group, and the 8 h session wins on duration anyway; the test passes even if the isReliableForHRVAggregates gate is removed from latestOvernightComplete.",
+     "evidence": [
+      "EmuquTests/DashboardSessionPolicyTests.swift:207",
+      "EmuquTests/DashboardSessionPolicyTests.swift:208",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:178",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:186"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayExcludesInsufficient()",
+   "hash": "85e718abc219d976",
+   "does": "Only an .insufficient session on the day: asserts sessionForDay returns nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteExcludesPreSleep()",
+   "hash": "d0d3d037cd48fba4",
+   "does": "40-min .preSleep overnight and an 8 h good overnight: asserts the good one is picked.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Same construction as the .insufficient test: both end 7/31 and the good session is longer, so removing the reliability gate would not change the result; .preSleep exclusion is not actually tested.",
+     "evidence": [
+      "EmuquTests/DashboardSessionPolicyTests.swift:236",
+      "EmuquTests/DashboardSessionPolicyTests.swift:237",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:178"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayKeepsGoodOverInsufficientSameDay()",
+   "hash": "c4bd1ade585d69d6",
+   "does": "Good 7 h session and an .insufficient 13-min one on 7/31: asserts sessionForDay(7/31) returns the good one.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestOvernightCompleteReturnsNilWithoutAnalyzedOvernights()",
+   "hash": "a4ef4c0dda64fb29",
+   "does": "Asserts nil for an empty list and for a list with only an unanalyzed overnight, a .quick and a .workout.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestWithSleepReturnsFirstSessionCarryingSnapshot()",
+   "hash": "6d4b07bf9cdd9744",
+   "does": "Asserts latestWithSleep returns the first session with a sleep snapshot and nil when none has one.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)": "99cc59183360c507",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testLatestWithVitalsSkipsEmptySnapshot()",
+   "hash": "9911064309ada66c",
+   "does": "Asserts latestWithVitals skips the newest session's all-nil vitals snapshot and returns the older populated one; nil for only the empty one.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::var DashboardSessionPolicyTests.emptyVitals",
+    "EmuquTests/DashboardSessionPolicyTests.swift::var DashboardSessionPolicyTests.populatedVitals",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)": "567cefcff6b6ced1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/DashboardSessionPolicyTests.swift::var DashboardSessionPolicyTests.emptyVitals": "10c5a552613296f9",
+    "EmuquTests/DashboardSessionPolicyTests.swift::var DashboardSessionPolicyTests.populatedVitals": "eb10f23c8ca9c5a3",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayAttributesOvernightToWakeDayViaSleepSnapshot()",
+   "hash": "df4bbdcd9c32191c",
+   "does": "35 h recording starting 6/9 22:00 with sleepEnd 6/10 06:30: asserts it is the reading for 6/10 and not for 6/9 or 6/11.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayAttributesOvernightToWakeDayViaSleepEndMs()",
+   "hash": "3bc799d7b325dbda",
+   "does": "36 h recording with sleepEndMs 8 h (wake 6/10 06:00) and no snapshot: asserts it belongs to 6/10, not 6/11.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayExcludesWorkoutSessions()",
+   "hash": "13e933052ed91e58",
+   "does": "Asserts a .workout alone yields nil for its day, and with a .quick on the same day the quick is returned.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayDurationTieBreakPrefersLongestOvernight()",
+   "hash": "ad5ff94d9d7685a6",
+   "does": "Partial (6/10 04:00, 22 min) and 8 h overnight with sleepEnd 6/10 06:00, in both orders: asserts the 8 h one is returned.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each of the two orderings",
+     "effect": "asserts the same winner"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayPrefersOvernightOverQuickSameDay()",
+   "hash": "4a0746739da51cdb",
+   "does": "Quick 6/10 08:00 listed before an overnight waking 6/10: asserts the overnight is returned.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testSessionForDayPicksLongestQuickWhenNoOvernight()",
+   "hash": "7b167c9e59f55fac",
+   "does": "Two quicks on 6/10 (2 and 5 min): asserts the 5-min one is returned.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testRecentDaysReturnsSevenDaysEndingTodayOldestFirst()",
+   "hash": "6db80d2141d6feee",
+   "does": "Empty sessions: asserts 7 days from today−6 to today (start of day), all with nil score/verdict.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "a8d9a72705e8946f",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testRecentDaysScoresFromRecoveryScoreWithVerdict()",
+   "hash": "b01b1eb3d804179e",
+   "does": "Overnight waking today with recoveryScore 7.2: asserts today's cell score 72 and verdict .fair, earlier cells nil.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "a8d9a72705e8946f",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicyTests.testRecentDaysFallsBackToReadinessScoreForLegacySessions()",
+   "hash": "82f22d8bdf287769",
+   "does": "Overnight with nil recoveryScore and readinessScore 8.0: asserts today's cell score 80 and verdict .good.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "The readinessScore fallback this test pins exists only in the HRVSession path; the archive-entry twin DashboardSessionPolicy.recentDays(fromEntries:) (used for the launch seed) filters on recoveryScore != nil and has no readiness fallback, so a legacy session shows a score in the live strip but \"—\" in the seeded strip. No test covers the entry path's divergence.",
+     "evidence": [
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:310",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:115",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:125"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "66af73ddaab61aa6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "78d07c4b9fb885a1",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "9acf3e88dc1a3b1a",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "a8d9a72705e8946f",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.sessionForDay(_:in:calendar:)": "c7e62ebb41839584",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "3bb644a1151f4f3f",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.date(_:_:_:_:)": "6e2526fa7330d960",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeAnalysisResult(analysisDate:readinessScore:)": "2d202113caab43ed",
+    "EmuquTests/DashboardSessionPolicyTests.swift::func DashboardSessionPolicyTests.makeSession(start:durationMinutes:type:analyzed:recoveryScore:readinessScore:sleepEnd:sleepEndMs:hrvDataQuality:)": "69a49b022db20355",
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  }
+ ],
+ "deps": {}
+}

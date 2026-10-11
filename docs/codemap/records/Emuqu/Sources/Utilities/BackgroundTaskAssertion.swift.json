@@ -1,0 +1,86 @@
+{
+ "file": "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift",
+ "hash": "4247f00cac752ad9",
+ "role": "Main-actor wrapper around one UIApplication.beginBackgroundTask assertion that guarantees endBackgroundTask is called exactly once, either by the work's own end() or by the expiration handler.",
+ "types": [
+  "BackgroundTaskAssertion: class (@MainActor final) — owns one UIBackgroundTaskIdentifier"
+ ],
+ "state": [
+  "identifier: UIBackgroundTaskIdentifier (instance, starts .invalid)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "There is no deinit that ends the task and the expiration handler captures self weakly; if an owner ever drops the object without calling end(), the handler's self?.end() is a no-op and iOS terminates the app at expiry. Both current callers use `defer { bgTask.end() }`, so this holds only by caller discipline.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:123",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:127",
+    "Emuqu/Sources/Services/MorningProcessingService.swift:197",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:54"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init BackgroundTaskAssertion(name:onExpire:)",
+   "hash": "57e3c8362af01aed",
+   "does": "Begins a named UIKit background task; the expiration handler (main thread, assumed MainActor) logs a warning via debugLog, runs the caller's onExpire (e.g. MorningProcessingService sets skipSleepWait) and then ends the assertion.",
+   "entry": null,
+   "calls": [
+    "ext:UIApplication.beginBackgroundTask(withName:expirationHandler:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:onExpire supplied by MorningProcessingService.processOvernightData (sets skipSleepWait = true) or the default no-op from WorkoutRecorder stop",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BackgroundTaskAssertion.identifier"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test in EmuquTests references BackgroundTaskAssertion; the exactly-once end() contract (expiry then completion, or the reverse) that keeps iOS from killing the app is unverified.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:16",
+      "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift:28"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "4b7b063f686c4762",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func BackgroundTaskAssertion.end()",
+   "hash": "f360469652e0b52f",
+   "does": "Ends the background task if one is held and resets the identifier to .invalid; a second call is a no-op.",
+   "entry": "Called by the owner's `defer` (MorningProcessingService.swift:197, WorkoutRecorder+Stop.swift:54) and by the iOS expiration handler installed in init.",
+   "calls": [
+    "ext:UIApplication.endBackgroundTask"
+   ],
+   "reads": [
+    "mem:BackgroundTaskAssertion.identifier"
+   ],
+   "writes": [
+    "mem:BackgroundTaskAssertion.identifier"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "identifier == .invalid (already ended, or beginBackgroundTask returned .invalid)",
+     "effect": "true: return without calling UIKit; false: call endBackgroundTask and set .invalid."
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

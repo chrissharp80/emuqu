@@ -1,0 +1,52 @@
+{
+ "file": "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift",
+ "hash": "06721197e8407ebc",
+ "role": "Declares the nested Codable value types that make up AssistantContext (profile, session, workout history, baselines, trends, analysis summary, live workout and live HRV snapshots, route topology/weather/threshold/interval sub-snapshots). Pure data, no functions.",
+ "types": [
+  "AssistantContext.UserProfileSnapshot: struct — age/sex/fitness/maxHR/units/training-break/comeback/algorithm-version/training goal",
+  "AssistantContext.WorkoutHistoryEntry: struct — per-workout compact metrics incl. power/cadence/alpha1/HRR/feeling",
+  "AssistantContext.SessionSnapshot: struct — full overnight session (score, factors, HRV domains, overnight HR, sleep, vitals, training, feeling)",
+  "AssistantContext.OvernightHRSnapshot: struct — whole-night nadir/min/max/mean HR",
+  "AssistantContext.SessionSnapshotLite: struct — one-line recent session incl. ATL/CTL/TSB/ACWR and sleep stages",
+  "AssistantContext.ScoreFactorSnapshot / TimeDomainSnapshot / FrequencyDomainSnapshot / NonlinearSnapshot / ANSMetricsSnapshot / SleepSnapshot / VitalsSnapshot / TrainingSnapshot / BaselineSnapshot: structs — metric groups",
+  "AssistantContext.TrendSnapshot (+MetricTrend): struct — period trend summary",
+  "AssistantContext.AnalysisSummarySnapshot (+ProbableCause): struct — cached analysis narrative",
+  "AssistantContext.LiveWorkoutSnapshot: struct — live workout metrics, location, route, weather, trends, readiness, zones, predictions, thresholds, interval progress",
+  "AssistantContext.LiveWorkoutSnapshot.RouteTopologySnapshot / WeatherSnapshot / ThresholdSnapshot / IntervalProgressSnapshot: structs — live sub-snapshots",
+  "AssistantContext.LiveWorkoutSnapshot.RouteTopologySnapshot.ClimbSnapshot / TurnSnapshot: structs (extension) — climb and turn rows",
+  "AssistantContext.LiveHRVSnapshot: struct — live RRCollector phase/beats/elapsed/error"
+ ],
+ "state": [],
+ "toplevel": "Only stored-property declarations with Codable synthesis. Defaulted vars on LiveWorkoutSnapshot (recognizedRouteWasAutoDetected=false, recentSplitGradeAdjustedPaces=[], historicalSportSampleCount=0, zone1..5Sec=0, activeThresholds=[], thresholdBreachSec=[:]) and RouteTopologySnapshot.turnsAhead=[] are defaults for memberwise init only: synthesized Decodable on a struct with a defaulted `var` still decodes the key with decode(), so they do not provide back-compat for payloads missing the key as the comments claim (LiveWorkoutSnapshot is Codable but no custom init(from:) exists here).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "SessionSnapshot.recoveryScore is commented '0-10 composite' while UserProfileSnapshot / AppKnowledgeBase describe the score as 0–100; renderers multiply by 10 (AssistantContext.swift:137,174,442). The 0-10 storage is real (RecoveryScoreCalculator+Composite.swift:64) so the comment is right but the scale split is a trap for any new renderer.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:118",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift:174",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:64"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Non-optional vars with default values (recognizedRouteWasAutoDetected=false, recentSplitGradeAdjustedPaces=[], historicalSportSampleCount=0, zone1..5Sec=0, activeThresholds=[], thresholdBreachSec=[:], RouteTopologySnapshot.turnsAhead=[]) are commented as back-compat for older persisted sessions, but synthesized init(from:) decodes them with decode() and throws keyNotFound when absent. Latent: no code in the repo decodes these types (grep for LiveWorkoutSnapshot.self / AssistantContext.self finds nothing).",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:407",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:482",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:502",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:530",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:556",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:558",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:581",
+    "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:588"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

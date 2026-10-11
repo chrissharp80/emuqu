@@ -1,0 +1,899 @@
+{
+ "file": "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift",
+ "hash": "72fbd3ab7806b9a5",
+ "role": "Value-typed 'today in one glance' loop classifier for the Holistic Daily Report PDF: compares this morning's ln(RMSSD) z-score (vs up to 60 earlier reliable overnights) with today's workout intensity to pick one of six LoopStates, and produces the localized verdict, Loop paragraph and Tomorrow line.",
+ "types": [
+  "DailyLoopAnalysis: struct — inputs (workout, overnight, recent overnights, max HR, advice load) and derived copy",
+  "DailyLoopAnalysis.LoopState: enum — absorbing/underloading/sustainable/backedOff/highStrain/undetermined",
+  "DailyLoopAnalysis.IntensityClass: enum — easy/moderate/hard",
+  "DailyLoopAnalysis.VerdictTone: enum — positive/neutral/caution"
+ ],
+ "state": [
+  "mem:DailyLoopAnalysis.swcSDMultiple = 0.5",
+  "mem:DailyLoopAnalysis.baselineNightLimit = 60"
+ ],
+ "toplevel": "Constructed by HolisticDailyReport.analysis() (Export/HolisticDailyReport.swift:269-278) and EmuquTests/DailyLoopAnalysisTests.swift. Stored inputs only; everything else is computed.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The loop uses its own cumulative-load cuts (TSB <= -5 or ACWR >= 1.3 to block .underloading; ACWR >= 1.5 for the Tomorrow override) while TrainingAdviceGate uses TSB <= -15 and ACWRBand; the two load models sit side by side in the same report and can disagree.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:102",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:103",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:371",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:63",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift:91"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var DailyLoopAnalysis.loopState",
+   "hash": "ba1a2c2d6314aa01",
+   "does": "Classifies the day: undetermined without a workout or z-score; otherwise switches on (above baseline, below baseline, workout intensity): high+easy → underloading unless cumulatively loaded (then absorbing); high+moderate/hard → absorbing; neither → sustainable; low+easy → backedOff; low+moderate/hard → highStrain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isRecoveryAboveBaseline",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isRecoveryBelowBaseline",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isCumulativelyLoaded"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "workoutSession != nil && hrvZScore != nil",
+     "effect": "false: .undetermined; true: switch"
+    },
+    {
+     "at": "+5",
+     "cond": "case (true,false,.easy)",
+     "effect": "returns isCumulativelyLoaded ? .absorbing : .underloading"
+    },
+    {
+     "at": "+7",
+     "cond": "isCumulativelyLoaded ?:",
+     "effect": "true: .absorbing; false: .underloading"
+    },
+    {
+     "at": "+8",
+     "cond": "case (true,false,.moderate|.hard)",
+     "effect": ".absorbing"
+    },
+    {
+     "at": "+10",
+     "cond": "case (false,false,_)",
+     "effect": ".sustainable"
+    },
+    {
+     "at": "+12",
+     "cond": "case (false,true,.easy)",
+     "effect": ".backedOff"
+    },
+    {
+     "at": "+14",
+     "cond": "case (false,true,.moderate|.hard)",
+     "effect": ".highStrain"
+    },
+    {
+     "at": "+16",
+     "cond": "default",
+     "effect": "only (true,true,_) remains, impossible because z >= 0.5 and z <= -0.5 cannot both hold; returns .undetermined"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The default case only covers above AND below baseline at once, which the z-score thresholds make impossible once hrvZScore is non-nil.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:91",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:248",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:253"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isCumulativelyLoaded": "3d21418b1a9cdc3d",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isRecoveryAboveBaseline": "8b6899800b42023b",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.isRecoveryBelowBaseline": "821c0b02e9cc9a77",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "0bd28cd4a4a3f13c"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.isCumulativelyLoaded",
+   "hash": "5d59abf824644365",
+   "does": "True when the workout's trainingSnapshot has TSB <= -5 or acute:chronic ratio >= 1.3.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "snapshot TSB exists and <= -5",
+     "effect": "true: returns true; false: checks ACWR"
+    },
+    {
+     "at": "+3",
+     "cond": "snapshot ACWR exists and >= 1.3",
+     "effect": "true: true; false: false (also false when there is no snapshot)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The doc comment says the -5 TSB / 1.3 ACWR cuts 'match the values the Tomorrow line uses', but tomorrowAction's ACWR override is 1.5. With ACWR in [1.3,1.5) and TSB > -5 the loop says .absorbing because of ACWR, while the Tomorrow line never mentions ACWR.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:97",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:103",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:371"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.verdict",
+   "hash": "31e8b240caa0cbc1",
+   "does": "Maps loopState to a localized (label, blurb) for the hero badge; absorbing delegates to absorbingVerdict.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingVerdict",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .absorbing",
+     "effect": "absorbingVerdict"
+    },
+    {
+     "at": "+4",
+     "cond": "case .underloading",
+     "effect": "'Underloading — room to push' + blurb inviting a quality session"
+    },
+    {
+     "at": "+7",
+     "cond": "case .sustainable",
+     "effect": "'Sustainable rhythm'"
+    },
+    {
+     "at": "+10",
+     "cond": "case .backedOff",
+     "effect": "'Wisely backed off'"
+    },
+    {
+     "at": "+13",
+     "cond": "case .highStrain",
+     "effect": "'Pushing the edge'"
+    },
+    {
+     "at": "+16",
+     "cond": "case .undetermined",
+     "effect": "'Not enough data yet'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The .underloading blurb says 'Body's primed for a quality session if your plan calls for one' without consulting adviceLoad, although the type's doc says the TrainingAdviceGate load is read 'before any line here invites a hard day' and underloadingExplanation does gate the same invitation; with a non-clear gate (e.g. monotony warning) the PDF hero still invites a hard session.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:34",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:114",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:346"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingVerdict": "89ef5c432e52e276",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "6fcd34d0878232b0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.absorbingVerdict",
+   "hash": "ad0b81826632d647",
+   "does": "Absorbing verdict copy: 'Absorbing the load' with a 'real work' blurb for moderate/hard sessions, or a 'past load landing' blurb for easy sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutIntensity == .easy",
+     "effect": "false: real-work blurb; true: past-load blurb"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "0bd28cd4a4a3f13c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.verdictTone",
+   "hash": "50d1ebaa85a5185b",
+   "does": "Maps loopState to tone: absorbing/underloading/sustainable → positive, backedOff → neutral, highStrain → caution, undetermined → neutral.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "absorbing/underloading/sustainable",
+     "effect": ".positive"
+    },
+    {
+     "at": "+3",
+     "cond": ".backedOff",
+     "effect": ".neutral"
+    },
+    {
+     "at": "+4",
+     "cond": ".highStrain",
+     "effect": ".caution"
+    },
+    {
+     "at": "+5",
+     "cond": ".undetermined",
+     "effect": ".neutral"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "6fcd34d0878232b0"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.workoutIntensity",
+   "hash": "d46fbc618765e42d",
+   "does": "Classifies today's workout from its samples: mean alpha1 and peak HR as fraction of userMaxHR; easy when alpha1 >= 0.75 and peak < 75%, hard when alpha1 < 0.5 or peak >= 85%, moderate when peak >= 70%, else easy; easy when there is no workout metadata.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutSession.workoutMetadata exists",
+     "effect": "false: .easy; true: classifies"
+    },
+    {
+     "at": "+2",
+     "cond": "samples ?? []",
+     "effect": "no samples: no alpha1 values"
+    },
+    {
+     "at": "+3",
+     "cond": "alphas empty ?:",
+     "effect": "true: avgAlpha nil; false: mean"
+    },
+    {
+     "at": "+5",
+     "cond": "peakHR ?? 0",
+     "effect": "no HR samples: pctMax 0"
+    },
+    {
+     "at": "+6",
+     "cond": "avgAlpha >= 0.75 && pctMax < 0.75",
+     "effect": ".easy"
+    },
+    {
+     "at": "+7",
+     "cond": "avgAlpha < 0.50",
+     "effect": ".hard"
+    },
+    {
+     "at": "+8",
+     "cond": "pctMax >= 0.85",
+     "effect": ".hard"
+    },
+    {
+     "at": "+9",
+     "cond": "pctMax >= 0.70",
+     "effect": ".moderate; otherwise falls to .easy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "A workout with no metadata, or with no alpha1 and no HR samples, is classified .easy (pctMax defaults to 0), so a hard session recorded without samples combined with high HRV becomes .underloading ('room to push') in the PDF hero.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:162",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:166",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:171",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:82"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var DailyLoopAnalysis.lnRmssdBaseline",
+   "hash": "3b2ba29e80c12476",
+   "does": "ln(RMSSD) baseline (mean, SD) from up to 60 most recent reliable overnight sessions that started before today's overnight, with SD = max(BaselineTracker.widenedLnSD, lnRmssdSDFloor 0.10); nil without today's overnight or with fewer than 3 positive RMSSD values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightSession exists",
+     "effect": "false: nil; true: filters history"
+    },
+    {
+     "at": "+12",
+     "cond": "lnValues.count >= 3",
+     "effect": "false: nil; true: returns mean/sd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.recoveryBaselineRMSSD",
+   "hash": "f0c7312d77789c1a",
+   "does": "Geometric baseline RMSSD = exp(mean ln RMSSD), nil without a baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline": "cba079938aaba280"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.hrvZScore",
+   "hash": "4834b98b86f8cfa4",
+   "does": "z-score of today's ln(RMSSD) vs the ln baseline; nil when today's RMSSD is missing/non-positive or no baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "today's RMSSD > 0 && baseline exists",
+     "effect": "false: nil; true: (ln today - mean)/sd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.lnRmssdBaseline": "cba079938aaba280"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.isRecoveryAboveBaseline",
+   "hash": "20a317c3acc460b5",
+   "does": "True when z >= +0.5 (SWC); false without a z-score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrvZScore exists",
+     "effect": "false: false; true: z >= 0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.isRecoveryBelowBaseline",
+   "hash": "487b16e1c901d36c",
+   "does": "True when z <= -0.5; false without a z-score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hrvZScore exists",
+     "effect": "false: false; true: z <= -0.5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.hrvPercentVsBaseline",
+   "hash": "2bc32b0e778efc43",
+   "does": "Percent difference of today's RMSSD vs the geometric baseline; nil when either is missing or non-positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "today > 0 && baseline > 0",
+     "effect": "false: nil; true: (today/baseline - 1)*100"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "59dcc4120d020599"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.loopParagraph",
+   "hash": "5cd4603870f2df9a",
+   "does": "Joins hrvOpening, workoutLine and loopExplanation into the PDF 'THE LOOP' paragraph.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvOpening",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLine",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopExplanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvOpening": "b210548fdfcfc5be",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopExplanation": "dc1a9db1fc490838",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLine": "fbb91772b7b2f3ef"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.workoutLine",
+   "hash": "e3f9b70194c6bd87",
+   "does": "Localized sentence describing today's session intensity, including the training load figure when one exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLoad",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutLoad exists",
+     "effect": "false: intensity-only sentence (switch below); true: sentence with load"
+    },
+    {
+     "at": "+3",
+     "cond": "no load, .easy",
+     "effect": "'easy and aerobic'"
+    },
+    {
+     "at": "+4",
+     "cond": "no load, .moderate",
+     "effect": "'moderate intensity'"
+    },
+    {
+     "at": "+5",
+     "cond": "no load, .hard",
+     "effect": "'hard'"
+    },
+    {
+     "at": "+9",
+     "cond": "load, .easy",
+     "effect": "easy sentence with load"
+    },
+    {
+     "at": "+10",
+     "cond": "load, .moderate",
+     "effect": "moderate sentence with load"
+    },
+    {
+     "at": "+11",
+     "cond": "load, .hard",
+     "effect": "hard sentence with load"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "0bd28cd4a4a3f13c",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutLoad": "b421a04c73e37367",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.workoutLoad",
+   "hash": "fdee0c30fbf4630e",
+   "does": "Workout TRIMP-scale load rounded to Int: extrapolatedTRIMP when routeEstimateReplacesHRLoad, else recorded luciaTRIMP if >0, else extrapolatedTRIMP; nil when none is positive or no metadata.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata exists",
+     "effect": "false: nil"
+    },
+    {
+     "at": "+2",
+     "cond": "luciaTRIMP > 0 ?:",
+     "effect": "non-positive recorded TRIMP treated as nil"
+    },
+    {
+     "at": "+3",
+     "cond": "routeEstimateReplacesHRLoad ?:",
+     "effect": "true: route estimate; false: recorded ?? route estimate (the '??' fallback when no recorded TRIMP)"
+    },
+    {
+     "at": "+4",
+     "cond": "value exists && > 0",
+     "effect": "false: nil; true: rounded Int"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "fe42b9b533314c95"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.hrvOpening",
+   "hash": "dba8a5e23a864e57",
+   "does": "Opening sentence: 'in line with baseline' when |z| < 0.5; '<n>% above/below baseline' otherwise; raw RMSSD ms when no baseline; 'no morning HRV reading' when no overnight RMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "z-score and percent both exist",
+     "effect": "true: baseline comparison; false: fallbacks below"
+    },
+    {
+     "at": "+2",
+     "cond": "|z| >= 0.5",
+     "effect": "false: 'in line with your baseline'; true: percent sentence"
+    },
+    {
+     "at": "+6",
+     "cond": "pct >= 0 ?:",
+     "effect": "true: above; false: below"
+    },
+    {
+     "at": "+10",
+     "cond": "overnight RMSSD exists",
+     "effect": "true: '<ms> ms this morning'; false: 'no morning HRV reading'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvPercentVsBaseline": "bec284afd11203ef",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.loopExplanation",
+   "hash": "15eb5bdc36b8d9b0",
+   "does": "Per-loop-state explanation sentence for the Loop paragraph; absorbing and underloading delegate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingExplanation",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingExplanation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".absorbing",
+     "effect": "absorbingExplanation"
+    },
+    {
+     "at": "+4",
+     "cond": ".underloading",
+     "effect": "underloadingExplanation"
+    },
+    {
+     "at": "+6",
+     "cond": ".sustainable",
+     "effect": "steady-state copy"
+    },
+    {
+     "at": "+8",
+     "cond": ".backedOff",
+     "effect": "read-the-signal copy"
+    },
+    {
+     "at": "+10",
+     "cond": ".highStrain",
+     "effect": "repeat-is-damage copy"
+    },
+    {
+     "at": "+12",
+     "cond": ".undetermined",
+     "effect": "train-as-planned copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.absorbingExplanation": "72a758869b11c11b",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "6fcd34d0878232b0",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.underloadingExplanation": "dd879fc4f7dcf4e7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.underloadingExplanation",
+   "hash": "f6fdc811ad602cf7",
+   "does": "Underloading explanation: green-lights a hard day only when the advice gate is clear; otherwise advises normal effort.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "loadAllowsPush",
+     "effect": "false: 'keep the next session at normal effort'; true: 'today is a green light'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.loadAllowsPush",
+   "hash": "b5406aff6a278a33",
+   "does": "True when TrainingAdviceGate.level(adviceLoad) == .clear (nil load reads clear).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.absorbingExplanation",
+   "hash": "3f4ab9c323b10503",
+   "does": "Absorbing explanation: adaptation copy for moderate/hard; 'HRV bounce, past load' copy for easy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutIntensity == .easy",
+     "effect": "false: adaptation copy; true: easy-day copy"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "0bd28cd4a4a3f13c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DailyLoopAnalysis.tomorrowAction",
+   "hash": "e7fd28d73a0dfac3",
+   "does": "Tomorrow line: ACWR >= 1.5 in the workout's trainingSnapshot overrides everything with 'easy day or full rest'; otherwise per loopState.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.absorbingAction(tsb:)",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.underloadingAction(tsb:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "snapshot ACWR >= 1.5",
+     "effect": "true: override easy/rest copy; false: switch"
+    },
+    {
+     "at": "+7",
+     "cond": ".absorbing",
+     "effect": "absorbingAction(tsb)"
+    },
+    {
+     "at": "+9",
+     "cond": ".underloading",
+     "effect": "underloadingAction(tsb)"
+    },
+    {
+     "at": "+11",
+     "cond": ".sustainable",
+     "effect": "train as planned"
+    },
+    {
+     "at": "+13",
+     "cond": ".backedOff",
+     "effect": "another easy day"
+    },
+    {
+     "at": "+15",
+     "cond": ".highStrain",
+     "effect": "easy Z2 or rest"
+    },
+    {
+     "at": "+17",
+     "cond": ".undetermined",
+     "effect": "train as planned, more later"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.absorbingAction(tsb:)": "404f49a035714c6c",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.underloadingAction(tsb:)": "e1abc0006569d66b",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loopState": "6fcd34d0878232b0",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DailyLoopAnalysis.underloadingAction(tsb:)",
+   "hash": "0c4cc0cb978ef5a5",
+   "does": "Underloading Tomorrow line: invites intervals/long session quoting TSB when TSB > 5 and the gate is clear; otherwise 'Window for a quality session if your plan calls for one'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "tsb exists && tsb > 5 && loadAllowsPush",
+     "effect": "true: TSB-quoting interval invitation; false: generic quality-session window copy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The fallback taken when loadAllowsPush is false still says 'Window for a quality session if your plan calls for one', so a blocked advice gate (holdPush/easier) produces a Tomorrow line inviting a quality session, contrary to the doc on adviceLoad and loadAllowsPush.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:34",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:343",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:391",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:395"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "dd7e027678f2aeb8",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.loadAllowsPush": "85c981896052d586",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DailyLoopAnalysis.absorbingAction(tsb:)",
+   "hash": "c8fcbfd61d6a2c00",
+   "does": "Absorbing Tomorrow line: quality-or-Z2 for moderate/hard; for easy days, TSB-quoting rest copy when TSB <= -5, else generic easy/rest copy.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutIntensity == .easy",
+     "effect": "false: quality-or-Z2 copy; true: checks TSB"
+    },
+    {
+     "at": "+4",
+     "cond": "tsb exists && tsb <= -5",
+     "effect": "true: TSB-quoting copy; false: generic easy/rest copy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "For .absorbing with a moderate/hard session the Tomorrow line offers 'Quality session tomorrow if planned' without checking loadAllowsPush, although adviceLoad's doc says the TrainingAdviceGate load is read before any line here invites a hard day. So a gate at holdPush or easier (a Foster monotony warning, an above-usual or sharp ACWR band, or TSB <= -15) still gets the invitation, unless ACWR >= 1.5 triggers the override at line 371.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:34",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:399",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:400",
+      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:353"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::func DailyLoopAnalysis.signed(_:)": "dd7e027678f2aeb8",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.workoutIntensity": "0bd28cd4a4a3f13c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func DailyLoopAnalysis.signed(_:)",
+   "hash": "6dc20c8a29ba78e0",
+   "does": "Formats a number with zero decimals and an explicit sign in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

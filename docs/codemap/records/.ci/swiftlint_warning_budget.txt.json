@@ -1,0 +1,25 @@
+{
+ "file": ".ci/swiftlint_warning_budget.txt",
+ "hash": "5316ca1c5ddca8e6",
+ "role": "Committed CI threshold file (ceiling) read by scripts/enforce_swiftlint_budget.sh (CI + make lint-budget); .githooks/pre-commit prints it advisory only.",
+ "types": [],
+ "state": [
+  "file:.ci/swiftlint_warning_budget.txt = 81"
+ ],
+ "toplevel": "Single line `81`. Read by scripts/enforce_swiftlint_budget.sh (CI + make lint-budget); .githooks/pre-commit prints it advisory only. Every .ci/*.txt with an integer value is also compared against a baseline commit by scripts/check_budget_monotonicity.sh (ceilings may only fall, min_* floors may only rise, unless a `budget-raise-ok: .ci/swiftlint_warning_budget.txt` commit trailer is present in the compared range). Changes are owned by @chrissharp80 per CODEOWNERS.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The budget is an exact count of SwiftLint warnings, but CI installs SwiftLint with an unpinned `brew install swiftlint`, so a new SwiftLint release that adds or changes rules moves the count independently of any code change and fails (or loosens) the gate.",
+   "evidence": [
+    ".github/workflows/ci.yml:86-89",
+    ".ci/swiftlint_warning_budget.txt:1",
+    ".github/workflows/gates.yml:13-15"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

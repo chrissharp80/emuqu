@@ -1,0 +1,108 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/ModelPicker.swift",
+ "hash": "2afa3b4915c8b218",
+ "role": "Defines ModelOptionRow, one selectable model row in the Flo tab's Choose model sheet (used by CoachHomeV2View.providerModels, CoachHomeV2View.swift:471). The file name ModelPicker does not match its only type.",
+ "types": [
+  "ModelOptionRow: struct — SwiftUI button row selecting a ModelOption in ProviderRegistry"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var ModelOptionRow.isSelected",
+   "hash": "87e401e4d93bd4dc",
+   "does": "True when registry.activeModel.id ('providerRawValue:apiID') equals this row's model.id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ModelOption.id"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.activeModel"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ModelOption.id": "c923123c2f9ead6f"
+   }
+  },
+  {
+   "key": "var ModelOptionRow.body",
+   "hash": "415bde80639213a4",
+   "does": "Plain-style Button whose action calls registry.setActive(model:): if the model's providerID matches a provider in allProviders it sets activeProvider/activeModel, persists them to UserDefaults and refreshes the availability cache (otherwise a silent no-op, ProviderRegistry.swift:208); adds the .isSelected accessibility trait when selected. This row is the only caller of setActive(model:) in the app, i.e. the only UI that switches provider/model.",
+   "entry": "SwiftUI body; button tap by user in the Choose model sheet.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(model:)",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.rowLabel",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.isSelected"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ProviderRegistry.activeModel",
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeProviderAvailable",
+    "mem:ProviderRegistry.appleAvailable",
+    "ud:assistant.activeProvider",
+    "ud:assistant.activeModelID"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "isSelected",
+     "effect": "adds .isSelected accessibility trait; otherwise adds no trait"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(model:)": "43a6a3126ffc31b5",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.isSelected": "ffcd72ae50b88d8a",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.rowLabel": "75ba494696ff5164"
+   }
+  },
+  {
+   "key": "var ModelOptionRow.rowLabel",
+   "hash": "05a449a2ffb41bba",
+   "does": "HStack with model.displayName (15pt semibold scaled), the catalog blurb looked up as LocalizedStringKey in the app bundle (12pt), a spacer and selectedMark; whole row is the tap shape.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.selectedMark"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.selectedMark": "754c2757d8bf4f5c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var ModelOptionRow.selectedMark",
+   "hash": "bad60d52148dbdec",
+   "does": "Checkmark circle in AppTheme.wongOptimal (accessibility-hidden) when selected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.isSelected"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isSelected",
+     "effect": "shows the checkmark; renders nothing otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.isSelected": "ffcd72ae50b88d8a"
+   }
+  }
+ ],
+ "deps": {}
+}

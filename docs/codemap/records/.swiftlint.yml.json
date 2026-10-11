@@ -1,0 +1,44 @@
+{
+ "file": ".swiftlint.yml",
+ "hash": "1d9cfe5d24fe3728",
+ "role": "Main SwiftLint configuration used by `make lint` (Makefile:12), the pre-commit hook and the CI lint/budget gate.",
+ "types": [],
+ "state": [],
+ "toplevel": "included: Emuqu/Sources, EmuquTests, 'EmuquWatch Watch App' (Emuqu/EmuquApp.swift and EmuquUITests are NOT included). excluded: Emuqu.xcodeproj, .build, build, DerivedData. opt_in_rules: first_where, force_unwrapping, implicitly_unwrapped_optional, modifier_order, implicit_optional_initialization, sorted_imports, yoda_condition. disabled_rules: trailing_whitespace, static_over_final_class (XCTestCase class overrides), redundant_discardable_let (would break `let _ =` in ViewBuilders). Thresholds: line_length 300/1800 with ignores_interpolated_strings (comment 44-68: String(localized:) keys and verbatim LLM tool-schema literals cannot be wrapped), function_body_length 100/200, function_parameter_count 7/10, type_body_length 500/1000, file_length 1000/2000, cyclomatic_complexity 15/30, large_tuple 3/5, identifier_name min 1, nesting type_level warning 2; reporter xcode. custom_rules: stacked_result_builder (error on two @ViewBuilder/@ToolbarContentBuilder attributes in a row, regex 148) and collector_forwarder_in_view (error on `collector.<20 RRCollector forwarder names>` in files matching .*/Sources/Views/.*, line 175-177, enforcing observation of sub-objects SessionState/StreamingLifecycle/MorningCoordination/DeviceStatus/ArchiveSignal instead of stale forwarders). The forwarder rule matches only the literal identifier `collector`; a view reading the same forwarder through another variable name is not caught.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header says the watch app is '7 files, 2,716 lines'; the folder now holds 8 Swift files totalling 3,592 lines (WatchMessageDecoding.swift added). Stale count only; inclusion itself is correct.",
+   "evidence": [
+    ".swiftlint.yml:1",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift:1"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The collector_forwarder_in_view regex lists 20 names and the comment says the file holds 20 forwarders, but RRCollector+Forwarders.swift declares 19; `deviceRefinement` is not declared anywhere in the repo, so one regex alternative matches nothing.",
+   "evidence": [
+    ".swiftlint.yml:155",
+    ".swiftlint.yml:175",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift:44"
+   ],
+   "found": "second read"
+  },
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The forwarder rule is scoped to paths matching .*/Sources/Views/.*, so the 12 SwiftUI files in Emuqu/Sources/Assistant/Views/ and Emuqu/Sources/Export/ReportSectionPicker.swift (a View outside Views/) are not checked; a stale-UI forwarder read added there passes lint. No such read exists today (grep finds none).",
+   "evidence": [
+    ".swiftlint.yml:176",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift:1",
+    "Emuqu/Sources/Export/ReportSectionPicker.swift:1"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

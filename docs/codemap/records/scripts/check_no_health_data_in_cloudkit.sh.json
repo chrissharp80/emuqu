@@ -1,0 +1,36 @@
+{
+ "file": "scripts/check_no_health_data_in_cloudkit.sh",
+ "hash": "50d79525d23c50fb",
+ "role": "CI gate (App Review 5.1.3(ii)): CloudKit*.swift must not write health scalars to CKRecord fields, legacy settings fields may only be set to nil, named payload builders must encode through CloudPayloadCodec with a hasUsableKey guard, and named readers must decode before decompressing.",
+ "types": [],
+ "state": [
+  "file:Emuqu/Sources/Storage/CloudKit*.swift"
+ ],
+ "toplevel": "cd to repo root. No Emuqu/Sources/Storage/CloudKit*.swift -> exit 2. grep 1: `record[\"<health field>\"] =` -> error each. grep 2: settingsJSON/legacyJSONField/deviceName/legacyDeviceNameField assignments not ending in `= nil` -> error. Loop over compressedPayload, compressedPoints, encryptedSettingsPayload: file not found -> skipped; awk body to first 4-space `}`; body lacks CloudPayloadCodec.encode / *ncryptedFor*( -> error; file lacks CloudPayloadCodec.hasUsableKey -> error. Loop over liveBackupSummary, decodeSessionPayload: not found -> skipped; body decompresses without CloudPayloadCodec.decode -> error. bad>0 -> exit 1; else clean.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "Reader/writer checks skip any function name that is not found: `decodeSessionPayload` does not exist (the session reader is CloudPullCoordinator.decodeSessionAsset in CloudKitSyncManager+Pull.swift), so the session-payload decrypt-before-decompress check verifies nothing; renaming any listed writer disables its check too.",
+   "evidence": [
+    "scripts/check_no_health_data_in_cloudkit.sh:100",
+    "scripts/check_no_health_data_in_cloudkit.sh:101",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift:318"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "Only files named Storage/CloudKit*.swift are scanned, and only literal-string keys `record[\"x\"] =`. CloudHealthScrubCoordinator.swift writes record[\"sessionData\"] and TrashRestoreCoordinator/SettingsManager touch CKRecords outside that glob; writes through key constants (record[payloadField]) or setValue are not matched.",
+   "evidence": [
+    "scripts/check_no_health_data_in_cloudkit.sh:38",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift:156",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:445"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

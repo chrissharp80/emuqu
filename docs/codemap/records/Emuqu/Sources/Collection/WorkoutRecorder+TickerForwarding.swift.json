@@ -1,0 +1,181 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift",
+ "hash": "41ea97c7d354a399",
+ "role": "Forwarders on WorkoutRecorder into the WorkoutTicker value type so existing call sites keep working.",
+ "types": [
+  "WorkoutRecorder: extension — ticker forwarders, HRArbitration typealias"
+ ],
+ "state": [
+  "typealias WorkoutRecorder.HRArbitration = WorkoutTicker.HRArbitration"
+ ],
+ "toplevel": "Typealias only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutRecorder.ticker",
+   "hash": "39a9dea5d3952e28",
+   "does": "Returns a fresh WorkoutTicker value holding the recorder strongly.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecorder.startTicker()",
+   "hash": "0eaaa43a6cdc068c",
+   "does": "Forwards to WorkoutTicker.startTicker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.startTicker()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.startTicker()": "99f28c9f0f8ed542",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.stopTicker()",
+   "hash": "1e71757c9e524dcd",
+   "does": "Forwards to WorkoutTicker.stopTicker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.stopTicker()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.stopTicker()": "5b2736435e3b6588",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.observeHeartRate()",
+   "hash": "7abddeed2219c72c",
+   "does": "Forwards to WorkoutTicker.observeHeartRate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.observeHeartRate()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.observeHeartRate()": "4e754801cc4d23b5",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.incrementalBackupTick()",
+   "hash": "beabc4307289b010",
+   "does": "Forwards to WorkoutTicker.incrementalBackupTick.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No Swift caller of WorkoutRecorder.incrementalBackupTick() exists (grep finds only comments/docs); the tick calls WorkoutTicker.incrementalBackupTick directly from runTick.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift:18",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:70"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "fef56bc072a39722",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.strapSilentSeconds()",
+   "hash": "4e59f564622aa36e",
+   "does": "Forwards to WorkoutTicker.strapSilentSeconds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.strapSilentSeconds()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.strapSilentSeconds()": "bd9cca25e20d18be",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.liveProjectedMinutesUntilFade()",
+   "hash": "ff2b778e171708dc",
+   "does": "Forwards to WorkoutTicker.liveProjectedMinutesUntilFade.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveProjectedMinutesUntilFade()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveProjectedMinutesUntilFade()": "01668539e1baf702",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.liveRecoveryHoursNeeded()",
+   "hash": "134c452811108510",
+   "does": "Forwards to WorkoutTicker.liveRecoveryHoursNeeded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveRecoveryHoursNeeded()",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveRecoveryHoursNeeded()": "def3f44f9e189d19",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "4b8a170fc1628084"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.validCourse(_:)",
+   "hash": "be45ab48cd3ef8bc",
+   "does": "Static forward to WorkoutTicker.validCourse.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.validCourse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.validCourse(_:)": "b2b71de3189484c9"
+   }
+  }
+ ],
+ "deps": {}
+}

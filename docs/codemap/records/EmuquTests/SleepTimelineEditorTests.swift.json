@@ -1,0 +1,450 @@
+{
+ "file": "EmuquTests/SleepTimelineEditorTests.swift",
+ "hash": "31888c322aa62ec8",
+ "role": "XCTest suite for SleepTimelineState edit transforms (initial, addSegment, carveAwake, split, merge, removeSegment, adjustBoundary), the undo stack, SleepScienceAnalyzer.buildSleepDataFromTimelineState and SleepData/interval JSON provenance round-trip and legacy decode.",
+ "types": [
+  "SleepTimelineEditorTests: class — XCTestCase for the sleep timeline editor model"
+ ],
+ "state": [
+  "anchor: 2026-01-01 00:00 in the runner's time zone via TestDate.from"
+ ],
+ "toplevel": "anchor stored-property initializer builds 2026-01-01 00:00 via TestDate.from(comps).",
+ "flags": [],
+ "units": [
+  {
+   "key": "let SleepTimelineEditorTests.anchor",
+   "hash": "b786223fa4d48f51",
+   "does": "Closure initializer for the anchor: DateComponents 2026-01-01 00:00 resolved via TestDate.from.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/TestDate.swift::func TestDate.from(_:calendar:file:line:)": "ac7f4ab33bab04ef"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.date(_:)",
+   "hash": "0cbf5fea30122127",
+   "does": "Returns anchor + minutes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SleepTimelineEditorTests.swift::let SleepTimelineEditorTests.anchor": "5e630cf55502dce0"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.interval(stage:_:_:provenance:)",
+   "hash": "10d0e9e8d8e7c03c",
+   "does": "Builds a SleepStageInterval of the stage between date(startMin) and date(endMin) with the given provenance (default watch).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.makeSingleNight()",
+   "hash": "3ecbd89d9b5df16a",
+   "does": "Builds an 8h single-segment SleepData: deep 0–90, core 90–300, REM 300–420, core 420–480, 480 asleep, deep 90, REM 120.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.interval(stage:_:_:provenance:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.interval(stage:_:_:provenance:)": "79384c3e9fcc45d9",
+    "EmuquTests/SleepTimelineEditorTests.swift::let SleepTimelineEditorTests.anchor": "5e630cf55502dce0"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testOpeningTheEditorKeepsEveryStage()",
+   "hash": "9e772a92145cac04",
+   "does": "Opens the editor on a night with leading, middle and trailing awake stages: asserts 2 segments that together hold all 6 intervals, and an untouched save keeps 340 sleep, 95 awake, 435 in bed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.interval(stage:_:_:provenance:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.interval(stage:_:_:provenance:)": "79384c3e9fcc45d9",
+    "EmuquTests/SleepTimelineEditorTests.swift::let SleepTimelineEditorTests.anchor": "5e630cf55502dce0"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testAddSegmentContributesToTotalButNotToStages()",
+   "hash": "e2a251e1786cf878",
+   "does": "Adds a 45-min segment outside the night: asserts 2 segments, rebuilt total 525, deep/REM unchanged (90/120), one addSegment edit record, and a userAdded unspecified interval.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testAddSegmentOverlappingTheNightAddsOnlyUncoveredTime()",
+   "hash": "1b73c149bb5e6fc6",
+   "does": "Adds 450–510 overlapping the night by 30 min: asserts total 510 (overlap not double-counted).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testAddSegmentEntirelyInsideTheNightIsRejected()",
+   "hash": "e925ad45b0264b43",
+   "does": "Adds 200–230 fully inside the night: asserts the resulting state hasSameContent as the initial one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.hasSameContent(as:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.hasSameContent(as:)": "a4049b0179f08d5b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testCarveAwakeReducesTotalAndInsertsAwakeInterval()",
+   "hash": "c60ca0177f7f24ff",
+   "does": "Carves awake 120–150: asserts total 450, exactly one 30-min userCarved awake interval, and no overlapping asleep intervals.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+21",
+     "cond": "for each adjacent pair of sorted asleep intervals",
+     "effect": "asserts a.end <= b.start for every pair"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testSplitPreservesTotalAndProducesTwoSegments()",
+   "hash": "7ffde632cc5ccc71",
+   "does": "Splits the night at 240: asserts 2 segments whose lengths sum to 480 and rebuilt total 480.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testMergeWithinGapSucceedsOutsideRejects()",
+   "hash": "ac6ee7da5fe3b067",
+   "does": "Adds a segment 45 min after the night and asserts merge succeeds (1 segment); adds one 90 min after and asserts merge is refused (2 segments).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testRemoveSegmentDropsItFromTotals()",
+   "hash": "d0cdca2087d5bb2c",
+   "does": "Adds a 45-min nap then removes the original night: asserts 1 segment and rebuilt total 45.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testAdjustBoundaryShortensSegmentAndClipsIntervals()",
+   "hash": "020e2aaac3009360",
+   "does": "Moves the segment start to 60: asserts total 420 and deep 30.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testAdjustBoundaryStopsAtTheNeighbouringSegment()",
+   "hash": "1edc9fede6573622",
+   "does": "Adds a nap 540–600 and drags its start to 400: asserts it stops at the night's end (480).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testUndoRestoresPreviousStateExactly()",
+   "hash": "6134b90f84f59c2b",
+   "does": "Applies five edits pushing each prior state on SleepTimelineUndoStack when the state changed, then pops all and asserts the state equals the initial state.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::var SleepTimelineUndoStack.canUndo",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each of the five edits",
+     "effect": "applies the edit"
+    },
+    {
+     "at": "+16",
+     "cond": "after != before",
+     "effect": "true: pushes the prior state and adopts the new one; false: edit silently skipped"
+    },
+    {
+     "at": "+24",
+     "cond": "stack.pop() returns a state",
+     "effect": "loops restoring each popped state until empty"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Edits that produce no change are skipped without assertion and the split/remove edits reuse the segment id captured from the initial state, so the test passes even if several edits are no-ops; it only proves pop order, not that five edits were undone.",
+     "evidence": [
+      "EmuquTests/SleepTimelineEditorTests.swift:259",
+      "EmuquTests/SleepTimelineEditorTests.swift:260",
+      "EmuquTests/SleepTimelineEditorTests.swift:265"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()": "5ae12113b87a943d",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "08461c95f85e2354",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::var SleepTimelineUndoStack.canUndo": "ae305afd0b47c10b",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testProvenanceRoundTripsThroughJSON()",
+   "hash": "848736baa4bca042",
+   "does": "Adds a segment and carves awake, rebuilds, JSON-encodes and decodes the SleepData (ISO-8601 dates): asserts edit count and the set of interval provenances survive.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)",
+    "ext:JSONEncoder",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "0619f75746f40e19",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(from:)": "f1c7f784570d0607",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "e2d48d050ded70bd",
+    "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "74e93f47f855463e"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorTests.testDecodingIntervalWithoutProvenanceDefaultsToWatch()",
+   "hash": "60917054be596e5f",
+   "does": "Decodes a legacy SleepStageInterval JSON without a provenance field and asserts provenance defaults to .watch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(from:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(from:)": "234cde2b3e88a71c"
+   }
+  }
+ ],
+ "deps": {}
+}

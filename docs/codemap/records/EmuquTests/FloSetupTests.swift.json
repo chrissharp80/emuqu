@@ -1,0 +1,62 @@
+{
+ "file": "EmuquTests/FloSetupTests.swift",
+ "hash": "6ef47f5b332b90a8",
+ "role": "@MainActor XCTest suite for FloInputMode.resolve (setup screen when no usable model, suggestions for Apple, composer for cloud) and AppleIntelligenceStatus explanations.",
+ "types": [
+  "FloSetupTests: class — @MainActor XCTestCase for Flo setup/input mode"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FloSetupTests.testNoUsableModelShowsSetupWhicheverProviderIsSelected()",
+   "hash": "b585f895d0fc48c5",
+   "does": "Asserts FloInputMode.resolve returns .setup when activeProviderAvailable is false, whether Apple is selected or not.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)": "edd59f79557af7fb"
+   }
+  },
+  {
+   "key": "func FloSetupTests.testAppleShowsSuggestionsAndACloudModelShowsTheComposer()",
+   "hash": "8431cc15ed0d05d2",
+   "does": "Asserts resolve returns .suggestions for an available Apple provider and .composer for an available cloud provider.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)": "edd59f79557af7fb"
+   }
+  },
+  {
+   "key": "func FloSetupTests.testEveryAppleIntelligenceStateHasItsOwnExplanation()",
+   "hash": "6c655b1c411392d4",
+   "does": "Asserts the four AppleIntelligenceStatus cases (.available, .notEnabled, .modelDownloading, .unsupported) each have a non-empty, distinct explanation.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation": "da17108be4f76166"
+   }
+  }
+ ],
+ "deps": {}
+}

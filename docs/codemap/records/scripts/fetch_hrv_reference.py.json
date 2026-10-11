@@ -1,0 +1,178 @@
+{
+ "file": "scripts/fetch_hrv_reference.py",
+ "hash": "ed4519d6f3a4ebba",
+ "role": "Offline-run generator (not in CI) that downloads 20 nsr2db records from PhysioNet, extracts a 300-interval window per record, computes reference time-domain HRV metrics in Python and writes EmuquTests/HRVReferenceFixtures.swift (consumed by HRVReferenceValidationTests).",
+ "types": [],
+ "state": [
+  "net:physionet.org/files/nsr2db/1.0.0 (.hea, .ecg)",
+  "file:EmuquTests/HRVReferenceFixtures.swift (write, or compare with --check)"
+ ],
+ "toplevel": "Module constants: BASE URL, RECORDS nsr001..nsr020, 128 Hz, WINDOW_BEATS 300, SKIP_BEATS 5000, WFDB codes, BEAT_CODES set. `if __name__ == '__main__': raise SystemExit(main())`.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def beat_samples",
+   "hash": "15c3b1bdfca95ac0",
+   "does": "Decodes a WFDB annotation blob into absolute sample offsets of beat annotations: 16-bit LE words, code = top 6 bits, delta = low 10; handles SKIP (32-bit delta), NUM/SUB/CHN (no time advance), AUX (skip padded text).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "code==0 and delta==0",
+     "effect": "end-of-file marker: stop"
+    },
+    {
+     "at": "+16",
+     "cond": "SKIP",
+     "effect": "read signed-high/unsigned-low 32-bit delta, add to t, continue"
+    },
+    {
+     "at": "+21",
+     "cond": "NUM/SUB/CHN",
+     "effect": "continue without advancing time"
+    },
+    {
+     "at": "+23",
+     "cond": "AUX",
+     "effect": "skip delta bytes rounded up to even, continue"
+    },
+    {
+     "at": "+27",
+     "cond": "code in BEAT_CODES",
+     "effect": "append t after adding delta; non-beat codes advance time only"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def metrics",
+   "hash": "a5e994ea0c76b79e",
+   "does": "Computes meanRR, sample SDNN (N-1), unfiltered RMSSD, unfiltered pNN50 (>50 ms) and 60000/meanRR from an RR list, each rounded to 6 decimals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def fetch",
+   "hash": "553ef3c06dc3c101",
+   "does": "HTTP GET of BASE/name+suffix with 60 s timeout; returns bytes (exceptions propagate).",
+   "entry": null,
+   "calls": [
+    "ext:urllib.request.urlopen"
+   ],
+   "reads": [
+    "net:physionet.org"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def build",
+   "hash": "f0ee36951c3f8169",
+   "does": "For each record: fetches .hea (parses Age:/Sex:), fetches .ecg annotations, decodes beats, skips records with too few beats or any window interval outside 300-2000 ms, rounds intervals to integer ms, and returns records with sha256 of the raw file, rrMs and Python-computed expected metrics.",
+   "entry": null,
+   "calls": [
+    "scripts/fetch_hrv_reference.py::def fetch",
+    "scripts/fetch_hrv_reference.py::def beat_samples",
+    "scripts/fetch_hrv_reference.py::def metrics"
+   ],
+   "reads": [
+    "net:physionet.org"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "header line contains 'Age:'",
+     "effect": "parse tokens for Age:/Sex: values; else ignored (age/sex stay None)"
+    },
+    {
+     "at": "+15",
+     "cond": "fewer than 5301 beats",
+     "effect": "stderr note, record skipped"
+    },
+    {
+     "at": "+22",
+     "cond": "any interval outside 300..2000 ms",
+     "effect": "stderr note, record skipped; else appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/fetch_hrv_reference.py::def beat_samples": "96f79362eb7e731d",
+    "scripts/fetch_hrv_reference.py::def fetch": "b866b3c332a7783d",
+    "scripts/fetch_hrv_reference.py::def metrics": "bb5f1954ac26fa9f"
+   }
+  },
+  {
+   "key": "def swift_source",
+   "hash": "e053749c029b988d",
+   "does": "Renders the records as compact JSON wrapped at 110 chars inside a Swift `enum HRVReferenceFixtures { static let json = \"\"\"...\"\"\" }` with provenance/licence header.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "81a75182fcd086ca",
+   "does": "CLI: builds records; with --check compares the generated source to the committed file and returns 1 on missing/different; otherwise writes the file. Returns 1 if no usable record.",
+   "entry": "`python3 scripts/fetch_hrv_reference.py [--check]` via __main__",
+   "calls": [
+    "scripts/fetch_hrv_reference.py::def build",
+    "scripts/fetch_hrv_reference.py::def swift_source"
+   ],
+   "reads": [
+    "file:EmuquTests/HRVReferenceFixtures.swift"
+   ],
+   "writes": [
+    "file:EmuquTests/HRVReferenceFixtures.swift"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "no records",
+     "effect": "stderr, return 1"
+    },
+    {
+     "at": "+13",
+     "cond": "--check",
+     "effect": "compare mode (no write)"
+    },
+    {
+     "at": "+14",
+     "cond": "fixture file missing",
+     "effect": "return 1"
+    },
+    {
+     "at": "+17",
+     "cond": "content differs",
+     "effect": "return 1; else print match, return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "scripts/fetch_hrv_reference.py::def build": "15b744243a1ffa4b",
+    "scripts/fetch_hrv_reference.py::def fetch": "b866b3c332a7783d",
+    "scripts/fetch_hrv_reference.py::def swift_source": "bef81cf5f348c2a3"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/fetch_hrv_reference.py::def main": "be9b545a1497b588",
+  "scripts/fetch_hrv_reference.py::def metrics": "bb5f1954ac26fa9f"
+ }
+}

@@ -1,0 +1,731 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder.swift",
+ "hash": "f9efd6233904780d",
+ "role": "The @Observable @MainActor live-workout orchestrator: owns sub-observables (lifecycle, HR, motion), DFA analyzer, interval controller, dependencies (RecordingCore, location, pedometer, foot pod, Watch bridge, voice coach, conversation) and all per-workout mutable state; forwards lifecycle work to WorkoutSessionLifecycle. Also declares FootPodOdometer.",
+ "types": [
+  "WorkoutRecorder: class — live workout orchestrator",
+  "WorkoutRecorder.Phase: enum — idle/recording/finalizing/finished/failed",
+  "WorkoutRecorder.ReadinessSnapshot: struct — morning readiness frozen at start",
+  "WorkoutRecorder.TrainingProjectionSnapshot: struct — days-until-fresh / TSB forecast",
+  "FootPodOdometer: struct — workout distance from a pod's lifetime odometer, surviving pod resets",
+  "typealias WorkoutRecorder.HRSource = WorkoutSessionLifecycle.HRSource"
+ ],
+ "state": [
+  "mem:WorkoutRecorder.lifecycle (WorkoutLifecycle)",
+  "mem:WorkoutRecorder.workoutHR (WorkoutHR)",
+  "mem:WorkoutRecorder.motion (WorkoutMotion)",
+  "mem:WorkoutRecorder.dfa (LiveDFAAnalyzer)",
+  "mem:WorkoutRecorder.intervalController",
+  "mem:WorkoutRecorder.core",
+  "mem:WorkoutRecorder._injectedLocation/_lazyLocation",
+  "mem:WorkoutRecorder.pedometer",
+  "mem:WorkoutRecorder.footPod",
+  "mem:WorkoutRecorder.watchBridge",
+  "mem:WorkoutRecorder.voiceCoach",
+  "mem:WorkoutRecorder.conversation",
+  "mem:WorkoutRecorder.collectedPoints",
+  "mem:WorkoutRecorder.sessionStartDate",
+  "mem:WorkoutRecorder.logCorrelation",
+  "mem:WorkoutRecorder.tickTimer",
+  "mem:WorkoutRecorder.hrSubscription",
+  "mem:WorkoutRecorder.lastIngestedPointCount",
+  "mem:WorkoutRecorder.workoutSamples",
+  "mem:WorkoutRecorder.hrFromWrist",
+  "mem:WorkoutRecorder.wristHROffsets",
+  "mem:WorkoutRecorder.trackBackupWatermark",
+  "mem:WorkoutRecorder.cachedHistoricalBaselines",
+  "mem:WorkoutRecorder.cachedTodayReadiness",
+  "mem:WorkoutRecorder.cachedTrainingProjection",
+  "mem:WorkoutRecorder.cachedRacePredictionsByDistance",
+  "mem:WorkoutRecorder.lastConsumedWatchStrapAt",
+  "mem:WorkoutRecorder.lastWatchRoutedHRAt",
+  "mem:WorkoutRecorder.watchRoutedCumulativeMs",
+  "mem:WorkoutRecorder.watchRoutedRRBuffer",
+  "mem:WorkoutRecorder.livePace",
+  "mem:WorkoutRecorder.footPodOdometer",
+  "mem:WorkoutRecorder.deviceBackupArmedAt",
+  "mem:WorkoutRecorder.liveSnapshotAtStop",
+  "mem:WorkoutRecorder.powerSampleSum/powerSampleCount/maxPowerObserved",
+  "mem:WorkoutRecorder.lastStrapHRAt",
+  "mem:WorkoutRecorder.userThresholds",
+  "mem:WorkoutRecorder.plannedRoute",
+  "mem:WorkoutRecorder.lastRouteProgressIndex",
+  "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
+  "mem:WorkoutRecorder.plannedRouteDirection",
+  "mem:WorkoutRecorder.routeDetectionAttempted",
+  "mem:WorkoutRecorder.thresholdBreachSec",
+  "mem:WorkoutRecorder.autoPause",
+  "mem:WorkoutRecorder.settingsProvider",
+  "ReadinessSnapshot.empty",
+  "TrainingProjectionSnapshot.empty",
+  "FootPodOdometer.baselineMeters/lastReadingMeters/bankedMeters"
+ ],
+ "toplevel": "Stored-property initializers construct WorkoutLifecycle(), WorkoutHR(), WorkoutMotion(), LiveDFAAnalyzer() (default 120 s window / 20 s cadence), IntervalController(), WorkoutPedometer(), TrackBackupWatermark(), LivePaceEstimator(), FootPodOdometer(), AutoPauseDetector() at recorder construction; caches start .empty/[]/nil/0.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "lastConsumedWatchStrapAt is documented as the dedupe for Watch strap payloads but is only ever written, never read.",
+   "evidence": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift:260",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift:263",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift:347"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var WorkoutRecorder.phase",
+   "hash": "67e55a28e35d69c3",
+   "does": "Read-only forwarder returning WorkoutLifecycle.phase (the phase value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.phase"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.currentSession",
+   "hash": "8827b4cbf79618fe",
+   "does": "Read-only forwarder returning WorkoutLifecycle.currentSession (the currentSession value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.currentSession"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.finishedSession",
+   "hash": "d7d2df2cde323e3b",
+   "does": "Read-only forwarder returning WorkoutLifecycle.finishedSession (the finishedSession value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.finishedSession"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.elapsedSeconds",
+   "hash": "4d567095a3ec1194",
+   "does": "Read-only forwarder returning WorkoutLifecycle.elapsedSeconds (the elapsedSeconds value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.elapsedSeconds"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.currentHR",
+   "hash": "db25c2f2b61fbb99",
+   "does": "Read-only forwarder returning WorkoutHR.currentHR (the currentHR value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutHR.currentHR"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.peakHR",
+   "hash": "79c9653dbcd730cc",
+   "does": "Read-only forwarder returning WorkoutHR.peakHR (the peakHR value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutHR.peakHR"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.beatCount",
+   "hash": "6710af689d367df5",
+   "does": "Read-only forwarder returning WorkoutHR.beatCount (the beatCount value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutHR.beatCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.distanceMeters",
+   "hash": "f1387ae3deca3afb",
+   "does": "Read-only forwarder returning WorkoutMotion.distanceMeters (the distanceMeters value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.distanceMeters"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.elevationGainMeters",
+   "hash": "3e2fca57d5fec790",
+   "does": "Read-only forwarder returning WorkoutMotion.elevationGainMeters (the elevationGainMeters value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.elevationGainMeters"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.liveTrack",
+   "hash": "6b091762d90ff5c7",
+   "does": "Read-only forwarder returning WorkoutMotion.liveTrack (the liveTrack value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.liveTrack"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.stepCount",
+   "hash": "79ad0f324d21114d",
+   "does": "Read-only forwarder returning WorkoutMotion.stepCount (the stepCount value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.stepCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.cadenceStepsPerMin",
+   "hash": "b7ebd4e904a0a574",
+   "does": "Read-only forwarder returning WorkoutMotion.cadenceStepsPerMin (the cadenceStepsPerMin value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.cadenceStepsPerMin"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.powerWatts",
+   "hash": "39dcb78696e8d534",
+   "does": "Read-only forwarder returning WorkoutMotion.powerWatts (the powerWatts value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.powerWatts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.footPodActive",
+   "hash": "b07f09adfbadcd7b",
+   "does": "Read-only forwarder returning WorkoutMotion.footPodActive (the footPodActive value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutMotion.footPodActive"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.targetZone",
+   "hash": "deb1535506175bab",
+   "does": "Get/set forwarder for the user-selected target HR zone stored in lifecycle.targetZone (set by the ready-screen picker).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.targetZone"
+   ],
+   "writes": [
+    "mem:WorkoutLifecycle.targetZone"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.activeHRSource",
+   "hash": "6a7d068a319a8b62",
+   "does": "Read-only forwarder returning WorkoutLifecycle.activeHRSource (the activeHRSource value views observe).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutLifecycle.activeHRSource"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.session",
+   "hash": "92f09bcfdaaf43aa",
+   "does": "Builds a fresh WorkoutSessionLifecycle value over self.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)",
+   "hash": "878b244a9b5d213d",
+   "does": "Forwards start(sport:source:intervalPlan:thresholds:route:) to WorkoutSessionLifecycle.start; rethrows.",
+   "entry": "Called from FitnessTabView.swift:716 (user Start) and AppLaunchTasks.swift:58 (Watch start command).",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "14dd715369a65cc9",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.pause(isAuto:)",
+   "hash": "3e5788130fda97c3",
+   "does": "Forwards pause(isAuto:) to WorkoutSessionLifecycle.pause.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)": "ce62634b7f195b6b",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.resume()",
+   "hash": "cc4c4b0a16a76ce7",
+   "does": "Forwards resume() to WorkoutSessionLifecycle.resume.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()": "02202d2719098130",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.archive(session:)",
+   "hash": "88e6a4b6fea7456a",
+   "does": "Forwards archive(session:) to WorkoutSessionLifecycle.archive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "c3a5d7033070b434",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.buildAiContextSnapshot(_:sport:stopDate:)",
+   "hash": "81877695916a44a3",
+   "does": "Forwards to WorkoutSessionLifecycle.buildAiContextSnapshot, returning the [String:String] aiContext stored with the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.buildAiContextSnapshot(_:sport:stopDate:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.buildAiContextSnapshot(_:sport:stopDate:)": "d00f99cfd73c2740",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.computeNormalizedPower(samples:)",
+   "hash": "20507059972cd304",
+   "does": "Static forward to WorkoutSessionLifecycle.computeNormalizedPower.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "c6637e6f56feefc1"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
+   "hash": "b258f6002ac0c978",
+   "does": "Nonisolated static forward to WorkoutSessionLifecycle.estimateMETs; heartRate and userMaxHR are passed through but the callee ignores them (parameters named `_`).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "d42e82470fd04b60"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.scheduleCoachReportEmail(for:)",
+   "hash": "42e4c3e33d40e2ae",
+   "does": "Static forward to WorkoutSessionLifecycle.scheduleCoachReportEmail using its default settings snapshot.",
+   "entry": "Called from FitnessPostSummaryView+Cards.swift:399 (on-demand Coach Report button).",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "2d5d0974ca07471a",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.scheduleCoachReportEmail(for:settings:)",
+   "hash": "2afbd8609b07ed0c",
+   "does": "Static forward to WorkoutSessionLifecycle.scheduleCoachReportEmail with explicit settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "2d5d0974ca07471a",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "4350fe4ffbbfcf41"
+   }
+  },
+  {
+   "key": "var WorkoutRecorder.location",
+   "hash": "6989195bd5bc855d",
+   "does": "Returns the injected WorkoutLocationManager, else the cached lazy one, else constructs, caches and returns a new one (deferred so CLLocationManager/CMAltimeter are not built at tab appear).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder._injectedLocation",
+    "mem:WorkoutRecorder._lazyLocation"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder._lazyLocation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "location injected",
+     "effect": "true: returns it"
+    },
+    {
+     "at": "+2",
+     "cond": "lazy instance cached",
+     "effect": "true: returns it; false: creates and caches"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "214869bf897c7fb4"
+   }
+  },
+  {
+   "key": "var WorkoutRecorder.samplesView",
+   "hash": "142c654415a7815b",
+   "does": "Returns workoutSamples (read-only view for live tiles and AI samples provider).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutRecorder.workoutSamples"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.currentPaceSecPerKm",
+   "hash": "80e9b830d91fecfb",
+   "does": "Returns LivePaceEstimator.paceSecPerKm (nil while paused/unmeasured).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.livePace"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "5762159c3c5f098e"
+   }
+  },
+  {
+   "key": "var WorkoutRecorder.currentSpeedMS",
+   "hash": "ccdeb86c15a3fdd8",
+   "does": "Returns LivePaceEstimator.speedMS.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutRecorder.livePace"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutRecorder.footPodStartDistanceMeters",
+   "hash": "6dd2abff2e21f91e",
+   "does": "Get returns the odometer baseline; set replaces footPodOdometer with a new one at that baseline (nil clears banked distance too).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.footPodOdometer"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.footPodOdometer"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The getter of footPodStartDistanceMeters is never read; the only use in the repo is the setter `recorder.footPodStartDistanceMeters = nil` at start, so the property is a write-only alias for resetting footPodOdometer.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutRecorder.swift:301",
+      "Emuqu/Sources/Collection/WorkoutRecorder.swift:302",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift:291"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init FootPodOdometer(baselineMeters:)": "5981568fb8583312"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.footPodDistanceMeters()",
+   "hash": "4ac058187a4a7b8b",
+   "does": "Returns this workout's foot-pod distance: records the pod's current lifetime reading into the odometer (handling resets) or, when the pod reports none, returns the distance so far.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters"
+   ],
+   "reads": [
+    "mem:FootPodManager.podReportedDistanceMeters"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.footPodOdometer"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pod reports a distance",
+     "effect": "false: returns odometer distance unchanged; true: records reading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "45e10862ccf21af7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "8898b46d8262f6a4"
+   }
+  },
+  {
+   "key": "var WorkoutRecorder.plannedRoute",
+   "hash": "2921f24a772e30cd",
+   "does": "didSet observer: clears lastRouteProgressIndex whenever plannedRoute changes.",
+   "entry": "Swift property observer on plannedRoute assignment.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.lastRouteProgressIndex"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)",
+   "hash": "aba8be83e0dad46f",
+   "does": "Stores settings provider, core, optional injected location; resolves foot pod (injected or the global FootPodManager); takes the shared WatchConnectivityBridge singleton; builds WorkoutVoiceCoach with it and routes its spoken triggers through the shared conversation controller.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.collection.footPodManager",
+    "mem:AppDependencies.services.watchConnectivityBridge"
+   ],
+   "writes": [
+    "mem:WorkoutVoiceCoach.conversation"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "?? — footPod not injected",
+     "effect": "fallback AppDependencies.current.collection.footPodManager singleton"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:)": "3ebcff9501435fc9",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "var WorkoutRecorder.locationManager",
+   "hash": "7549135afc5f1238",
+   "does": "Returns the (lazily built) location manager for SwiftUI observation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "ae4b37ede53adc9c"
+   }
+  },
+  {
+   "key": "init FootPodOdometer(baselineMeters:)",
+   "hash": "47223539e1988622",
+   "does": "Creates an odometer with an optional baseline, no last reading and 0 banked.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FootPodOdometer.distanceMeters",
+   "hash": "f8a4257b7b8e580f",
+   "does": "Banked distance plus max(0, last reading − baseline); just banked when either is unknown.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline and last reading both set",
+     "effect": "false: returns banked only"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodOdometer.record(_:)",
+   "hash": "4b9f07d9c07d8623",
+   "does": "Records a pod reading: a reading below the last one banks the distance so far and becomes the new baseline; first reading sets the baseline; stores the reading and returns the distance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "previous reading exists and new reading is lower (pod reset)",
+     "effect": "true: bank distance, rebase"
+    },
+    {
+     "at": "+5",
+     "cond": "no baseline yet",
+     "effect": "true: baseline = reading"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "8898b46d8262f6a4"
+   }
+  }
+ ],
+ "deps": {}
+}

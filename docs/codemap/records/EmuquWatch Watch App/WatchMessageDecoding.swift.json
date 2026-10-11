@@ -1,0 +1,631 @@
+{
+ "file": "EmuquWatch Watch App/WatchMessageDecoding.swift",
+ "hash": "65ce7d2e02b69d51",
+ "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels and phone-silence rules. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
+ "types": [
+  "WatchMessageDecoding: enum (namespace, nonisolated)",
+  "WatchMessageDecoding.StateUpdate: struct — optional fields, nil = absent; isLiveSnapshot marks a liveState tick",
+  "WatchMessageDecoding.Bounds: enum — plausible ranges for each numeric field",
+  "WatchMessageDecoding.RecordingTransition: enum — none/started/stopped",
+  "WatchMessageDecoding.Command: enum — startWorkout/stopWorkout/strapState/liveState/voiceChatState/unknown"
+ ],
+ "state": [
+  "mem:WatchMessageDecoding.Bounds.heartRate 25...250",
+  "mem:WatchMessageDecoding.Bounds.peakHR 0...250",
+  "mem:WatchMessageDecoding.Bounds.percentOfMax 0...200",
+  "mem:WatchMessageDecoding.Bounds.elapsedSeconds 0...Int.max",
+  "mem:WatchMessageDecoding.Bounds.distanceMeters 0...10_000_000",
+  "mem:WatchMessageDecoding.Bounds.alpha1 0...3",
+  "mem:WatchMessageDecoding.Bounds.cadenceSpm 0...300",
+  "mem:WatchMessageDecoding.Bounds.elevationGainMeters 0...100_000",
+  "mem:WatchMessageDecoding.Bounds.targetZone 1...5",
+  "mem:WatchMessageDecoding.needsUnlockCode = \"needsUnlock\"",
+  "mem:WatchMessageDecoding.phoneSilenceLimit = 1800 s",
+  "mem:WatchMessageDecoding.phoneSilenceCheckInterval = 60 s",
+  "wc keys read: heartRate, hrPercentOfMax, peakHR, elapsedSec, distanceMeters, paceSecPerKm, paceDisplay, units, alpha1, alpha1Status, bandCode, band, sport, cadenceSpm, elevationGainMeters, targetZone, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts, type, strapConnected, strapDeviceName, ok, errorCode, error"
+ ],
+ "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds are static lets. No other top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WatchMessageDecoding.decode(_:)",
+   "hash": "ad1e0a7221c0e70a",
+   "does": "Decodes a raw payload into a StateUpdate: metrics via decodedMetrics, then targetZone (bounded 1...5), units, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts→sentAt, sport→sportRaw, and isLiveSnapshot = (type == \"liveState\"). Wrong-typed values become nil.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)"
+   ],
+   "reads": [
+    "wc:liveState",
+    "wc:strapState",
+    "wc:voiceChatState",
+    "wc:startWorkout",
+    "wc:stopWorkout",
+    "wc:requestCurrentState reply"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a",
+    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "1a34b86867962727"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.decodedMetrics(_:)",
+   "hash": "93d990f282887294",
+   "does": "Builds the metric half of a StateUpdate: heartRate/hrPercentOfMax/peakHR/elapsedSec/distance/cadence/elevation each bounded; paceDisplay from paceDisplay(); alpha1 via currentAlpha1; band via currentBand; sportLabel from sport raw via sportLabel(fromRaw:).",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "52141efa8c0cbe2b",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "a7f8b050f64db1bd"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.bounded(_:_:)",
+   "hash": "c5dc407f865e67ac",
+   "does": "Returns value when it is non-nil and inside range, else nil (NaN/infinite Doubles are never contained, so this is also the finite check).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value non-nil and range.contains(value)",
+     "effect": "true: return value; false: return nil (treated as absent)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.currentAlpha1(_:)",
+   "hash": "f6d56d363589adbf",
+   "does": "α1 from the message only when alpha1IsCurrent says the phone marks it current; then bounded to 0...3.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1IsCurrent(message)",
+     "effect": "false: return nil (α1 dropped as not live); true: bounded alpha1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.currentBand(_:)",
+   "hash": "99d2c37261db8978",
+   "does": "Band label to show: \"—\" when α1 is not current; otherwise the Watch's own name for bandCode, or the phone's band string when bandCode is absent/unknown.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1IsCurrent(message)",
+     "effect": "false: return bandLabel(\"unknown\") = \"—\"; true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "bandCode maps to a known label",
+     "effect": "known: Watch-localized label; else (nil code or unknown code) fallback to message[\"band\"] as? String, which may itself be nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.alpha1IsCurrent(_:)",
+   "hash": "aaf860d5ebafabd2",
+   "does": "True when alpha1Status is absent (old phone build) or equals \"ok\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "alpha1Status present as String",
+     "effect": "absent: return true (alpha1 taken as sent); present: return status == \"ok\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.bandLabel(fromCode:)",
+   "hash": "d383ac0ac62fa18b",
+   "does": "Maps the iPhone LiveDFAAnalyzer.Band raw code to a Watch-localized name; nil for an unknown code.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "code == unknown",
+     "effect": "\"—\""
+    },
+    {
+     "at": "+3",
+     "cond": "code == belowAeT",
+     "effect": "\"Easy\""
+    },
+    {
+     "at": "+4",
+     "cond": "code == nearAeT",
+     "effect": "\"Threshold\""
+    },
+    {
+     "at": "+5",
+     "cond": "code == aboveVT2",
+     "effect": "\"Very Hard\""
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "nil, caller falls back to the phone's band text"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.paceDisplay(_:)",
+   "hash": "aaa19a1ef8e447e5",
+   "does": "Pace text: when paceSecPerKm is a Double, formats it on the Watch per km or per mile per the units key; otherwise returns the phone's paceDisplay string.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "paceSecPerKm present as Double",
+     "effect": "absent: return message[\"paceDisplay\"] as? String (may be nil); present: pace(secPerKm:imperial:)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.pace(secPerKm:imperial:)": "2a2c6bf9ec78f7e3"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.pace(secPerKm:imperial:)",
+   "hash": "ed721b0973f0830a",
+   "does": "Formats seconds-per-km as \"m:ss /km\" or (×1.609344) \"m:ss /mi\" in the current locale, capped at 86,400 s; nil for non-finite or non-positive input.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "secPerKm finite and > 0",
+     "effect": "false: return nil (no pace shown); true: format"
+    },
+    {
+     "at": "+2",
+     "cond": "imperial",
+     "effect": "true: multiply by 1.609344 for per-mile; false: per-km as is"
+    },
+    {
+     "at": "+4",
+     "cond": "imperial",
+     "effect": "true: \"<time> /mi\"; false: \"<time> /km\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.refusalText(code:sport:)",
+   "hash": "ca2f9daf7ac8dae9",
+   "does": "Watch-localized text for a phone refusal errorCode; nil for an unknown code so the phone's own error text is used.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "code == phoneNotReady",
+     "effect": "\"Phone not ready\""
+    },
+    {
+     "at": "+3",
+     "cond": "code == unknownMessage",
+     "effect": "\"Unknown message\""
+    },
+    {
+     "at": "+4",
+     "cond": "code == unknownSport",
+     "effect": "\"Unknown sport: <sport>\""
+    },
+    {
+     "at": "+4",
+     "cond": "sport ?? \"\"",
+     "effect": "sport nil → empty string in the message"
+    },
+    {
+     "at": "+5",
+     "cond": "code == needsUnlock",
+     "effect": "unlock prompt \"Open Emuqu on your iPhone to start your free trial or unlock.\""
+    },
+    {
+     "at": "+6",
+     "cond": "code == strapBusy",
+     "effect": "strap-in-use message"
+    },
+    {
+     "at": "+7",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)",
+   "hash": "4f1490522e93e029",
+   "does": "Status line for a phone reply to a control message: successStatus when ok == true; the bare unlock prompt for needsUnlock; otherwise \"iPhone: <worded code | phone error | 'unknown error'>\".",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reply ok as Bool, default false via ??",
+     "effect": "ok true: return successStatus; missing ok or false: refusal path"
+    },
+    {
+     "at": "+1",
+     "cond": "?? false",
+     "effect": "a reply without an ok key is treated as refused"
+    },
+    {
+     "at": "+3",
+     "cond": "errorCode == needsUnlock and refusalText non-nil",
+     "effect": "true: return the unlock prompt without the \"iPhone:\" prefix; false: continue"
+    },
+    {
+     "at": "+5",
+     "cond": "worded ?? error ?? 'unknown error'",
+     "effect": "worded code text if known, else phone's error string, else localized \"unknown error\"; result prefixed \"iPhone: \""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "0dc15636bbf84cb2"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.sportLabel(fromRaw:)",
+   "hash": "342314af7ca9038b",
+   "does": "Maps an iPhone Sport raw value to the same localized name as iOS Sport.localizedName (WorkoutMetadata.swift:54-63); unknown raw values become title-cased with underscores replaced by spaces.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "run",
+     "effect": "\"Run\""
+    },
+    {
+     "at": "+3",
+     "cond": "trail_run",
+     "effect": "\"Trail Run\""
+    },
+    {
+     "at": "+4",
+     "cond": "walk",
+     "effect": "\"Walk\""
+    },
+    {
+     "at": "+5",
+     "cond": "hike",
+     "effect": "\"Hike\""
+    },
+    {
+     "at": "+6",
+     "cond": "bike",
+     "effect": "\"Ride\""
+    },
+    {
+     "at": "+7",
+     "cond": "indoor_bike",
+     "effect": "\"Indoor Ride\""
+    },
+    {
+     "at": "+8",
+     "cond": "treadmill",
+     "effect": "\"Treadmill\""
+    },
+    {
+     "at": "+9",
+     "cond": "row",
+     "effect": "\"Row\""
+    },
+    {
+     "at": "+10",
+     "cond": "air_bike",
+     "effect": "\"Air Bike\""
+    },
+    {
+     "at": "+11",
+     "cond": "crossfit",
+     "effect": "\"CrossFit\""
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": "raw with _→space, capitalized"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Restates iOS Sport.localizedName table by hand; a sport added on iOS shows a title-cased raw value on the Watch until this switch is updated.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:246",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:54"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.recordingTransition(wasRecording:update:)",
+   "hash": "baefd7f2c6977af3",
+   "does": "Classifies the recording change carried by an update relative to wasRecording: .started (false→true), .stopped (true→false), .none (absent or unchanged).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "update.isRecording present",
+     "effect": "absent: .none"
+    },
+    {
+     "at": "+2",
+     "cond": "now && !wasRecording",
+     "effect": ".started"
+    },
+    {
+     "at": "+3",
+     "cond": "!now && wasRecording",
+     "effect": ".stopped; otherwise falls to .none"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.justCompleted(current:wasRecording:update:)",
+   "hash": "aa486f5b6623d073",
+   "does": "Completion-banner value after an update: true on .stopped, false on .started, unchanged on .none.",
+   "entry": null,
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".stopped",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": ".started",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": ".none",
+     "effect": "current value kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "5a7b5d6e7b020c4d"
+   }
+  },
+  {
+   "key": "func WatchMessageDecoding.clearsStartWorkoutRequest(update:)",
+   "hash": "39fafbddf84cf238",
+   "does": "True when the update carries isRecording == true (iPhone confirmed recording, so an in-flight start request is answered).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Never called by production code: WatchSessionManager.applyRecording re-implements the same check inline (`if rec { clearStartWorkoutRequest() }`). Only EmuquTests/WatchMessageDecodingTests.swift:205-211 call it, so the test pins a function the app does not use.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:310",
+      "EmuquWatch Watch App/WatchSessionManager.swift:723",
+      "EmuquTests/WatchMessageDecodingTests.swift:205"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.clearsVoiceChatRequest(update:)",
+   "hash": "152c75cfc784384a",
+   "does": "True when the update carries a voiceChatState other than \"idle\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "voiceChatStateLabel present",
+     "effect": "absent: false; present: state != \"idle\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)",
+   "hash": "badc58ed2f5fdb8b",
+   "does": "True when more than phoneSilenceLimit (30 min) has passed since lastContact.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)",
+   "hash": "df1864a7af65c7c2",
+   "does": "Returns !phoneReachable: the wrist Stop ends the Watch's own session immediately only when the iPhone is unreachable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.command(_:)",
+   "hash": "61854a0816ccae61",
+   "does": "Parses the type key into a Command; nil when there is no String type.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "wc:type"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type present as String",
+     "effect": "absent: nil (no command)"
+    },
+    {
+     "at": "+3",
+     "cond": "startWorkout",
+     "effect": ".startWorkout"
+    },
+    {
+     "at": "+4",
+     "cond": "stopWorkout",
+     "effect": ".stopWorkout"
+    },
+    {
+     "at": "+5",
+     "cond": "liveState",
+     "effect": ".liveState"
+    },
+    {
+     "at": "+6",
+     "cond": "voiceChatState",
+     "effect": ".voiceChatState"
+    },
+    {
+     "at": "+7",
+     "cond": "strapState",
+     "effect": ".strapState(connected: strapConnected as? Bool, deviceName: strapDeviceName as? String)"
+    },
+    {
+     "at": "+12",
+     "cond": "default",
+     "effect": ".unknown(raw)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)",
+   "hash": "3af2a65e21b35aac",
+   "does": "True only for .startWorkout when not in display-only mode.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Tested rule (refuse startWorkout in display-only mode) has no effect on behaviour: the isRecording-driven keep-alive in WatchSessionManager starts the session in display-only mode anyway.",
+     "evidence": [
+      "EmuquWatch Watch App/WatchMessageDecoding.swift:392",
+      "EmuquWatch Watch App/WatchSessionManager.swift:746",
+      "EmuquWatch Watch App/WatchSessionManager.swift:749"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "d00b802a898af93b"
+   }
+  }
+ ],
+ "deps": {}
+}

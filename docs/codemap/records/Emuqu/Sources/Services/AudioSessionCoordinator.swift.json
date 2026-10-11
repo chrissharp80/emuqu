@@ -1,0 +1,252 @@
+{
+ "file": "Emuqu/Sources/Services/AudioSessionCoordinator.swift",
+ "hash": "5b300d2341ac7b31",
+ "role": "Single owner of AVAudioSession category: claimants (voice, workoutCue, dictation, breathingGuide) claim/release a mode, and the coordinator applies .playAndRecord if any claim records, else .playback, with mix/duck options; never activates/deactivates the session.",
+ "types": [
+  "AudioSessionCoordinator: class (Sendable) — claim registry + category resolver",
+  "AudioSessionCoordinator.Claimant: enum — voice/workoutCue/dictation/breathingGuide",
+  "AudioSessionCoordinator.Mode: enum — voiceRecord/playback",
+  "AudioSessionCoordinator.State: struct (private) — claims dictionary"
+ ],
+ "state": [
+  "mem:AudioSessionCoordinator.shared (singleton)",
+  "mem:AudioSessionCoordinator.state (OSAllocatedUnfairLock<State> of claims)",
+  "mem:AudioSessionCoordinator.applyLock (NSRecursiveLock serialising resolve+apply)"
+ ],
+ "toplevel": "static let shared; private lock-protected claims; applyLock recursive lock.",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test in EmuquTests references AudioSessionCoordinator; the superset/duck resolution and skip-if-same logic are unverified.",
+   "evidence": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift:125",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift:158"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init AudioSessionCoordinator()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private init for the shared singleton; state and applyLock are initialized by their property initializers.",
+   "entry": "static let shared initializer.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AudioSessionCoordinator.claim(_:mode:)",
+   "hash": "42e211e47893efc5",
+   "does": "Records claimant -> mode under the claims lock, then resolves and applies the session category.",
+   "entry": "Called by VoiceConversationController+Pipeline.swift:25 (.voice), SpeechInputManager.swift:85 (.dictation), BreathingAudioManager.swift:101 (.breathingGuide), BackgroundAudioManager.swift:239 (.workoutCue).",
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims",
+    "ext:AVAudioSession category"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md lists Claimant cases \"voice, workoutCue, dictation, workoutCoach, breathingGuide\" and says the workout coach claims separately; the enum has no workoutCoach case (coach lines go through BackgroundAudioManager as .workoutCue).",
+     "evidence": [
+      "docs/API_REFERENCE.md:1842",
+      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:38",
+      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:239"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "668cf40157b2030b"
+   }
+  },
+  {
+   "key": "func AudioSessionCoordinator.release(_:)",
+   "hash": "4c8f4277471ce69d",
+   "does": "Removes the claimant's claim and re-resolves; with no claims left the session category is left untouched.",
+   "entry": "Called by VoiceConversationController+Audio.swift:109, SpeechInputManager.swift:202, BreathingAudioManager.swift:121, BackgroundAudioManager.swift:243.",
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator.claims",
+    "ext:AVAudioSession category"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "668cf40157b2030b"
+   }
+  },
+  {
+   "key": "func AudioSessionCoordinator.isVoiceActive()",
+   "hash": "f18c6015358b7e0e",
+   "does": "True when .voice holds a claim.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "isVoiceActive() has no caller anywhere in the repo, tests included.",
+     "evidence": [
+      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:100"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AudioSessionCoordinator.hasActiveClaims()",
+   "hash": "5635978dc6ec6020",
+   "does": "True when any claim is held; claimants check it before deactivating the session.",
+   "entry": "Called by SpeechInputManager.swift:203, BreathingAudioManager.swift:122, BackgroundAudioManager.swift:246.",
+   "calls": [],
+   "reads": [
+    "mem:AudioSessionCoordinator.claims"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AudioSessionCoordinator.applyResolvedCategory()",
+   "hash": "812a6040061e8700",
+   "does": "Runs applyCurrentClaims under the recursive applyLock so resolve+apply is serialised.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims()": "b61d53c976aa2141"
+   }
+  },
+  {
+   "key": "func AudioSessionCoordinator.applyCurrentClaims()",
+   "hash": "6974d4a5634b5d2e",
+   "does": "Snapshots claims; with none returns; else picks .playAndRecord (mode .measurement) if any claim is voiceRecord, otherwise .playback (.default), computes options, and calls setCategory unless the live session already has that category and options.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)"
+   ],
+   "reads": [
+    "mem:AudioSessionCoordinator.claims",
+    "ext:AVAudioSession.category/categoryOptions"
+   ],
+   "writes": [
+    "ext:AVAudioSession category"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no claims",
+     "effect": "returns (session untouched)"
+    },
+    {
+     "at": "+4",
+     "cond": "any claim is .voiceRecord",
+     "effect": ".playAndRecord; else .playback"
+    },
+    {
+     "at": "+15",
+     "cond": "live category and options already match",
+     "effect": "returns without setCategory (mode is not compared)"
+    },
+    {
+     "at": "+16",
+     "cond": "needsRecord",
+     "effect": "mode .measurement; else .default"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)": "bc8c367823460d1e",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)": "27d5d99cef0dccb0"
+   }
+  },
+  {
+   "key": "func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)",
+   "hash": "2ccafd934a6da2a7",
+   "does": "Options: record -> mixWithOthers+allowBluetoothHFP+defaultToSpeaker; playback with breathing guide -> mixWithOthers+duckOthers; otherwise mixWithOthers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "needsRecord",
+     "effect": "record options"
+    },
+    {
+     "at": "+2",
+     "cond": "ducks (breathingGuide claim present)",
+     "effect": "adds .duckOthers; else mixWithOthers only"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AudioSessionCoordinator.apply(category:mode:options:)",
+   "hash": "d9a2d452e05b781f",
+   "does": "Calls AVAudioSession.setCategory(category, mode:, options:); a throw is debugLogged at info level and not retried.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:AVAudioSession.setCategory"
+   ],
+   "reads": [],
+   "writes": [
+    "ext:AVAudioSession category"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "setCategory throws (catch)",
+     "effect": "info log only; session stays in its previous category"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Comment says 'the next claim/refresh cycle retries', but the coordinator has no refresh cycle; a failed setCategory during a voice claim leaves voice with the old (e.g. .playback) category until some other claimant claims or releases.",
+     "evidence": [
+      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:163",
+      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:173"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

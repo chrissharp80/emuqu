@@ -1,0 +1,1129 @@
+{
+ "file": "Emuqu/Sources/Views/MorningResultsCharts.swift",
+ "hash": "54aa1fcf6fa8c9b6",
+ "role": "Canvas-drawn HRV charts for the session detail screen (SessionHRVDetailView): Poincaré plot, RR tachogram, LF/HF stacked frequency bar with legend, heart-rate trace, plus file-scope helpers shared by the tachogram and HR chart (window clamping, touch hit-testing, time labels, grid, trace paths).",
+ "types": [
+  "PoincareGeometry: struct (private) — square plot geometry and RR→pixel scaling for the Poincaré plot",
+  "PoincarePlotView: struct View — Poincaré scatter of consecutive non-artifact RR pairs with SD1/SD2 ellipse",
+  "TachogramView: struct View — RR interval trace over the analysis window with press-and-drag crosshair tooltip",
+  "FrequencyBandsView: struct View — VLF/LF/HF stacked bar + legend",
+  "LegendItem: struct View — coloured dot + label/value pair",
+  "HeartRateChartView: struct View — artifact-free bpm trace over the analysis window with mean line and crosshair tooltip",
+  "ChartXAxisLabels: struct View (private) — 5 wall-clock tick labels under the tachogram/HR chart"
+ ],
+ "state": [
+  "mem:TachogramView.touchLocation (@State CGPoint?)",
+  "mem:TachogramView.isDragging (@State Bool)",
+  "TachogramView.xAxisHeight let 20",
+  "mem:HeartRateChartView.touchLocation (@State CGPoint?)",
+  "mem:HeartRateChartView.isDragging (@State Bool)",
+  "HeartRateChartView.xAxisHeight let 20"
+ ],
+ "toplevel": "Only type declarations and stored lets; PoincareGeometry stored lets plotMin/plotMax/plotSize/offsetX/offsetY set in its init. Free functions clampedAnalysisWindow/beatAtLocation/windowTimeLabels/strokeHorizontalGrid/tracePaths are internal (module-visible).",
+ "flags": [],
+ "units": [
+  {
+   "key": "init PoincareGeometry(pairs:size:)",
+   "hash": "4248271c5eb24189",
+   "does": "Builds Poincaré geometry from RR pairs and canvas size: min/max over both pair members (fallback 600/1200 ms), pads by 15% of max(range,100 ms), plot square = min(width,height) centred via offsetX/offsetY.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "allRR.min() ?? 600: pairs empty",
+     "effect": "uses 600 ms as minRR when no values; unreachable from drawPoincarePlot which guards !pairs.isEmpty"
+    },
+    {
+     "at": "+3",
+     "cond": "allRR.max() ?? 1200",
+     "effect": "uses 1200 ms as maxRR when empty; same unreachable fallback"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PoincareGeometry.scale(_:)",
+   "hash": "1438f34e3b8ff996",
+   "does": "Maps an RR value (ms) linearly onto [0, plotSize] pixels using plotMin..plotMax.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PoincareGeometry.point(_:_:)",
+   "hash": "8821ca02e3dffc24",
+   "does": "Maps an (rr_n, rr_n+1) pair to a canvas point: x = offsetX+scale(rr1), y flipped so larger rr2 is higher.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
+  },
+  {
+   "key": "var PoincarePlotView.body",
+   "hash": "6a16c354d6bda8a9",
+   "does": "Renders a Canvas inside a GeometryReader that draws the Poincaré plot, collapsed into one accessibility element labelled with SD1 and SD2 (ms, app locale).",
+   "entry": "SwiftUI body; PoincarePlotView is built by SessionHRVDetailView (SessionHRVDetailView.swift:223) and HRVChartSnapshotTests",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)": "3b9ea5321048ad29"
+   }
+  },
+  {
+   "key": "func PoincarePlotView.drawPoincarePlot(_:size:)",
+   "hash": "adfe812f8df4e0d1",
+   "does": "Gets beat pairs; if none, draws nothing; otherwise builds geometry and draws background square, identity line, SD1/SD2 ellipse and dots in that order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.beatPairs()",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::init PoincareGeometry(pairs:size:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPlotBackground(_:_:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawIdentityLine(_:_:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawDispersionEllipse(_:_:pairs:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawBeatPoints(_:_:pairs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pairs is empty",
+     "effect": "returns without drawing anything (blank canvas, no 'no data' text); else draws all layers"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.beatPairs()": "f303efd99c5b1513",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawBeatPoints(_:_:pairs:)": "f622b39717092eb6",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawDispersionEllipse(_:_:pairs:)": "08231bc923376149",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawIdentityLine(_:_:)": "740c3894a37673b6",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPlotBackground(_:_:)": "2d1197f78ec4a7b2",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::init PoincareGeometry(pairs:size:)": "35a3530d5456cde8"
+   }
+  },
+  {
+   "key": "func PoincarePlotView.beatPairs()",
+   "hash": "0b2991d81edcc237",
+   "does": "Returns consecutive (RR_i, RR_i+1) pairs in ms within [windowStart, min(windowEnd, points.count)), skipping a pair if either beat is flagged artifact (beats beyond flags array count as clean).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.rrSeries is nil",
+     "effect": "returns [] (plot blank)"
+    },
+    {
+     "at": "+2",
+     "cond": "session.artifactFlags ?? []",
+     "effect": "nil flags treated as no artifacts — every beat counts as clean"
+    },
+    {
+     "at": "+5",
+     "cond": "windowStart >= 0 and windowEnd > windowStart+1",
+     "effect": "false → returns [] (prevents 0..<-1 range trap); true → iterates pairs"
+    },
+    {
+     "at": "+7",
+     "cond": "i < flags.count",
+     "effect": "true → reads flags[i].isArtifact; false → beat treated as not artifact"
+    },
+    {
+     "at": "+8",
+     "cond": "i+1 < flags.count",
+     "effect": "true → reads flags[i+1].isArtifact; false → not artifact"
+    },
+    {
+     "at": "+9",
+     "cond": "either beat is artifact",
+     "effect": "pair dropped (nil); else pair returned"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "Poincaré pair extraction exists three times with different rules: here beats beyond artifactFlags.count (incl. artifactFlags == nil) count as clean; the PDF renderer's isCleanPair returns false when i or i+1 >= flags.count, so a session with nil/short flags (SessionMerger sets artifactFlags = nil after a merge, SessionMerger.swift:349) gets an empty PDF Poincaré plot while the app plots every beat; HRVDetailV2View.buildPoincarePairs uses the whole series with no window and no artifact filter. Padding also differs (15% here vs 10% in PDF PoincareScale).",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:66",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:73",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:42",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:53",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:71",
+      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:252",
+      "Emuqu/Sources/Storage/SessionMerger.swift:349"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func PoincarePlotView.drawPlotBackground(_:_:)",
+   "hash": "5dd10b617a4800a6",
+   "does": "Fills the plot square with tertiarySystemGroupedBackground.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PoincarePlotView.drawIdentityLine(_:_:)",
+   "hash": "a6d2fe77cb550900",
+   "does": "Strokes the y=x identity diagonal (bottom-left to top-right) in 30% gray.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PoincarePlotView.drawDispersionEllipse(_:_:pairs:)",
+   "hash": "76f1cec23bb4dac2",
+   "does": "Draws an ellipse centred on mean RR of the pairs with semi-axes SD2 (along identity) and SD1 (across) from result.nonlinear, scaled to pixels and rotated -45° in screen space; fills 15% and strokes 50% primary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "6b9334b0b7601406",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func PoincarePlotView.drawBeatPoints(_:_:pairs:)",
+   "hash": "20f95b8304e0b6d9",
+   "does": "Draws 4-pt dots for at most ~300 pairs, stepping by pairs.count/300 (min 1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for i in stride(0, count, step)",
+     "effect": "iterates every step-th pair; no iteration when empty (caller guards)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var TachogramView.body",
+   "hash": "d688475acf09a1f7",
+   "does": "Renders the tachogram stack inside a GeometryReader with a long-press-then-drag scrub gesture; one accessibility element labelled with RMSSD and mean HR.",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:184) and HRVChartSnapshotTests",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartStack(_:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var TachogramView.touchGesture",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartStack(_:)": "be45e47955fa7fb2",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var TachogramView.touchGesture": "536015d378015fe1"
+   }
+  },
+  {
+   "key": "func TachogramView.chartStack(_:)",
+   "hash": "f4dc41969024551c",
+   "does": "Lays out canvas (height minus 20 pt) over x-axis labels, with the touch overlay on top in a ZStack.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartCanvas(size:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.xAxisLabels(width:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.touchOverlay(_:chartHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.chartCanvas(size:)": "5fb5044f86c47f37",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.touchOverlay(_:chartHeight:)": "ad88d7ecb14bbb59",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.xAxisLabels(width:)": "c991e05a4ac13897"
+   }
+  },
+  {
+   "key": "func TachogramView.touchOverlay(_:chartHeight:)",
+   "hash": "29db6fdba4b37eaf",
+   "does": "While dragging, draws a 1-pt white vertical crosshair at the touch x and, if a beat is under it, a ChartTooltip with the RR (ms) and wall-clock time positioned at clamped x, y=30.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.rrAtLocation(_:size:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tooltipX(_:width:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:TachogramView.touchLocation",
+    "mem:TachogramView.isDragging"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "touchLocation non-nil and isDragging",
+     "effect": "true → crosshair drawn; false → nothing"
+    },
+    {
+     "at": "+8",
+     "cond": "rrAtLocation returns a value",
+     "effect": "true → tooltip shown; false (outside window/no series) → crosshair only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.rrAtLocation(_:size:)": "ae6d00b61bb03cab",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tooltipX(_:width:)": "c836d72957b3f49c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var TachogramView.touchGesture",
+   "hash": "724cbb42af43b96e",
+   "does": "Gesture: 0.15 s long press sequenced before a zero-distance drag; on the drag phase sets touchLocation and isDragging, on end clears both.",
+   "entry": "SwiftUI gesture callbacks (onChanged/onEnded) on user touch",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:TachogramView.touchLocation",
+    "mem:TachogramView.isDragging"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "value is .second(true, drag?) with a drag location",
+     "effect": "true → updates touch state; false (still in long-press phase) → returns without change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TachogramView.xAxisLabels(width:)",
+   "hash": "c730d9ee136c6c52",
+   "does": "Returns the shared ChartXAxisLabels view for this session/result and width.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TachogramView.tooltipX(_:width:)",
+   "hash": "e4d008f21dcaeefb",
+   "does": "Clamps the tooltip x into [50, width-50].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "x < 50",
+     "effect": "returns 50"
+    },
+    {
+     "at": "+3",
+     "cond": "x > width-50",
+     "effect": "returns width-50; otherwise returns x"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TachogramView.rrAtLocation(_:size:)",
+   "hash": "d95e2f8a97c50960",
+   "does": "Returns (rr_ms as Double, time string) of the beat under x via beatAtLocation, or nil. Artifact beats are returned too (time string suffixed '(artifact)').",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "beatAtLocation returns nil",
+     "effect": "returns nil; else returns rr and label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "ba7c588c1d7b64d0"
+   }
+  },
+  {
+   "key": "func TachogramView.chartCanvas(size:)",
+   "hash": "fd01f96566588ca7",
+   "does": "Canvas closure that gets the tachogram values and draws them; draws nothing when values are nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tachogramValues()",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.drawTachogram(_:size:rrValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "tachogramValues() is nil",
+     "effect": "returns with blank canvas; else drawTachogram"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.drawTachogram(_:size:rrValues:)": "5c1a1b5271e7b40b",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.tachogramValues()": "6d006129fa7ca6ef"
+   }
+  },
+  {
+   "key": "func TachogramView.tachogramValues()",
+   "hash": "56789b2c53aa0a6e",
+   "does": "RR values (ms) over the clamped analysis window, including artifact-flagged beats; nil when no series, no valid window or fewer than 2 values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries nil or clampedAnalysisWindow nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "rrValues.count > 1",
+     "effect": "true → values; false → nil (prevents divide-by-zero xScale)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "bb22eb4270bf005f",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func TachogramView.drawTachogram(_:size:rrValues:)",
+   "hash": "d220245e484e45e2",
+   "does": "Normalises RR to min..max (range floor 50 ms) into 85% of height with 7.5% margins, draws 5 grid lines, gradient fill and 1.5-pt primary line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrValues.min() ?? 600",
+     "effect": "600 fallback only on empty array; unreachable (caller guarantees ≥2 values)"
+    },
+    {
+     "at": "+2",
+     "cond": "rrValues.max() ?? 1200",
+     "effect": "1200 fallback on empty; unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "4da3af1877c2b4dd",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "9bfea854cc83e65b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var FrequencyBandsView.body",
+   "hash": "ae3a4dcee4072af1",
+   "does": "Renders stacked band bar and legend in a GeometryReader as a single accessibility element with a spoken summary.",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:277) and ScreenSnapshotTests",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.accessibilitySummary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)": "9ae9cdc166aa759c",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.accessibilitySummary": "799f9108ac0fa8bf",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend": "20f5f5a9f7b991fa"
+   }
+  },
+  {
+   "key": "var FrequencyBandsView.accessibilitySummary",
+   "hash": "b2e25e211db7f501",
+   "does": "Builds the VoiceOver summary: LF and HF in ms² and, when available, LF/HF ratio to 2 decimals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "frequencyDomain.lfHfRatio is nil",
+     "effect": "returns summary without the ratio clause; else includes ratio"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func FrequencyBandsView.stackedBar(width:)",
+   "hash": "15e36f81c0246ab1",
+   "does": "Draws a 24-pt stacked bar with segment widths = band power / totalPower for VLF (only if >1%), LF and HF.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "totalPower > 0 (LF share)",
+     "effect": "true → lf/total; false → 0"
+    },
+    {
+     "at": "+3",
+     "cond": "totalPower > 0 (HF share)",
+     "effect": "true → hf/total; false → 0"
+    },
+    {
+     "at": "+4",
+     "cond": "totalPower > 0 (VLF share)",
+     "effect": "true → (vlf ?? 0)/total; false → 0"
+    },
+    {
+     "at": "+4",
+     "cond": "frequencyDomain.vlf ?? 0",
+     "effect": "nil VLF treated as 0 power"
+    },
+    {
+     "at": "+6",
+     "cond": "vlfPct > 0.01",
+     "effect": "true → gray VLF segment drawn; false → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var FrequencyBandsView.legend",
+   "hash": "231afe3f1b98032d",
+   "does": "Legend row of LegendItem for VLF (only when vlf non-nil), LF, HF with '%.0f ms²' values.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "frequencyDomain.vlf != nil",
+     "effect": "true → VLF legend item shown; false → omitted"
+    },
+    {
+     "at": "+3",
+     "cond": "frequencyDomain.vlf ?? 0",
+     "effect": "fallback 0 never used since guarded by line 304"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var LegendItem.body",
+   "hash": "ff968c5753136949",
+   "does": "Coloured 8-pt circle with bold label over value; one accessibility element 'label: value'.",
+   "entry": "SwiftUI body; built by FrequencyBandsView.legend",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var HeartRateChartView.body",
+   "hash": "a1cd9fe73603a06e",
+   "does": "Renders HR chart stack in a GeometryReader with scrub gesture; one accessibility element with mean HR and min–max HR.",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:159) and HRVChartSnapshotTests",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartStack(_:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var HeartRateChartView.touchGesture",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartStack(_:)": "5b8c4161a5123b7f",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var HeartRateChartView.touchGesture": "a8050f86cd81a933"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.chartStack(_:)",
+   "hash": "f4dc41969024551c",
+   "does": "Lays out HR canvas over x-axis labels with the touch overlay on top.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartCanvas(size:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.xAxisLabels(width:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.touchOverlay(_:chartHeight:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.chartCanvas(size:)": "6cdf7a6318ee4c6d",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.touchOverlay(_:chartHeight:)": "b10d2d1289048e62",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.xAxisLabels(width:)": "9f809aaa905b8b6a"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.touchOverlay(_:chartHeight:)",
+   "hash": "340ceb4acf400bf0",
+   "does": "While dragging, draws crosshair and, if a beat is under the finger, a ChartTooltip with bpm and time (terracotta).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrAtLocation(_:size:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.tooltipX(_:width:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:HeartRateChartView.touchLocation",
+    "mem:HeartRateChartView.isDragging"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "touchLocation non-nil and isDragging",
+     "effect": "true → crosshair; false → nothing"
+    },
+    {
+     "at": "+8",
+     "cond": "hrAtLocation returns a value",
+     "effect": "true → tooltip; false → crosshair only"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrAtLocation(_:size:)": "74cdbc0c8eff7f60",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.tooltipX(_:width:)": "0488996470348478",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "var HeartRateChartView.touchGesture",
+   "hash": "724cbb42af43b96e",
+   "does": "0.15 s long press then drag; drag sets touchLocation/isDragging, end clears them.",
+   "entry": "SwiftUI gesture callbacks on user touch",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HeartRateChartView.touchLocation",
+    "mem:HeartRateChartView.isDragging"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "value is .second(true, drag?)",
+     "effect": "true → updates touch state; false → no change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeartRateChartView.xAxisLabels(width:)",
+   "hash": "c730d9ee136c6c52",
+   "does": "Returns shared ChartXAxisLabels view.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeartRateChartView.tooltipX(_:width:)",
+   "hash": "e4d008f21dcaeefb",
+   "does": "Clamps tooltip x into [50, width-50].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "x < 50",
+     "effect": "returns 50"
+    },
+    {
+     "at": "+3",
+     "cond": "x > width-50",
+     "effect": "returns width-50; else x"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "tooltipX, chartStack, touchOverlay and touchGesture are copied verbatim between TachogramView and HeartRateChartView (only tint/value differ), although the comment at 479-483 says the duplicated parts were moved into shared helpers.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:202",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:408",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:184",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:390",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:152",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:358",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:481"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HeartRateChartView.hrAtLocation(_:size:)",
+   "hash": "5c7b19fdb2aeb994",
+   "does": "Returns (60000/rr_ms bpm, time label) of the beat under x, or nil when no beat or rr_ms ≤ 0. Artifact beats are converted to bpm too, labelled '(artifact)'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "beatAtLocation nil or rr_ms <= 0",
+     "effect": "returns nil; else bpm and label"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Tooltip reports a bpm for artifact-flagged beats (with '(artifact)' suffix) although the trace deliberately omits those beats because 'an interpolated RR turns into a fabricated bpm'; scrubbing shows a number the chart refuses to plot.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:415",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:428",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:494"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func beatAtLocation(_:size:session:result:)": "ba7c588c1d7b64d0"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.chartCanvas(size:)",
+   "hash": "f841640e3d10a241",
+   "does": "Canvas closure: gets artifact-free HR values and draws the trace; blank when nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.artifactFreeHRValues()",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.drawHRTrace(_:size:hrValues:windowCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "artifactFreeHRValues() nil",
+     "effect": "returns, blank canvas; else drawHRTrace"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.artifactFreeHRValues()": "60e72d812b603e71",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.drawHRTrace(_:size:hrValues:windowCount:)": "047e2cfa92191149"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.artifactFreeHRValues()",
+   "hash": "7d90490da2cc054f",
+   "does": "Converts the clamped window's RR to (window-relative index, 60000/rr bpm), dropping artifact-flagged and zero-RR beats; returns points plus window length, or nil with <3 points.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries nil or no valid window",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "artifactFlags ?? []",
+     "effect": "nil flags → no beats treated as artifacts"
+    },
+    {
+     "at": "+6",
+     "cond": "i < flags.count",
+     "effect": "reads flag; else beat treated clean"
+    },
+    {
+     "at": "+8",
+     "cond": "isArtifact or rr_ms <= 0",
+     "effect": "beat dropped; else included"
+    },
+    {
+     "at": "+11",
+     "cond": "hrValues.count > 2",
+     "effect": "true → (values, window.count); false → nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "bb22eb4270bf005f",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.hrPaddedRange(_:)",
+   "hash": "719b0540cc097cce",
+   "does": "Returns padded y range: min/max bpm (fallback 50/100), span floor 10 bpm, 10% padding top and bottom.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "min ?? 50",
+     "effect": "50 bpm when empty; unreachable (≥3 values guaranteed)"
+    },
+    {
+     "at": "+2",
+     "cond": "max ?? 100",
+     "effect": "100 bpm when empty; unreachable"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HeartRateChartView.drawHRTrace(_:size:hrValues:windowCount:)",
+   "hash": "a2e4f68bd08b599f",
+   "does": "Draws 5 grid lines at padded-range quarters, the bpm polyline placed by window index (gaps where artifacts were dropped are bridged by straight segments), gradient fill closing at the last point, and the dashed mean line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrPaddedRange(_:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.strokeAverageLine(_:size:hrValues:yFor:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "hrValues.last?.0 ?? 0",
+     "effect": "closing x uses last point's index; 0 fallback unreachable (non-empty)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrPaddedRange(_:)": "b0c93309d5e67364",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.strokeAverageLine(_:size:hrValues:yFor:)": "6bdfa3debaa59cf2",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func strokeHorizontalGrid(_:ys:width:)": "4da3af1877c2b4dd",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func tracePaths(points:height:closingX:)": "9bfea854cc83e65b"
+   }
+  },
+  {
+   "key": "func HeartRateChartView.strokeAverageLine(_:size:hrValues:yFor:)",
+   "hash": "0b10adda33fbcf70",
+   "does": "Strokes a dashed horizontal line at the mean of the plotted bpm values across the full width.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func clampedAnalysisWindow(series:result:)",
+   "hash": "1247e88190642f1b",
+   "does": "Returns windowStart ..< min(windowEnd, points.count), or nil when that is empty/inverted. Does not check windowStart >= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "end > start",
+     "effect": "true → range; false → nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "No lower-bound guard: a negative result.windowStart yields a range starting below 0 and callers index series.points[window.lowerBound] / points[i] and trap. beatPairs guards windowStart >= 0 for the same data; this shared helper does not. Whether windowStart can be negative is set by the analyzer, not checked here.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:486",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:71",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:513"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func beatAtLocation(_:size:session:result:)",
+   "hash": "54e3251e0cf7e20d",
+   "does": "Maps touch x to index lowerBound + Int(x/width * window.count); returns that RRPoint and an h:m:s wall-clock string in app locale, suffixed ' (artifact)' if flagged; nil without series/window or when the index falls outside the window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries nil or window nil",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+5",
+     "cond": "window.contains(targetIndex)",
+     "effect": "false (e.g. finger at the right edge or beyond) → nil; true → continues"
+    },
+    {
+     "at": "+6",
+     "cond": "artifactFlags ?? []",
+     "effect": "nil flags → not artifact"
+    },
+    {
+     "at": "+7",
+     "cond": "targetIndex < flags.count",
+     "effect": "reads flag; else false"
+    },
+    {
+     "at": "+10",
+     "cond": "isArtifact",
+     "effect": "true → appends localized '(artifact)'; false → no suffix"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Hit-test maps x over window.count slots while both traces place point i at i*width/(count-1); the selected beat is ahead of the drawn point by up to one sample and a touch at x == width (where the last drawn point sits) maps to index lowerBound+count, outside the window → nil, so no tooltip there.",
+     "evidence": [
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:498",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:499",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:235",
+      "Emuqu/Sources/Views/MorningResultsCharts.swift:458"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "7123f9bcf1ae25f2",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "bb22eb4270bf005f",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func windowTimeLabels(session:result:width:count:)",
+   "hash": "8cadd0f3612d2eb9",
+   "does": "Produces `count` (default 5) evenly spaced (label, x) pairs: wall-clock times interpolated between first and last beat t_ms of the clamped window, formatted with template 'jmm', x = fraction*width. Empty when no series/window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrSeries nil or window nil",
+     "effect": "returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func clampedAnalysisWindow(series:result:)": "bb22eb4270bf005f",
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  },
+  {
+   "key": "func strokeHorizontalGrid(_:ys:width:)",
+   "hash": "57c94e7167aa8293",
+   "does": "Strokes 0.5-pt 20% gray horizontal lines at each y.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for y in ys",
+     "effect": "one line per supplied y"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func tracePaths(points:height:closingX:)",
+   "hash": "c572f3f47a4986de",
+   "does": "Builds a polyline through points and a copy closed down to the baseline (closingX,height)→(0,height) for fill.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each point",
+     "effect": "iterates points"
+    },
+    {
+     "at": "+3",
+     "cond": "i == 0",
+     "effect": "move to first point; else addLine"
+    },
+    {
+     "at": "+6",
+     "cond": "!points.isEmpty",
+     "effect": "true → fill path closed to baseline; false → fill is the empty line"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ChartXAxisLabels.body",
+   "hash": "ec3e9aeea72fb7c8",
+   "does": "Positions each windowTimeLabels text at its x, y=10 in caption2 tertiary colour.",
+   "entry": "SwiftUI body; built by TachogramView.xAxisLabels and HeartRateChartView.xAxisLabels",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func windowTimeLabels(session:result:width:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func windowTimeLabels(session:result:width:count:)": "af9371bfa2e97d92",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

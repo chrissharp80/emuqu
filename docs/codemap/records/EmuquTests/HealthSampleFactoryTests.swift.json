@@ -1,0 +1,212 @@
+{
+ "file": "EmuquTests/HealthSampleFactoryTests.swift",
+ "hash": "2e008f4f86c372c8",
+ "role": "XCTest suite for what Emuqu may write into Apple Health: HealthSampleFactory interval/value validation, sleep export dropping backwards intervals, resting HR exported only from overnight readings, and the resting-HR summary ExternalUUID check.",
+ "types": [
+  "HealthSampleFactoryTests: class — @MainActor XCTestCase over HealthSampleFactory, HealthWriteAndObserve and HeartRateHealthQueries static helpers"
+ ],
+ "state": [
+  "mem:HealthSampleFactoryTests.start (fixed Date 1_700_000_000)",
+  "mem:HealthSampleFactoryTests.bpm (HKUnit count/min)"
+ ],
+ "toplevel": "Stored fixtures start and bpm.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthSampleFactoryTests.testForwardAndInstantIntervalsAreValid()",
+   "hash": "30222cebbd574587",
+   "does": "Asserts isValidInterval is true for a 60 s forward interval and for an instant (end == start).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testBackwardsIntervalBuildsNoSample()",
+   "hash": "170d4d4672c9d1a8",
+   "does": "Asserts quantitySample returns nil and isValidInterval is false when end is 1 s before start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testNonFiniteValueOrDateBuildsNoSample()",
+   "hash": "45ba57f6a615f1b0",
+   "does": "Asserts quantitySample returns nil for NaN and +infinity values, and isValidInterval is false when start is a NaN-offset Date.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for value in [nan, infinity]",
+     "effect": "asserts nil sample for each"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testValidSampleCarriesItsValueAndSpan()",
+   "hash": "231e31f1272004ac",
+   "does": "Asserts a valid 58 bpm sample over a 60 s span carries value 58 and the exact start/end dates.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.isValidInterval(start:end:)": "874c8ebb1f52e1a5",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testSleepExportDropsBackwardsIntervals()",
+   "hash": "68aef52c9cc91f5f",
+   "does": "Builds a night with one forward core interval and one backwards awake interval; asserts sleepExportSamples with inBedStart after sleepEnd returns 1 forward sample, and with a forward in-bed span returns 2 (in-bed + forward stage).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sleepData(stages:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "f7e37cdf5b6e9f40",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "c2c4acf239efce8a",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)": "35ef18f5560d97c5",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)": "55d1c6719b0a2bdb",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)": "bbfe7ff437dcd502",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sleepData(stages:)": "5d6c1a81b507d56d"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testOnlyAnOvernightReadingWritesRestingHeartRate()",
+   "hash": "5442dc5cfab5e3df",
+   "does": "Asserts restingHeartRateToExport returns 54 for an overnight session, nil for quick/nap/workout/breathe sessions, and nil for an overnight session whose nocturnalMedianHR is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restingHeartRateToExport(session:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for type in [quick, nap, workout, breathe]",
+     "effect": "asserts nil resting HR for each non-overnight type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.restingHeartRateToExport(session:result:)": "f44d6aa3e880c6df",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)": "493a91cc8fed18de",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "299bdafb81a31471"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testRestingHeartRateSummaryIdentity()",
+   "hash": "4fe884f98073ec47",
+   "does": "Asserts isRestingHeartRateSummary is true for '<uuid>-rhr', false for '<uuid>-hr' and for 'not-a-session-rhr', and that restingHeartRateNightSpan <= 12 h.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.isRestingHeartRateSummary(_:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "9f1251cef2f88729",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.isRestingHeartRateSummary(_:)": "ab6354b7f0d327ef"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.session(_:)",
+   "hash": "200f4e59f0641344",
+   "does": "Fixture: complete 8 h HRVSession of the given SessionType with no RR or analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.sleepData(stages:)",
+   "hash": "3c4c2dccdd8ba771",
+   "does": "Fixture: SleepData for a 2 h hrEstimated night with the given stage intervals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)",
+   "hash": "d036954b1fb23482",
+   "does": "Fixture: HRVAnalysisResult with fixed time/frequency/nonlinear metrics and ANSMetrics whose nocturnalMedianHR is the argument.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
+   }
+  }
+ ],
+ "deps": {}
+}

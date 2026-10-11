@@ -1,0 +1,484 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift",
+ "hash": "66fb145db0555bf9",
+ "role": "The app.settings.* toggle facts (read straight from the injected UserSettings closure) and the web.* namespace: web.available (toggle + Tavily key or Anthropic native search) and the web.search async action that calls Tavily via WebSearchService with a 15 s race.",
+ "types": [
+  "AppSettingsNamespace: struct — app.settings.* toggle facts",
+  "WebSearchNamespace: struct — web.available + web.search action"
+ ],
+ "state": [
+  "mem:WebSearchNamespace.webAvailableDescription (static let)",
+  "mem:WebSearchNamespace.webSearchDescription (static let)"
+ ],
+ "toplevel": "Imports CoreLocation/CoreMotion/os which this file does not use. Stored namespace constants ('app', 'web') and the settings closure.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AppSettingsNamespace.entries",
+   "hash": "bafe00450d1e0b87",
+   "does": "Lists the six app.settings.* toggle entries.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepIntegrationOnEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepHrvAugmentationOnEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsPenalizeMissingSleepOnEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.trainingLoadIntegrationOnEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsHealthkitExportOnEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsHealthkitExportOnEntry": "f81b3a17433e09e8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsPenalizeMissingSleepOnEntry": "bd0bc170e70f8dc1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepHrvAugmentationOnEntry": "2e52ddecf2769b93",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepIntegrationOnEntry": "194c135e41d38fce",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry": "6198b82eb6a6a15a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.trainingLoadIntegrationOnEntry": "5640ff27d145b6b2"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.appSettingsSleepIntegrationOnEntry",
+   "hash": "af609b0f0b6d5fd5",
+   "does": "Declares always-available fixed fact app.settings.sleep_integration_on = .boolean(settings().enableSleepIntegration).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.enableSleepIntegration"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.appSettingsSleepHrvAugmentationOnEntry",
+   "hash": "d967550c3e4f56ad",
+   "does": "Declares always-available fixed fact app.settings.sleep_hrv_augmentation_on = .boolean(settings().enableHRVSleepAugmentation).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.enableHRVSleepAugmentation"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.appSettingsPenalizeMissingSleepOnEntry",
+   "hash": "daa479057d248eeb",
+   "does": "Declares always-available fixed fact app.settings.penalize_missing_sleep_on = .boolean(settings().penalizeMissingSleep).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.penalizeMissingSleep"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.trainingLoadIntegrationOnEntry",
+   "hash": "5425ef2c9687fc43",
+   "does": "Declares always-available fixed fact app.settings.training_load_integration_on = .boolean(settings().enableTrainingLoadIntegration).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.enableTrainingLoadIntegration"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry",
+   "hash": "f2aa72768fa1db5e",
+   "does": "Declares always-available fixed fact app.settings.zwift_broadcast_on = .boolean(settings().enableZwiftBroadcast).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.enableZwiftBroadcast"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var AppSettingsNamespace.appSettingsHealthkitExportOnEntry",
+   "hash": "8d873c2234b49261",
+   "does": "Declares always-available fixed fact app.settings.healthkit_export_on = .boolean(settings().enableHealthKitExport).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+   ],
+   "reads": [
+    "mem:UserSettings.enableHealthKitExport"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+   }
+  },
+  {
+   "key": "var WebSearchNamespace.entries",
+   "hash": "c574de4c60263fbc",
+   "does": "Lists web.available and web.search.",
+   "entry": "FactNamespaceResolver witness read by FactResolverRegistry.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webAvailableEntry",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webSearchEntry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webAvailableEntry": "bfaeddb320db586b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var WebSearchNamespace.webSearchEntry": "faed76a789d895b0"
+   }
+  },
+  {
+   "key": "var WebSearchNamespace.webAvailableEntry",
+   "hash": "51e8da3c6d740556",
+   "does": "Declares always-available fixed fact web.available = enableWebSearch AND (Tavily key present in keychain OR active provider is Anthropic).",
+   "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)",
+    "ext:MainActor.assumeIsolated",
+    "ext:ProviderRegistry.activeProvider"
+   ],
+   "reads": [
+    "mem:UserSettings.enableWebSearch",
+    "kc:service key tavilyWebSearch",
+    "mem:ProviderRegistry.activeProvider"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "web.available reports true on an Anthropic provider with no Tavily key, but the explicit web.search action always goes through WebSearchService (Tavily) and fails with missingKey there; correctness depends on the model reading the description and not calling web.search in that state.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:129",
+      "Emuqu/Sources/Services/WebSearchService.swift:146"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/VOICE_AND_TOOL_USE.md says web.available is 'true iff the user enabled web search in Settings AND a Tavily key is set'; the code also returns true with no Tavily key whenever the active provider is Anthropic.",
+     "evidence": [
+      "docs/VOICE_AND_TOOL_USE.md:475",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:126",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:129"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasServiceKey(for:)": "31dbad94c3cc4e39",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "var WebSearchNamespace.webSearchEntry",
+   "hash": "780ab00b1fddcf0d",
+   "does": "Declares async action web.search with params query (required), intent, max_results; executes resolveWebSearch.",
+   "entry": "Invoked by FactResolverRegistry.resolveActionTool when the model emits a web_search tool call during the assistant tool-use loop.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.resolveWebSearch(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.resolveWebSearch(_:)": "2c792ef4f6c2375b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "d7adb1b41654ff54"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.resolveWebSearch(_:)",
+   "hash": "c18d624b1f88963d",
+   "does": "Validates query, maps intent, parses max_results (1–10, default '5'), runs the 15 s raced Tavily search, logs, and converts the outcome to a FactValue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchIntent(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.racedSearch(query:intent:maxResults:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)"
+   ],
+   "reads": [],
+   "writes": [
+    "net:api.tavily.com (via WebSearchService)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "query missing or blank after trimming",
+     "effect": "returns missing(invalidParameter, 'query is required')"
+    },
+    {
+     "at": "+7",
+     "cond": "max_results absent (?? \"5\")",
+     "effect": "defaults to '5'"
+    },
+    {
+     "at": "+8",
+     "cond": "max_results fails numeric validation (catch)",
+     "effect": "returns error.factValue"
+    },
+    {
+     "at": "+15",
+     "cond": "raced search returned nil (15 s timeout)",
+     "effect": "logs a warning and returns missing(internalError, 'Tavily request timed out (>15s)'); otherwise searchOutcome"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.racedSearch(query:intent:maxResults:)": "91e24aa1c6eecf03",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchIntent(_:)": "e2a7fe307c1ca766",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)": "25ca3c232c91fe58",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.searchOutcome(_:query:intent:elapsed:)",
+   "hash": "b72992e57cc276a3",
+   "does": "Dispatches a search Result: success → searchResults, failure → searchFailure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchFailure(_:elapsed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "case .success",
+     "effect": "returns searchResults(...)"
+    },
+    {
+     "at": "+9",
+     "cond": "case .failure",
+     "effect": "returns searchFailure(...)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchFailure(_:elapsed:)": "2740da91a2f8b68f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)": "99bff234a872a5d7"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.searchIntent(_:)",
+   "hash": "9bcfd0f94aa419f9",
+   "does": "Maps the raw intent string (case-insensitive) to WebSearchService.Intent; unknown/nil → .research.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'manufacturer'",
+     "effect": "returns .manufacturer"
+    },
+    {
+     "at": "+3",
+     "cond": "'general'",
+     "effect": "returns .general"
+    },
+    {
+     "at": "+4",
+     "cond": "default (nil or anything else)",
+     "effect": "returns .research"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WebSearchNamespace.racedSearch(query:intent:maxResults:)",
+   "hash": "c39d225d2a39d43c",
+   "does": "Runs WebSearchService.search inside FactResolveTimeout (15 s), wrapping thrown SearchError or any other error as Result.failure; nil on timeout (request is not cancelled).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)"
+   ],
+   "reads": [
+    "mem:UserSettings.enableWebSearch",
+    "kc:service key tavilyWebSearch"
+   ],
+   "writes": [
+    "net:api.tavily.com"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "catch WebSearchService.SearchError",
+     "effect": "returns .failure(error)"
+    },
+    {
+     "at": "+13",
+     "cond": "catch any other error",
+     "effect": "wraps as .failure(.network(localizedDescription))"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The comment says a non-SearchError throw is unexpected because 'URLSession errors are wrapped by WebSearchService', but WebSearchService.search calls `try await URLSession.shared.data(for:)` without wrapping, so every transport failure (offline, TLS, 12 s URLSession timeout) arrives through this generic catch.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:219",
+      "Emuqu/Sources/Services/WebSearchService.swift:152"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "038a17eb5d28f40f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.searchResults(_:query:intent:elapsed:)",
+   "hash": "15cd00598ea4182b",
+   "does": "Turns Tavily results into a record (query, intent, result_count, results list) or missing(notRecorded) when empty; logs either way.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResultRecord(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "results is empty",
+     "effect": "logs and returns missing(notRecorded, 'no results from <intent> domains …'); else record"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResultRecord(_:)": "2048f2de8e659134",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.searchResultRecord(_:)",
+   "hash": "3e6ba74445876aeb",
+   "does": "Maps one Tavily result to {title, url, snippet, score, published_date}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "944da9d754759532"
+   }
+  },
+  {
+   "key": "func WebSearchNamespace.searchFailure(_:elapsed:)",
+   "hash": "2bc5092626db89d0",
+   "does": "Maps each SearchError to a logged warning and a .missing envelope with user-actionable detail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".notEnabled",
+     "effect": "missing(notRecorded, 'web search is disabled — … Settings → Flo')"
+    },
+    {
+     "at": "+5",
+     "cond": ".missingKey",
+     "effect": "missing(notRecorded, 'no Tavily API key configured')"
+    },
+    {
+     "at": "+8",
+     "cond": ".rateLimited",
+     "effect": "missing(rateLimited, 'Tavily rate limit hit')"
+    },
+    {
+     "at": "+11",
+     "cond": ".network(s)",
+     "effect": "missing(internalError, 'Tavily network error: s')"
+    },
+    {
+     "at": "+14",
+     "cond": ".decode(s)",
+     "effect": "missing(internalError, 'Tavily response decode error: s')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

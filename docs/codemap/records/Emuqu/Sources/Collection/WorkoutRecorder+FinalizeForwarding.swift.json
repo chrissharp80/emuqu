@@ -1,0 +1,71 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift",
+ "hash": "87745e1ae6aaf008",
+ "role": "Forwarders keeping WorkoutRecorder.finalizeSession and WorkoutRecorder.runWithTimeout call sites working after finalize moved to WorkoutFinalizer.",
+ "types": [
+  "WorkoutRecorder: extension — finalize forwarders"
+ ],
+ "state": [],
+ "toplevel": "None.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var WorkoutRecorder.finalizer",
+   "hash": "44be2359a150ddf2",
+   "does": "Computed property building a new WorkoutFinalizer(recorder: self) on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)",
+   "hash": "b046eb52891375b7",
+   "does": "Awaits WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:) and returns the finished HRVSession. Called by WorkoutRecorder stop (WorkoutRecorder+Stop.swift:114).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::var WorkoutRecorder.finalizer",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::var WorkoutRecorder.finalizer": "228e48696250f609",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.runWithTimeout(seconds:_:)",
+   "hash": "f3649dc3fce4e503",
+   "does": "Static forwarder to WorkoutFinalizer.runWithTimeout(seconds:_:), returning the operation result or nil on timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No callers: the only other `Self.runWithTimeout` call (WorkoutRecorder+Lifecycle.swift:500) is inside WorkoutFinalizer and resolves to WorkoutFinalizer.runWithTimeout; no test calls WorkoutRecorder.runWithTimeout.",
+     "evidence": [
+      "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift:25",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:500"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "f017936602e8e59f"
+   }
+  }
+ ],
+ "deps": {}
+}

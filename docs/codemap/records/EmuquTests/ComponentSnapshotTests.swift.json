@@ -1,0 +1,157 @@
+{
+ "file": "EmuquTests/ComponentSnapshotTests.swift",
+ "hash": "c53703ea8b394a8b",
+ "role": "Snapshot tests for self-contained components: morning and workout feeling badges, the device-recovery cards (recoverable data, fetch progress mid-download and retrying), and TrainingDetailView with populated ATL/CTL/TSB metrics.",
+ "types": [
+  "ComponentSnapshotTests: class — @MainActor XCTestCase snapshotting value-driven components"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ComponentSnapshotTests.testMorningFeelingBadgeRenders()",
+   "hash": "1804378d19860b52",
+   "does": "Snapshots MorningFeelingBadge(feeling: 4) as 'badge-morning-feeling'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift::var MorningFeelingBadge.body": "4a5cf692cb64bb4c",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testWorkoutFeelingBadgeWithNoteRenders()",
+   "hash": "6376f1f2a0e247c6",
+   "does": "Snapshots WorkoutFeelingBadge(feeling 3, note 'Legs heavy on the climb') as 'badge-workout-feeling'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.body": "3c2a328f2d882cad",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testWorkoutFeelingBadgeWithoutNoteRenders()",
+   "hash": "db76626a956e8dfd",
+   "does": "Snapshots WorkoutFeelingBadge(feeling 5, no note) as 'badge-workout-feeling-no-note'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.body": "3c2a328f2d882cad",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testRecoverableDataCardRenders()",
+   "hash": "825fccb291489033",
+   "does": "Snapshots RecoverableDataCard for device 'Polar H10 9BC21F2A' as 'card-recoverable-data'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body": "32b26aa2598e9e07",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testFetchProgressCardMidDownloadRenders()",
+   "hash": "1840780b1ce20e85",
+   "does": "Snapshots FetchProgressCard at stage fetchingData, 45%, attempt 1/3 as 'card-fetch-progress'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.body": "58c44526fd9da2cf",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testFetchProgressCardRetryingRenders()",
+   "hash": "f333d3536247b219",
+   "does": "Snapshots FetchProgressCard at stage retrying, 20%, attempt 2/3 as 'card-fetch-progress-retry'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.body": "58c44526fd9da2cf",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  },
+  {
+   "key": "func ComponentSnapshotTests.testTrainingDetailWithMetricsRenders()",
+   "hash": "f3f23bd40d0e71d7",
+   "does": "Builds TrainingMetrics (ATL 62.4, CTL 55.1, TSB -7.3, three days of TRIMP) and snapshots TrainingDetailView in a NavigationStack with nil trainingContext as 'screen-training-detail'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.body",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "TrainingDetailView reads the default \\.dependencies environment (AppDependencies.current) and renders TrainingLoadPausedCard instead of the ATL/CTL/TSB cards when the host's SettingsManager settings have training load paused, so 'screen-training-detail' depends on the test host's persisted settings, contrary to the file header's claim that these components take plain values only.",
+     "evidence": [
+      "EmuquTests/ComponentSnapshotTests.swift:7",
+      "EmuquTests/ComponentSnapshotTests.swift:110",
+      "Emuqu/Sources/Views/TrainingDetailView.swift:6",
+      "Emuqu/Sources/Views/TrainingDetailView.swift:66",
+      "Emuqu/Sources/Utilities/AppDependencies.swift:779"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/TrainingDetailView.swift::var TrainingDetailView.body": "215f0252c0f9fec7",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+   }
+  }
+ ],
+ "deps": {}
+}

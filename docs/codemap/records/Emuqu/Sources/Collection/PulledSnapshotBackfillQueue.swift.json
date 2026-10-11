@@ -1,0 +1,197 @@
+{
+ "file": "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift",
+ "hash": "80432dc6bb60e41b",
+ "role": "UserDefaults-backed FIFO of CloudKit-pulled session ids still awaiting HealthKit sleep/vitals snapshot backfill, with per-id miss counters capped at maxAttempts=5.",
+ "types": [
+  "PulledSnapshotBackfillQueue: enum — static namespace for the persisted backfill queue"
+ ],
+ "state": [
+  "ud:cloudkit.pendingSnapshotBackfill (standard; [String] of UUIDs, oldest first)",
+  "ud:cloudkit.pendingSnapshotBackfillAttempts (standard; [String:Int] miss counts)",
+  "mem:PulledSnapshotBackfillQueue.maxAttempts = 5 (static let)",
+  "mem:PulledSnapshotBackfillQueue.isDraining (@MainActor static var Bool, re-entrancy guard set by RRCollector+Reanalysis.swift:518)"
+ ],
+ "toplevel": "Static lets key/attemptsKey/maxAttempts; @MainActor static var isDraining=false. All functions are nonisolated statics doing read-modify-write on UserDefaults; callers (RRCollector+Reanalysis.swift:516-522) are @MainActor.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PulledSnapshotBackfillQueue.adding(_:)",
+   "hash": "3d1b38e75c593957",
+   "does": "Reads the stored queue, appends ids not already present (preserving order), saves and returns the new queue (oldest first).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)"
+   ],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfill"
+   ],
+   "writes": [
+    "ud:cloudkit.pendingSnapshotBackfill"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee"
+   }
+  },
+  {
+   "key": "func PulledSnapshotBackfillQueue.removing(_:)",
+   "hash": "b174f711180cc058",
+   "does": "Removes the given ids from the stored queue and clears their miss counters.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)"
+   ],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "ud:cloudkit.pendingSnapshotBackfillAttempts"
+   ],
+   "writes": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "ud:cloudkit.pendingSnapshotBackfillAttempts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ids is empty",
+     "effect": "returns immediately with no writes; otherwise filters queue and attempts"
+    },
+    {
+     "at": "+4",
+     "cond": "for each id in ids",
+     "effect": "sets attempts[id]=nil (removes counter)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "31b8017df89bc235"
+   }
+  },
+  {
+   "key": "func PulledSnapshotBackfillQueue.deferring(_:)",
+   "hash": "8ffc62313cdb52a3",
+   "does": "For ids Health had nothing for: increments each id's miss counter; ids below maxAttempts are moved to the back of the queue, ids reaching maxAttempts are dropped from the queue and their counter removed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)"
+   ],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "ud:cloudkit.pendingSnapshotBackfillAttempts"
+   ],
+   "writes": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "ud:cloudkit.pendingSnapshotBackfillAttempts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "ids is empty",
+     "effect": "returns with no writes"
+    },
+    {
+     "at": "+4",
+     "cond": "for each deferred id",
+     "effect": "computes count = previous+1"
+    },
+    {
+     "at": "+5",
+     "cond": "attempts[id] ?? 0",
+     "effect": "no counter yet → treated as 0 so first miss gives 1"
+    },
+    {
+     "at": "+6",
+     "cond": "count < maxAttempts (5) ?:",
+     "effect": "true: stores count; false: removes counter (id given up)"
+    },
+    {
+     "at": "+7",
+     "cond": "count < maxAttempts",
+     "effect": "true: id appended to retry (re-queued at back); false: id dropped from queue permanently"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "deferring re-appends every missed id to the stored queue whether or not it is still there: if Delete All My Data sweeps UserDefaults (removing cloudkit.pendingSnapshotBackfill) while backfillPass is suspended, the pass's removing/deferring calls afterwards write the purged session ids back into the queue.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift:51",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:520",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:522",
+      "Emuqu/Sources/Services/DataPurgeService.swift:197"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.save(_:)": "61376b2a000f9ed9",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.stored()": "8a0406aca10066ee",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.storedAttempts()": "31b8017df89bc235"
+   }
+  },
+  {
+   "key": "func PulledSnapshotBackfillQueue.stored()",
+   "hash": "ffeeffb220589886",
+   "does": "Returns the stored queue as UUIDs, dropping strings that are not valid UUIDs.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfill"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stringArray(forKey:) ?? []",
+     "effect": "key absent or not a string array → empty queue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PulledSnapshotBackfillQueue.storedAttempts()",
+   "hash": "b70321693a39c572",
+   "does": "Returns the stored miss-count dictionary.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfillAttempts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "dictionary cast as [String:Int] ?? [:]",
+     "effect": "absent key or a dictionary with non-Int values → empty dictionary (all counters silently reset)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PulledSnapshotBackfillQueue.save(_:)",
+   "hash": "7fe49c6b0b7f6d8a",
+   "does": "Writes the queue as an array of UUID strings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:cloudkit.pendingSnapshotBackfill"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

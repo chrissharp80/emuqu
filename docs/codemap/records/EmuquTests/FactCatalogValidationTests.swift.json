@@ -1,0 +1,446 @@
+{
+ "file": "EmuquTests/FactCatalogValidationTests.swift",
+ "hash": "bc063e5b25007da1",
+ "role": "XCTest suite locking structural invariants of the Flo fact catalog built by AppFactResolverFactory.build: unique/valid tool names, placeholder patterns, flat composite deps, fast availability, deterministic catalogHash, non-empty descriptions and that every key round-trips through FactResolverRegistry.resolve.",
+ "types": [
+  "FactCatalogValidationTests: class — XCTestCase over a real FactResolverRegistry"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "Comment says the registry is built 'against an in-memory archive', but makeRegistry passes SessionArchive .shared (the test host app's real archive) and SettingsManager.shared; toolSchema() drops entries whose currentAvailability has no data (FactResolverRegistry.swift:210-215), so the name/description/duplicate tests only cover entries that happen to have data in the host's archive — on a clean simulator many entries are never checked.",
+   "evidence": [
+    "EmuquTests/FactCatalogValidationTests.swift:25",
+    "EmuquTests/FactCatalogValidationTests.swift:30",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:213"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func FactCatalogValidationTests.makeRegistry()",
+   "hash": "cdb53e5f42a0ee64",
+   "does": "Test helper: builds a FactResolverRegistry via AppFactResolverFactory.build with SessionArchive.shared and a settings closure reading SettingsManager.shared.settingsSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot"
+   ],
+   "reads": [
+    "mem:SessionArchive.shared",
+    "mem:SettingsManager.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testNoDuplicateToolNames()",
+   "hash": "3f76d6eff9466e6f",
+   "does": "Asserts toolSchema() names contain no duplicates.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Only entries with currentAvailability.hasData appear in toolSchema(), so two colliding entries with no data in the test host's archive are not detected.",
+     "evidence": [
+      "EmuquTests/FactCatalogValidationTests.swift:38",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:213"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testParameterizedEntriesHaveValidPlaceholders()",
+   "hash": "1b52a450a3561f31",
+   "does": "For every .parameterized entry in every namespace asserts the pattern contains '(' and ')' and a '$' placeholder; other entry kinds are skipped.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each namespace",
+     "effect": "iterates all registered namespaces"
+    },
+    {
+     "at": "+2",
+     "cond": "for each entry",
+     "effect": "iterates entries of the namespace"
+    },
+    {
+     "at": "+4",
+     "cond": "case .parameterized",
+     "effect": "asserts parens and '$' present in pattern"
+    },
+    {
+     "at": "+13",
+     "cond": "default (fixed/composite/action)",
+     "effect": "no assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testCompositeDependenciesResolveToRealAtomics()",
+   "hash": "1d355e44842016d4",
+   "does": "Collects key roots of fixed/parameterized entries (atomics) and composites, then asserts every composite dependency root is an atomic root and not a composite root (flat-leaf invariant).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.keyRoot(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each namespace (collection pass)",
+     "effect": "iterates namespaces"
+    },
+    {
+     "at": "+10",
+     "cond": "for each entry (collection pass)",
+     "effect": "iterates entries"
+    },
+    {
+     "at": "+12",
+     "cond": "case .fixed",
+     "effect": "inserts keyRoot(key) into atomic roots"
+    },
+    {
+     "at": "+14",
+     "cond": "case .parameterized",
+     "effect": "inserts keyRoot(pattern) into atomic roots"
+    },
+    {
+     "at": "+16",
+     "cond": "case .composite",
+     "effect": "inserts keyRoot(key) into composite roots"
+    },
+    {
+     "at": "+18",
+     "cond": "case .action",
+     "effect": "skipped (continue)"
+    },
+    {
+     "at": "+26",
+     "cond": "for each namespace (check pass)",
+     "effect": "iterates namespaces"
+    },
+    {
+     "at": "+27",
+     "cond": "for each entry (check pass)",
+     "effect": "iterates entries"
+    },
+    {
+     "at": "+28",
+     "cond": "guard entry is .composite",
+     "effect": "non-composites skipped via continue"
+    },
+    {
+     "at": "+29",
+     "cond": "for each dependency",
+     "effect": "asserts root ∈ atomics and ∉ composites"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.keyRoot(_:)": "a67f7b72a7cc352d",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.keyRoot(_:)",
+   "hash": "5aa74d0eaf771468",
+   "does": "Test helper: returns the key prefix before the first '(' (or the whole key when there is no '(').",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key contains '('",
+     "effect": "true: returns prefix before '('; false: returns key unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactCatalogValidationTests.testAvailabilityClosuresAreFast()",
+   "hash": "312f57a9fee294eb",
+   "does": "For every entry in every namespace measures wall time of entry.currentAvailability and asserts < 0.05 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.display"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each namespace",
+     "effect": "iterates namespaces"
+    },
+    {
+     "at": "+3",
+     "cond": "for each entry",
+     "effect": "times currentAvailability"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Timing-dependent assertion (wall-clock < 50 ms per entry) on a shared CI runner; also availability reads run against the host app's real SessionArchive.shared so results vary with on-device data.",
+     "evidence": [
+      "EmuquTests/FactCatalogValidationTests.swift:135",
+      "EmuquTests/FactCatalogValidationTests.swift:140"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "062bfe524f063982",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.display": "753ca23ab5feb856",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()",
+   "hash": "f30ba09c8443ca87",
+   "does": "Builds two registries and asserts their catalogHash() values are equal.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.catalogHash()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Both registries are built in the same process from the same archive, and catalogHash encodes with .sortedKeys (FactResolverRegistry.swift:231) over a name-sorted array (:215); per-process hash-seed ordering drift between app launches, which the comment at :150-152 claims to guard, is not exercised by an in-process comparison.",
+     "evidence": [
+      "EmuquTests/FactCatalogValidationTests.swift:153",
+      "EmuquTests/FactCatalogValidationTests.swift:154",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:215"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.catalogHash()": "0826d3542c7e04fb",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testToolNamesAreValidForProviders()",
+   "hash": "e7d24e1fb77146f8",
+   "does": "Asserts each toolSchema() name matches ^[a-zA-Z0-9_-]{1,64}$.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each tool spec",
+     "effect": "asserts regex match"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testAllToolsHaveDescriptions()",
+   "hash": "7eca12b06fb2dfcc",
+   "does": "Asserts each toolSchema() spec has a non-blank description.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each tool spec",
+     "effect": "asserts trimmed description non-empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.testEveryCatalogKeyRoundTripsThroughDispatch()",
+   "hash": "8b38ec131862f7d4",
+   "does": "Derives a concrete key for every fixed/parameterized/composite entry (substituting paramExample or the placeholder name) and fails if registry.resolve(key) returns .missing(.notRecorded, 'no such key…').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.substitutingPlaceholder(in:with:)",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.placeholderName(in:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.shared"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each namespace",
+     "effect": "iterates namespaces"
+    },
+    {
+     "at": "+3",
+     "cond": "for each entry",
+     "effect": "iterates entries"
+    },
+    {
+     "at": "+6",
+     "cond": "case .fixed",
+     "effect": "key = literal key"
+    },
+    {
+     "at": "+8",
+     "cond": "case .parameterized",
+     "effect": "key = pattern with paramExample substituted into parens"
+    },
+    {
+     "at": "+10",
+     "cond": "case .composite",
+     "effect": "key built per line 228"
+    },
+    {
+     "at": "+15",
+     "cond": "composite key contains '('",
+     "effect": "true: substitutes placeholder name (or 'value' if none); false: literal key"
+    },
+    {
+     "at": "+16",
+     "cond": "placeholderName returns nil",
+     "effect": "falls back to substituting 'value'"
+    },
+    {
+     "at": "+18",
+     "cond": "case .action",
+     "effect": "skipped (continue)"
+    },
+    {
+     "at": "+24",
+     "cond": "resolve returned .missing(.notRecorded) with detail prefixed 'no such key'",
+     "effect": "XCTFail; any other result (including other missing reasons) counts as success"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc comment says six namespaces register as 'app'; FactResolverRegistry.resolve's own comment says five.",
+     "evidence": [
+      "EmuquTests/FactCatalogValidationTests.swift:197",
+      "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:104"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::var FactResolverRegistry.namespaces": "07930419e5176fc7",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.placeholderName(in:)": "f68ecaf91d968ce0",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.substitutingPlaceholder(in:with:)": "527e7935c428c259"
+   }
+  },
+  {
+   "key": "func FactCatalogValidationTests.substitutingPlaceholder(in:with:)",
+   "hash": "f32134c540741f2f",
+   "does": "Test helper: replaces the text between the first '(' and first ')' with example; returns pattern unchanged if parens are missing or misordered.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "'(' and ')' both found and open < close",
+     "effect": "true: substitutes; false: returns pattern unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactCatalogValidationTests.placeholderName(in:)",
+   "hash": "d4652ae862fe686f",
+   "does": "Test helper: returns the placeholder name inside the first parens when it starts with '$' (without the '$'), else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "parens found and ordered",
+     "effect": "false: returns nil"
+    },
+    {
+     "at": "+6",
+     "cond": "inner text starts with '$'",
+     "effect": "false: returns nil; true: returns name without '$'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

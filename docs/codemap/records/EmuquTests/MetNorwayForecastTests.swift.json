@@ -1,0 +1,274 @@
+{
+ "file": "EmuquTests/MetNorwayForecastTests.swift",
+ "hash": "bf5f1f2355cf4a48",
+ "role": "XCTest suite for the MET Norway Locationforecast compact parser (MetNorwayForecast.parse/hour), snapshot(at:) nearest-step selection, symbol→condition mapping, the Expires HTTP-date parser and WeatherService terms-of-service constants (userAgent, minimumRequestInterval).",
+ "types": [
+  "MetNorwayForecastTests: class — @MainActor XCTestCase over MetNorwayForecast and WeatherService static members"
+ ],
+ "state": [
+  "mem:MetNorwayForecastTests.fixture (private let JSON Data: 3 timeseries steps 12:00/13:00/14:00Z 2026-10-03, the 14:00 one lacks wind)",
+  "mem:MetNorwayForecastTests.noon (Date 1_791_028_800 = 2026-10-03T12:00Z)"
+ ],
+ "toplevel": "Stored-property initializers build the inline JSON fixture and the noon reference date.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MetNorwayForecastTests.forecast()",
+   "hash": "43df566cf0d7f9e3",
+   "does": "Helper: parses the fixture and wraps the hours in MetNorwayForecast(hours:lastModified:nil,expires:nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "532f2d5c0cae36e5"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testParsesCompleteStepsAndDropsOnesWithoutWind()",
+   "hash": "09eec44508e0d19c",
+   "does": "Asserts parse(fixture) returns 2 hours (14:00 step without wind dropped) and hour[0] has time=noon, temp 14.2, humidity 71.3, wind 5.0 m/s, direction 214.6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "532f2d5c0cae36e5"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testSymbolPrefersTheNextHourAndFallsBackToTheNextSixHours()",
+   "hash": "b24f713d34cf09bb",
+   "does": "Asserts symbolCode comes from next_1_hours when present ('lightrainshowers_day') and falls back to next_6_hours ('partlycloudy_day') otherwise.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "49d2f1a114e03f25",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "532f2d5c0cae36e5"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testSnapshotUsesTheNearestStep()",
+   "hash": "32bffc43d7ea5a10",
+   "does": "Asserts snapshot(at: noon+50min) picks the 13:00 step (temp 15.0, conditions 'Partly cloudy').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "7cc4a5d832b609fa",
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()": "a8e52ebb1fedbefb"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testSnapshotConvertsWindAndLeavesApparentTemperatureEmpty()",
+   "hash": "4432f95a78f13c77",
+   "does": "Asserts snapshot(at: noon) converts 5 m/s to 18 km/h, carries direction 214.6 and humidity 71.3, conditions 'Rain showers', and apparentTemperatureC nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "7cc4a5d832b609fa",
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()": "a8e52ebb1fedbefb"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testSnapshotIsNilForAForecastHeldTooLong()",
+   "hash": "6ad65bc839ddc973",
+   "does": "Asserts snapshot(at: noon+5h) is nil because nearest step (13:00) is >3h away.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "7cc4a5d832b609fa",
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()": "a8e52ebb1fedbefb"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testMalformedResponseThrows()",
+   "hash": "a140783e43b2529e",
+   "does": "Asserts parse throws on JSON lacking properties.timeseries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "532f2d5c0cae36e5"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testSymbolCodesMapToTheAppsConditionNames()",
+   "hash": "a3699857c6831e1f",
+   "does": "Asserts conditions(forSymbol:) maps clearsky_night→Clear, fair_polartwilight→Mainly clear, cloudy→Overcast, heavyrain→Heavy rain, lightsleet→Sleet, snowshowers_day→Snow showers (suffix dropped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testEveryThunderCodeIsAThunderstorm()",
+   "hash": "5e90ad4fb0e5de28",
+   "does": "Asserts any symbol containing 'thunder' (rainandthunder, lightssnowshowersandthunder_day) maps to Thunderstorm.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testUnknownOrMissingSymbolIsUnknown()",
+   "hash": "ebdc7bd21b95a48c",
+   "does": "Asserts nil symbol and unknown 'volcanicash' both map to 'Unknown'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testEveryConditionNameIsTranslated()",
+   "hash": "e430c90cf12e380b",
+   "does": "For 9 base symbols asserts conditions(forSymbol:) is not 'Unknown' and WeatherService.localizedConditions(english) is non-empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditions(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditionNames()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 9 fixed symbols",
+     "effect": "asserts mapping is not Unknown and localized text non-empty; loop over fixed list"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 'is translated' assertion is a tautology: localizedConditions falls back to the English input when no translation exists (`?? english`), so isEmpty is never true and a missing translation key cannot fail the test.",
+     "evidence": [
+      "EmuquTests/MetNorwayForecastTests.swift:120",
+      "Emuqu/Sources/Services/WeatherService.swift:190"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditionNames()": "6e13755596a68daf",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditions(_:)": "88cddc6f2c402cfc"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testExpiresHeaderParses()",
+   "hash": "da43c1055f130294",
+   "does": "Asserts MetNorwayForecast.httpDate parses 'Sat, 03 Oct 2026 12:31:07 GMT' to noon+31m07s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)": "0609b4706cf7a074"
+   }
+  },
+  {
+   "key": "func MetNorwayForecastTests.testUserAgentNamesTheAppAndAContact()",
+   "hash": "2fc5b9fb5d79808d",
+   "does": "Asserts WeatherService.userAgent starts with 'Emuqu/' and contains 'github.com/chrissharp80/emuqu'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:WeatherService.userAgent static let (WeatherService.swift:56)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetNorwayForecastTests.testRequestsAreAtLeastTenMinutesApart()",
+   "hash": "2b52e19dfbcc407f",
+   "does": "Asserts WeatherService.minimumRequestInterval >= 600 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:WeatherService.minimumRequestInterval static let (WeatherService.swift:49)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

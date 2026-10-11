@@ -1,0 +1,279 @@
+{
+ "file": "EmuquTests/HealthSourcedSyncMarkerTests.swift",
+ "hash": "b2d13c338aa33aac",
+ "role": "XCTest suite for marking Apple-Health-sourced data so the iCloud upload omits it: profile fields filled from Health (profileFieldsFromHealth), workout HR rows from Apple Health (healthKitHROffsets), upload stripping, pull restoring, and Codable round-trip of the markers.",
+ "types": [
+  "HealthSourcedSyncMarkerTests: class — @MainActor XCTestCase over BiometricsSettingsPage.fill, UserSettings markers, WorkoutFinalizer.healthKitHROffsets, CloudSessionPayload.uploadable, CloudKitSessionFreshness.replacing"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testFillingFromHealthMarksEachFilledField()",
+   "hash": "2b5a6c347eb678a1",
+   "does": "Fills default UserSettings from a HealthBiometricProfile (70 kg, female, DOB 1970); asserts 3 labels returned, the three values set, and profileFieldsFromHealth == [bodyWeight, biologicalSex, birthday].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex"
+   ],
+   "reads": [
+    "mem:UnitsPreferenceStore.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "0455a9e9d10244f7",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "cca4f674de4a9c4a"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testFillingFromHealthLeavesEnteredFieldsUnmarked()",
+   "hash": "7740c5100a3a7d8a",
+   "does": "With bodyWeightKg already 80 and a profile carrying only weight 70 (sex .notSet, no DOB), asserts fill returns nothing, weight stays 80 and no field is marked.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "0455a9e9d10244f7",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "cca4f674de4a9c4a"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testEditingAFilledFieldClearsItsMarker()",
+   "hash": "2058054dc9200b94",
+   "does": "Fills weight and sex from Health, then sets bodyWeightKg = 72; asserts the bodyWeight marker is cleared (didSet), withoutHealthFilledProfile keeps 72 and nils the still-marked biologicalSex.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex"
+   ],
+   "reads": [
+    "mem:UnitsPreferenceStore.current"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "9286f4aa2d8025c4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "0455a9e9d10244f7",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "c99215f1b465dff1",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "46be4c833141a632",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "cca4f674de4a9c4a"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testBackfilledRowsAreMarkedOnAStrapWorkout()",
+   "hash": "50aca1165610ec91",
+   "does": "Asserts healthKitHROffsets for a strap workout returns [1] when offset 1 was backfilled and nil when nothing was.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "02b6b4c231ca2c24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testEveryRowWithHeartRateIsMarkedOnAWatchWorkout()",
+   "hash": "c39909623aa8dd5a",
+   "does": "Asserts a .watch-source workout marks every row that has a heart rate ([0,2]) and skips the row without one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "02b6b4c231ca2c24",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testUploadClearsHeartRateOnMarkedRowsOnly()",
+   "hash": "32b09cc5dd827773",
+   "does": "Asserts CloudSessionPayload.uploadable clears heartRate only on marked row 1 ([120,nil,122]), keeps that row's distance (5 m) and keeps healthKitHROffsets [1].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)": "7655694a4a759783",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)": "cf8b7f32c2da165c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)": "f7ff9fd72cda0ba9",
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()": "6f76e4249706e60d"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testPullKeepsThisDevicesHealthHeartRate()",
+   "hash": "6a3f872821268306",
+   "does": "Uploads a session (row 1 HR stripped), sets remote morningFeeling=4, merges via CloudKitSessionFreshness.replacing; asserts morningFeeling 4 and local HR 140 restored on row 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "851c95f949e98fb6",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)": "aa3ded7322cccf29",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)": "cb9d08d95a68ff3a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)": "7655694a4a759783",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)": "cf8b7f32c2da165c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)": "f7ff9fd72cda0ba9",
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()": "6f76e4249706e60d"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testPullOfAnUnmarkedCopyKeepsTheLocalMarkers()",
+   "hash": "c91b9d3a5e95a303",
+   "does": "Merges a remote copy with healthKitHROffsets nil; asserts the merged copy takes the local [1] markers and a subsequent uploadable strips row 1's HR.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "851c95f949e98fb6",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "18f1f71be73f46a0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)": "aa3ded7322cccf29",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)": "cb9d08d95a68ff3a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.strapMeasured(_:)": "7655694a4a759783",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.withoutHealthKitHR(_:)": "cf8b7f32c2da165c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)": "f7ff9fd72cda0ba9",
+    "EmuquTests/HealthSourcedSyncMarkerTests.swift::func HealthSourcedSyncMarkerTests.makeWorkoutSession()": "6f76e4249706e60d"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.testMarkersSurviveTheArchiveAndOlderRecordsDecode()",
+   "hash": "8f699eaaad66559c",
+   "does": "Round-trips WorkoutMetadata with healthKitHROffsets [3,4] through JSONEncoder/Decoder and asserts preserved; decodes '{\"sport\":\"run\"}' and asserts healthKitHROffsets is nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encode(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encode(to:)": "65bf3e157b298bea",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(from:)": "a547a2367e607217",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func HealthSourcedSyncMarkerTests.makeWorkoutSession()",
+   "hash": "6bf7a78d5f830084",
+   "does": "Fixture: complete 1 h .run workout HRVSession with three per-second samples (HR 120/140/122, row 1 distance 5 m) and healthKitHROffsets [1].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  }
+ ],
+ "deps": {}
+}

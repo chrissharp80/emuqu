@@ -1,0 +1,14 @@
+{
+ "file": "scripts/check_snapshot_references.sh",
+ "hash": "d2eb5000e84d7e98",
+ "role": "CI guard (make snapshot-refs-guard; ci.yml, gates.yml) that every `assertSnapshot(... named: \"x\")` in EmuquTests has a committed EmuquTests/__Snapshots__/x.raw and every .raw has a caller.",
+ "types": [],
+ "state": [
+  "file:EmuquTests/**/*.swift (read)",
+  "file:EmuquTests/__Snapshots__/*.raw (read)"
+ ],
+ "toplevel": "set -euo pipefail; no cd (must be run from repo root; exit 2 if ./EmuquTests is not a directory). Python: paren-matched extraction of each `assertSnapshot(` argument span; regex `named:\\s*\"...\"` gives the name (calls whose name is not a string literal are ignored). Stored = stems of top-level *.raw in __Snapshots__ (empty set if dir absent; subdirectories ignored). Missing or orphan -> prints each and exit 1. No assertions at all -> exit 1 (guard must not guard nothing). Else prints counts and exits 0. Does not validate reference bytes (documented).",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

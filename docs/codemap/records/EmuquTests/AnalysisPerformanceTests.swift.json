@@ -1,0 +1,64 @@
+{
+ "file": "EmuquTests/AnalysisPerformanceTests.swift",
+ "hash": "19776be6489d1e1f",
+ "role": "XCTest performance test for DFAAnalyzer.compute on a 30,000-sample synthetic RR series, with the timing wrapper skipped under Thread Sanitizer.",
+ "types": [
+  "AnalysisPerformanceTests: class — XCTestCase measuring DFA runtime"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AnalysisPerformanceTests.isRunningUnderThreadSanitizer",
+   "hash": "4d148cbbbdd426fe",
+   "does": "Returns true when dlsym(RTLD_DEFAULT, \"__tsan_init\") resolves, i.e. the Thread Sanitizer runtime is linked.",
+   "entry": null,
+   "calls": [
+    "ext:dlsym"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()",
+   "hash": "6f0093914794efbc",
+   "does": "Builds 30,000 RR values cycling 890-910 ms and asserts DFAAnalyzer.compute returns non-nil; outside TSan wraps it in measure(XCTClockMetric).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "EmuquTests/AnalysisPerformanceTests.swift::var AnalysisPerformanceTests.isRunningUnderThreadSanitizer",
+    "ext:XCTestCase.measure"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "running under Thread Sanitizer",
+     "effect": "asserts compute non-nil once and returns without measuring; otherwise runs measure{} with the non-nil assertion in each iteration"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only asserts the result is non-nil; the synthetic periodic RR series' DFA alpha values are never checked, so a numerically wrong DFA still passes. Without a stored baseline the XCTClockMetric measure has no pass/fail threshold.",
+     "evidence": [
+      "EmuquTests/AnalysisPerformanceTests.swift:43",
+      "EmuquTests/AnalysisPerformanceTests.swift:50"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "EmuquTests/AnalysisPerformanceTests.swift::var AnalysisPerformanceTests.isRunningUnderThreadSanitizer": "b1cc28eaecec127b"
+   }
+  }
+ ],
+ "deps": {}
+}

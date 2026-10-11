@@ -1,0 +1,39 @@
+{
+ "file": "scripts/check_localization_orphans.sh",
+ "hash": "e0e547f9899700a1",
+ "role": "CI gate: counts catalogue keys (shouldTranslate != false) that no code literal requests and fails above .ci/localization_orphan_budget.txt (35).",
+ "types": [],
+ "state": [
+  "file:Emuqu/Localizable.xcstrings",
+  "file:.ci/localization_orphan_budget.txt",
+  "env:LOCALIZATION_ORPHAN_BUDGET_FILE"
+ ],
+ "toplevel": "cd to repo root; set -uo pipefail (no -e). SCAN_DIR=$1 or Emuqu/Sources, CATALOGUE=$2, BUDGET_FILE env; missing -> 2; non-integer budget -> 2. Python (copy of the resolution extractor plus multi-line literal support, NSLocalizedString in CALL) builds requested keys from Emuqu/Sources, the watch app and EmuquApp.swift, prints up to 15 orphans to stderr and the count. count>budget -> exit 1; below -> hint; 'clean'.",
+ "flags": [
+  {
+   "kind": "silent-failure",
+   "sev": "med",
+   "text": "Fails open: if the Python measurement crashes (e.g. unparsable catalogue) `count` is empty, `(( count > budget ))` evaluates the empty string as 0, and the gate prints 'clean' with exit 0. Verified with an invalid catalogue path argument.",
+   "evidence": [
+    "scripts/check_localization_orphans.sh:60",
+    "scripts/check_localization_orphans.sh:262",
+    "scripts/check_localization_orphans.sh:273"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "The scanning/normalisation code is a copied fork of check_localization_resolution.sh (scan_literal, unescape, candidate_keys, skip_literal_at, first_argument_literals, CALL), not shared; the copies have already diverged (multi-line literals and NSLocalizedString are handled only here). The header claims it 'deliberately shares its extractor'.",
+   "evidence": [
+    "scripts/check_localization_orphans.sh:19",
+    "scripts/check_localization_orphans.sh:73",
+    "scripts/check_localization_resolution.sh:120",
+    "scripts/check_localization_resolution.sh:275"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

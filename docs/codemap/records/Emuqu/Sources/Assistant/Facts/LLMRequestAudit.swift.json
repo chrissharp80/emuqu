@@ -1,0 +1,194 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift",
+ "hash": "a6b05563e192d48a",
+ "role": "In-memory, MainActor @Observable singleton holding the last 10 outbound LLM requests (system prompt, messages JSON, tools JSON, streamed response, usage, error) for the Troubleshooting prompt-audit page.",
+ "types": [
+  "LLMRequestAudit: final class (@Observable @MainActor) — FIFO audit log",
+  "LLMRequestAudit.Entry: struct (Identifiable) — one request",
+  "LLMRequestAudit.Entry.Usage: struct (Equatable) — token counts"
+ ],
+ "state": [
+  "mem:LLMRequestAudit.shared (singleton)",
+  "mem:LLMRequestAudit.entries (newest first, max 10)",
+  "mem:LLMRequestAudit.maxEntries = 10",
+  "mem:LLMRequestAudit.maxPayloadCharacters = 60_000"
+ ],
+ "toplevel": "Singleton `shared`; constants maxEntries 10 and maxPayloadCharacters 60000. Never persisted; cleared by the audit page's Clear button and DataPurgeService.purgeHealthCaches.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "File doc says 'Every provider's stream entry point pushes a record here' and refers to a nonexistent `update(...)` API; the only record() caller is AssistantViewModel.recordPromptAudit, and the update API is append/setUsage/setError.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:5",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:78",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:246"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc claims worst case ~10 × ~50 KB = ~500 KB, but each entry may hold four strings each capped at 60,000 characters (system prompt, messages, tools, response), i.e. up to ~2.4M characters across 10 entries.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:18",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:33"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init LLMRequestAudit()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private initializer for the singleton.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)",
+   "hash": "c947babcccb1a742",
+   "does": "Creates an Entry (new UUID, now, payloads capped to 60k chars, no usage, empty response), inserts it at index 0, trims entries to 10, returns the id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.cap(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+20",
+     "cond": "entries.count > 10",
+     "effect": "drops the oldest tail entries; otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.cap(_:)": "b5e8d17b69764905"
+   }
+  },
+  {
+   "key": "func LLMRequestAudit.append(textDelta:to:)",
+   "hash": "62e784063467a1d8",
+   "does": "Appends a streamed text delta to the entry with that id, keeping only the last 60k characters; no-op if the entry was already evicted.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry id found",
+     "effect": "false: returns silently (entry evicted or cleared); true: appends"
+    },
+    {
+     "at": "+4",
+     "cond": "response > 60k chars",
+     "effect": "keeps the suffix 60k chars (drops the beginning)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMRequestAudit.setUsage(_:for:)",
+   "hash": "5e3febe2ea7eaa2e",
+   "does": "Stores the usage block on the entry with that id; silently no-op if not found.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry id found",
+     "effect": "false: return; true: sets usage"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMRequestAudit.setError(_:for:)",
+   "hash": "288104c9adcc0f3f",
+   "does": "Stores an error description on the entry with that id; silently no-op if not found.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry id found",
+     "effect": "false: return; true: sets errorDescription"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "med",
+     "text": "setError has no caller anywhere in the repo, so Entry.errorDescription is always nil and the audit page can never show 'why did this turn fail' as the doc promises; failed turns look like empty successful ones.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:127",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:460"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LLMRequestAudit.clear()",
+   "hash": "ce052f6029424b0c",
+   "does": "Removes all entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMRequestAudit.cap(_:)",
+   "hash": "cb128639c6c85db6",
+   "does": "Returns the string unchanged if ≤ 60k chars, else its first 60k chars plus '[…truncated N chars]'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "s.count > 60000",
+     "effect": "false: returns s; true: truncates and appends marker"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

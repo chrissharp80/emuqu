@@ -1,0 +1,326 @@
+{
+ "file": "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift",
+ "hash": "6a58d92ad7130c87",
+ "role": "Forwarders on PDFReportGenerator to ReportSectionRenderer for header, summary card, metric sections, charts, footer, pagination and readiness colour, plus the `sections` computed property.",
+ "types": [
+  "PDFReportGenerator: extension — body-section forwarding"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var PDFReportGenerator.sections",
+   "hash": "9b1bc2e4d89a1d64",
+   "does": "Computed property returning a fresh ReportSectionRenderer(generator: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PDFReportGenerator.drawANSSection(_:yPosition:in:pageRect:)",
+   "hash": "71555107f9f7ddfa",
+   "does": "Forwards to ReportSectionRenderer.drawANSSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawANSSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawANSSection(_:yPosition:in:pageRect:)": "7a51e8bae3054646"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawCompactStatBox(title:value:color:rect:)",
+   "hash": "7003d00baa88f94e",
+   "does": "Forwards to ReportSectionRenderer.drawCompactStatBox (7pt grey title, 13pt bold value in `color`); returns nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawCompactStatBox(title:value:color:rect:)": "98aed09ae3b1f90e"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)",
+   "hash": "fe2765d317f74416",
+   "does": "Forwards to ReportSectionRenderer.drawFooter for the given page number; returns nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFooter(pageNumber:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFooter(pageNumber:in:pageRect:)": "6b06292a385667e7"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawFrequencyDomainSection(_:yPosition:in:pageRect:)",
+   "hash": "2044c4e66e3b25b8",
+   "does": "Forwards to ReportSectionRenderer.drawFrequencyDomainSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFrequencyDomainSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawFrequencyDomainSection(_:yPosition:in:pageRect:)": "6e4ed00753f69491"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawHeader(session:result:in:pageRect:)",
+   "hash": "d8c2cffb5c1875aa",
+   "does": "Forwards to ReportSectionRenderer.drawHeader with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeader(session:result:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawHeader(session:result:in:pageRect:)": "b8c93c0c203cc104"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawNonlinearSection(_:yPosition:in:pageRect:)",
+   "hash": "aa7ee5406e0f4f8b",
+   "does": "Forwards to ReportSectionRenderer.drawNonlinearSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawNonlinearSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawNonlinearSection(_:yPosition:in:pageRect:)": "2425d02af7acb14c"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)",
+   "hash": "6e4e6adfa85a7638",
+   "does": "Forwards to ReportSectionRenderer.drawPSDGraph with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)": "16ddff3adb378dd3"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
+   "hash": "cf9ca8681a9bdf14",
+   "does": "Forwards to ReportSectionRenderer.drawPoincarePlot with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)": "dc961e7cce3f20e3"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)",
+   "hash": "96c112c3d6c7b349",
+   "does": "Forwards to ReportSectionRenderer.drawQualitySection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawQualitySection(_:session:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawQualitySection(_:session:yPosition:in:pageRect:)": "cabf5723b16d1943"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)",
+   "hash": "7e14fd67d66a22b8",
+   "does": "Forwards to ReportSectionRenderer.drawScoreBreakdownSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawScoreBreakdownSection(breakdown:loadLevel:yPosition:in:pageRect:)": "6051fbe077e176f7"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)",
+   "hash": "47a7d7cb92dabdc9",
+   "does": "Forwards to ReportSectionRenderer.drawSummaryCard with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryCard(result:ans:compositeScore:yPosition:in:pageRect:)": "8ea601229aad7f18"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawTachogram(series:flags:result:yPosition:in:pageRect:)",
+   "hash": "69ba7616bfd15f01",
+   "does": "Forwards to ReportSectionRenderer.drawTachogram with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogram(series:flags:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogram(series:flags:result:yPosition:in:pageRect:)": "a767a9449d6d5c9c"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawTimeDomainSection(_:yPosition:in:pageRect:)",
+   "hash": "66c4a2c8e275efc6",
+   "does": "Forwards to ReportSectionRenderer.drawTimeDomainSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawTimeDomainSection(_:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawTimeDomainSection(_:yPosition:in:pageRect:)": "c177565faaaf48d4"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
+   "hash": "7176289bbf20a401",
+   "does": "Forwards to ReportSectionRenderer.drawWindowSelectionSection with the same arguments and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionSection(result:yPosition:in:pageRect:)": "dfa1cc3d8045f7c9"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+   "hash": "da70d6fb13a30c5d",
+   "does": "Forwards to ReportSectionRenderer.ensureSpace: if y+needed passes the bottom limit, draws the footer, increments pageNumber, begins a new (possibly mirrored) page and returns the top margin; else returns y.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "350948c7ddabaf44"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.readinessColor(_:)",
+   "hash": "d3cce0f9b2a32b5a",
+   "does": "Forwards to ReportSectionRenderer.readinessColor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller: ReportSectionRenderer calls its own readinessColor (ReportSectionRenderer+Sections.swift:244,259); other `readinessColor` hits are AppTheme.readinessColor; nothing calls PDFReportGenerator.readinessColor, tests included.",
+     "evidence": [
+      "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift:93",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:244",
+      "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift:259"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "ec5286f15186db1c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.readinessColor(_:)": "1e07b768fcf99b99"
+   }
+  }
+ ],
+ "deps": {}
+}

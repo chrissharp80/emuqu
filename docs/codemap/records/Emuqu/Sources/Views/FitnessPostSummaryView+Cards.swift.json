@@ -1,0 +1,1798 @@
+{
+ "file": "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift",
+ "hash": "2214012aa549f7e0",
+ "role": "FitnessSummaryCards extension holding the workout post-summary cards: physiology (decoupling/EF), conditions/heat, splits, route-history baseline, coach report, save-to-route-library, export, DEM elevation recompute, α1 re-analysis and recap-card share, plus archive write-back helpers.",
+ "types": [
+  "FitnessSummaryCards: extension — post-summary cards",
+  "FitnessSummaryCards.RouteHistorySummary: struct — prior-run count + pace/HR comparison rows",
+  "FitnessSummaryCards.RouteHistorySummary.ComparisonRow: struct — today/baseline/delta caption strings",
+  "FitnessSummaryCards.RouteBaseline: struct — summed distance/duration and HR sum/count over prior runs"
+ ],
+ "state": [],
+ "toplevel": "Two file-scope @MainActor private view helpers (routeHistoryHeader, routeHistoryValues). All state lives in FitnessSummaryCards' @Binding properties declared in FitnessSummaryCards.swift.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Comments say the save-route default name is 'Daily N' / 'Saved as \"Daily 1\"', but defaultSavedRouteName produces '<sport name> N' with an unlocalized 'Workout' fallback.",
+   "evidence": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:416",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:463",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:495",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:501"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var FitnessSummaryCards.physiologyCard",
+   "hash": "b3a891719e5cfa1e",
+   "does": "Card with a 'Physiology' header, the decoupling row, the efficiency-factor row and an empty-state note.",
+   "entry": "SwiftUI view, rendered via FitnessPostSummaryView.physiologyCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:36, Emuqu/Sources/Views/FitnessPostSummaryView.swift:281)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.decouplingRow",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.efficiencyFactorRow",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyEmptyNote"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.decouplingRow": "a626031d45ffed7e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.efficiencyFactorRow": "f4cd57d8e809b7f3",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyEmptyNote": "f20e7eac5b91b495",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.physiologyEmptyNote",
+   "hash": "0a7d4d3bd316a0a9",
+   "does": "Shows 'Needs more time + distance to compute drift metrics.' when the workout has neither decoupling nor EF.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "decouplingPercent == nil && efficiencyFactor == nil",
+     "effect": "shows the note; otherwise renders nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.efficiencyFactorRow",
+   "hash": "0b523cc2c598be5c",
+   "does": "Headline row 'Efficiency Factor' with EF to 2 decimals and caption 'normalized pace ÷ avg HR', only when EF exists.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutMetadata.efficiencyFactor non-nil",
+     "effect": "row shown; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)": "1d6dd38fa2b7a44c"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.decouplingRow",
+   "hash": "f74d784fbb18efdf",
+   "does": "Headline row 'Pa:Hr Decoupling' as signed percent with caption 'strong aerobic efficiency' below 5% else 'efficiency drifted', only when decoupling exists.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "decouplingPercent non-nil",
+     "effect": "row shown; nil → nothing"
+    },
+    {
+     "at": "+6",
+     "cond": "decoupling < 5",
+     "effect": "'strong aerobic efficiency' (also for any negative value); >= 5 → 'efficiency drifted'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Any decoupling below 5% — including large negative values such as -20%, which indicate HR falling relative to pace or bad data — is labelled 'strong aerobic efficiency'.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:60"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)": "1d6dd38fa2b7a44c"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.environmentCard",
+   "hash": "b23447f7dd666b6c",
+   "does": "When the workout has a weather snapshot, computes heat exposure, session heat stimulus and WBGT and renders environmentBody with the user's temperature unit; otherwise nothing.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.environmentCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:37, Emuqu/Sources/Views/FitnessPostSummaryView.swift:282)",
+   "calls": [
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposure(from:weather:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.environmentBody(_:unit:stimulus:wbgt:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager.settings.temperatureUnit"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutMetadata.weatherSnapshot non-nil",
+     "effect": "render the card; nil → nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Reads the temperature unit through AppDependencies.current.app.settingsManager although FitnessSummaryCards is handed its own settingsManager (FitnessSummaryCards.swift:27), so previews/tests injecting a settings manager do not control this card.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:71",
+      "Emuqu/Sources/Views/FitnessSummaryCards.swift:27"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.wbgtEstimate(tempC:relativeHumidity:)": "be72b0645ac40f98",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposure(from:weather:)": "985981cbb1550889",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.environmentBody(_:unit:stimulus:wbgt:)": "0dbf3817c2c04981",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.environmentBody(_:unit:stimulus:wbgt:)",
+   "hash": "7cbd6c61f6e11796",
+   "does": "'Conditions' card: temperature headline with humidity/conditions caption, heat-stimulus sentence and MET Norway attribution when applicable.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.formatTemp(_:unit:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.conditionsCaption(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.heatContributionLine(stimulus:wbgt:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.weatherAttribution(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.conditionsCaption(_:)": "9c423fbe91004d38",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.formatTemp(_:unit:)": "cec988f422d934d5",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.heatContributionLine(stimulus:wbgt:)": "28d3ad5f6ed7e6e3",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.weatherAttribution(_:)": "9fec9c618701662e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.headlineRow(_:value:caption:)": "1d6dd38fa2b7a44c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.conditionsCaption(_:)",
+   "hash": "60b014e1ac8f44bb",
+   "does": "Returns '<humidity>% humidity', prefixed by the localized conditions text when the snapshot has conditions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditions(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "weather.conditions nil",
+     "effect": "return humidity-only caption; else 'conditions, N% humidity'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.conditions(forSymbol:)": "b052f9da6abe1efa",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditions(_:)": "88cddc6f2c402cfc"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.weatherAttribution(_:)",
+   "hash": "011b89b72a5e893f",
+   "does": "Shows 'Weather data: MET Norway (CC BY 4.0)' only when the snapshot has wind (i.e. was fetched from MET Norway, not Apple Health).",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "weather.windKMH != nil",
+     "effect": "credit shown; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.formatTemp(_:unit:)",
+   "hash": "0e64ce9b67d3bed4",
+   "does": "Formats Celsius as rounded °F or °C per the unit.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unit == .fahrenheit",
+     "effect": "convert C*9/5+32; else keep C"
+    },
+    {
+     "at": "+2",
+     "cond": "unit == .fahrenheit",
+     "effect": "symbol °F; else °C"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessSummaryCards.heatContributionLine(stimulus:wbgt:)",
+   "hash": "50e08edf9a82a56a",
+   "does": "Returns a sentence describing the heat-acclimatization stimulus: none when <= 0, 'strong' at >= 0.85, 'solid (N%)' at >= 0.5, otherwise 'mild (N%)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stimulus <= 0",
+     "effect": "'Cool enough…' sentence"
+    },
+    {
+     "at": "+5",
+     "cond": "stimulus >= 0.85",
+     "effect": "'A strong heat stimulus…'"
+    },
+    {
+     "at": "+8",
+     "cond": "stimulus >= 0.5",
+     "effect": "'A solid heat stimulus (N%)…'; below → 'A mild heat stimulus (N%)…'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The wbgt parameter is never used in the body; environmentCard computes HeatAcclimation.wbgtEstimate only to pass it here, so the WBGT figure affects nothing shown.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:130",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:74",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:92"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.splitsCard(_:)",
+   "hash": "67bc9c9bab46460b",
+   "does": "'Splits' card listing splitRow for each resolved split with 'mi' or 'km' unit label.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.splitsCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:45, Emuqu/Sources/Views/FitnessPostSummaryView.swift:292)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.splitRow(_:unitLabel:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "resolved.isMile",
+     "effect": "label 'mi'; else 'km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.splitRow(_:unitLabel:)": "01db8ec86eb3d287",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.routeHistoryBaselineCard",
+   "hash": "95029426f1e07c6e",
+   "does": "Renders the route-history body when the workout has a non-empty recognized route name and the async-loaded routeHistory summary is non-nil; otherwise nothing (including while loading).",
+   "entry": "SwiftUI view via FitnessPostSummaryView.routeHistoryBaselineCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:38, Emuqu/Sources/Views/FitnessPostSummaryView.swift:300)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistoryBody(_:summary:)"
+   ],
+   "reads": [
+    "mem:FitnessPostSummaryView.routeHistory @State (binding)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "route name present & non-empty and routeHistory non-nil",
+     "effect": "render body; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistoryBody(_:summary:)": "30b0aa53d6bcfee2"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.routeHistoryBody(_:summary:)",
+   "hash": "8b58349a5b4492a1",
+   "does": "Card with route header ('On <route>', 'vs your last N') and pace/HR comparison rows when present.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func routeHistoryHeader(_:priorCount:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistoryRow(label:today:baseline:deltaCaption:lowerIsBetter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "summary.paceRow non-nil",
+     "effect": "pace row shown; else omitted"
+    },
+    {
+     "at": "+6",
+     "cond": "summary.hrRow non-nil",
+     "effect": "HR row shown; else omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistoryRow(label:today:baseline:deltaCaption:lowerIsBetter:)": "5e38b11b72e14822",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func routeHistoryHeader(_:priorCount:)": "df4985ae3a4b4260",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.routeHistoryRow(label:today:baseline:deltaCaption:lowerIsBetter:)",
+   "hash": "4dc7c892f449297f",
+   "does": "Row with a label and a trailing today/baseline pair plus delta caption; the lowerIsBetter argument is ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func routeHistoryValues(today:baseline:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The lowerIsBetter parameter is discarded (`lowerIsBetter _:`), so delta captions are never colored or worded by direction even though both callers pass it.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:203",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:191",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:194"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func routeHistoryValues(today:baseline:)": "169f119e66d6ae7e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.loadRouteHistorySummary()",
+   "hash": "2fdc13ac79c3e876",
+   "does": "Clears routeHistory when the workout has no route name; otherwise snapshots session and units and computes routeHistorySummary on a detached userInitiated task, storing the result in the routeHistory binding.",
+   "entry": "Called from FitnessPostSummaryView .task(id: session.id) (Emuqu/Sources/Views/FitnessPostSummaryView.swift:375) and reloadFromArchive (Emuqu/Sources/Views/FitnessPostSummaryView.swift:422) via Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:47",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)"
+   ],
+   "reads": [
+    "archive:SessionArchive (via routeHistorySummary)"
+   ],
+   "writes": [
+    "mem:FitnessPostSummaryView.routeHistory @State (binding)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recognizedRouteName nil or empty",
+     "effect": "routeHistory = nil and return; else compute off-main"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)": "b2b5fb9c3eab9a32"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.routeHistorySummary(routeName:session:unitsResolved:)",
+   "hash": "a2d7c7fb96ad12b9",
+   "does": "Finds prior runs on the same named route, returns nil when there are none, otherwise builds a RouteHistorySummary with prior count and pace/HR comparison rows against the aggregated baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.priorRuns(ofRoute:excluding:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeBaseline(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrComparisonRow(session:baseline:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries + retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no prior runs",
+     "effect": "return nil (card hidden)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrComparisonRow(session:baseline:)": "6d8c18537ea872a6",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)": "dd031cf1f64a7ddf",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.priorRuns(ofRoute:excluding:)": "4b6cb9ae507777cc",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeBaseline(_:)": "907832d5941de0be"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.priorRuns(ofRoute:excluding:)",
+   "hash": "db1576249830c952",
+   "does": "Lists archive entries of type workout other than this session, decodes each with retrieveLightweight (errors dropped), keeps those whose recognizedRouteName equals the name, and returns the 20 most recent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.storage.sessionArchive",
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight (every workout file)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Decodes (and decrypts) every archived workout file to filter by route name on each post-summary open and archive change, because the route name is not in the index entry; cost grows with the whole workout history, not the 20 kept.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:276",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:278",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:279"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.routeBaseline(_:)",
+   "hash": "ec8a20d3c4105915",
+   "does": "Folds every candidate into a RouteBaseline via accumulatePace and accumulateHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulatePace(_:from:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulateHR(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each prior run",
+     "effect": "accumulate pace and HR"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulateHR(_:from:)": "ea25d4936126e97a",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.accumulatePace(_:from:)": "6da20d4911b2dd39"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.accumulatePace(_:from:)",
+   "hash": "203a867fabf5b1c8",
+   "does": "Adds a prior run's distance and duration to the baseline only when distance > 100 m and duration > 60 s.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distance missing/<=100 m or duration missing/<=60 s",
+     "effect": "return without contributing; else add distance and duration"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "abb25c33674ddf70"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.accumulateHR(_:from:)",
+   "hash": "b7072969a1f6c538",
+   "does": "Adds every positive per-sample heart rate of a prior run to the baseline sum and count (sample-weighted, so longer runs weigh more).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil",
+     "effect": "?? [] → contributes nothing"
+    },
+    {
+     "at": "+1",
+     "cond": "hr > 0 (for-where)",
+     "effect": "positive HR added; zero/negative skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FitnessSummaryCards.paceComparisonRow(session:baseline:unitsResolved:)",
+   "hash": "57fcb3079ea096b7",
+   "does": "When baseline and today both exceed 100 m (and today > 60 s), computes today's and the baseline's sec/km from elapsed duration/distance and returns formatted paces with a delta caption; nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceDeltaCaption(secPerKmDelta:unitsResolved:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline distance <= 100, today distance missing/<=100 or duration missing/<=60",
+     "effect": "return nil (no pace row)"
+    },
+    {
+     "at": "+8",
+     "cond": "formatPace returns nil for today",
+     "effect": "?? '—'"
+    },
+    {
+     "at": "+9",
+     "cond": "formatPace returns nil for baseline",
+     "effect": "?? '—'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2df0cb439cc6c8c6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceDeltaCaption(secPerKmDelta:unitsResolved:)": "cef9767d60f2c634",
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "abb25c33674ddf70"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.paceDeltaCaption(secPerKmDelta:unitsResolved:)",
+   "hash": "cb79d4d281a2cb69",
+   "does": "Converts the sec/km delta to sec/mi for imperial and words it as 'N s/mi|km faster|slower than usual'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "unitsResolved == .imperial",
+     "effect": "delta * 1.609344; else unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "imperial & faster (delta < 0)",
+     "effect": "'N s/mi faster than usual'"
+    },
+    {
+     "at": "+6",
+     "cond": "imperial & not faster",
+     "effect": "'N s/mi slower than usual' (also for 0)"
+    },
+    {
+     "at": "+7",
+     "cond": "metric & faster",
+     "effect": "'N s/km faster than usual'"
+    },
+    {
+     "at": "+8",
+     "cond": "metric & not faster",
+     "effect": "'N s/km slower than usual' (also for 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.hrComparisonRow(session:baseline:)",
+   "hash": "09f8a1a38c21918a",
+   "does": "When the baseline has HR, computes today's mean of positive sample HRs (falling back to session.meanHR from the analysis result) and returns today/baseline bpm with a delta caption; nil when no baseline HR or no today HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.bpmText(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrDeltaCaption(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline.hrCount == 0",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "samples nil",
+     "effect": "?? [] → no today samples"
+    },
+    {
+     "at": "+3",
+     "cond": "no positive today samples",
+     "effect": "fallback to session.meanHR (analysisResult.timeDomain.meanHR); else sample mean"
+    },
+    {
+     "at": "+6",
+     "cond": "todayAvgHR nil",
+     "effect": "return nil (no HR row)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.bpmText(_:)": "1b2368ef9970fa23",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrDeltaCaption(_:)": "3d053ad454532ac9"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.bpmText(_:)",
+   "hash": "08f04b6249d277ff",
+   "does": "Formats bpm as localized 'N bpm' (rounded).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.hrDeltaCaption(_:)",
+   "hash": "32d392e18ed097c1",
+   "does": "Words an HR delta as 'N bpm lower than usual' when negative, else 'N bpm higher than usual'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "delta < 0",
+     "effect": "'lower than usual'; else 'higher than usual' (including 0)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.coachReportCard",
+   "hash": "e9a082b00220fbad",
+   "does": "Coach Report card: header, description and the Generate & Email button.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.coachReportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:39, Emuqu/Sources/Views/FitnessPostSummaryView.swift:306)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.generateEmailCoachReportSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.generateEmailCoachReportSection": "344322bb6c387e43",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.generateEmailCoachReportSection",
+   "hash": "1752e6bfa0565a3f",
+   "does": "Button that calls WorkoutRecorder.scheduleCoachReportEmail(for: session) to generate the coach report and stage the email composer.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The button has no in-flight or disabled state; every tap calls scheduleCoachReportEmail, which starts a new detached multi-page PDF render and stages another email, so repeated taps produce repeated renders/composers.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:398",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:399",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:280",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:282"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)": "ba77b3b201a9cf7f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.saveRouteCard",
+   "hash": "943b60ff0c2325d1",
+   "does": "Shows the save-route body only when the workout has a GPS polyline.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.saveRouteCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:40, Emuqu/Sources/Views/FitnessPostSummaryView.swift:309)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "workoutMetadata.gpsPolyline != nil",
+     "effect": "render; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteBody": "573abc755718725d"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.saveRouteBody",
+   "hash": "e519c22adcb5959f",
+   "does": "Card with the route-library header and state, plus a 'Name this route' alert with a text field bound to newRouteName whose Save calls commitSavedRoute.",
+   "entry": "SwiftUI view builder; alert presented when showSaveRouteSheet binding is true",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteHeader",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteState",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.commitSavedRoute()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.commitSavedRoute()": "a51a7489b5ad5261",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteHeader": "ef98d512fe14e263",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteState": "bda624610b14e722",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.saveRouteState",
+   "hash": "b872c33a1d0cba92",
+   "does": "If this session's saved route id resolves to a route in the store, shows 'Saved as \"name\"…'; otherwise shows the save explanation and the Add button.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.addToLibraryButton"
+   ],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "savedRouteIDForThisSession set and found in savedRouteStore.routes",
+     "effect": "confirmation text; else explanation + Add to my route library button"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The explanation says 'Save this walk…including any out-and-back you did mid-walk' for every GPS sport (runs, rides), since the card is shown for any workout with a polyline.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:453",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:420"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.addToLibraryButton": "3754e2ad5e223462",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.addToLibraryButton",
+   "hash": "a8ebba70f0fd610e",
+   "does": "Button that pre-fills newRouteName with defaultSavedRouteName() and presents the naming alert.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.defaultSavedRouteName()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessPostSummaryView.newRouteName/showSaveRouteSheet @State (bindings)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.defaultSavedRouteName()": "4288241aab7151f0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.saveRouteHeader",
+   "hash": "31431dcf64cf405f",
+   "does": "Header row with map icon and 'Route library'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.defaultSavedRouteName()",
+   "hash": "55f6065c3c870ace",
+   "does": "Returns '<sport localized name> <count of saved routes with that sport + 1>'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SavedRouteStore.routes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata nil",
+     "effect": "?? 'Workout' (unlocalized literal) as the sport name"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.commitSavedRoute()",
+   "hash": "e7ff96a86735c6c1",
+   "does": "Trims the entered name; if non-empty and SavedRoute.from(session:) succeeds, adds it to the store, records its id for this session and starts background road-name enrichment.",
+   "entry": "Alert Save button tap",
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.from(session:name:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRouteStore.routes (persisted by the store)",
+    "mem:FitnessPostSummaryView.savedRouteIDForThisSession @State (binding)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "trimmed name empty",
+     "effect": "return silently (nothing saved, no message)"
+    },
+    {
+     "at": "+3",
+     "cond": "SavedRoute.from returns nil",
+     "effect": "return silently: no route saved and no error shown"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "An empty name or a session SavedRoute.from cannot convert closes the alert with nothing saved and no message.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:506",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:507"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.from(session:name:)": "c814894d43ca8784",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "43b72f91d8b00638",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "d6e812f8164b0019"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.exportCard",
+   "hash": "55296666f108179a",
+   "does": "Export card: header with progress spinner, recap-card share, PDF share, GPX/CSV/TCX share rows and an error note.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.exportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:41, Emuqu/Sources/Views/FitnessPostSummaryView.swift:311)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportHeader",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapCardShareButton",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfShareButton",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.gpxShareRow",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.csvShareRow",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.tcxShareRow",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportErrorNote"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.csvShareRow": "1aaf54c769e73844",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportErrorNote": "a6188c804f0bfb87",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportHeader": "89186e677711c1e0",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.gpxShareRow": "88bda0ae788c053b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapCardShareButton": "19e7271ea071c8c0",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.tcxShareRow": "21563824f56cd6f5",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfShareButton": "d21bb2df653b5889",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.exportErrorNote",
+   "hash": "6916ce14698c65d9",
+   "does": "Shows exportError in red when set.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "exportError non-nil",
+     "effect": "red text; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessSummaryCards.tcxShareRow",
+   "hash": "86e72ee9f76d1f48",
+   "does": "TCX share row (TrainingPeaks, Final Surge, Garmin Connect) for tcxURL.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)": "86aba6d66e22d7ab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.csvShareRow",
+   "hash": "c120ac336da8f47e",
+   "does": "CSV share row (Numbers, Excel, Google Sheets) for csvURL.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)": "86aba6d66e22d7ab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.gpxShareRow",
+   "hash": "6a4cb44686630ce2",
+   "does": "GPX share row (Strava, Garmin Connect, WorkOutDoors, Dropbox) for gpxURL.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)": "86aba6d66e22d7ab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.exportHeader",
+   "hash": "4f38c8f2980ad2a1",
+   "does": "'Export' header with a small spinner while exports are not ready.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "!exportsReady",
+     "effect": "spinner shown; ready → none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothElevationCard",
+   "hash": "6a961f40251c3c8b",
+   "does": "Shows the DEM elevation-recompute card only when the workout has a GPS track.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.resmoothElevationCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:42, Emuqu/Sources/Views/FitnessPostSummaryView.swift:308)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "track non-empty",
+     "effect": "render; empty → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationBody": "5bb8532c71fd6c06"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothElevationBody",
+   "hash": "d27d0870b8390766",
+   "does": "Card explaining the OpenTopoData lookup (current stored gain, 10 m US / 30 m elsewhere, 15 m sustained climbs, up to 100 points rounded ~11 m sent off-device), with preview, error and action button.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationHeader",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothPreviewNote",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothErrorNote",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "elevationGainMeters nil",
+     "effect": "?? 0 → copy says 'Current: 0 ft/m' even when no elevation was ever recorded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationButton": "1238279199ddb6e1",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothElevationHeader": "959916ca0b72c39d",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothErrorNote": "2ad0ba6c833565ad",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.resmoothPreviewNote": "848da5a3826fc59b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothElevationButton",
+   "hash": "04e0f77d49582493",
+   "does": "Button that runs runResmoothElevation in a Task; label 'Querying map & saving…' and dimmed/disabled while running.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runResmoothElevation()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "elevResmoothing",
+     "effect": "label 'Querying map & saving…'; else 'Look up and save real elevation'"
+    },
+    {
+     "at": "+10",
+     "cond": "elevResmoothing",
+     "effect": "background opacity 0.35; else 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runResmoothElevation()": "dddf4c8961fafdce",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothErrorNote",
+   "hash": "01c4a957b8b61988",
+   "does": "Shows elevResmoothError in red when set.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "elevResmoothError non-nil",
+     "effect": "red text; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothPreviewNote",
+   "hash": "1a3b9225d4887876",
+   "does": "Shows 'Map-derived: X gain · Y loss' when a preview exists.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "elevResmoothPreview non-nil",
+     "effect": "preview line; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatElevation(meters:)": "e9541645225037ce",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.resmoothElevationHeader",
+   "hash": "3a40fe8205d5e192",
+   "does": "Header 'Recompute elevation (topo map)' with spinner while running.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "elevResmoothing",
+     "effect": "spinner shown; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.runResmoothElevation()",
+   "hash": "988944908f2b60d5",
+   "does": "Sets the busy flag, queries TopoElevationService.elevations(for: track, maxSamples: 100) (OpenTopoData), stores the gain/loss preview and saves it to the archive; maps service errors to a translated message and other errors to their localizedDescription.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.describe(_:)"
+   ],
+   "reads": [
+    "net:api.opentopodata.org"
+   ],
+   "writes": [
+    "mem:FitnessPostSummaryView.elevResmoothing/elevResmoothPreview/elevResmoothError @State (bindings)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "error is TopoElevationService.ServiceError",
+     "effect": "elevResmoothError = 'Elevation lookup failed — <describe(error)>'"
+    },
+    {
+     "at": "+10",
+     "cond": "any other error",
+     "effect": "elevResmoothError = 'Elevation lookup failed — <localizedDescription>'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "694915adbe9258c0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.describe(_:)": "fed01f96004d1b00",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)": "29541c89a776e69b"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.updateArchived(_:in:_:)",
+   "hash": "eb0bb01e0005a9d3",
+   "does": "Runs SessionArchive.update(id) (which re-archives under the archive lock, stamps modifiedAt and requests a CloudKit re-upload) applying change and capturing the stored result; returns nil when the archive throws fileNotFound, rethrows other errors.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive session file"
+   ],
+   "writes": [
+    "archive:SessionArchive.update",
+    "notif:flowRecoveryArchiveChanged",
+    "ck:re-upload request"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "archive.update throws ArchiveError.fileNotFound",
+     "effect": "return nil; other errors propagate to caller"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.describe(_:)",
+   "hash": "ee1abb17f6bad896",
+   "does": "Maps a TopoElevationService.ServiceError to user text: badResponse → logs the raw message and returns a translated generic; emptyTrack → 'no GPS track'; networkError → the inner error's localizedDescription.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .badResponse",
+     "effect": "log message, return 'unexpected response from the elevation service'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .emptyTrack",
+     "effect": "'no GPS track'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .networkError",
+     "effect": "inner.localizedDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)",
+   "hash": "a90bb47ad040f7fc",
+   "does": "Writes the DEM gain/loss into the archived session's workoutMetadata via updateArchived, then sets refreshedSession, posts the collector's archive-changed signal and clears the preview; shows 'Session not found in archive.' or 'Couldn't save: …' on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.storage.sessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive.update (elevationGainMeters/LossMeters)",
+    "mem:FitnessPostSummaryView.refreshedSession (binding)",
+    "mem:RRCollector archive-change signal"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "updateArchived returns nil (not in archive)",
+     "effect": "elevResmoothError = 'Session not found in archive.', return"
+    },
+    {
+     "at": "+16",
+     "cond": "updateArchived throws",
+     "effect": "elevResmoothError = 'Couldn't save: <error>'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Rewrites elevationGain/Loss but not workoutMetadata.analysisSnapshot, whose vamMetersPerHour, grade-adjusted pace and narratives were derived from the old gain; needsRebuild only fires on schema/language change, so the assistant's workout facts (vam) and cached narratives keep the pre-recompute elevation.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:744",
+      "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift:302",
+      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:104",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:324"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "fd42f47f1a53c71d"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.reanalyzeAlpha1Card",
+   "hash": "5363e86e32213b40",
+   "does": "Shows the α1 re-analysis card only when some sample has α1 and the session's RR series has >= 64 beats.",
+   "entry": "SwiftUI view via FitnessPostSummaryView.reanalyzeAlpha1Card (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:43, Emuqu/Sources/Views/FitnessPostSummaryView.swift:307)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Body"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "workoutMetadata.samples nil",
+     "effect": "?? [] → hasAlpha1 false"
+    },
+    {
+     "at": "+6",
+     "cond": "rrSeries nil",
+     "effect": "?? 0 → hasRR false"
+    },
+    {
+     "at": "+7",
+     "cond": "hasAlpha1 && hasRR",
+     "effect": "render card; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Body": "30f3ec48921b252d"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.reanalyzeAlpha1Body",
+   "hash": "f06a32137b2739d9",
+   "does": "Card explaining that old sessions may have inflated α1 and offering regeneration with the current filter, with error note and button.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Header",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeErrorNote",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Button"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Button": "9b64c79b71d04d1e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeAlpha1Header": "f879f24333b0ba2b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.reanalyzeErrorNote": "dd65208a8cf6e1ea",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.reanalyzeAlpha1Button",
+   "hash": "be4c499b30c2c754",
+   "does": "Button that runs runReanalyze in a Task; label 'Re-analysing…' and dimmed/disabled while running.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runReanalyze()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "reanalyzing",
+     "effect": "label 'Re-analysing…'; else 'Re-analyze α1 for this session'"
+    },
+    {
+     "at": "+10",
+     "cond": "reanalyzing",
+     "effect": "opacity 0.35; else 1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runReanalyze()": "94a9cd4fb3bb6710",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "d9d2d99276db5bab"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.reanalyzeErrorNote",
+   "hash": "083f11a8f0f55293",
+   "does": "Shows reanalyzeError in red when set.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "reanalyzeError non-nil",
+     "effect": "red text; nil → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessSummaryCards.reanalyzeAlpha1Header",
+   "hash": "e9a97c2f3cae64eb",
+   "does": "Header 'Re-analyze α1' with spinner while running.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "reanalyzing",
+     "effect": "spinner; else none"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.runReanalyze()",
+   "hash": "83026c411f88f8e2",
+   "does": "Sets the busy flag, recomputes α1 off-main and persists the refreshed samples; shows 'Not enough RR data to re-analyze.' when nothing came back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.recomputeAlpha1()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessPostSummaryView.reanalyzing/reanalyzeError @State (bindings)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "refreshedSamples nil",
+     "effect": "reanalyzeError = 'Not enough RR data to re-analyze.', return; else persist"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)": "8ec3d5c52293bf37",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.recomputeAlpha1()": "1da41f4acf0b0604"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.recomputeAlpha1()",
+   "hash": "30d130a8a1410150",
+   "does": "On a detached task, runs WorkoutAlpha1Reanalyzer.reanalyze on a session snapshot and, if it produced readings and the session has samples, applies them to the samples; returns (samples or nil, readings).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:cadenceSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no readings or no samples",
+     "effect": "return (nil, readings) → caller shows 'Not enough RR data' even when the cause is missing samples"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:cadenceSec:)": "14f0a2a26fb82411",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)",
+   "hash": "9fd4a93f2d753690",
+   "does": "Writes the re-analysed samples (and α1-enriched splits) to the archive, then sets refreshedSession and posts the archive-changed signal; shows a save error or 'Session not found in archive.' on failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update (samples/splits)",
+    "mem:FitnessPostSummaryView.refreshedSession (binding)",
+    "mem:RRCollector archive-change signal"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "writeReanalyzedSamples throws",
+     "effect": "reanalyzeError = 'Couldn't save re-analyzed α1: …', return"
+    },
+    {
+     "at": "+8",
+     "cond": "result nil (not in archive)",
+     "effect": "reanalyzeError = 'Session not found in archive.', return"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "After a successful re-analysis nothing invalidates Alpha1StatsCache, whose key is (sessionId, sample count, first/last α1 offset, α1 sample count) and not the α1 values; when re-analysis changes values but leaves the same set of samples carrying α1, the α1 report card keeps showing the cached pre-reanalysis stats.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:884",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:885",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:345",
+      "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift:717",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:536"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:)": "d6b37e75f9d0fa6d"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.writeReanalyzedSamples(_:)",
+   "hash": "0a3e0eb7395f39a4",
+   "does": "Computes α1-enriched splits and, via updateArchived, replaces the archived workout's samples and (when computed) splits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.alpha1EnrichedSplits(samples:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.storage.sessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive.update"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "enrichedSplits non-nil",
+     "effect": "stored splits replaced; nil → splits left unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Replaces samples (α1) and splits but leaves analysisSnapshot (alpha1Mean/Min/Max, AT1/AT2 band seconds, dominant band, narratives) from the old α1 values; needsRebuild only fires on schema/language change, so the assistant's alpha1_* facts and cached narratives still report the pre-reanalysis α1.",
+     "evidence": [
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:895",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift:896",
+      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:41",
+      "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift:104",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift:313"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.alpha1EnrichedSplits(samples:)": "3d68a5a04c385579",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "fd42f47f1a53c71d"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.alpha1EnrichedSplits(samples:)",
+   "hash": "3d4b6027ab1ada69",
+   "does": "Returns WorkoutAnalyzer.splitsEnrichedWithAlpha1 on a copy of the session metadata with the new samples, or nil when there is no metadata or no splits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitsEnrichedWithAlpha1(_:startDate:duration:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workoutMetadata nil or splits nil",
+     "effect": "return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.splitsEnrichedWithAlpha1(_:startDate:duration:)": "3d727c20c575950f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.recapCardShareButton",
+   "hash": "ac4973886dfa548c",
+   "does": "Recap Card share button: tapping runs generateRecapCard in a Task; disabled while generating; presents a ShareSheet with the PNG file URL, or the UIImage if no URL.",
+   "entry": "Button tap / .sheet(isPresented: recapSharePresented)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateRecapCard()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapShareLabel"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "recapImageURL non-nil",
+     "effect": "share the file URL"
+    },
+    {
+     "at": "+16",
+     "cond": "recapImage non-nil (no URL)",
+     "effect": "share the image; neither → empty sheet content"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapShareLabel": "6e8c3556938f60c4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateRecapCard()": "40778f610dca6f86"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.recapShareLabel",
+   "hash": "4242102a4c076dc1",
+   "does": "Label row: spinner or stack icon, recap text, trailing share glyph when idle.",
+   "entry": "SwiftUI view builder",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapShareText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recapGenerating",
+     "effect": "spinner; else rectangle.stack icon"
+    },
+    {
+     "at": "+12",
+     "cond": "!recapGenerating",
+     "effect": "share glyph shown; else hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapShareText": "2074d5ab65a9c879",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var FitnessSummaryCards.recapShareText",
+   "hash": "66bb3211ab62fd55",
+   "does": "Title 'Building card…' while generating else 'Share Recap Card', with subtitle 'Vertical 9:16 — Instagram Story / Reels ready'.",
+   "entry": "SwiftUI view builder",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recapGenerating",
+     "effect": "'Building card…'; else 'Share Recap Card'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func routeHistoryHeader(_:priorCount:)",
+   "hash": "0d539226f1eca1d8",
+   "does": "File-scope header row: loop icon, 'On <route>' and 'vs your last N'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func routeHistoryValues(today:baseline:)",
+   "hash": "4e5730179355a171",
+   "does": "File-scope pair of today value, '/', and baseline value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  }
+ ],
+ "deps": {}
+}

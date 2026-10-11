@@ -1,0 +1,279 @@
+{
+ "file": "Emuqu/Sources/Assistant/TurnMarkerEngine.swift",
+ "hash": "ab4aa84cfaf4b207",
+ "role": "Pure evaluator for post-turn leg summaries on the active route (duration, distance, pace, avg HR, climb per leg) and its formatter.",
+ "types": [
+  "TurnMarkerState: struct — leg-start baselines and HR accumulators held by WorkoutVoiceCoach",
+  "TurnMarkerPayload: struct — completed leg metrics",
+  "TurnMarkerEngine: enum — leg evaluator",
+  "TurnMarkerFormatter: enum — localized utterance rendering"
+ ],
+ "state": [
+  "mem:TurnMarkerState held as WorkoutVoiceCoach.turnMarkerState"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TurnMarkerEngine.evaluate(step:context:state:)",
+   "hash": "e3443362d6f46546",
+   "does": "First tick seeds a leg; afterwards accumulates HR (>0) into the leg, restarts the leg when the step index goes backwards, returns (nil, working) on the same step, and on a step advance returns the leg payload plus a fresh leg seeded at the new step.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "state.legStartStepIndex >= 0",
+     "effect": "false: (nil, legStart) first-tick init"
+    },
+    {
+     "at": "+12",
+     "cond": "context.heartRate present and > 0",
+     "effect": "true: added to legHRSum/legHRCount"
+    },
+    {
+     "at": "+17",
+     "cond": "step index < leg start index",
+     "effect": "true: new route → (nil, fresh leg)"
+    },
+    {
+     "at": "+21",
+     "cond": "step index > leg start index",
+     "effect": "false: (nil, working); true: payload + fresh leg"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "When several steps are passed between ticks (index jumps by >1) only one payload is produced, labelled with the newest step's instruction; the intermediate turns are merged into one 'leg' with no announcement.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:100",
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:136"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legPayload(step:context:working:)": "88dd604de262d2ac",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.legStart(at:context:)": "8f1a3e13215c09eb"
+   }
+  },
+  {
+   "key": "func TurnMarkerEngine.legStart(at:context:)",
+   "hash": "dce732e228cd7c76",
+   "does": "Returns a TurnMarkerState seeded from the context: step index, distance, elapsed seconds, elevation gain, and the current HR (if >0) as the first sample.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "heartRate > 0",
+     "effect": "hr used; else nil"
+    },
+    {
+     "at": "+7",
+     "cond": "hr ?? 0",
+     "effect": "legHRSum = 0 when no HR"
+    },
+    {
+     "at": "+8",
+     "cond": "hr != nil",
+     "effect": "legHRCount 1 else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func TurnMarkerEngine.legPayload(step:context:working:)",
+   "hash": "3fbbc1170871e05a",
+   "does": "Computes leg deltas (duration, distance, elevation clamped >=0), pace sec/km when distance >50 m, average HR when samples exist, elevation only when >=10 m, and the instruction of the step just entered.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "legDistance > 50 m",
+     "effect": "pace = duration/(km); else nil"
+    },
+    {
+     "at": "+9",
+     "cond": "legHRCount > 0",
+     "effect": "integer average HR; else nil"
+    },
+    {
+     "at": "+18",
+     "cond": "legElev >= 10 m",
+     "effect": "gain reported; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933"
+   }
+  },
+  {
+   "key": "func TurnMarkerFormatter.render(payload:unitsImperial:)",
+   "hash": "64eb84ecf85bef0a",
+   "does": "Renders 'Done: <instruction>' (or 'Turn completed'), 'last leg m:ss', optional pace, 'HR n', and climb, comma-joined with a trailing period, in the app bundle's language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.lowercaseFirst(_:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "completed instruction empty",
+     "effect": "'Turn completed'; else 'Done: <lowercased-first instruction>'"
+    },
+    {
+     "at": "+10",
+     "cond": "legPaceSecPerKm present",
+     "effect": "pace label appended"
+    },
+    {
+     "at": "+13",
+     "cond": "legAvgHR present",
+     "effect": "'HR n' appended"
+    },
+    {
+     "at": "+14",
+     "cond": "elevation gain present",
+     "effect": "climb label appended"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "No test references TurnMarkerFormatter (RouteNavigationEnginesTests covers only the engines and TurnAlertFormatter).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:153",
+      "EmuquTests/RouteNavigationEnginesTests.swift:19"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "FLOWCHART.md gives the turn-marker line as 'You turned onto Elm. Last leg: 2:14, pace 8:45, HR 142.'; the formatter produces 'Done: turn right onto Elm, last leg 2:14, pace 8:45 min/mi, HR 142.'",
+     "evidence": [
+      "docs/FLOWCHART.md:1123",
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:160",
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:162",
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:177"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)": "8ac182e0006e8873",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.lowercaseFirst(_:)": "c1810dec56525005",
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)": "c2984cebaca8b548",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TurnMarkerFormatter.paceLabel(secPerKm:unitsImperial:)",
+   "hash": "c691deebb35372a1",
+   "does": "Converts sec/km to sec/mi (x1.609344) when imperial, formats m:ss, returns localized 'pace m:ss min/mi' or 'min/km'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unitsImperial",
+     "effect": "per-mile seconds; else per-km"
+    },
+    {
+     "at": "+4",
+     "cond": "unitsImperial",
+     "effect": "'min/mi' string; else 'min/km'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TurnMarkerFormatter.climbLabel(meters:unitsImperial:)",
+   "hash": "392070a62140cf25",
+   "does": "Localized climb: feet rounded 'N ft up' when imperial, else 'N m up'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unitsImperial",
+     "effect": "feet string; else meters"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func TurnMarkerFormatter.lowercaseFirst(_:)",
+   "hash": "cef2a060cf7d5303",
+   "does": "Lowercases the first character when the app language is English; else unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "English and non-empty",
+     "effect": "lowercased first; else s"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Copy of TurnAlertFormatter.lowercaseFirst.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/TurnMarkerEngine.swift:190",
+      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:217"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

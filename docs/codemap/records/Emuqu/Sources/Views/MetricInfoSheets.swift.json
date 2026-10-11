@@ -1,0 +1,1201 @@
+{
+ "file": "Emuqu/Sources/Views/MetricInfoSheets.swift",
+ "hash": "53ffd2a5ae1091fb",
+ "role": "Two sheets presented from HRVDetailV2View: MetricInfoSheet (per-metric glossary article keyed on the Engine Room English label) and MetricCompareToHistorySheet (last 30 reliable overnight values of a metric plotted with a mean ±1 SD band, loaded off-main from the SessionArchive).",
+ "types": [
+  "MetricInfoSheet: struct (View) — per-metric glossary sheet",
+  "MetricInfoSheet.Entry: struct — short/body/typicalRange copy",
+  "MetricCompareToHistorySheet: struct (View) — compare-to-history chart sheet",
+  "MetricCompareToHistorySheet.Point: private struct (Identifiable, id = entry date)"
+ ],
+ "state": [
+  "mem:MetricInfoSheet.entryFactories (private static let [String: @MainActor () -> Entry], 22 label keys)",
+  "mem:MetricCompareToHistorySheet.pointsLoadCompleted (@State)",
+  "mem:MetricCompareToHistorySheet.pts (@State [Point])"
+ ],
+ "toplevel": "entryFactories maps Engine Room labels (with aliases 'Total Power'/'Total power', 'Stress'/'Stress index'/'Stress Index'/'Baevsky SI', 'Readiness'/'Readiness score') to static Entry factories so localized strings resolve at read time. Labels not in the table (SDSD, HR range, SD HR, HRV TI, LF/HF n.u., SD1/SD2, DFA α2, α1 R², SampEn, ApEn, PNS, SNS, Resp rate, Window beats) fall through to MetricExplanationPopover.info.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Comment claims the fallback means 'the two glossaries never disagree' (lines 100-101), but labels present in BOTH tables carry different copy: e.g. SDNN typical range here is 'Resting: 30–120 ms. Sleep windows usually 50–150 ms' (152) vs 'roughly 50–100 ms in many adults' in the Morning Results popover (MorningResultsPopovers.swift:98-101). Users see different ranges for the same metric on two screens.",
+   "evidence": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:100",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift:152",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift:105",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift:108"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var MetricInfoSheet.body",
+   "hash": "e633f6982b3c10aa",
+   "does": "Sheet root: NavigationStack/ScrollView with metricInfoStack and a Done toolbar button.",
+   "entry": "SwiftUI body; presented by HRVDetailV2View.metricInfoSheet (HRVDetailV2View.swift:242) when a metric ⓘ is tapped (HRVDetailV2View+Charts.swift:631); also hosted by the snapshot test EmuquTests/ChartScreenSnapshotTests.swift:161",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricInfoStack",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.doneToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.doneToolbarItem": "a4400778754f7bb8",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricInfoStack": "b9018ce0bff295e5",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var MetricInfoSheet.doneToolbarItem",
+   "hash": "b2f34de7d69dd2c4",
+   "does": "Done toolbar button that dismisses the sheet.",
+   "entry": "SwiftUI toolbar content; button tap",
+   "calls": [
+    "ext:DismissAction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricInfoSheet.metricInfoStack",
+   "hash": "dbc4d6788d27eae0",
+   "does": "Stack of headline, 'What it means' and typical-range sections, padded.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricHeadline",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.whatItMeansSection",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.typicalRangeCallout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricHeadline": "3d3ec9169ecf614e",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.typicalRangeCallout": "b2bc5499e542312a",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.whatItMeansSection": "75552fbfc60c6b35"
+   }
+  },
+  {
+   "key": "var MetricInfoSheet.metricHeadline",
+   "hash": "c739c2697f29a630",
+   "does": "Localized metric name (large) and the entry's short one-liner.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "8f1b585b12efa77d",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var MetricInfoSheet.whatItMeansSection",
+   "hash": "fe66546225a0e745",
+   "does": "'What it means' caption and the entry body text.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricInfoSheet.typicalRangeCallout",
+   "hash": "d2d0626440f88e69",
+   "does": "'Typical range' callout when the entry has one.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.typicalRange non-nil",
+     "effect": "true: renders callout; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.entry(for:)",
+   "hash": "570277ae94678724",
+   "does": "Resolves glossary copy for a label: own factory table first, then Morning Results popover info (fullName/description/interpretation mapped to short/body/typicalRange), else the generic unknown entry.",
+   "entry": null,
+   "calls": [
+    "dyn:entryFactories[label]() → Emuqu/Sources/Views/MetricInfoSheets.swift:140|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sdnnEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.pnn50Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanRREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanHREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.dfaAlpha1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd2Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.hfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfhfRatioEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.totalPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.stressIndexEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.readinessEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.artifactsEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.nocturnalDipEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.windowClassificationEntry()",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.info(forKey:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.unknownEntry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "label in entryFactories",
+     "effect": "true: returns factory(); false: try popover"
+    },
+    {
+     "at": "+3",
+     "cond": "MetricExplanationPopover.info(forKey:) non-nil",
+     "effect": "true: maps popover Info to Entry; false: unknownEntry()"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.unknownEntry()": "43659de9180ce0ac",
+    "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.info(forKey:)": "567132a5a9dd2a12"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.rmssdEntry()",
+   "hash": "2b676ebc4829452d",
+   "does": "Builds the localized Entry for RMSSD copy; typical 20–80 ms adults, 60–120 athletes.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.sdnnEntry()",
+   "hash": "144981180bff426b",
+   "does": "Builds the localized Entry for SDNN copy; typical resting 30–120 ms, sleep 50–150 ms.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.pnn50Entry()",
+   "hash": "76d420084211d819",
+   "does": "Builds the localized Entry for pNN50 copy; typical 5–40%.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.meanRREntry()",
+   "hash": "b28490348f0f591c",
+   "does": "Builds the localized Entry for Mean RR copy; 750–1,000 ms awake, 900–1,300 ms asleep.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.meanHREntry()",
+   "hash": "864e038c8f227736",
+   "does": "Builds the localized Entry for Mean HR copy; 60–80 bpm awake, 45–65 asleep.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.dfaAlpha1Entry()",
+   "hash": "298351f0975092f9",
+   "does": "Builds the localized Entry for DFA α1 copy; resting reference 0.75–1.0, <0.5 hard exercise.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.sd1Entry()",
+   "hash": "e7d4009e01d60f5d",
+   "does": "Builds the localized Entry for SD1 copy (= RMSSD/√2).",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.sd2Entry()",
+   "hash": "79a8bd2ffe2ade79",
+   "does": "Builds the localized Entry for SD2 copy; resting 50–150 ms.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.lfPowerEntry()",
+   "hash": "ef1cb11303ef095c",
+   "does": "Builds the localized Entry for LF power copy (0.04–0.15 Hz, not a sympathetic index); 200–2,000 ms².",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.hfPowerEntry()",
+   "hash": "0e45b93d15a8d838",
+   "does": "Builds the localized Entry for HF power copy (0.15–0.4 Hz); 100–1,500 ms².",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.lfhfRatioEntry()",
+   "hash": "8d61eef8790e7aff",
+   "does": "Builds the localized Entry for LF/HF copy (Billman 2013 caveat); range 0.5–2.0.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.totalPowerEntry()",
+   "hash": "85e7a6bfb4e5cc17",
+   "does": "Builds the localized Entry for Total power copy (VLF+LF+HF, peak-window, track drops >30%).",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.stressIndexEntry()",
+   "hash": "f3171a8a0fe6b4bc",
+   "does": "Builds the localized Entry for Baevsky stress index copy; resting 50–150, stressed 200+.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.readinessEntry()",
+   "hash": "0fba6a2961bb4953",
+   "does": "Builds the localized Entry for ANS Readiness (1–10 capacity) copy with bands 7–10/4.5–7/2–4.5/<2.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.artifactsEntry()",
+   "hash": "96bee56a71a465da",
+   "does": "Builds the localized Entry for Artifact % copy; <5% great, <10% fine, >15% reconsider.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.nocturnalDipEntry()",
+   "hash": "57794224b58b8c38",
+   "does": "Builds the localized Entry for Nocturnal HR dip copy (daytime resting HR vs night median), no typical range.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.windowClassificationEntry()",
+   "hash": "357bee887710ac5d",
+   "does": "Builds the localized Entry for Window classification label copy (Organized Recovery / Flexible / High Variability / Peak Capacity / Insufficient Data), no typical range.",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricInfoSheet.unknownEntry()",
+   "hash": "a740e78b8dc0db7e",
+   "does": "Builds the localized Entry for generic 'see Settings → Metric Guide' copy, no typical range.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var MetricCompareToHistorySheet.body",
+   "hash": "5f2230386e359017",
+   "does": "Sheet root: NavigationStack/ScrollView with historyStack, 'Compare to history' title, Done button, and .task(id: metricLabel) that loads points.",
+   "entry": "SwiftUI body; presented by HRVDetailV2View.metricCompareSheet (HRVDetailV2View.swift:256) on long-press/VoiceOver action of an Engine Room metric",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.loadPoints()": "2af2e996d3f5dd07",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem": "a4400778754f7bb8",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack": "73cc611726b5c648",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var MetricCompareToHistorySheet.historyStack",
+   "hash": "df456ce8d856eb91",
+   "does": "Metric name, 'Last 30 readings' caption, and the chart section.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyChartSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.localizedMetricName(_:)": "8f1b585b12efa77d",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyChartSection": "75dec71ed5919ea1",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var MetricCompareToHistorySheet.historyChartSection",
+   "hash": "157571acfaa2dbe3",
+   "does": "Loading row until points load; then a 'need at least 4 readings' message for <4 points, else the chart and band caption.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyLoadingRow",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.historyChart(firstPt:lastPt:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [
+    "mem:MetricCompareToHistorySheet.pointsLoadCompleted",
+    "mem:MetricCompareToHistorySheet.pts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "!pointsLoadCompleted",
+     "effect": "true: spinner row"
+    },
+    {
+     "at": "+4",
+     "cond": "pts.count < 4 or first/last nil",
+     "effect": "true: 'Need at least 4 readings' text"
+    },
+    {
+     "at": "+10",
+     "cond": "first and last unwrap",
+     "effect": "always true when reached (count >= 4); renders chart + caption. The implicit else is unreachable; it exists only to avoid force-unwraps"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.historyChart(firstPt:lastPt:)": "f899c1aa2fc1eff7",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyLoadingRow": "02a341b70556ecbb",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var MetricCompareToHistorySheet.historyLoadingRow",
+   "hash": "603bf7b503c33f2f",
+   "does": "ProgressView + 'Loading history…' row.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.historyChart(firstPt:lastPt:)",
+   "hash": "3f47b281edf92165",
+   "does": "Computes mean and population SD of pts and draws a Chart with the ±1 SD band, a dashed mean rule, and point marks; height 240.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.spreadBand(firstPt:lastPt:mean:sd:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.readingMarks(mean:sd:)"
+   ],
+   "reads": [
+    "mem:MetricCompareToHistorySheet.pts"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.readingMarks(mean:sd:)": "e607c4ee8c71567a",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.spreadBand(firstPt:lastPt:mean:sd:)": "a122e7cf636d8429",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.spreadBand(firstPt:lastPt:mean:sd:)",
+   "hash": "a2f7f7fad14654f9",
+   "does": "RectangleMark spanning first→last date, mean−sd to mean+sd, 8% primary.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "ext:Charts.RectangleMark"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.readingMarks(mean:sd:)",
+   "hash": "3ed673e2c466662a",
+   "does": "One PointMark per reading, coloured wongCaution when outside mean±sd, else primary.",
+   "entry": "SwiftUI view-tree evaluation inside the presented sheet",
+   "calls": [
+    "ext:Charts.PointMark"
+   ],
+   "reads": [
+    "mem:MetricCompareToHistorySheet.pts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "value < mean−sd or > mean+sd",
+     "effect": "true: wongCaution; false: AppTheme.primary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.canCompare(_:)",
+   "hash": "14cb539cc8e39455",
+   "does": "Returns false only for 'Window classification' (no numeric value); used by HRVDetailV2View+Charts to hide the compare action.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MetricCompareToHistorySheet.historyDoneToolbarItem",
+   "hash": "055c6dbd4a0891d1",
+   "does": "Done toolbar button that dismisses the sheet.",
+   "entry": "SwiftUI toolbar content; button tap",
+   "calls": [
+    "ext:DismissAction"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.loadPoints()",
+   "hash": "05e78d0b7b8aa90f",
+   "does": "Builds points on a detached userInitiated task from the archive, then (unless cancelled) publishes them and marks loading complete.",
+   "entry": "Called from .task(id: metricLabel) in body",
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [
+    "mem:MetricCompareToHistorySheet.pts",
+    "mem:MetricCompareToHistorySheet.pointsLoadCompleted"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "Task.isCancelled",
+     "effect": "true: returns without updating state (spinner stays if the sheet is still alive with a new label, the new task will load); false: stores pts, sets completed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)": "4ebfbae845d45e65"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.buildPointsStatic(metricLabel:archive:)",
+   "hash": "db04d328076d2400",
+   "does": "Pass-through to computePoints.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "buildPointsStatic → computePoints → computePointsImpl are three nested pass-through wrappers with identical signatures; two layers do nothing.",
+     "evidence": [
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:445",
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:449",
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:460"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "ad51dc3b7d3eaa87"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)",
+   "hash": "64c18c2713a60ef9",
+   "does": "Pass-through to computePointsImpl.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "buildPointsStatic → computePoints → computePointsImpl are three nested pass-through wrappers with identical signatures; two layers do nothing.",
+     "evidence": [
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:445",
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:449",
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:460"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)": "5f62bde32243edb2"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.computePointsImpl(metricLabel:archive:)",
+   "hash": "f71c04f0fe0a43fc",
+   "does": "Walks the archive index newest-first, collecting a Point for each entry pointValue accepts, stopping at 30; returns them oldest-first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each entry (newest first)",
+     "effect": "iterates whole index until 30 points"
+    },
+    {
+     "at": "+4",
+     "cond": "pointValue returns non-nil",
+     "effect": "true: append; false: skip"
+    },
+    {
+     "at": "+7",
+     "cond": "collected.count >= 30",
+     "effect": "true: break; false: continue — for a metric absent from most sessions this decodes every overnight session in the archive"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)": "c6dda1e48a5d0b00",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.pointValue(metricLabel:entry:archive:)",
+   "hash": "bddd2a5f22673d75",
+   "does": "For reliable overnight entries returns the metric value: from the index entry's cached fields when possible, else from a lightweight session decode's analysisResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry is overnight AND isReliableForHRVAggregates",
+     "effect": "false: nil (workout/quick/breathe/unreliable excluded); true: continue"
+    },
+    {
+     "at": "+2",
+     "cond": "fast index value exists for label",
+     "effect": "true: Point from index value"
+    },
+    {
+     "at": "+5",
+     "cond": "lightweight retrieve succeeds, has analysisResult, and value exists",
+     "effect": "false: nil — decode errors swallowed by try? and the night silently omitted; true: Point"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)": "088dcfa438c1acf2",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "864155a3c17f6974",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.fastValueStatic(for:entry:)",
+   "hash": "cd236c5e021f62b5",
+   "does": "Index-entry fast path for RMSSD, Mean HR, SDNN, Stress aliases.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'RMSSD'",
+     "effect": "entry.meanRMSSD"
+    },
+    {
+     "at": "+3",
+     "cond": "'Mean HR'",
+     "effect": "entry.meanHR"
+    },
+    {
+     "at": "+4",
+     "cond": "'SDNN'",
+     "effect": "entry.meanSDNN"
+    },
+    {
+     "at": "+5",
+     "cond": "'Stress'/'Stress index'/'Stress Index'/'Baevsky SI'",
+     "effect": "entry.stressIndex"
+    },
+    {
+     "at": "+6",
+     "cond": "default",
+     "effect": "nil → slow path"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The 'SDNN' fast path never returns a value: SessionArchiveEntry.meanSDNN is filled only from session.importedMetrics?.sdnn (Archive+IndexIO.swift:291), and the only ImportedMetrics construction (RRDataImporter+EliteHRV.swift:335) never passes sdnn, so every SDNN compare-to-history falls through to a lightweight decode per reliable overnight entry.",
+     "evidence": [
+      "Emuqu/Sources/Views/MetricInfoSheets.swift:491",
+      "Emuqu/Sources/Storage/Archive+IndexIO.swift:291",
+      "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift:335",
+      "Emuqu/Sources/Models/SessionMetadata.swift:404"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.entry(for:)": "25d945958cb906b2"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.analysisValueStatic(for:result:)",
+   "hash": "cf5dc7ba09a6b11c",
+   "does": "Chains time-domain, frequency, nonlinear, ANS, quality lookups and returns the first non-nil value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.timeDomainValue(for:result:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.frequencyValue(for:result:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.nonlinearValue(for:result:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.ansValue(for:result:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.qualityValue(for:result:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "timeDomainValue non-nil",
+     "effect": "use it; else ?? next"
+    },
+    {
+     "at": "+2",
+     "cond": "frequencyValue non-nil",
+     "effect": "use it; else ??"
+    },
+    {
+     "at": "+3",
+     "cond": "nonlinearValue non-nil",
+     "effect": "use it; else ??"
+    },
+    {
+     "at": "+4",
+     "cond": "ansValue non-nil",
+     "effect": "use it; else ?? qualityValue (may be nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.ansValue(for:result:)": "8178ea82e2a253d9",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.frequencyValue(for:result:)": "8a9e5ef1dbb7a987",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.nonlinearValue(for:result:)": "9a6cdb8f5767d49e",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.qualityValue(for:result:)": "5323e4d6f5117276",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.timeDomainValue(for:result:)": "696b21cfb7065212"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.timeDomainValue(for:result:)",
+   "hash": "6174e57b1b0d4f0a",
+   "does": "Time-domain metric by label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "'RMSSD'",
+     "effect": "td.rmssd"
+    },
+    {
+     "at": "+4",
+     "cond": "'SDNN'",
+     "effect": "td.sdnn"
+    },
+    {
+     "at": "+5",
+     "cond": "'SDSD'",
+     "effect": "td.sdsd"
+    },
+    {
+     "at": "+6",
+     "cond": "'Mean RR'",
+     "effect": "td.meanRR"
+    },
+    {
+     "at": "+7",
+     "cond": "'Mean HR'",
+     "effect": "td.meanHR"
+    },
+    {
+     "at": "+8",
+     "cond": "'HR range'",
+     "effect": "maxHR−minHR"
+    },
+    {
+     "at": "+9",
+     "cond": "'SD HR'",
+     "effect": "td.sdHR"
+    },
+    {
+     "at": "+10",
+     "cond": "'Min HR'",
+     "effect": "td.minHR"
+    },
+    {
+     "at": "+11",
+     "cond": "'Max HR'",
+     "effect": "td.maxHR"
+    },
+    {
+     "at": "+12",
+     "cond": "'pNN50'",
+     "effect": "td.pnn50"
+    },
+    {
+     "at": "+13",
+     "cond": "'HRV TI'/'Triangular Index'/'TINN'",
+     "effect": "td.triangularIndex (TINN aliased to triangular index)"
+    },
+    {
+     "at": "+14",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.frequencyValue(for:result:)",
+   "hash": "01bc513afb70a7a2",
+   "does": "Frequency-domain metric by label (nil when no frequencyDomain).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'LF'",
+     "effect": "lf"
+    },
+    {
+     "at": "+3",
+     "cond": "'HF'",
+     "effect": "hf"
+    },
+    {
+     "at": "+4",
+     "cond": "'LF/HF'/'Balance'",
+     "effect": "lfHfRatio"
+    },
+    {
+     "at": "+5",
+     "cond": "'Total Power'/'Total power'",
+     "effect": "totalPower"
+    },
+    {
+     "at": "+6",
+     "cond": "'LF n.u.'",
+     "effect": "lfNu"
+    },
+    {
+     "at": "+7",
+     "cond": "'HF n.u.'",
+     "effect": "hfNu"
+    },
+    {
+     "at": "+8",
+     "cond": "'VLF'",
+     "effect": "vlf"
+    },
+    {
+     "at": "+9",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
+    "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.nonlinearValue(for:result:)",
+   "hash": "ba009bb716edab67",
+   "does": "Nonlinear metric by label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'SD1'",
+     "effect": "sd1"
+    },
+    {
+     "at": "+3",
+     "cond": "'SD2'",
+     "effect": "sd2"
+    },
+    {
+     "at": "+4",
+     "cond": "'SD1/SD2'",
+     "effect": "sd1Sd2Ratio"
+    },
+    {
+     "at": "+5",
+     "cond": "DFA α1 aliases",
+     "effect": "dfaAlpha1"
+    },
+    {
+     "at": "+6",
+     "cond": "DFA α2 aliases",
+     "effect": "dfaAlpha2"
+    },
+    {
+     "at": "+7",
+     "cond": "'α1 R²'",
+     "effect": "dfaAlpha1R2"
+    },
+    {
+     "at": "+8",
+     "cond": "'SampEn'/'Sample entropy'",
+     "effect": "sampleEntropy"
+    },
+    {
+     "at": "+9",
+     "cond": "'ApEn'/'Approx entropy'",
+     "effect": "approxEntropy"
+    },
+    {
+     "at": "+10",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.ansValue(for:result:)",
+   "hash": "9eb6747440427698",
+   "does": "ANS metric by label (nil when no ansMetrics).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "Stress aliases",
+     "effect": "stressIndex"
+    },
+    {
+     "at": "+3",
+     "cond": "'PNS'/'PNS Index'",
+     "effect": "pnsIndex"
+    },
+    {
+     "at": "+4",
+     "cond": "'SNS'/'SNS Index'",
+     "effect": "snsIndex"
+    },
+    {
+     "at": "+5",
+     "cond": "'Readiness'/'Readiness score'",
+     "effect": "readinessScore"
+    },
+    {
+     "at": "+6",
+     "cond": "'Resp rate'/'Respiration rate'",
+     "effect": "respirationRate"
+    },
+    {
+     "at": "+7",
+     "cond": "'Nocturnal HR dip'",
+     "effect": "nocturnalHRDip"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalHRDip(daytimeHR:nocturnalMedian:)": "1d53ef19678db16e",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func MetricCompareToHistorySheet.qualityValue(for:result:)",
+   "hash": "44bc9220461d3fac",
+   "does": "Quality metric by label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'Artifacts'/'Artifact %'",
+     "effect": "artifactPercentage"
+    },
+    {
+     "at": "+3",
+     "cond": "'Window beats'",
+     "effect": "Double(cleanBeatCount)"
+    },
+    {
+     "at": "+4",
+     "cond": "default",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,795 @@
+{
+ "file": "EmuquTests/WorkoutRecoveryResolversTests.swift",
+ "hash": "39a49935703aa4cf",
+ "role": "@MainActor XCTest suite for WorkoutRecoveryService's pure recovery steps: resolveRRPoints (override, single-source, overlap merge), trimTrailingRest, clipTrack, resolveEndDate fallbacks, buildMetadata, backfillRouteFields and carryForward.",
+ "types": [
+  "WorkoutRecoveryResolversTests: class — XCTestCase for crash-recovery resolution helpers"
+ ],
+ "state": [],
+ "toplevel": "Stored properties: sessionID = TestUUID.fixed literal, start = Date(1_770_000_000).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)",
+   "hash": "f4563e7aa6505abb",
+   "does": "Fixture: `count` RRPoints at constant rrMs starting at offsetMs, t_ms accumulating.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of count",
+     "effect": "appends one point and advances t"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testOverridePointsAreUsedUntrimmedWhenAutoTrimIsOff()",
+   "hash": "1db9daf2899b10d1",
+   "does": "Asserts an override with autoTrim off is returned verbatim (same count and last t_ms) despite a slow tail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testOverridePointsAreTrimmedWhenAutoTrimIsOn()",
+   "hash": "3873491d7878819d",
+   "does": "Asserts an override with autoTrim on has its 1400 ms trailing tail trimmed (fewer points, non-empty).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testEmptyOverrideIsRespectedRatherThanFallingBackToDisk()",
+   "hash": "5e899220d77d7ab5",
+   "does": "Asserts an empty override returns empty and does not fall back to disk/strap.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testDiskOnlyIsUsedWhenNoStrapRecordingExists()",
+   "hash": "f2bb92730706d7d7",
+   "does": "Asserts disk points are used when strap is nil or empty (60 points; below trim threshold).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for strap in [nil, []]",
+     "effect": "each case asserted to return the disk count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "a33f133e1de3c802",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testStrapOnlyIsUsedWhenNothingStreamedToDisk()",
+   "hash": "4063ed4296a89c31",
+   "does": "Asserts strap points are used when disk is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "a33f133e1de3c802",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testBothSourcesEmptyYieldsEmpty()",
+   "hash": "51d7bf6b2ef90b6c",
+   "does": "Asserts both sources empty yields empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "a33f133e1de3c802",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testFullyOverlappingSourcesMergeWithoutDoublingBeats()",
+   "hash": "cdf4b60457d272e4",
+   "does": "Asserts a 200-beat disk series fully overlapped by a 300-beat strap series resolves to exactly the strap's 300 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.mergedPoints(diskPoints:strapPoints:sessionId:startDate:)": "a33f133e1de3c802",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveRRPoints(diskPoints:strapPoints:overridePoints:autoTrimOverride:sessionId:startDate:)": "04685d2237e3d93a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testTrailingRestIsCutFromAWorkoutFollowedByHoursOfOffBodyBeats()",
+   "hash": "435920941f80b903",
+   "does": "Asserts 600 active beats followed by 2000 off-body 1500 ms beats are trimmed (fewer points) and the last t_ms is under 3 hours.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "trimmed.last nil",
+     "effect": "?? 0 fallback would pass the < 3 h assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The '< 3 hours' assertion cannot fail: the untrimmed fixture ends at about 3,298 s (300 s active + 2,000 × 1.5 s), well under 10,800 s, so only the count assertion checks the trim.",
+     "evidence": [
+      "EmuquTests/WorkoutRecoveryResolversTests.swift:164",
+      "EmuquTests/WorkoutRecoveryResolversTests.swift:170"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testSteadyEffortThroughoutIsNotTrimmed()",
+   "hash": "6792648472c78f82",
+   "does": "Asserts 800 steady 520 ms beats are not trimmed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testShortSeriesIsReturnedUnchanged()",
+   "hash": "71485c21229e353d",
+   "does": "Asserts series of 0, 1, 20 and 100 beats (≤160) are returned unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for count in [0,1,20,100]",
+     "effect": "each returned with the same count"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testImplausibleIntervalsAreToleratedWithoutCrashing()",
+   "hash": "364588f57bbc8bb4",
+   "does": "Asserts implausible rr values (5, 9000, 0) between active and rest segments do not crash and the result is non-empty and no longer than the input.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.meanHeartRate(_:)": "e564c4747ae7a9e3",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.trimTrailingRest(_:)": "38cdde7fa30e64b8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.windowedHeartRates(_:windowBeats:)": "db69075bde5cd4a1",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.fixes(count:everySec:)",
+   "hash": "8afc82d9ad27e65c",
+   "does": "Fixture: `count` CLLocations moving north 0.001° per fix at 1600 m altitude, one every everySec from start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testTrackIsClippedToTheLastBeat()",
+   "hash": "077faba4843efc53",
+   "does": "Asserts a 990 s track is clipped to fixes at or before the 200 s last beat.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testOverrideTrackIsReturnedWhole()",
+   "hash": "3fd948b84f3f056f",
+   "does": "Asserts an override (Watch) track is returned whole.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testTrackSurvivesWhenThereAreNoBeats()",
+   "hash": "d667bd30993f4d6f",
+   "does": "Asserts the track is returned whole when there are no beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testEmptyTrackStaysEmpty()",
+   "hash": "4898873d717dbee1",
+   "does": "Asserts an empty track stays empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.clipTrack(_:isOverride:rrPoints:startDate:)": "68d51bda9e0b4dd6",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testLastBeatWinsOverEveryOtherSource()",
+   "hash": "ea78af5b5d06da56",
+   "does": "Asserts the end date is start + last beat t_ms (last beat at 119 s; asserted 120 ±1) even though GPS runs to 990 s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testLastFixIsUsedWhenThereAreNoBeats()",
+   "hash": "cff5d8f446a29bad",
+   "does": "Asserts with no beats the end date is the last GPS fix (600 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testBarometerIsTheLastRealSignalBeforeGivingUp()",
+   "hash": "ed94c715bb50477b",
+   "does": "Asserts with no beats/track/samples the end date is the last barometer sample (580 s).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testNoSignalAtAllReturnsTheStartDate()",
+   "hash": "ae352db792ab73d6",
+   "does": "Asserts with no signal the end date equals the start date.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testResolvedEndIsNeverBeforeStartForRealSignals()",
+   "hash": "8014b2c92a6b50cc",
+   "does": "Asserts the resolved end is not before the start for beats-only, track-only and both.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each (label, rr, track) case",
+     "effect": "each asserted end >= start"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.resolveEndDate(startDate:rrPoints:track:liveSamples:baroSamples:)": "8b15a3fc6ac0d814",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.beats(count:rrMs:startingAt:)": "96eb89ccf2c3c6e8",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "42272288bfb6323a"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)",
+   "hash": "78e8380d0b3c0f49",
+   "does": "Fixture: WorkoutMetadata(.run) with given distance, luciaTRIMP (default 90) and empty splits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testHealthKitDistanceOverridesTheGPSDistance()",
+   "hash": "49748a7a3b90c518",
+   "does": "Asserts overrideDistanceMeters 4800 replaces the computed 1200 m.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testZeroOverrideDoesNotWipeARealDistance()",
+   "hash": "15bd332db28114fe",
+   "does": "Asserts override 0 and -1 are ignored and the computed 1200 m kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for override in [0, -1]",
+     "effect": "each asserted to keep 1200"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testNoOverrideKeepsTheComputedDistance()",
+   "hash": "218fb018cfd2130d",
+   "does": "Asserts a nil override keeps the computed distance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testElevationIsDerivedFromBarometrySamples()",
+   "hash": "dec11427ca20befc",
+   "does": "Asserts a rising barometer series yields a non-nil, positive elevation gain.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "gain nil",
+     "effect": "?? 0 fallback fails the > 0 assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testNoBarometryLeavesElevationUnset()",
+   "hash": "8e9a50f125f325f6",
+   "does": "Asserts no barometry leaves gain and loss nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testEmptyLiveSamplesStoreAsNil()",
+   "hash": "ec248bd00f1e370e",
+   "does": "Asserts empty live samples are stored as nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testRecoveryIsAlwaysStamped()",
+   "hash": "2a112a27be6bafb3",
+   "does": "Asserts buildMetadata stamps partialDataReason, recoveredAt and the sport.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)": "f19a30ec1fabc195",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "376022d5a92214de",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.analyzed(distance:trimp:)": "62b55cbb6a5116d0"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testBackfillRestoresDistanceWhenTheRecomputeFoundNone()",
+   "hash": "76de61089db2665e",
+   "does": "Asserts backfill restores distance 5400, polyline and elevation from the existing metadata when the recompute's distance is 0 and other fields nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testBackfillNeverOverwritesARecomputedValue()",
+   "hash": "287985bf8d36e39f",
+   "does": "Asserts backfill keeps recomputed distance, polyline and gain over existing values.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testEmptySplitsAreTreatedAsAbsent()",
+   "hash": "36acee52213d3b7b",
+   "does": "Asserts an empty splits array is replaced by the existing one-split array.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testBackfillFromEmptyExistingChangesNothing()",
+   "hash": "3982d1f2540833ff",
+   "does": "Asserts backfilling from empty existing metadata leaves distance 0/nil and polyline nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "distanceMeters nil",
+     "effect": "?? 0 fallback treats nil as 0 for the assertion"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "ba951023fd59d855"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testCarryForwardKeepsUserFieldsAndTheExportStamp()",
+   "hash": "90ee071a25f8199d",
+   "does": "Asserts carryForward copies notes, healthKitExportedAt and workoutFeeling from the archived session, takes partialDataReason from the archive (nil), and keeps the rebuild's own distance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "fe9cf4d8a1a8bdb5",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "d9b451086b6d67a4",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "16602d0f2c42c44d",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "3f4e682ecd753ab1",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "431c7eb50bddcf4e",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "48e952379f2f6bd8",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "cb06d9a94f589e29"
+   }
+  }
+ ],
+ "deps": {}
+}

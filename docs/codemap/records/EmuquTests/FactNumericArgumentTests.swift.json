@@ -1,0 +1,339 @@
+{
+ "file": "EmuquTests/FactNumericArgumentTests.swift",
+ "hash": "7c14bc54a6cb3420",
+ "role": "@MainActor XCTest suite proving model-supplied numeric tool arguments (inf/nan/1e20/-1/garbage) are rejected by FactNumericArgument and by every numeric Flo fact/tool with an .invalidParameter envelope instead of trapping, plus the hospital-route medical safety notice.",
+ "types": [
+  "FactNumericArgumentTests: class — @MainActor XCTestCase for FactNumericArgument and numeric fact keys"
+ ],
+ "state": [
+  "mem:FactNumericArgumentTests.hostileValues (static let: inf,-inf,infinity,nan,1e20,-1,1e309,abc,'')"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func FactNumericArgumentTests.makeRegistry()",
+   "hash": "b6bedf5c6af055d3",
+   "does": "Test helper: builds a FactResolverRegistry over a fresh SessionArchive in a per-test temp directory (removed in teardown) with default UserSettings().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/FactNumericArgumentTests-<uuid>"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)",
+   "hash": "c161dd2850a0774c",
+   "does": "Test helper: fails unless value is .missing with reason .invalidParameter, and when parameter is given, that the detail contains it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "value is .missing",
+     "effect": "false: XCTFail and return; true: continues"
+    },
+    {
+     "at": "+11",
+     "cond": "parameter supplied",
+     "effect": "true: asserts detail mentions it; false: no detail check"
+    },
+    {
+     "at": "+12",
+     "cond": "detail?.contains(parameter) == true",
+     "effect": "nil detail counts as failure"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNumericArgumentTests.testParserRejectsNonFiniteAndOutOfRangeValues()",
+   "hash": "e1023ce3cdfaa772",
+   "does": "Asserts dailyTrimp.value throws for every hostile value; gapTrimp rejects 0; horizonDays.integer rejects 14.5; latitude rejects 91; longitude rejects -180.5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each hostileValues entry",
+     "effect": "asserts dailyTrimp.value throws"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testParserAcceptsValuesInsideTheDeclaredRange()",
+   "hash": "6d8de26c36c749ff",
+   "does": "Asserts in-range values parse: dailyTrimp ' 60 '→60 (trimmed), gapTrimp 0.5, horizonDays 365, latitude -89.9, ordinal 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testRejectionNamesTheParameterAndItsRange()",
+   "hash": "d793c7e917a76469",
+   "does": "Asserts horizonDays.integer('1e20') throws a FactArgumentError whose detail names 'horizon_days' and 'from 1 to 365' and whose factValue is .missing(.invalidParameter).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "catch FactArgumentError",
+     "effect": "asserts detail text; if no throw the do-block XCTFails"
+    },
+    {
+     "at": "+7",
+     "cond": "factValue is .missing(.invalidParameter)",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testFieldListRejectsTheWrongCountAndEmptyFields()",
+   "hash": "d19839a376e50f26",
+   "does": "Asserts FactNumericArgument.fields rejects a 1-field and an empty-field input for counts [2] and splits '60, 5' into ['60','5'].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.hostileKeys(_:)",
+   "hash": "e885972e424b2a41",
+   "does": "Test helper: returns 13 numeric fact keys (training ATL/convergence/projection, workout.segment_compare radius, session/workout by_ordinal, workout.live.timeline) with the hostile value in each numeric slot.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func FactNumericArgumentTests.testEveryNumericFactRejectsHostileValuesWithoutTrapping()",
+   "hash": "df6dae4aad963583",
+   "does": "For bad ∈ {inf,nan,1e20,-1} resolves every hostileKeys(bad) key through the registry and asserts an .invalidParameter reply.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.hostileKeys(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each bad value",
+     "effect": "iterates 4 values"
+    },
+    {
+     "at": "+3",
+     "cond": "for each hostile key",
+     "effect": "asserts invalidParameter"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)": "93c24201681130e4",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.hostileKeys(_:)": "ef0d8040c429f0fb",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()": "04ce3c1b906bd034"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testSegmentCompareRejectsHostileCoordinates()",
+   "hash": "b4b199f4da13808d",
+   "does": "Asserts workout.segment_compare rejects non-finite / out-of-range latitude (inf,nan,1e20,-91) and longitude (inf,nan,1e20,-181).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each of 8 keys",
+     "effect": "asserts invalidParameter"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)": "93c24201681130e4",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()": "04ce3c1b906bd034"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testWebSearchRejectsAHostileResultCountBeforeAnyRequest()",
+   "hash": "ade9e058f2834ba0",
+   "does": "For bad ∈ {inf,nan,1e20,-1} calls registry.resolveTool('web_search', {query, max_results: bad}) and asserts an .invalidParameter reply naming max_results.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each bad value",
+     "effect": "resolves web_search and asserts"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Does not stub WebSearchService: if max_results validation regressed, the test would issue a real network search instead of failing fast; 'before any request' is asserted only indirectly by the invalidParameter result.",
+     "evidence": [
+      "EmuquTests/FactNumericArgumentTests.swift:127",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift:158"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.assertInvalidParameter(_:_:mentioning:file:line:)": "93c24201681130e4",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()": "04ce3c1b906bd034"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testValidProjectionStillResolves()",
+   "hash": "93e9b157ed5bb1f3",
+   "does": "Resolves training.project_from(65.4,72.1,80,14) and asserts a .record containing final_atl.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value is .record",
+     "effect": "false: XCTFail"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolve(_:)": "c12f9bc70801f517",
+    "EmuquTests/FactNumericArgumentTests.swift::func FactNumericArgumentTests.makeRegistry()": "04ce3c1b906bd034"
+   }
+  },
+  {
+   "key": "func FactNumericArgumentTests.testHospitalDestinationCarriesTheEmergencyNumberFirst()",
+   "hash": "54ad81028eb02490",
+   "does": "Asserts medicalSafetyNotice for a 'hospital' POI exists and contains the shown emergency number and 'emergency number', is nil for 'parking lot' and .origin; withSafetyNotice puts it in safety_first on a record and prefixes it onto a missing detail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.medicalSafetyNotice(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.withSafetyNotice(_:_:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.location (roadGeocodingService.current, ambientLocationService cached fix) via medicalSafetyNotice→emergencyNumbersHere"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hospital notice non-nil",
+     "effect": "false: XCTFail and return"
+    },
+    {
+     "at": "+10",
+     "cond": "routed is .record with string safety_first",
+     "effect": "false: XCTFail"
+    },
+    {
+     "at": "+16",
+     "cond": "failed stays .missing with detail",
+     "effect": "false: XCTFail; true: asserts detail starts with notice"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The expected string is built with emergencyNumber(currentCountry: nil) (line 148), but medicalSafetyNotice builds its number from the test host app's live AppDependencies.current.location geocode (AppFactResolver+LiveNavigation.swift:401-406). When the host has a geocode under 5 km old for a country whose number is not the Region/112 fallback, the notice holds a different number and the assertion fails: the test depends on host location state.",
+     "evidence": [
+      "EmuquTests/FactNumericArgumentTests.swift:148",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift:401",
+      "Emuqu/Sources/Views/GetMeBackView.swift:773"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.medicalSafetyNotice(for:)": "dac14856e2d801be",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.withSafetyNotice(_:_:)": "a04907dc2cf25e7e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "de2bd0e7912f8a81",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "5999bc4c55fea0b8"
+   }
+  }
+ ],
+ "deps": {}
+}

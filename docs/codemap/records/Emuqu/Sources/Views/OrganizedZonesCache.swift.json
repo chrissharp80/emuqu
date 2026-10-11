@@ -1,0 +1,129 @@
+{
+ "file": "Emuqu/Sources/Views/OrganizedZonesCache.swift",
+ "hash": "c0a35c90bb0ee717",
+ "role": "Process-wide bounded LRU (128 entries) memo of organized-recovery zones per session id, guarded by an OSAllocatedUnfairLock.",
+ "types": [
+  "OrganizedZonesCache: final class Sendable — get/set/invalidate",
+  "OrganizedZonesCache.State: struct (private) — dictionary + recency order"
+ ],
+ "state": [
+  "mem:OrganizedZonesCache.shared (singleton, served via AppDependencies.app.organizedZonesCache)",
+  "mem:OrganizedZonesCache.maxEntries = 128",
+  "mem:OrganizedZonesCache.state (lock-protected cache/order)"
+ ],
+ "toplevel": "state initialized with an empty State inside OSAllocatedUnfairLock.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func OrganizedZonesCache.State.touch(_:)",
+   "hash": "c1eabe0f78a6b61e",
+   "does": "Moves id to the most-recent end of the order list.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id already in order",
+     "effect": "remove its old position first; else just append"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init OrganizedZonesCache()",
+   "hash": "4f171088cdf643a5",
+   "does": "Private init; only the shared singleton exists.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OrganizedZonesCache.get(_:)",
+   "hash": "5ad3e3965d7a9ec0",
+   "does": "Returns cached zones for id under the lock and marks it recently used; nil on miss.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)"
+   ],
+   "reads": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "writes": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no cached value",
+     "effect": "return nil without touching order"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "Cache is keyed by session id only, but the cached zones are computed from series, flags AND sleepStartMs/sleepEndMs (OvernightChartsView+Stats.swift:243-264); the only invalidation is ReanalysisService.persist, so a sleep-boundary change (user adjust or a later HealthKit fetch) keeps serving zones for the old sleep window for the rest of the process.",
+     "evidence": [
+      "Emuqu/Sources/Views/OrganizedZonesCache.swift:28",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:251",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:259",
+      "Emuqu/Sources/Services/ReanalysisService.swift:443"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+   }
+  },
+  {
+   "key": "func OrganizedZonesCache.set(_:zones:)",
+   "hash": "405529c49cbb534f",
+   "does": "Stores zones for id, touches it, then evicts least-recently-used ids beyond 128.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "order.count > 128",
+     "effect": "evict oldest repeatedly"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5",
+    "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.State.touch(_:)": "0b1eb22897c4ffb2"
+   }
+  },
+  {
+   "key": "func OrganizedZonesCache.invalidate(_:)",
+   "hash": "61a80df79294e54c",
+   "does": "Removes id from cache and order (called by ReanalysisService.persist after a re-archive).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:OrganizedZonesCache.state"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.order(_:)": "a2e3af04705bd5b5"
+   }
+  }
+ ],
+ "deps": {}
+}

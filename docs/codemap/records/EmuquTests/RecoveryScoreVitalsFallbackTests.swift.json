@@ -1,0 +1,161 @@
+{
+ "file": "EmuquTests/RecoveryScoreVitalsFallbackTests.swift",
+ "hash": "afaca69b1303fb83",
+ "role": "Tests the respiratory-rate population-window fallback (12-18 br/min) in the Vitals sub-score and that calculateVitalsScore picks deviation vs population branch.",
+ "types": [
+  "RecoveryScoreVitalsFallbackTests: class — XCTestCase for RecoveryScoreCalculator.respiratoryPopulationScore / calculateVitalsScore"
+ ],
+ "state": [
+  "mem:RecoveryScoreVitalsFallbackTests.popMin (= ScoringWeights.Vitals.respiratoryRatePopulationMinBPM, 12)",
+  "mem:RecoveryScoreVitalsFallbackTests.popMax (= respiratoryRatePopulationMaxBPM, 18)"
+ ],
+ "toplevel": "Two private stored lets read the population window bounds from ScoringWeights.Vitals (Constants.swift:498).",
+ "flags": [],
+ "units": [
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testRateInsideWindowScoresFull()",
+   "hash": "eafafcdb525bca9e",
+   "does": "Asserts respiratoryPopulationScore returns 100 for rate 15 and exactly at popMin and popMax (inclusive window).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)": "35a9ff3fed1c58d1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testRateAboveWindowScoresGradedPenalty()",
+   "hash": "dd2d4c7219aa3689",
+   "does": "Asserts rate popMax+2 scores 100 - 2*respiratoryRatePenaltyPerBreath (=70).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)": "35a9ff3fed1c58d1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testRateFarAboveWindowFloorsAtZero()",
+   "hash": "021d240f2d08507e",
+   "does": "Asserts rate popMax+100 floors at 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)": "35a9ff3fed1c58d1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testRateBelowWindowScoresBelowPopulationConstant()",
+   "hash": "a51187aadff1192e",
+   "does": "Asserts rate popMin-3 returns the flat respiratoryRateBelowPopulationScore (90).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)": "35a9ff3fed1c58d1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testVitalsScoreUsesPopulationFallbackWhenBaselineMissing()",
+   "hash": "d0b5ffb045890537",
+   "does": "Builds RecoveryVitals with only respiratoryRate 15 (no baseline, no RHR/temp) and asserts calculateVitalsScore(baselineStats:nil) is non-nil and 100, i.e. the population branch is the only sub-score.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testVitalsScoreFallbackPenalizesElevatedRate()",
+   "hash": "b0f6c3b511d08769",
+   "does": "With only rate popMax+2 present, asserts calculateVitalsScore equals respiratoryPopulationScore(rate) — the vitals average consists solely of the population sub-score.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)": "35a9ff3fed1c58d1",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "72d59b14216da995",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  },
+  {
+   "key": "func RecoveryScoreVitalsFallbackTests.testVitalsScorePrefersDeviationBranchWhenBaselinePresent()",
+   "hash": "2c5426d59dbe2343",
+   "does": "With rate 20 and baseline 20 (deviation 0), asserts calculateVitalsScore is 100, proving the baseline-deviation branch was used instead of the population fallback (which would score 70 for 20 br/min).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0e425dbe61b57cb0",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+   }
+  }
+ ],
+ "deps": {}
+}

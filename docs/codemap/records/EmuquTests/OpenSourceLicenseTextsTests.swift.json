@@ -1,0 +1,191 @@
+{
+ "file": "EmuquTests/OpenSourceLicenseTextsTests.swift",
+ "hash": "8b249bd084011ff1",
+ "role": "XCTest suite checking that OpenSourceLicenseTexts.documents ships the required full license/notice texts (Apache-2.0, MIT copyright lines, NOTICE files, protobuf BSD, Polar SDK, trademarks) and that PrivacyPolicyView.servicePolicies links every external service over https.",
+ "types": [
+  "OpenSourceLicenseTextsTests: class — @MainActor XCTestCase over OpenSourceLicenseTexts and PrivacyPolicyView.servicePolicies"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func OpenSourceLicenseTextsTests.document(_:)",
+   "hash": "0d51a83d89b4e0ff",
+   "does": "Helper: text of the document whose title matches, or '' when none.",
+   "entry": null,
+   "calls": [
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no document with that title",
+     "effect": "returns '' (so every contains() assertion then fails); else the document text"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testApacheTextIsTheFullLicenseWithItsUsers()",
+   "hash": "562c1604159ed4b1",
+   "does": "Asserts the 'Apache License 2.0' document contains the full terms header/footer, the Runtime Library Exception, and names 7 Apache packages.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each of 7 package names",
+     "effect": "asserts the text contains it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testMITTextCarriesEveryCopyrightLine()",
+   "hash": "5b9c4c3fa9eaa628",
+   "does": "Asserts the 'MIT License' document has the permission notice and copyright lines for argmax, OpenAI, YaoYuan, Roy Marmelstein.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 4 holders",
+     "effect": "asserts the text contains it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testNoticeFilesAreShipped()",
+   "hash": "988bd2a950dc6795",
+   "does": "Asserts swift-crypto and swift-asn1 NOTICE documents carry their project names.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testProtocolBuffersBSDNoticeIsShipped()",
+   "hash": "5b74b36ca096d882",
+   "does": "Asserts the Protocol Buffers BSD-3 document has Google's 2008 copyright, the binary-redistribution clause and the disclaimer end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testPolarSDKLicenseIsShippedInFull()",
+   "hash": "0398b119dceeffa7",
+   "does": "Asserts the 'Polar SDK License' document names Polar Electro Oy, has the agreement title, and ends with 'and interests hereunder.'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testTrainingPeaksMarksAreAcknowledged()",
+   "hash": "8e24b13c456316ef",
+   "does": "Asserts the 'Trademarks' document acknowledges TSS®, Training Stress Score®, TrainingPeaks, Normalized Power® and Intensity Factor®.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testKubiosMarkIsAcknowledged()",
+   "hash": "d40c27f350f6cbcb",
+   "does": "Asserts the 'Trademarks' document carries the Kubios® trademark line and 'not affiliated'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)",
+    "ext:OpenSourceLicenseTexts.documents static let (Emuqu/Sources/Views/OpenSourceLicenseTexts.swift:27)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/OpenSourceLicenseTextsTests.swift::func OpenSourceLicenseTextsTests.document(_:)": "742c72a459c0beaf"
+   }
+  },
+  {
+   "key": "func OpenSourceLicenseTextsTests.testPrivacyPolicyLinksEveryService()",
+   "hash": "166b0bc02ebdb896",
+   "does": "Asserts servicePolicies names Apple, Anthropic, OpenAI, Google, xAI, DeepSeek, Tavily, MET Norway, both Overpass mirrors, OpenTopoData and Hugging Face, and every URL is https.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.servicePolicies",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each of 12 required service names",
+     "effect": "asserts the set contains it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL": "934f55e51085b9e8",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "3327059f9cd9e8ef",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.servicePolicies": "228c1b39fff4415a"
+   }
+  }
+ ],
+ "deps": {}
+}

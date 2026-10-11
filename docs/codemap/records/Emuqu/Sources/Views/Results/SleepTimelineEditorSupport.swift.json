@@ -1,0 +1,401 @@
+{
+ "file": "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift",
+ "hash": "d7093a91075de52f",
+ "role": "Value types for drag preview / pending ranges / pending split and the three modal sheets (Add Sleep, Carve Awake, Split Segment) the sleep timeline editor presents; sheets only collect times and call back.",
+ "types": [
+  "BoundaryDrag: struct — live drag preview (segmentId/side/newTime)",
+  "PendingRange: struct Identifiable — start/end for add/carve sheet",
+  "AddSleepSheet: struct View",
+  "CarveAwakeSheet: struct View",
+  "PendingSplit: struct Identifiable — segment bounds + cut time",
+  "SplitSegmentSheet: struct View"
+ ],
+ "state": [
+  "@State start/end in AddSleepSheet and CarveAwakeSheet",
+  "@State atTime in SplitSegmentSheet"
+ ],
+ "toplevel": "PendingRange.id and PendingSplit.id default to UUID() at construction.",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "AddSleepSheet and CarveAwakeSheet are the same view (init, two DatePickers, note, Cancel/confirm toolbar, end<=start disable) differing only in strings.",
+   "evidence": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift:23",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift:87"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init AddSleepSheet(range:onConfirm:onCancel:)",
+   "hash": "d4d9581d2a3637b9",
+   "does": "Stores range and callbacks and seeds @State start/end from the range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AddSleepSheet.body",
+   "hash": "4e60d229cbf58bb1",
+   "does": "NavigationStack Form with range and note sections, inline title \"Add Sleep\", toolbar.",
+   "entry": "SwiftUI render of AddSleepSheet, presented by SleepTimelineEditorView.addSleepSheet (SleepTimelineEditorView.swift:103) via .sheet(item: $pendingAdd)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.rangeSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.noteSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.sheetToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.noteSection": "aa964005a14965bc",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.rangeSection": "0e099426e041e673",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.sheetToolbar": "0bf4d5c133805851"
+   }
+  },
+  {
+   "key": "var AddSleepSheet.rangeSection",
+   "hash": "7a546034b4dc1251",
+   "does": "Start and End date+time pickers; End limited to >= start.",
+   "entry": "SwiftUI render of AddSleepSheet, presented by SleepTimelineEditorView.addSleepSheet (SleepTimelineEditorView.swift:103) via .sheet(item: $pendingAdd)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AddSleepSheet.noteSection",
+   "hash": "060eb4e8285bda0e",
+   "does": "Caption explaining user-declared sleep counts toward total without stage detail.",
+   "entry": "SwiftUI render of AddSleepSheet, presented by SleepTimelineEditorView.addSleepSheet (SleepTimelineEditorView.swift:103) via .sheet(item: $pendingAdd)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AddSleepSheet.sheetToolbar",
+   "hash": "1d767e40c93b72c7",
+   "does": "Cancel (calls onCancel) and confirm toolbar items.",
+   "entry": "SwiftUI render of AddSleepSheet, presented by SleepTimelineEditorView.addSleepSheet (SleepTimelineEditorView.swift:103) via .sheet(item: $pendingAdd)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.confirmButton",
+    "closure:onCancel = sets pendingAdd = nil (SleepTimelineEditorView.swift:107)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var AddSleepSheet.confirmButton": "d90d630b1169bf37"
+   }
+  },
+  {
+   "key": "var AddSleepSheet.confirmButton",
+   "hash": "1b5ec88948740757",
+   "does": "\"Add\" button calling onConfirm(PendingRange(start,end)), disabled when end <= start.",
+   "entry": "SwiftUI render of AddSleepSheet, presented by SleepTimelineEditorView.addSleepSheet (SleepTimelineEditorView.swift:103) via .sheet(item: $pendingAdd)",
+   "calls": [
+    "closure:onConfirm = apply(.addSegment) then pendingAdd = nil (SleepTimelineEditorView.swift:104-106)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init CarveAwakeSheet(range:onConfirm:onCancel:)",
+   "hash": "d4d9581d2a3637b9",
+   "does": "Stores range and callbacks and seeds @State start/end from the range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CarveAwakeSheet.body",
+   "hash": "07e4deda5e7b0a2f",
+   "does": "NavigationStack Form with range and note sections, inline title \"Carve Awake\", toolbar.",
+   "entry": "SwiftUI render of CarveAwakeSheet, presented by SleepTimelineEditorView.carveAwakeSheet (SleepTimelineEditorView.swift:111) via .sheet(item: $pendingCarve)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.rangeSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.noteSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.sheetToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.noteSection": "62a7846d21b1d4fd",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.rangeSection": "d3eb7594874b50c5",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.sheetToolbar": "689e05440e6f50a8"
+   }
+  },
+  {
+   "key": "var CarveAwakeSheet.rangeSection",
+   "hash": "78a292a72153518e",
+   "does": "Start and End date+time pickers for the awake window; End >= start.",
+   "entry": "SwiftUI render of CarveAwakeSheet, presented by SleepTimelineEditorView.carveAwakeSheet (SleepTimelineEditorView.swift:111) via .sheet(item: $pendingCarve)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CarveAwakeSheet.noteSection",
+   "hash": "8b271032b94f267d",
+   "does": "Caption: sleep overlapping the range is replaced with awake time.",
+   "entry": "SwiftUI render of CarveAwakeSheet, presented by SleepTimelineEditorView.carveAwakeSheet (SleepTimelineEditorView.swift:111) via .sheet(item: $pendingCarve)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var CarveAwakeSheet.sheetToolbar",
+   "hash": "1d767e40c93b72c7",
+   "does": "Cancel (onCancel) and confirm toolbar items.",
+   "entry": "SwiftUI render of CarveAwakeSheet, presented by SleepTimelineEditorView.carveAwakeSheet (SleepTimelineEditorView.swift:111) via .sheet(item: $pendingCarve)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.confirmButton",
+    "closure:onCancel = pendingCarve = nil (SleepTimelineEditorView.swift:115)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var CarveAwakeSheet.confirmButton": "665b96e29f6b9add"
+   }
+  },
+  {
+   "key": "var CarveAwakeSheet.confirmButton",
+   "hash": "39b0f77042d84bf4",
+   "does": "\"Carve\" button calling onConfirm(PendingRange(start,end)), disabled when end <= start.",
+   "entry": "SwiftUI render of CarveAwakeSheet, presented by SleepTimelineEditorView.carveAwakeSheet (SleepTimelineEditorView.swift:111) via .sheet(item: $pendingCarve)",
+   "calls": [
+    "closure:onConfirm = apply(.carveAwake) then pendingCarve = nil (SleepTimelineEditorView.swift:112-114)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init SplitSegmentSheet(split:onConfirm:onCancel:)",
+   "hash": "2e581dd96fba39d2",
+   "does": "Stores split and callbacks and seeds @State atTime from split.atTime.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SplitSegmentSheet.firstHalfMinutes",
+   "hash": "3d2f1bbeae3424e0",
+   "does": "Whole minutes from segment start to atTime, floored at 0.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SplitSegmentSheet.secondHalfMinutes",
+   "hash": "4ac59895e25608d1",
+   "does": "Whole minutes from atTime to segment end, floored at 0.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SplitSegmentSheet.body",
+   "hash": "863cefea7e282d7b",
+   "does": "NavigationStack Form with cut-point and preview sections, inline title \"Split Segment\", toolbar.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.cutAtSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.firstHalfSection",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.splitToolbar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.cutAtSection": "c0ef72a82a3842c1",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.firstHalfSection": "7cae262a005d2907",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.splitToolbar": "8e346ed2585482f7"
+   }
+  },
+  {
+   "key": "var SplitSegmentSheet.splitToolbar",
+   "hash": "7eb4ed5dfb973c47",
+   "does": "Cancel (onCancel) and Split toolbar items.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.splitButton",
+    "closure:onCancel = pendingSplit = nil (SleepTimelineEditorView.swift:123)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.splitButton": "339fb6a2dff671c7"
+   }
+  },
+  {
+   "key": "var SplitSegmentSheet.splitButton",
+   "hash": "dcd8cf1a10fca042",
+   "does": "\"Split\" button passing a copy of split with the chosen atTime to onConfirm; disabled only when atTime <= segmentStart or >= segmentEnd.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "closure:onConfirm = apply(.split) then pendingSplit = nil (SleepTimelineEditorView.swift:120-122)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The button enables any atTime strictly inside the segment, but applyingSplit rejects cuts within 60 s of either end (after snapping to the minute), so for a short segment where cutRange collapses to the midpoint, or a picked time that snaps to within a minute of an edge, tapping Split closes the sheet and silently does nothing.",
+     "evidence": [
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift:214",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift:223",
+      "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:211"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SplitSegmentSheet.cutRange",
+   "hash": "e63bab70e4be007d",
+   "does": "Valid DatePicker range for the cut: [start+60s, end-60s], or the midpoint alone when the segment is shorter than 2 min.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "lower > upper (segment < 2 min)",
+     "effect": "returns mid...mid; else lower...upper"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SplitSegmentSheet.cutAtSection",
+   "hash": "571bd416bae3d95f",
+   "does": "Section with \"Cut at\" DatePicker bound to atTime within cutRange.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.cutRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.cutRange": "56506d4bb02de69f"
+   }
+  },
+  {
+   "key": "func SplitSegmentSheet.halfRow(_:minutes:)",
+   "hash": "e5c90bd0bd2daada",
+   "does": "Row with a label and minutes formatted by AppTheme.formatMinutes.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.formatMinutes(_:)": "b6abb79a05a8eaac",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var SplitSegmentSheet.firstHalfSection",
+   "hash": "d48e37e177a3f587",
+   "does": "Preview section with first-half and second-half durations and an explanatory footer.",
+   "entry": "SwiftUI render of SplitSegmentSheet, presented by SleepTimelineEditorView.splitSegmentSheet (SleepTimelineEditorView.swift:119) via .sheet(item: $pendingSplit)",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::func SplitSegmentSheet.halfRow(_:minutes:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.firstHalfMinutes",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.secondHalfMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::func SplitSegmentSheet.halfRow(_:minutes:)": "6ec67db1bb5ac87b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.firstHalfMinutes": "ea010cc6e5e649fc",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorSupport.swift::var SplitSegmentSheet.secondHalfMinutes": "5f722aed5d535265"
+   }
+  }
+ ],
+ "deps": {}
+}

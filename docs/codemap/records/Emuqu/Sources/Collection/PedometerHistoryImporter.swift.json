@@ -1,0 +1,156 @@
+{
+ "file": "Emuqu/Sources/Collection/PedometerHistoryImporter.swift",
+ "hash": "44e0aba08dc1c3ca",
+ "role": "Reads up to 7 days of per-day CMPedometer step/distance/floor history for the Fitness tab's passive activity list.",
+ "types": [
+  "PedometerHistoryImporter: enum — importer",
+  "PedometerHistoryImporter.DailySteps: struct — one day's totals"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references PedometerHistoryImporter.",
+   "evidence": [
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift:19"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var PedometerHistoryImporter.DailySteps.id",
+   "hash": "90ee21e7cc9450bf",
+   "does": "Identifiable id = the day's start date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PedometerHistoryImporter.importRecent(days:)",
+   "hash": "891ffd3cb18240ad",
+   "does": "If step counting is available and motion access is authorized, queries CMPedometer separately for each of the last min(days,7) local days (today truncated at now) and returns DailySteps most-recent first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)",
+    "ext:CMPedometer.isStepCountingAvailable",
+    "ext:CMPedometer.authorizationStatus"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "step counting unavailable or not authorized",
+     "effect": "return [] (no permission prompt)"
+    },
+    {
+     "at": "+7",
+     "cond": "for each day offset",
+     "effect": "query"
+    },
+    {
+     "at": "+8",
+     "cond": "day start date fails",
+     "effect": "skip day"
+    },
+    {
+     "at": "+9",
+     "cond": "day end ?? now",
+     "effect": "fallback end is now"
+    },
+    {
+     "at": "+11",
+     "cond": "query returned nil (no data or error)",
+     "effect": "day omitted; else appended"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)": "f63a00596abb8f91",
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func PedometerHistoryImporter.reduced(_:dayStart:)",
+   "hash": "26c5f58ac62d1e9a",
+   "does": "Maps optional CMPedometerData to DailySteps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.dailySteps(_:dayStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.dailySteps(_:dayStart:)": "d7e344f265630cdc"
+   }
+  },
+  {
+   "key": "func PedometerHistoryImporter.dailySteps(_:dayStart:)",
+   "hash": "150d2c449afbb19b",
+   "does": "Builds DailySteps from CMPedometerData.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "distance nil",
+     "effect": "0"
+    },
+    {
+     "at": "+5",
+     "cond": "floorsAscended nil",
+     "effect": "0"
+    },
+    {
+     "at": "+6",
+     "cond": "floorsDescended nil",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6"
+   }
+  },
+  {
+   "key": "func PedometerHistoryImporter.queryPedometerData(pedometer:from:to:)",
+   "hash": "5fe109a72d451a5b",
+   "does": "Bridges CMPedometer.queryPedometerData to async, reducing data inside the @Sendable handler.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.reduced(_:dayStart:)",
+    "ext:CMPedometer.queryPedometerData"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "The query's error argument is discarded (`data, _ in`); an error yields nil and the day silently disappears from the list with nothing logged.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PedometerHistoryImporter.swift:83",
+      "Emuqu/Sources/Collection/PedometerHistoryImporter.swift:84"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.reduced(_:dayStart:)": "12d74668b4f030d3"
+   }
+  }
+ ],
+ "deps": {}
+}

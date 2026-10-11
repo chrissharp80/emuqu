@@ -1,0 +1,152 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionRecoveryMath.swift",
+ "hash": "0fd377dc79c617f9",
+ "role": "Pure, nonisolated recovery decisions lifted out of SessionRecoveryCoordinator so tests can reach them: review-card construction, safe mean-HR conversion, workout merge source choice, v5 merge corruption detection.",
+ "types": [
+  "SessionRecoveryMath: enum — namespace of static pure functions"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)",
+   "hash": "15b54f09c0699f94",
+   "does": "Builds a RecoveredWorkoutReview for a session: sport name (or localized 'Workout'), non-negative duration, distance (0 if none), and a safe integer average HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate ?? startDate",
+     "effect": "duration 0 when the session has no end"
+    },
+    {
+     "at": "+4",
+     "cond": "workoutMetadata?.sport.localizedName ?? 'Workout'",
+     "effect": "falls back to localized 'Workout' with no metadata"
+    },
+    {
+     "at": "+7",
+     "cond": "workoutMetadata?.distanceMeters ?? 0",
+     "effect": "distance 0 when absent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMath.recoveredAverageHR(_:)",
+   "hash": "a476ecd2b4b21324",
+   "does": "Returns 0 for nil, non-finite or non-positive mean HR; otherwise rounds min(meanHR, 300) to Int.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meanHR present, finite and > 0",
+     "effect": "returns Int(min(meanHR,300).rounded()); else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)",
+   "hash": "c6bb5085b0506727",
+   "does": "Chooses recovered-workout beats: strap beats when there are no existing beats; otherwise DataSourceSelector's choice between existing (streaming) and strap (internal) points; when the selector returns nil, the longer of the two.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "existing is non-empty",
+     "effect": "continues; else returns strapRR"
+    },
+    {
+     "at": "+4",
+     "cond": "selector returned a selection",
+     "effect": "returns selection.points; else falls back to longerRecording"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)": "b6c682b845099bb2"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMath.longerRecording(existing:strapRR:)",
+   "hash": "2b1b5ce6f2c9d6d9",
+   "does": "Returns strapRR if it has more beats than existing, otherwise existing (ties keep existing).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strapRR.count > existing.count",
+     "effect": "strapRR; else existing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)",
+   "hash": "181edb12217bca17",
+   "does": "Detects v5 merge corruption: child longer than parentBeatCount and the first child beat past the parent's length has t_ms below half of the previous beat's t_ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "child count > parentBeatCount",
+     "effect": "continues; else false"
+    },
+    {
+     "at": "+6",
+     "cond": "boundaryIdx < count and boundaryIdx > 0",
+     "effect": "compares timestamps; else false (only reachable via parentBeatCount <= 0)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "`boundaryIdx < childSeries.points.count` is always true after the guard on line 82 (count > parentBeatCount == boundaryIdx); only the `> 0` half can fail.",
+     "evidence": [
+      "Emuqu/Sources/Collection/SessionRecoveryMath.swift:82",
+      "Emuqu/Sources/Collection/SessionRecoveryMath.swift:84"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+   }
+  }
+ ],
+ "deps": {}
+}

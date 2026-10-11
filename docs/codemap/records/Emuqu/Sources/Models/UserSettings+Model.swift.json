@@ -1,0 +1,752 @@
+{
+ "file": "Emuqu/Sources/Models/UserSettings+Model.swift",
+ "hash": "048479b0c08321f8",
+ "role": "Declares the UserSettings value type: every stored preference with in-memory defaults, derived values (effective max HR/LTHR/resting HR/weight/FTP, sleep schedule, merge gap, comeback/break/overreach state, population RMSSD), CodingKeys, the PerformanceFlagKey UserDefaults mirror, HealthProfileField and the iCloud-backup strip/restore helpers.",
+ "types": [
+  "UserSettings: struct — Codable/Equatable settings document",
+  "UserSettings.DailyReportDelivery: enum — smart/fixed",
+  "UserSettings.DailyReportFormat: enum — full/teaser/auto",
+  "UserSettings.PerformanceFlagKey: enum — UserDefaults mirror key names",
+  "UserSettings.CodingKeys: enum — JSON keys (incl. legacy smartProviderRoutingEnabled)",
+  "UserSettings.BiologicalSex: enum — Male/Female/Other",
+  "HealthProfileField: enum — birthday/biologicalSex/bodyWeight markers",
+  "UserSettings: extension — withoutHealthFilledProfile / keepingHealthFilledProfile"
+ ],
+ "state": [
+  "ud:perf.enableAIAssistant (key declared; read by performanceFlag, written by SettingsManager.save)",
+  "ud:perf.enableVoiceMode",
+  "ud:perf.enableWatchConnectivity",
+  "UserSettings.currentSchemaVersion = 1 (static)"
+ ],
+ "toplevel": "Stored-property initializers set the in-memory defaults (sessionMergeMode .defaultGap, customMergeGapHours 4.5, sleepSplitGapMinutes 20, enablePeriodicCoachUpdates true, cadence 300, enableSleepIntegration true, peakingDetectionEnabled true, battery/sync/coach alerts true, preserveClipboard true, temperatureUnit .regionDefault, routingMode .manual, watchDisplayOnlyMode true, hasFixedTempAsymmetry true, keepScreenOn/AI/voice/watch true, defaultCaptureMode 'both', others false/nil). dailyReportFixedTime and expectedBedtime are full Date instants built from hour/minute components in the current time zone.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "med",
+   "text": "expectedBedtime and dailyReportFixedTime are stored as absolute instants (year-1 date built in the then-current time zone, encoded ISO-8601) but read back as hour/minute in Calendar.current; after the user changes time zone, the bedtime driving sleepSchedule and the fixed report time shift by the zone difference.",
+   "evidence": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift:862",
+    "Emuqu/Sources/Models/UserSettings+Model.swift:389",
+    "Emuqu/Sources/Models/UserSettings+Model.swift:756",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift:264"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "maxHR doc says the fallback is '220 − age', but effectiveMaxHR uses Tanaka 208 − 0.7·age via MaxHeartRate.effective.",
+   "evidence": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift:93",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift:22"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "trialStartDate doc says it is 'Set once after onboarding completes (first-time users only)', but the only writer is SettingsManager.mirrorTrialStart driven by StoreKit's trial transaction.",
+   "evidence": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift:590",
+    "Emuqu/Sources/Models/SettingsManager.swift:433"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "comebackModeStartDate doc says an expired date is 'cleared by the next dashboard load'; the clearing writers are LoadTrajectoryLoader and the Modes settings page.",
+   "evidence": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift:342",
+    "Emuqu/Sources/Views/LoadTrajectoryLoader.swift:285"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var UserSettings.birthday",
+   "hash": "af7e80812b228e0c",
+   "does": "didSet on birthday: removes the .birthday Health-filled marker when the value changes.",
+   "entry": "Swift property observer on UserSettings.birthday assignment.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new birthday != old",
+     "effect": "remove .birthday from profileFieldsFromHealth; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.biologicalSex",
+   "hash": "d3e6e8758df52cdd",
+   "does": "didSet on biologicalSex: removes the .biologicalSex marker when the value changes.",
+   "entry": "Swift property observer on UserSettings.biologicalSex assignment.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new value != old",
+     "effect": "remove marker; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.bodyWeightKg",
+   "hash": "37ebf5601d037078",
+   "does": "didSet on bodyWeightKg: removes the .bodyWeight marker when the value changes.",
+   "entry": "Swift property observer on UserSettings.bodyWeightKg assignment.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new value != old",
+     "effect": "remove marker; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.effectiveBodyWeightKg",
+   "hash": "481fb06241dc2c81",
+   "does": "Body weight for calorie math: the user's entry when > 0, else 75 kg.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "bodyWeightKg set and > 0",
+     "effect": "return it; else 75.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  },
+  {
+   "key": "var UserSettings.effectiveLTHR",
+   "hash": "1860d9e82b299d0f",
+   "does": "LTHR: user value when >= 80 bpm, else max(120, Int(0.88 × effectiveMaxHR)).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
+    "ext:MaxHeartRate.minimumUserEntered"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lactateThresholdHR set and >= 80",
+     "effect": "return it; else derive from max HR with a 120 floor"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says derived max is 150–220 so LTHR lands at 133–158; MaxHeartRate clamps the derived max to 130–220 (default 180), giving 120–193.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings+Model.swift:114",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:65"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
+   }
+  },
+  {
+   "key": "var UserSettings.resolvedDefaultEmailRecipient",
+   "hash": "3bea02d0bcaaf960",
+   "does": "First non-empty of legacy defaultEmailRecipient, recovery recipient, training recipient; nil when none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "med",
+     "text": "The legacy generic recipient (not editable anywhere in the UI; decode keeps it forever) has first precedence, so a legacy user who changes their recovery/training recipient still gets the old address pre-filled in the AI per-message mailer, the assistant email.compose fallback, and the recovery/training mailers whenever their own category field is empty. MorningResultsView's comment claims the order is recovery -> training -> legacy, the reverse of the code.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings+Model.swift:230",
+      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:328",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift:229",
+      "Emuqu/Sources/Views/MorningResultsView.swift:475",
+      "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift:260"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.resolvedDefaultEmailCC",
+   "hash": "3da58cdb64a09b1b",
+   "does": "First non-empty CC string among legacy, recovery, training CC, split on commas, trimmed, empties dropped.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? — no non-empty CC configured",
+     "effect": "uses '' → returns []"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.effectiveRunningFTP",
+   "hash": "1104072fbcbd2253",
+   "does": "Running FTP: user value when > 0, else FTPAutoEstimator.cachedRunningFTP (UserDefaults cache, nil if none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP (standard, via FTPAutoEstimator.cachedRunningFTP)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "runningFTPWatts set and > 0",
+     "effect": "return it; else auto-estimate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "API_REFERENCE documents effectiveRunningFTP as \"nil when not set\", but when runningFTPWatts is unset the code returns the auto-estimated FTP cached by FTPAutoEstimator.",
+     "evidence": [
+      "docs/API_REFERENCE.md:3206",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:260",
+      "Emuqu/Sources/Analysis/FTPAutoEstimator.swift:60"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "025373b97cca81f8"
+   }
+  },
+  {
+   "key": "var UserSettings.effectiveCyclingFTP",
+   "hash": "8f485da89b6dd61b",
+   "does": "Cycling FTP: user value when > 0, else nil (no auto-estimate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cyclingFTPWatts set and > 0",
+     "effect": "return it; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.effectiveRestingHR",
+   "hash": "a5744945140464cc",
+   "does": "Resting HR: user value when >= 30, else rounded baselineHR when > 30, else 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userRestingHR set and >= 30",
+     "effect": "return it"
+    },
+    {
+     "at": "+2",
+     "cond": "baselineHR set and > 30",
+     "effect": "return rounded baseline; else 60"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.effectiveMaxHR",
+   "hash": "f91b048a2ee60771",
+   "does": "Max HR via MaxHeartRate.effective: user value >= 80, else Tanaka from birthday (Calendar.current, now), else 180.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "var UserSettings.isComebackModeActive",
+   "hash": "37f8548a5bbce4b4",
+   "does": "True when comebackModeStartDate is set and today is 0–20 days after its start day.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no start date",
+     "effect": "false"
+    },
+    {
+     "at": "+5",
+     "cond": "day difference unavailable",
+     "effect": "false; else daysSince in [0,21)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "let UserSettings.dailyReportFixedTime",
+   "hash": "77df78c1d00d3bd3",
+   "does": "Initializer closure for dailyReportFixedTime: 07:00 built from components in Calendar.current, or now if that fails.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — Calendar.date(from:) returned nil",
+     "effect": "Date() (current instant)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.isIntentionalOverreachInEffect",
+   "hash": "74bfa487886ec965",
+   "does": "True when intentionalOverreachActive and (no end date, or now is before it).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?? — no end date",
+     "effect": "true (map yields nil); else Date() < end"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettings.performanceFlag(_:)",
+   "hash": "54ed56e397eea732",
+   "does": "Reads a performance flag from standard UserDefaults, returning true when the key was never written.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "key never set",
+     "effect": "true; else stored bool"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.shouldKeepScreenOnDuringRecording",
+   "hash": "63f83310aec72259",
+   "does": "keepScreenOnDuringRecording && !Low Power Mode.",
+   "entry": null,
+   "calls": [
+    "ext:ProcessInfo.isLowPowerModeEnabled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.isOnTrainingBreak",
+   "hash": "019606e48446dde1",
+   "does": "True when today (Calendar.current) is on/after the break start day and, if an end date exists, on/before its day.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no start date",
+     "effect": "false"
+    },
+    {
+     "at": "+8",
+     "cond": "today before start day",
+     "effect": "false"
+    },
+    {
+     "at": "+11",
+     "cond": "end date set",
+     "effect": "today <= end day; else true (open-ended)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "var UserSettings.sleepSchedule",
+   "hash": "2ebeb11c08756296",
+   "does": "SleepSchedule from expectedBedtime's hour/minute in Calendar.current and typicalSleepHours.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — hour component missing",
+     "effect": "22"
+    },
+    {
+     "at": "+5",
+     "cond": "?? — minute component missing",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.effectiveMergeGapSeconds",
+   "hash": "236545306f1b65a0",
+   "does": "Merge gap seconds: off 0, default 4.5 h, custom customMergeGapHours h.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .off",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "case .defaultGap",
+     "effect": "16200 s"
+    },
+    {
+     "at": "+4",
+     "cond": "case .custom",
+     "effect": "customMergeGapHours × 3600"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.typicalSleepMinutes",
+   "hash": "3d25b2fbfbb7ee61",
+   "does": "typicalSleepHours × 60.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "typicalSleepMinutes has no reference anywhere in the repo, app or tests.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings+Model.swift:827"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.age",
+   "hash": "7a87f58973edba80",
+   "does": "Whole years from birthday to now in Calendar.current; nil when no birthday.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "birthday nil",
+     "effect": "nil; else years component"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Re-derives age with Calendar.current, duplicating MaxHeartRate.age(from:to:calendar:) which exists to take an explicit calendar.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings+Model.swift:835",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:79"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81"
+   }
+  },
+  {
+   "key": "var UserSettings.BiologicalSex.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id = rawValue.",
+   "entry": "Identifiable witness used by ForEach(UserSettings.BiologicalSex.allCases) in SettingsView+Pages and OnboardingProfilePage.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.BiologicalSex.displayName",
+   "hash": "f8b688fd2e16654f",
+   "does": "Localized picker label for biological sex.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .male",
+     "effect": "'Male'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .female",
+     "effect": "'Female'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .other",
+     "effect": "'Other or prefer not to say'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init UserSettings()",
+   "hash": "c79dd6229e6dff86",
+   "does": "Designated init: empty customTags, 8 h sleep, 22:00 bedtime (now if calendar fails), consolidatedRecovery window, onboarding not completed, iCloud off; other fields take their declaration defaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "?? — 22:00 date could not be built",
+     "effect": "Date()"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserSettings.allTags",
+   "hash": "7d4b7783a996b5c4",
+   "does": "ReadingTag.systemTags followed by customTags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.systemTags": "825e2f48504e4c5e"
+   }
+  },
+  {
+   "key": "var UserSettings.populationBaselineRMSSD",
+   "hash": "605690bcd5ff2336",
+   "does": "Population RMSSD baseline by age bracket (<20:55, 20s:45, 30s:38, 40s:32, 50s:27, 60s:22, 70+:18; 35 without birthday) times the fitness-level multiplier (1.0 if unset).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age",
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.rmssdBaselineMultiplier"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "age unknown",
+     "effect": "return 35.0 (multiplier not applied)"
+    },
+    {
+     "at": "+4",
+     "cond": "age < 20",
+     "effect": "55"
+    },
+    {
+     "at": "+5",
+     "cond": "20–29",
+     "effect": "45"
+    },
+    {
+     "at": "+6",
+     "cond": "30–39",
+     "effect": "38"
+    },
+    {
+     "at": "+7",
+     "cond": "40–49",
+     "effect": "32"
+    },
+    {
+     "at": "+8",
+     "cond": "50–59",
+     "effect": "27"
+    },
+    {
+     "at": "+9",
+     "cond": "60–69",
+     "effect": "22"
+    },
+    {
+     "at": "+10",
+     "cond": "default (>=70)",
+     "effect": "18"
+    },
+    {
+     "at": "+13",
+     "cond": "?? — fitnessLevel nil",
+     "effect": "multiplier 1.0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "ca00f16b8dca855b",
+    "Emuqu/Sources/Models/UserSettings.swift::var FitnessLevel.rmssdBaselineMultiplier": "34a0336981dca76c"
+   }
+  },
+  {
+   "key": "func UserSettings.withoutHealthFilledProfile()",
+   "hash": "96b1cf40c677e3b8",
+   "does": "Copy for iCloud backup with Health-filled birthday/biologicalSex/bodyWeightKg set to nil, markers preserved (reassigned after the didSets strip them).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "birthday Health-filled",
+     "effect": "nil it"
+    },
+    {
+     "at": "+4",
+     "cond": "biologicalSex Health-filled",
+     "effect": "nil it"
+    },
+    {
+     "at": "+5",
+     "cond": "bodyWeight Health-filled",
+     "effect": "nil it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  },
+  {
+   "key": "func UserSettings.keepingHealthFilledProfile(of:)",
+   "hash": "82157e14adb37731",
+   "does": "Restored settings with this device's own values for the backup's Health-filled fields; markers = backup markers ∩ local markers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "backup marks birthday",
+     "effect": "take local birthday"
+    },
+    {
+     "at": "+4",
+     "cond": "backup marks biologicalSex",
+     "effect": "take local value"
+    },
+    {
+     "at": "+5",
+     "cond": "backup marks bodyWeight",
+     "effect": "take local weight"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2"
+   }
+  }
+ ],
+ "deps": {}
+}

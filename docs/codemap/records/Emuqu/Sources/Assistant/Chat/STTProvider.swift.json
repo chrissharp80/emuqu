@@ -1,0 +1,147 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/STTProvider.swift",
+ "hash": "64c6f5a4d14971b9",
+ "role": "User-selectable speech-to-text provider kind (Apple Speech vs WhisperKit) with display strings, language support and the effective-provider rule (WhisperKit only for English).",
+ "types": [
+  "STTProviderKind: enum String Codable CaseIterable Identifiable — apple/whisperKit"
+ ],
+ "state": [
+  "persisted via UserSettings.preferredSTTProvider (default .apple)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var STTProviderKind.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue.",
+   "entry": "Identifiable for ForEach in AIAssistantSettingsPage+Sections",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var STTProviderKind.displayName",
+   "hash": "06d4db4b3eefe732",
+   "does": "Localized display name per provider.",
+   "entry": "SwiftUI settings row",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "'Apple Speech (default)'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .whisperKit",
+     "effect": "'WhisperKit (open-source)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var STTProviderKind.subtitle",
+   "hash": "0cf834fcc8c60fa3",
+   "does": "Localized subtitle per provider.",
+   "entry": "SwiftUI settings row",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "on-device/real-time partials text"
+    },
+    {
+     "at": "+3",
+     "cond": "case .whisperKit",
+     "effect": "noise-robust/English-only/download text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func STTProviderKind.supports(languageCode:)",
+   "hash": "0aa7f3debbff5e10",
+   "does": "Whether the provider handles a language code: Apple always, WhisperKit only for 'en'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .apple",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "case .whisperKit",
+     "effect": "languageCode == 'en'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func STTProviderKind.effective(preferred:languageCode:)",
+   "hash": "27a3222a032b0946",
+   "does": "Returns preferred if it supports languageCode, else .apple.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.supports(languageCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "preferred supports language",
+     "effect": "preferred; else .apple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.supports(languageCode:)": "4ce002f5bf1c8c6e"
+   }
+  },
+  {
+   "key": "func STTProviderKind.effective(preferred:)",
+   "hash": "72aa529af5c30f0b",
+   "does": "effective(preferred:languageCode:) using the app locale's language code.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.locale"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "3f0e7550bc0a4074",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  }
+ ],
+ "deps": {}
+}

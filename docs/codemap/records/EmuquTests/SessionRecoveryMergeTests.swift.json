@@ -1,0 +1,355 @@
+{
+ "file": "EmuquTests/SessionRecoveryMergeTests.swift",
+ "hash": "e4d22d5c247f302a",
+ "role": "Tests SessionRecoveryMath pure decisions in crash recovery: which recording wins a strap-pull merge (selector, then more-beats tie-break), v5 merge-corruption timestamp-restart detection, and the recovered workout card's average-HR conversion.",
+ "types": [
+  "SessionRecoveryMergeTests: class — XCTestCase for SessionRecoveryMath"
+ ],
+ "state": [
+  "mem:SessionRecoveryMergeTests.sessionId (UUID per instance)",
+  "mem:SessionRecoveryMergeTests.start (fixed Date 1_785_600_000)"
+ ],
+ "toplevel": "Private stored sessionId and start used by every fixture series.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+   "hash": "5606dce9a7da0a64",
+   "does": "Builds `count` RR points of rrMs spaced from an optional t_ms offset.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.series(_:)",
+   "hash": "a05f4ecb139399d8",
+   "does": "Wraps points in an RRSeries with the fixture session id and start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testWithNothingAlreadyArchivedTheStrapRecordingWins()",
+   "hash": "bb22513ceefd07df",
+   "does": "Asserts mergedWorkoutPoints with no archived beats returns the 500 strap beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a1112e92280ca01d",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testTheFallbackKeepsWhicheverRecordingHasMoreBeats()",
+   "hash": "592bd356f1803c1a",
+   "does": "Asserts longerRecording keeps the 900-beat series whichever side it is on.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)": "b6c682b845099bb2",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testEqualLengthRecordingsKeepTheArchivedOne()",
+   "hash": "113e0de7399c8a25",
+   "does": "Asserts equal-length series keep the existing (1000 ms) one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.longerRecording(existing:strapRR:)": "b6c682b845099bb2",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAnEmptyStrapPullNeverErasesArchivedBeats()",
+   "hash": "0c863d53c61d25b6",
+   "does": "Asserts mergedWorkoutPoints with 900 archived beats and an empty strap pull returns 900 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a1112e92280ca01d",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testBothEmptyYieldsNothing()",
+   "hash": "8dd0a84d3500cd70",
+   "does": "Asserts merging two empty inputs yields empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a1112e92280ca01d"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testATimestampRestartAtTheSpliceIsDetected()",
+   "hash": "71edcaed63b1f6ff",
+   "does": "Asserts a 100-beat parent followed by an un-rebased 100-beat child restarting at 0 is flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testACorrectlyRebasedMergeIsNotFlagged()",
+   "hash": "8e7f369ec404c46c",
+   "does": "Asserts a correctly rebased splice (continuing at 100,000 ms) is not flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAnOrdinaryDropoutGapIsNotFlagged()",
+   "hash": "7df3e68119326cf1",
+   "does": "Asserts a forward 600,000 ms dropout gap is not flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testASmallBackwardsNudgeIsNotFlagged()",
+   "hash": "367b56329d740119",
+   "does": "Asserts a small backwards step to 80,000 ms (more than half of 99,000) is not flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAChildNoLongerThanItsParentIsNotFlagged()",
+   "hash": "aaf9605cd93a09ad",
+   "does": "Asserts a child no longer than its parent (parent counts 100 and 200) is not flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAZeroLengthParentIsNotFlagged()",
+   "hash": "e7e040c18aee183a",
+   "does": "Asserts a zero-length parent is not flagged (no index −1).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)": "ffe87077462f46fe",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAnEmptyChildSeriesIsNotFlagged()",
+   "hash": "a0dd330b78cafbb9",
+   "does": "Asserts an empty child series is not flagged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)",
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries:parentBeatCount:)": "a5355f895fa80918",
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.series(_:)": "8a91c82869e811a8"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAverageHeartRateRoundsToTheNearestBeat()",
+   "hash": "ea3aa7a8c11f1b15",
+   "does": "Asserts recoveredAverageHR rounds 142.4→142 and 142.5→143.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAMissingAverageHeartRateIsZero()",
+   "hash": "45d19cfad6899f42",
+   "does": "Asserts nil, 0 and −5 mean HR give 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testANonFiniteAverageHeartRateReadsAsNoValue()",
+   "hash": "d374c857f7d58fca",
+   "does": "Asserts NaN, +inf and −inf give 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAFiniteButAstronomicalAverageIsCappedBeforeConversion()",
+   "hash": "80187c14fc18278a",
+   "does": "Asserts greatestFiniteMagnitude is capped to 300 before Int conversion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAnImplausiblyHighAverageIsBounded()",
+   "hash": "01539560dcd44990",
+   "does": "Asserts 50,000 is bounded to 300.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "d926100736f97dca"
+   }
+  }
+ ],
+ "deps": {}
+}

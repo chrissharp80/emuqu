@@ -1,0 +1,36 @@
+{
+ "file": "scripts/check_privacy_manifest_vocabulary.sh",
+ "hash": "4134b51202d058f8",
+ "role": "CI gate: every NSPrivacyCollectedDataType and purpose value in each PrivacyInfo.xcprivacy is in Apple's published vocabulary list.",
+ "types": [],
+ "state": [
+  "file:**/PrivacyInfo.xcprivacy"
+ ],
+ "toplevel": "cd to repo root. find PrivacyInfo.xcprivacy excluding .claude/DerivedData/build/.build; none -> 2. For each manifest, Python plistlib prints types then purposes; each must be in VALID_TYPES / VALID_PURPOSES (else error). bad>0 -> exit 1; zero values checked -> 2; else clean. Wired: ci.yml and Makefile infoplist-guard only; gates.yml runs the other two infoplist-guard scripts and omits this one.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Not run by the push workflow gates.yml, which runs check_no_health_data_in_cloudkit.sh and check_infoplist_key_drift.sh directly ('the plutil-free two') although this script uses Python plistlib, not plutil. A Python failure inside the process substitution yields no values for that manifest instead of an error.",
+   "evidence": [
+    ".github/workflows/gates.yml:62",
+    ".github/workflows/gates.yml:63",
+    "scripts/check_privacy_manifest_vocabulary.sh:88"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Comment says the manifest list uses a here-string 'rather than process substitution' so a sandbox without /dev/fd cannot produce a clean result, yet both value loops read from process substitution; there, a failed substitution yields no values for that manifest.",
+   "evidence": [
+    "scripts/check_privacy_manifest_vocabulary.sh:60",
+    "scripts/check_privacy_manifest_vocabulary.sh:88",
+    "scripts/check_privacy_manifest_vocabulary.sh:106"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

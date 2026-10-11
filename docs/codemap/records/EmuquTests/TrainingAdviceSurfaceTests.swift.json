@@ -1,0 +1,208 @@
+{
+ "file": "EmuquTests/TrainingAdviceSurfaceTests.swift",
+ "hash": "b3c0ee1012a91254",
+ "role": "@MainActor XCTest suite checking that Flo's score note (ContextBuilder), the PDF breakdown's advice level and the live load's monotony all reach TrainingAdviceGate: today's note reads the live load, a past note its frozen load, the PDF reads the report's training context, and live monotony+strain holds the push.",
+ "types": [
+  "TrainingAdviceSurfaceTests: class — @MainActor XCTestCase over ContextBuilder score note, PDFReportGenerator.adviceLoadLevel and TrainingAdviceGate.Load(live:)"
+ ],
+ "state": [
+  "heavy: TrainingContext ATL 79.6 / CTL 40 / TSB −39.6",
+  "clear: TrainingContext ATL 40 / CTL 40 / TSB 0",
+  "emptyResult: static HRVAnalysisResult fixture (RMSSD 50, no frequency/ANS)"
+ ],
+ "toplevel": "Stored fixtures heavy, clear and the static emptyResult are built at declaration.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func TrainingAdviceSurfaceTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "setUp: super.setUp then pinEnglishLanguage.",
+   "entry": "XCTest runner: async setUp before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LanguageManager (pinned English)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)",
+   "hash": "80ec0b7886640fd4",
+   "does": "Test helper: live TrainingLoad at CTL 40 with ATL = acwr×40, TSB = 40 − ATL, optional monotony/strain, provenance .live(now).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.strongBreakdown()",
+   "hash": "c442cfbf70f04632",
+   "does": "Test helper: ScoreBreakdown with HRV/Sleep/Vitals factors at 92, equal weights, tier 3.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)",
+   "hash": "8e5029c6d115b9fa",
+   "does": "Test helper: complete overnight session ending `days` ago, recoveryScore 9.2, strong breakdown and the given frozen trainingSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.strongBreakdown()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.strongBreakdown()": "418f21e89cdd5f45"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.testFloTodayNoteReadsTheLiveLoad()",
+   "hash": "7b8fb0fa8038b110",
+   "does": "With a frozen-clear session for today and a live ACWR 1.99 load, asserts ContextBuilder.build's today.scoreMessage has no 'Go hard' and contains 'an easier session'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "aac5024f6b848ae2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)": "a71249ced8fcda59",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)": "e6ea9821729e6bac"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.testFloPastNoteReadsItsFrozenLoad()",
+   "hash": "d0e652f5edc0d630",
+   "does": "With a 3-day-old heavy-frozen session and a clear live load, asserts the score note contains 'an easier session' and the recent[0] note equals it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "aac5024f6b848ae2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847",
+    "EmuquTests/DetailScreenSnapshotTests.swift::var DetailScreenSnapshotTests.recent": "680bc775d50f8b3a",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)": "a71249ced8fcda59",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)": "e6ea9821729e6bac"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.testPDFBreakdownMessageReadsTheReportsTrainingLoad()",
+   "hash": "8295924e9695a44f",
+   "does": "Asserts PDFReportGenerator().adviceLoadLevel for ReportInputs with the heavy trainingContext is .easier.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.strongBreakdown()",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Named for the PDF breakdown message but asserts only adviceLoadLevel's return value; nothing checks that the drawn breakdown message is produced with that level (ScoreBreakdownCopy.message(for:loadLevel:)), so a renderer reverting to breakdown.message would pass.",
+     "evidence": [
+      "EmuquTests/TrainingAdviceSurfaceTests.swift:88",
+      "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift:66"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Load.preferring(live:frozen:)": "e3f09218ae297d05",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "6e5e28c38fddc383",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.adviceLoadLevel(_:)": "fc0c598831104e40",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.night(endingDaysAgo:frozen:)": "e6ea9821729e6bac",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.strongBreakdown()": "418f21e89cdd5f45"
+   }
+  },
+  {
+   "key": "func TrainingAdviceSurfaceTests.testLiveLoadMonotonyHoldsThePush()",
+   "hash": "037b2384c5f03a0a",
+   "does": "Asserts a live load with monotony 2.5 and strain 2000 gives gate level .holdPush and the same load without monotony gives .clear.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "6e5e28c38fddc383",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "ecd339d63b5be913",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
+    "EmuquTests/TrainingAdviceSurfaceTests.swift::func TrainingAdviceSurfaceTests.liveLoad(acwr:monotony:strain:)": "a71249ced8fcda59"
+   }
+  }
+ ],
+ "deps": {}
+}

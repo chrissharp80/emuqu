@@ -1,0 +1,213 @@
+{
+ "file": "EmuquUITests/DataDeletionUITests.swift",
+ "hash": "fd1ac72e090047d7",
+ "role": "XCUITest coverage of Settings → Advanced Data Controls → Delete All My Data: the destructive button is disabled until the typed phrase, warning copy exists, and backing out does not purge.",
+ "types": [
+  "DataDeletionUITests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/DataDeletionUITests.swift:30",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc says the success summary surfacing every category is asserted and that XCTSkipUnless guards the destructive button; neither exists in the tests (no purge is run, no skip on the button)",
+   "evidence": [
+    "EmuquUITests/DataDeletionUITests.swift:15",
+    "EmuquUITests/DataDeletionUITests.swift:20"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Doc cites widget data purge as the reason this surface is critical and says the explanatory copy lists the widget purge; the app has no widget (DataPurgeService.swift:647-649 only erases legacy keys) and no test checks for it",
+   "evidence": [
+    "EmuquUITests/DataDeletionUITests.swift:6",
+    "EmuquUITests/DataDeletionUITests.swift:108",
+    "Emuqu/Sources/Services/DataPurgeService.swift:647"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func DataDeletionUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func DataDeletionUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DataDeletionUITests.navigateToDeleteAllData()",
+   "hash": "19b50c027e29adb4",
+   "does": "Opens Settings via More, scrolls to settings.advancedDataControls and taps it, then asserts settings.deleteAllData row exists and taps it.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "Advanced Data Controls row missing",
+     "effect": "return (assertion already failed)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DataDeletionUITests.testDeleteAllDataRequiresConfirmation()",
+   "hash": "a111fc8528372797",
+   "does": "On the Delete-All-Data page: swipes up to 8 times to find deleteAllData.confirmButton, asserts it exists and is disabled, swipes to find deleteAllData.confirmField and asserts it exists, and asserts warning copy containing irreversible/permanent/cannot be undone/remove.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "confirm button not yet in tree (<=8 swipes)",
+     "effect": "swipe up and re-query"
+    },
+    {
+     "at": "+28",
+     "cond": "confirm field not yet in tree (<=8 swipes)",
+     "effect": "swipe up and re-query"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Never types the phrase, so it does not prove the button enables with the correct phrase (or stays disabled with a wrong one); the 'remove' predicate matches nearly any explanatory copy",
+     "evidence": [
+      "EmuquUITests/DataDeletionUITests.swift:93",
+      "EmuquUITests/DataDeletionUITests.swift:113"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "66638f3d277f40cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func DataDeletionUITests.testDeleteAllDataCancelDoesNotFirePurge()",
+   "hash": "db7451d4a41e5595",
+   "does": "Opens Delete-All-Data, taps the first navigation-bar button (skips if none), asserts the delete row is shown again, then relaunches with only -UITests (no fresh install) and asserts the health disclaimer does not appear within 10s (evidence the purge did not run).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "ext:XCUIApplication.launch",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no navigation-bar button",
+     "effect": "throw XCTSkip"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The relaunch check relies on the disclaimer acceptance written during setUp's gate walk having been flushed; the harness says terminate() can lose that flag (EmuquUITests.swift:577-582) and backgroundToPersist is not called here, so the test can fail with 'the purge ran' when no purge happened",
+     "evidence": [
+      "EmuquUITests/DataDeletionUITests.swift:145",
+      "EmuquUITests/EmuquUITests.swift:577"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "navigationBars.buttons.first is assumed to be Back; any leading bar button would be tapped instead",
+     "evidence": [
+      "EmuquUITests/DataDeletionUITests.swift:128"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The 'returned to Advanced Data Controls' check uses UITestFind.row, whose label fallback (buttons CONTAINS[c] 'Delete All My Data') also matches the Delete page's own destructive button (label at DeleteAllDataPage.swift:144); when that button is in the accessibility tree the assertion passes even if the back tap did nothing",
+     "evidence": [
+      "EmuquUITests/DataDeletionUITests.swift:135",
+      "EmuquUITests/EmuquUITests.swift:359",
+      "Emuqu/Sources/Views/DeleteAllDataPage.swift:144"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/DataDeletionUITests.swift::func DataDeletionUITests.navigateToDeleteAllData()": "66638f3d277f40cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

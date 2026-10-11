@@ -1,0 +1,617 @@
+{
+ "file": "Emuqu/Sources/Views/LLMPromptAuditView.swift",
+ "hash": "bab0bf9a25c93b27",
+ "role": "Troubleshooting page (SettingsPages+Diagnostics.swift:283) listing the in-memory LLMRequestAudit entries (provider, model, time, token usage, response preview) with a Clear button and a private detail view showing the full system prompt, messages JSON, tools JSON and response with a share action.",
+ "types": [
+  "LLMPromptAuditView: struct — SwiftUI list of audit entries",
+  "LLMPromptAuditDetailView: struct (private) — detail view of one LLMRequestAudit.Entry"
+ ],
+ "state": [
+  "mem:LLMPromptAuditDetailView.sectionExpanded (@State Set<String>, initial ['system'])"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var LLMPromptAuditView.audit",
+   "hash": "f431c410190d189d",
+   "does": "Returns dependencies.providers.llmRequestAudit (the shared LLMRequestAudit).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit"
+   ],
+   "reads": [
+    "mem:LLMRequestAudit.shared"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd4275b8cd4159d3"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditView.body",
+   "hash": "1478fd4db54386b1",
+   "does": "List of auditListContent titled 'AI prompt audit' (inline).",
+   "entry": "SwiftUI body; pushed from SettingsPages+Diagnostics NavigationLink.",
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.auditListContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.auditListContent": "97a8bd1647f54836"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditView.auditListContent",
+   "hash": "0574ab31606bcf1d",
+   "does": "Shows the empty-state section when there are no entries; otherwise the clear section followed by one section per entry (newest first, as LLMRequestAudit inserts at index 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.audit",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.emptyAuditSection",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditSection",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entrySection(_:)"
+   ],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "audit.entries is empty",
+     "effect": "renders emptyAuditSection; else clearAuditSection + ForEach entrySection"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entrySection(_:)": "46f7c3c4465f5d24",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.audit": "d1482d762d05eca5",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditSection": "0e370b53ac4806d3",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.emptyAuditSection": "3bbb9a59a61fe817"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditView.emptyAuditSection",
+   "hash": "714cce03f86d1ed0",
+   "does": "Section with the caption 'No AI turns recorded yet. Send a message to Flo to populate this audit.'",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditView.clearAuditSection",
+   "hash": "823ca5ea7ee8e37f",
+   "does": "Section with clearAuditLogButton and a footer stating entries are kept in memory only (last 10 turns), cleared on quit, and may contain health data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditLogButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Footer says the log keeps 'the last 10 turns', but LLMRequestAudit records one entry per provider request and AssistantViewModel records one per tool-loop round (consumeStreamRound → recordPromptAudit), so a single tool-using turn can occupy several of the 10 slots and older turns drop sooner than stated.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:44",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:28",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:194"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.clearAuditLogButton": "f6b93ff6edd72b9b"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditView.entrySection(_:)",
+   "hash": "6eb868738b0ecb14",
+   "does": "Section with a NavigationLink to LLMPromptAuditDetailView(entry:) labelled by entryRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryRow(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryRow(_:)": "2571c92f73a5d67f"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditView.clearAuditLogButton",
+   "hash": "42f6434432641102",
+   "does": "Destructive 'Clear audit log' button calling audit.clear(), removing every entry.",
+   "entry": "Button tap by user.",
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.audit",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()": "553c36b6a688cc41",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditView.audit": "d1482d762d05eca5"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditView.entryRow(_:)",
+   "hash": "514d26a2e5e96500",
+   "does": "VStack with entryHeader, entryUsageLine and a 2-line response preview when the response text is non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryHeader(_:)",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryUsageLine(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "entry.responseText non-empty",
+     "effect": "shows 2-line response preview; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryHeader(_:)": "67a2b585566e038d",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.entryUsageLine(_:)": "41a333619d72e095",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditView.entryHeader(_:)",
+   "hash": "8b275f20ece39246",
+   "does": "HStack of provider id, model apiID and shortTime(sentAt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.shortTime(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditView.shortTime(_:)": "16cd9024ba7bf837",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditView.entryUsageLine(_:)",
+   "hash": "00f13d2a5c43c260",
+   "does": "Shows 'Tokens: in X · cached Y (Z%) · out W' where Z = cached/(input+cached+cacheCreate)*100 truncated, or 'Failed' in caution color when there is no usage but an error, or nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.usage non-nil",
+     "effect": "renders the token line"
+    },
+    {
+     "at": "+5",
+     "cond": "total input (input+cached+cacheCreate) > 0",
+     "effect": "hit ratio = Int(cached/total*100) (truncated toward zero); when total is 0 the ratio is 0"
+    },
+    {
+     "at": "+9",
+     "cond": "usage nil and entry.errorDescription non-nil",
+     "effect": "renders 'Failed'; when both are nil (in-flight or finished without usage) renders nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "med",
+     "text": "The 'Failed' branch never renders: LLMRequestAudit.setError(_:for:) has no caller anywhere in the repo (app or tests), so Entry.errorDescription is always nil. A failed provider request shows no usage and no failure marker, although LLMRequestAudit documents that the page surfaces why a turn failed.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:106",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditView.shortTime(_:)",
+   "hash": "fd7c11b83f3a16a2",
+   "does": "Formats a Date as time-only (.standard) in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.body",
+   "hash": "9f3dad801e8b946a",
+   "does": "List of summarySection and promptSections, titled with the provider id, with a share toolbar item.",
+   "entry": "SwiftUI body; pushed by entrySection NavigationLink.",
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.summarySection",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.promptSections",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.promptSections": "563ed720aaa27fa5",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem": "194eda71ad3390ed",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.summarySection": "98fd80d1ea6eecb0"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.summarySection",
+   "hash": "bea44cfb3fb48301",
+   "does": "Summary section with Provider, Model and Sent (abbreviated date + standard time, app locale) rows, then usageRows and errorRow.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.usageRows",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.errorRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)": "81be7542b07d748f",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.errorRow": "67be6528e991fe90",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.usageRows": "2ace286ceb27a317"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.usageRows",
+   "hash": "614d8ad26125666a",
+   "does": "Four rows (input, cached read, cache create, output tokens) when usage exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.usage non-nil",
+     "effect": "renders the four token rows; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)": "81be7542b07d748f"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.errorRow",
+   "hash": "ea833d92df37b250",
+   "does": "Error row when entry.errorDescription exists.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.errorDescription non-nil",
+     "effect": "renders 'Error' row; omitted otherwise"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "Error row never renders: Entry.errorDescription is only set by LLMRequestAudit.setError, which nothing calls.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:156",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.row(_:_:)": "81be7542b07d748f"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.promptSections",
+   "hash": "c9ec01a26888294f",
+   "does": "Collapsible System prompt (key system) and Messages + tool rounds (key messages) sections, then optionalPromptSections.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.collapsibleSection(title:key:body:language:)",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.optionalPromptSections"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The view's doc says each entry shows the full <live_state>-shaped prompt for triaging 'the number doesn't match the dashboard'. recordPromptAudit captures systemPrompt/outbound/tools only; the contextRendered live-state block (today's and yesterday's recovery score, RMSSD, mean HR, workout location) passed to provider.send is never recorded, so the audit omits exactly the numbers the cloud model was given.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:8",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:194",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:200",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:246",
+      "Emuqu/Sources/Assistant/Context/AssistantContext.swift:132"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.collapsibleSection(title:key:body:language:)": "bbff034a1762a133",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.optionalPromptSections": "507bf70a72ca29c1"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.optionalPromptSections",
+   "hash": "24649b859f879bc4",
+   "does": "Collapsible tool catalog (key tools) and response text (key response) sections, each only when its text is non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.collapsibleSection(title:key:body:language:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "entry.toolsJSON non-empty",
+     "effect": "shows tool catalog section; omitted for toolless requests"
+    },
+    {
+     "at": "+10",
+     "cond": "entry.responseText non-empty",
+     "effect": "shows response section; omitted when no text was streamed"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.collapsibleSection(title:key:body:language:)": "bbff034a1762a133"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.shareToolbarItem",
+   "hash": "d00f7400ea4889b9",
+   "does": "Top-bar ShareLink sharing shareBody as a String, accessibility label 'Share prompt audit'.",
+   "entry": "Toolbar share tap by user (system share sheet).",
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareBody"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareBody": "68efb708b403063a"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditDetailView.row(_:_:)",
+   "hash": "f9cc17e754b7a58a",
+   "does": "Key/value HStack row, value in monospaced-digit callout, trailing aligned.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditDetailView.collapsibleSection(title:key:body:language:)",
+   "hash": "f4ab0fe8993aec23",
+   "does": "Section with a header button toggling the key's expansion and, when expanded, the body as selectable monospaced caption text.",
+   "entry": "Header button tap by user.",
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.toggleSection(_:)",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.sectionHeader(title:key:charCount:)"
+   ],
+   "reads": [
+    "mem:LLMPromptAuditDetailView.sectionExpanded"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sectionExpanded contains key",
+     "effect": "shows full body text; collapsed otherwise (only 'system' is expanded initially)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.sectionHeader(title:key:charCount:)": "f03a7b221ab9f7d0",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::func LLMPromptAuditDetailView.toggleSection(_:)": "50d0b18b60df222c",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.body": "6543f588ea796bd5"
+   }
+  },
+  {
+   "key": "func LLMPromptAuditDetailView.toggleSection(_:)",
+   "hash": "00b6ceec1314f9e6",
+   "does": "Toggles key membership in sectionExpanded.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LLMPromptAuditDetailView.sectionExpanded"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sectionExpanded contains key",
+     "effect": "removes key (collapse); else inserts it (expand)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LLMPromptAuditDetailView.sectionHeader(title:key:charCount:)",
+   "hash": "756e8c196911b31b",
+   "does": "HStack of title, '<n> characters' count and a chevron up/down reflecting expansion.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LLMPromptAuditDetailView.sectionExpanded"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "sectionExpanded contains key",
+     "effect": "chevron.up; else chevron.down"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.shareBody",
+   "hash": "1b97a31836a40c04",
+   "does": "Joins shareHeaderLines and shareBodyLines with newlines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareHeaderLines",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareBodyLines"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareBodyLines": "a15c02bf96442d63",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareHeaderLines": "0d840bae4a024a34"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.shareHeaderLines",
+   "hash": "110cfdbcfaaec103",
+   "does": "Header lines: '# AI prompt audit — provider (model)', 'Sent: …', optional token line and optional error line.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry.usage non-nil",
+     "effect": "appends 'Tokens — in:… cached:… create:… out:…'; omitted otherwise"
+    },
+    {
+     "at": "+7",
+     "cond": "entry.errorDescription non-nil",
+     "effect": "appends 'Error: …'; omitted otherwise"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The comment says the shared file stays in English, but the 'Sent:' date uses Date.formatted(date:time:) with the device's current locale, so month names and time format follow the user's locale.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:265",
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:270"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "'Error:' share line is never appended: LLMRequestAudit.setError has no caller, so errorDescription is always nil.",
+     "evidence": [
+      "Emuqu/Sources/Views/LLMPromptAuditView.swift:274",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:130",
+      "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var LLMPromptAuditDetailView.shareBodyLines",
+   "hash": "2f7b4e5aefacea05",
+   "does": "Body lines: '## System prompt' + text, '## Messages' + JSON, then '## Tools' + JSON and '## Response' + text when non-empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "entry.toolsJSON non-empty",
+     "effect": "appends Tools section; omitted otherwise"
+    },
+    {
+     "at": "+13",
+     "cond": "entry.responseText non-empty",
+     "effect": "appends Response section; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

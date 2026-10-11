@@ -1,0 +1,307 @@
+{
+ "file": "EmuquTests/BeatConsistencyTests.swift",
+ "hash": "563c2629a579da4c",
+ "role": "Unit tests for the pure-math BeatConsistency module (Pass 1 beat-to-beat consistency score): windowing, calibration gate, data floor, baseline scale floor, winsorized MAD, and feature statistics.",
+ "types": [
+  "BeatConsistencyTests: class — XCTestCase for BeatConsistency"
+ ],
+ "state": [],
+ "toplevel": "No top-level code; reuses DFAReferenceValidationTests.SeededGenerator (SplitMix64) for deterministic jitter.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+   "hash": "c7a3bb8a85924ec1",
+   "does": "Builds a synthetic [RRPoint] of `count` beats at meanMs (optionally ±jitterMs uniform jitter from a SplitMix64 generator seeded from count/meanMs/jitter), each RR clamped to >=300 ms, with cumulative t_ms.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each of `count` beats",
+     "effect": "appends one RRPoint and advances t by the interval; loop ends after count iterations"
+    },
+    {
+     "at": "+6",
+     "cond": "jitterMs > 0",
+     "effect": "true: draws uniform Int in -jitterMs...jitterMs from the seeded generator; false: jitter 0 (constant intervals)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "80a4dd34e7ac09ba",
+    "EmuquTests/DFAReferenceValidationTests.swift::init DFAReferenceValidationTests.SeededGenerator(seed:)": "df012a011701b266"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+   "hash": "522b7dcb775ec05b",
+   "does": "Constructs a BeatConsistency.Baseline with the given per-feature center, scale and acceptedNightCount, bypassing buildBaseline.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testPerfectlyRegularRRScoresMaxConsistent()",
+   "hash": "311b40ed2b9c8e34",
+   "does": "Scores 28,800 constant 1000 ms beats against a 30-night baseline and asserts state .normal, score 100, band .consistent, and all fracHigh components 0.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testHighDispersionScoresLowAndNotablyVariable()",
+   "hash": "844ae18e63daa9eb",
+   "does": "Scores 28,800 beats with ±400 ms seeded jitter against a 30-night baseline; asserts state .normal, score < 60 and band .notablyVariable.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "result.score and result.band both non-nil",
+     "effect": "true: asserts score<60 and band notablyVariable; false: XCTFail and return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testWindowingProducesExpectedScoringCountAndRejectsGappedWindows()",
+   "hash": "ccb64efd4605bb6a",
+   "does": "Asserts 600 clean 1000 ms beats yield exactly 20 valid scoring windows, then shifts the second half of the series by +5 s and asserts the scoring window count drops below the clean count.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+23",
+     "cond": "for each index from the midpoint to the end",
+     "effect": "rebuilds each RRPoint with t_ms+5000 keeping rr_ms and wallClockMs, creating a 5 s timestamp gap"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The gap assertion is only `withGap < clean` (strictly fewer windows); it does not pin which window is rejected or that rejection is due to the span/count rule, so any change that drops a window for another reason passes.",
+     "evidence": [
+      "EmuquTests/BeatConsistencyTests.swift:128"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testCalibrationGateThresholds()",
+   "hash": "938a89ed8c59026d",
+   "does": "Scores the same 600-beat night against baselines with 13/14/27/28 accepted nights and asserts states calibrating(13, needed 14) with nil score/band, lowConfidence(14) with a score, lowConfidence(27), and normal.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testInsufficientDataAtNineteenWindowsScoredAtTwenty()",
+   "hash": "8616708b1d8a768a",
+   "does": "Asserts a 570-beat (19-window) night returns .insufficientData(19) with nil score and a 600-beat (20-window) night returns .normal with a score.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "r19.state is .insufficientData",
+     "effect": "true: asserts count 19 and nil score; false: XCTFail with the actual state"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeBaseline(nights:pNN50:cvRR:ratio:scalePNN50:scaleCVRR:scaleRatio:)": "19f9e9fab677fd33",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testWinsorizedMADAbsorbsOutlier()",
+   "hash": "336d2d89eabd24de",
+   "does": "Computes winsorizedMAD (10/90) on 56 copies of 5.0 and on 55 copies of 5.0 plus one 500.0, asserting the two MADs are equal.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Test claims to prove winsorization absorbs an outlier, but an unwinsorized MAD of 55x5.0 + 1x500 is already 0 (median of absolute deviations is 0), so the assertion passes even if winsorization were removed; it cannot detect a winsorization regression.",
+     "evidence": [
+      "EmuquTests/BeatConsistencyTests.swift:217",
+      "EmuquTests/BeatConsistencyTests.swift:223",
+      "Emuqu/Sources/Analysis/BeatConsistency.swift:552"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "781b59bbe24ee82b"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testScaleFloorHoldsThresholdOpenForHyperRegularUser()",
+   "hash": "a26ba80caefe5652",
+   "does": "Builds a baseline from 30 identical prior-night Features via buildBaseline and asserts the scale equals the per-feature floors (2.0, 0.01, 0.03), then asserts a perfectly regular 600-beat night scores 100.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)": "5b59be44acea5094",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532",
+    "EmuquTests/BeatConsistencyTests.swift::func BeatConsistencyTests.makeRR(count:meanMs:jitterMs:)": "e1056d4fbaeb16cc",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testSD2DegenerateReturnsZeroRatio()",
+   "hash": "cc38b57cd747656d",
+   "does": "Calls computeFeatures on 60 identical 1000 ms intervals and asserts pNN50, cvRR and ratio are 0 and ratio is not NaN (degenerate SD2 path).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testMedianOddAndEvenCounts()",
+   "hash": "500ec5d8d047948f",
+   "does": "Asserts BeatConsistency.median returns 2 for [3,1,2], 2.5 for [1,2,3,4], 7 for [7], and 0 for an empty array.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testFeaturesComputeForKnownInput()",
+   "hash": "a0bf1e6e153604b7",
+   "does": "Calls computeFeatures on [800,850,900,850,800] and asserts pNN50 == 0 (diffs exactly 50 not counted), cvRR > 0 and ratio > 0.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func BeatConsistencyTests.testPNN50CountsOnlyDiffsStrictlyAbove50()",
+   "hash": "68bc1eb2f07af433",
+   "does": "Calls computeFeatures on [1000,1060,1000] and asserts pNN50 == 100 (both 60 ms diffs counted).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047"
+   }
+  }
+ ],
+ "deps": {}
+}

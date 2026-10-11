@@ -1,0 +1,602 @@
+{
+ "file": "EmuquTests/SleepRefreshPolicyTests.swift",
+ "hash": "505f1547030ec032",
+ "role": "XCTest suites for SleepRefreshPolicy (auto-refresh permission, refresh verdict gates for total/onset/source upgrade, applyFreshSleep/applyPulledSleep/applyAutoRefresh boundary writes) and MorningResultsViewModel.storeSleepBoundariesIfMeasured.",
+ "types": [
+  "SleepRefreshPolicyTests: class — XCTestCase for SleepRefreshPolicy",
+  "MorningResultsLiveSleepTests: class — @MainActor XCTestCase for MorningResultsViewModel.storeSleepBoundariesIfMeasured"
+ ],
+ "state": [
+  "recordingStart: Date(timeIntervalSince1970: 1_785_600_000)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+   "hash": "5f01ce13763b8ef1",
+   "does": "Builds a complete 8h overnight HRVSession at recordingStart with the given sleepSnapshot, sleepStartMs/EndMs and sleepUserAdjusted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+   "hash": "df7bc3535fedfa04",
+   "does": "Builds SleepData starting startOffsetMin after recordingStart lasting `minutes`, in-bed = total, 95% efficiency, with the given boundary source (default .healthKit).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testUserAdjustedSleepWithASnapshotBlocksAutoRefresh()",
+   "hash": "831e07e407d81c14",
+   "does": "Asserts autoSleepRefreshAllowed is false for a user-adjusted session that has a snapshot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testUserAdjustedSessionWithNoSnapshotStillAllowsFirstFill()",
+   "hash": "8d32f419178b322f",
+   "does": "Asserts autoSleepRefreshAllowed is true for a user-adjusted session with no snapshot (CloudKit-pulled first fill).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testUntouchedSessionAllowsAutoRefresh()",
+   "hash": "50b89b0b39954cd6",
+   "does": "Asserts autoSleepRefreshAllowed is true for sleepUserAdjusted nil and false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "33fbd96f656ca268",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testFirstSnapshotAlwaysUpdatesAndRescores()",
+   "hash": "cf43f2b1537a67d0",
+   "does": "Asserts a session with no snapshot gives verdict firstSnapshot, shouldUpdate and needsRescore all true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testMoreSleepUpdatesButASmallDeltaDoesNotRescore()",
+   "hash": "1d5ba806a2ff7620",
+   "does": "Asserts +10 min total with the same onset/source updates but does not rescore, delta 10.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testATwentyMinuteDeltaRescores()",
+   "hash": "6e6a62bc4ad27c1d",
+   "does": "Asserts a +20 min total delta triggers needsRescore.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testLessSleepWithNothingElseChangedIsNotAnUpdate()",
+   "hash": "4901f6d8b098a278",
+   "does": "Asserts 20 fewer minutes with same onset/source/earlier end is not an update.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testALaterSleepEndUpdatesEvenWithoutMoreTotalMinutes()",
+   "hash": "e4560fb836298a89",
+   "does": "Asserts a block shifted 30 min later (same total) sets endMovedLater and shouldUpdate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testALargeOnsetMoveAtTheSameTotalStillRescores()",
+   "hash": "1743dd34bbe6dbf5",
+   "does": "Asserts onset moving 117→5 min at the same 343 total (both hrEstimated) gives delta 0, onsetMovedMin 112, material, update and rescore.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testAnOnsetMoveBelowFifteenMinutesIsNotMaterial()",
+   "hash": "390a0926154aaa15",
+   "does": "Asserts a 14-minute onset move is reported as 14 and not material.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testOnsetMoveIsMeasuredInEitherDirection()",
+   "hash": "cdea2fc481a20597",
+   "does": "Asserts onsetMoveMinutes returns 40 for onset moving 40 min earlier and 40 min later.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "bc65e91b58a590ac",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testOnsetMoveIsZeroWithNoPriorBoundary()",
+   "hash": "b19bd187b5f196ed",
+   "does": "Asserts onsetMoveMinutes is 0 when the session has no prior sleepStartMs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.onsetMoveMinutes(session:fresh:)": "bc65e91b58a590ac",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testAnUpgradeFromAnEstimateToHealthKitAlwaysRescores()",
+   "hash": "4fc03f3554eabab2",
+   "does": "For prior sources hrEstimated, healthKitHREstimated, recordingBounds with fresh .healthKit at identical times, asserts sourceUpgradedToWatch, shouldUpdate and needsRescore.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each prior estimate source",
+     "effect": "runs the three assertions once per source (3 iterations)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testHRValidatedCountsAsAWatchBasedUpgrade()",
+   "hash": "387d44194a53b248",
+   "does": "Asserts hrEstimated → hrValidated counts as an upgrade to watch.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testAlreadyWatchBasedIsNotAnUpgrade()",
+   "hash": "c5da83ac34333775",
+   "does": "Asserts healthKit → healthKit and healthKit → hrEstimated are not upgrades.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testNoPriorSourceCountsAsAnEstimate()",
+   "hash": "7502c1e30d9fc2f9",
+   "does": "Asserts a session with no snapshot and fresh .healthKit counts as an upgrade.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.isSourceUpgradeToWatch(session:fresh:)": "d8d3231e47ac745b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testApplyingFreshSleepMovesTheScoringBoundariesNotJustTheDisplay()",
+   "hash": "c7e88057e06c4aab",
+   "does": "Applies fresh healthKit sleep at onset 5/343 min to a session scored at 117 min and asserts sleepStartMs=300000, sleepEndMs=348 min, snapshot source .healthKit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testSleepStartingBeforeTheRecordingClampsToZero()",
+   "hash": "2bba106cbfc99f3f",
+   "does": "Asserts applyFreshSleep with sleep starting 45 min before recording clamps sleepStartMs to 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testOnlyASplitNightWritesSegments()",
+   "hash": "68b1b4ac6925f79c",
+   "does": "Asserts applyFreshSleep with a single-segment night leaves sleepSegments nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The session starts with sleepSegments already nil, so the assertion passes even if applyFreshSleep never clears stale segments; the multi-segment write path (fresh.segments.count > 1) is not exercised.",
+     "evidence": [
+      "EmuquTests/SleepRefreshPolicyTests.swift:276",
+      "EmuquTests/SleepRefreshPolicyTests.swift:278",
+      "Emuqu/Sources/Collection/SleepRefreshPolicy.swift:158"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "def68e40a940835b",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testPulledSleepNeverOverwritesExistingBoundaries()",
+   "hash": "ce15e311669772cf",
+   "does": "Asserts applyPulledSleep keeps existing sleepStartMs/EndMs (90/400 min) and still sets the snapshot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testPulledSleepFillsNilBoundaries()",
+   "hash": "fdd1875f71632a10",
+   "does": "Asserts applyPulledSleep fills nil boundaries with 5 and 348 minutes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testAutoRefreshOfAUserAdjustedNightKeepsTheEditedBoundaries()",
+   "hash": "64765ee46b9b204a",
+   "does": "Asserts applyAutoRefresh on a user-adjusted session keeps edited boundaries and sets the snapshot.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "626b20745ed36b2e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func SleepRefreshPolicyTests.testAutoRefreshOfAnUntouchedNightMovesTheBoundaries()",
+   "hash": "665d34795b2df98b",
+   "does": "Asserts applyAutoRefresh on an untouched session moves sleepStartMs to 5 min.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "626b20745ed36b2e",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "83bb89d2751a95dc",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSleep(startOffsetMin:minutes:source:)": "ccd0c3ec3a5031d2"
+   }
+  },
+  {
+   "key": "func MorningResultsLiveSleepTests.viewModel(endingAt:userAdjusted:)",
+   "hash": "071ae339c411e998",
+   "does": "Builds a MorningResultsViewModel over a complete overnight session ending at `end` with SnapshotFixtures.analysisResult() and optional sleepUserAdjusted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.app.settingsManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "ad0f0854abe74aef",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864"
+   }
+  },
+  {
+   "key": "func MorningResultsLiveSleepTests.testMeasuredSleepForTodayIsStored()",
+   "hash": "4eb6c6e6f5933156",
+   "does": "Asserts storeSleepBoundariesIfMeasured on today's session with fixture sleep calls onUpdateSleep once.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func MorningResultsLiveSleepTests.viewModel(endingAt:userAdjusted:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()",
+    "closure:onUpdateSleep set by the test to append to `stored`"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "storeSleepBoundariesIfMeasured's doc says 'An RR estimate is not a measurement' but its guard never checks boundarySource; no test covers an estimated source, so an hrEstimated SleepData would be handed to onUpdateSleep unnoticed.",
+     "evidence": [
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:456",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:460"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)": "bcd63bed12a5fe00",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func MorningResultsLiveSleepTests.viewModel(endingAt:userAdjusted:)": "9e7ab97b4fbe7f65",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab"
+   }
+  },
+  {
+   "key": "func MorningResultsLiveSleepTests.testPastNightAndUserAdjustmentAreLeftAlone()",
+   "hash": "4a22d7ca1f0b3d5b",
+   "does": "Asserts storeSleepBoundariesIfMeasured does not call onUpdateSleep for a session ending 3 days ago or a user-adjusted session today.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepRefreshPolicyTests.swift::func MorningResultsLiveSleepTests.viewModel(endingAt:userAdjusted:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()",
+    "closure:onUpdateSleep set by the test"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.storeSleepBoundariesIfMeasured(_:)": "bcd63bed12a5fe00",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func MorningResultsLiveSleepTests.viewModel(endingAt:userAdjusted:)": "9e7ab97b4fbe7f65",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.sleepData()": "f3d2e3e8542e2fab"
+   }
+  }
+ ],
+ "deps": {}
+}

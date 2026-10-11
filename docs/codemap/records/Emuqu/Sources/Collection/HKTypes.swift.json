@@ -1,0 +1,137 @@
+{
+ "file": "Emuqu/Sources/Collection/HKTypes.swift",
+ "hash": "32d28c86848efda9",
+ "role": "Safe accessors for HealthKit type constants and finite HKQuantity construction: return nil plus a warning log instead of force-unwrapping.",
+ "types": [
+  "HKTypes: enum — static accessors"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HKTypes.quantity(_:caller:file:line:)",
+   "hash": "781d8c47397e66a9",
+   "does": "Returns HKQuantityType for the identifier, or nil after a .warning debugLog naming the caller. Used at 22 call sites (HR/HRV/vitals/workout importer reads and exports).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKQuantityType.quantityType(forIdentifier:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "quantityType(forIdentifier:) returns non-nil",
+     "effect": "false: warning log, returns nil (callers skip/return); true: returns type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HKTypes.category(_:caller:file:line:)",
+   "hash": "32e02da9e186ad5e",
+   "does": "Returns HKCategoryType for the identifier (used for .sleepAnalysis), or nil after a warning log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKCategoryType.categoryType(forIdentifier:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "categoryType(forIdentifier:) returns non-nil",
+     "effect": "false: warning log, nil; true: type"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HKTypes.characteristic(_:caller:file:line:)",
+   "hash": "847bbefe5c83bb34",
+   "does": "Returns HKCharacteristicType for the identifier, or nil after a warning log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKCharacteristicType.characteristicType(forIdentifier:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "characteristicType(forIdentifier:) non-nil",
+     "effect": "false: warning log, nil; true: type"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo, app or tests (grep 'HKTypes.characteristic(' and 'characteristic(' outside this file: 0 hits).",
+     "evidence": [
+      "Emuqu/Sources/Collection/HKTypes.swift:65"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func HKTypes.validQuantity(unit:doubleValue:caller:file:line:)",
+   "hash": "1d51c92643f472d8",
+   "does": "Returns HKQuantity(unit:doubleValue:) when the value is finite, else nil after a warning log.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:HKQuantity(unit:doubleValue:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "doubleValue.isFinite",
+     "effect": "false: warning log, nil; true: HKQuantity"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo, app or tests (grep 'validQuantity': only its own declaration). The finite-value guard actually used by every export is HealthSampleFactory.quantitySample.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HKTypes.swift:88",
+      "Emuqu/Sources/Collection/HealthSampleFactory.swift:31"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same non-finite guard as HealthSampleFactory.quantitySample, which is the one in use.",
+     "evidence": [
+      "Emuqu/Sources/Collection/HKTypes.swift:95",
+      "Emuqu/Sources/Collection/HealthSampleFactory.swift:39"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

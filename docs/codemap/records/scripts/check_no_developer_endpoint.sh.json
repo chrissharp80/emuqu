@@ -1,0 +1,42 @@
+{
+ "file": "scripts/check_no_developer_endpoint.sh",
+ "hash": "f6dc11eaefd78a98",
+ "role": "CI gate: every http(s) host literal in app/watch Swift must be on a reviewed allowlist; no analytics/crash SDK names in pbxproj/Package.resolved; no Zip import/unzip call and no Polar firmware-update API (CVE-2023-39135 reachability).",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources",
+  "dir:EmuquWatch Watch App",
+  "file:Emuqu.xcodeproj/project.pbxproj",
+  "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+ ],
+ "toplevel": "cd to repo root. Python: ALLOWED host set; URL regex over every line (comments included) of Emuqu/Sources and the watch app; unknown hosts -> exit 1. Then grep BANNED SDK names in project.pbxproj and Package.resolved (count != 0 -> exit 1). Then grep `^import Zip$` / Zip.unzipFile etc. (hit -> exit 1) and updateFirmware/firmwareUpdate/PolarFirmwareUpdate (hit -> exit 1). Line 87 is a Python print() call listed as a unit by the inventory. Wired: gates.yml (no-phone-home), ci.yml, Makefile.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Host detection only sees literal `http(s)://host` text; a host assembled with URLComponents/host strings or a user-supplied custom base URL is invisible to it. The Python URL scan only reads Emuqu/Sources, while the Zip/firmware greps read all of Emuqu (including EmuquApp.swift).",
+   "evidence": [
+    "scripts/check_no_developer_endpoint.sh:67",
+    "scripts/check_no_developer_endpoint.sh:25"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "fn print",
+   "hash": "2ce44850545bd152",
+   "does": "Not a shell function: a Python `print()` statement (blank line) inside the embedded host-allowlist Python, after the unknown-host listing; misdetected by the inventory as a shell function.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_no_developer_endpoint.sh::fn print": "334d02a4a5842dfa"
+ }
+}

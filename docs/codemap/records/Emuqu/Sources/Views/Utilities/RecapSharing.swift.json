@@ -1,0 +1,101 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/RecapSharing.swift",
+ "hash": "32db3974b91ddb72",
+ "role": "Free functions for sharing the recap card: write a named PNG to tmp, find the topmost presenter, present a UIActivityViewController with an iPad popover anchor.",
+ "types": [],
+ "state": [],
+ "toplevel": "Global free functions only; callers DashboardV2View+Chips.swift:391-392, RecoveryScoreDetailView+Panels.swift:378-379, PDFPreviewView.Coordinator.shareAction.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func recapActivityItem(image:score:date:)",
+   "hash": "37750ea888a6641e",
+   "does": "Writes the image PNG to tmp/emuqu-<yyyy-MM-dd>-score-<score>.png (POSIX Gregorian date) and returns that URL; if pngData is nil or the write throws (logged by attempt), returns the UIImage itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:UIImage.pngData",
+    "ext:Data.write(to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-<date>-score-<score>.png"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "pngData non-nil and write succeeded",
+     "effect": "return file URL; else return raw image (generic attachment name)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "low",
+     "text": "The PNG containing the user's recovery score (also in the filename) is written to the temporary directory and never deleted after sharing; it persists until iOS purges tmp.",
+     "evidence": [
+      "Emuqu/Sources/Views/Utilities/RecapSharing.swift:25",
+      "Emuqu/Sources/Views/Utilities/RecapSharing.swift:26"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func topmostPresenter()",
+   "hash": "496c10dd53b5556f",
+   "does": "Finds the foreground-active UIWindowScene, takes the key window's root (or first window's), and walks presentedViewController while not being dismissed; returns nil when no active scene/root.",
+   "entry": null,
+   "calls": [
+    "ext:UIApplication.shared.connectedScenes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "foreground-active UIWindowScene found and a root VC exists",
+     "effect": "continue; else return nil"
+    },
+    {
+     "at": "+3",
+     "cond": "key window has a rootViewController",
+     "effect": "use it; else ?? first window's root"
+    },
+    {
+     "at": "+7",
+     "cond": "presented VC exists and is not being dismissed",
+     "effect": "descend; else stop and return current"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func presentShareSheet(activityItem:from:)",
+   "hash": "1d4a66222078f6b7",
+   "does": "Creates a UIActivityViewController for one item, anchors its popover to the presenter's view centre (no arrow) when one exists (iPad), and presents it.",
+   "entry": null,
+   "calls": [
+    "ext:UIActivityViewController",
+    "ext:UIViewController.present"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "popoverPresentationController non-nil (iPad)",
+     "effect": "set source view/rect, no arrows; iPhone skips"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,32 @@
+{
+ "file": "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift",
+ "hash": "5b9ec549cd5c118e",
+ "role": "Scoring constants extracted from RecoveryScoreCalculator and the readiness/training model: HRV adjustment deltas, baseline staleness penalty, absolute-RMSSD fallback bands, readiness capacity model, label thresholds, monotony, vitals overrides and legacy display thresholds. Hashed by scripts/check_scoring_governance.sh.",
+ "types": [
+  "RecoveryScoreConstants: enum — namespaces HRVAdjustments, BaselineStaleness, AbsoluteRMSSDFallback, SleepDetail, Readiness, ReadinessLabels, Training, Vitals, DisplayThresholds plus missingSleepPenalty"
+ ],
+ "state": [],
+ "toplevel": "Only static let constants; no units.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "Unreferenced anywhere in Swift: Readiness.acwrDetrainingThreshold/acwrDetrainingPenaltySlope/acwrDetrainingPenaltyCap, ReadinessLabels.acwrElevated/acwrAboveAverage, Training.severeMonotonyModifier/moderateMonotonyModifier/mildMonotonyModifier, plus Vitals respiratory/temperature values and all of DisplayThresholds (the last two are documented as kept only for the governance hash). The ACWR-detraining and monotony-modifier ones carry no such note: the detraining penalty and monotony modifiers their doc comments describe are read by no code.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:149",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:155",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:156",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:214",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:215",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:239",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:240",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:241",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:249",
+    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:268"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

@@ -1,0 +1,184 @@
+{
+ "file": "Tools/validation/cap_extract_rr.py",
+ "hash": "7b8ae511fefb137c",
+ "role": "CAP Sleep Database (capslpdb) preprocessing for validate_sleep.py: per record, reads the EDF ECG channel, detects R peaks with wfdb XQRS at 250 Hz in 5-min chunks with native-rate refinement, parses the RemLogic hypnogram, and writes <DATA_ROOT>/capslpdb/derived/<rec>.json (or <rec>.skip.json).",
+ "types": [],
+ "state": [
+  "EPOCH_MAP SLEEP-S0..S4/REM -> wake/core/deep/rem (line 35)",
+  "TOK raw token map (line 37)",
+  "ECG_LABELS tried in order: ECG1-ECG2, ECG, EKG, ekg (line 39)",
+  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.edf|.txt (read)",
+  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.json|.skip.json (written)"
+ ],
+ "toplevel": "Inserts the script directory into sys.path (needed under python -I), imports numpy/scipy/wfdb; runs main() as a script.",
+ "flags": [],
+ "units": [
+  {
+   "key": "def hms",
+   "hash": "6a0c0d2c8861a251",
+   "does": "Converts 'hh:mm:ss' or 'hh.mm.ss' to seconds (float); a value with fractional seconds written with '.' raises ValueError on unpacking.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def parse_hypnogram",
+   "hash": "834501f8172b85c9",
+   "does": "Parses a RemLogic hypnogram .txt: finds the 'Sleep Stage' header row, keeps rows whose Event starts with 'SLEEP-', converts clock time to seconds after EDF start (adds 24 h when < -6 h), and lays them on a 30-s epoch grid starting at the first row; each row fills max(1, round(dur/30)) epochs. Returns (t0_s, epochs mapped via EPOCH_MAP with None for MT/UNSCORED, raw tokens).",
+   "entry": null,
+   "calls": [
+    "Tools/validation/cap_extract_rr.py::def hms"
+   ],
+   "reads": [
+    "file:capslpdb/<rec>.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each line after the header",
+     "effect": "parse row"
+    },
+    {
+     "at": "+8",
+     "cond": "row too short or Event not SLEEP-*",
+     "effect": "skipped"
+    },
+    {
+     "at": "+11",
+     "cond": "time offset < -6 h",
+     "effect": "adds 86400 s (midnight wrap)"
+    },
+    {
+     "at": "+17",
+     "cond": "for each kept row",
+     "effect": "place on grid"
+    },
+    {
+     "at": "+19",
+     "cond": "for each 30-s epoch the row covers",
+     "effect": "assign"
+    },
+    {
+     "at": "+20",
+     "cond": "epoch index inside grid",
+     "effect": "assign label/token; else dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/cap_extract_rr.py::def hms": "7f52e7aed0181189"
+   }
+  },
+  {
+   "key": "def detect",
+   "hash": "fa7ff621bab280c7",
+   "does": "R-peak detector: resamples the ECG to 250 Hz (resample_poly with a rational factor), runs wfdb XQRS on 5-min chunks padded by 10 s and keeps only peaks inside each chunk's own 5 min, maps back to native samples, then refines each to the max |5-20 Hz band-passed| sample within +/-50 ms. Returns sorted unique peak sample indices.",
+   "entry": null,
+   "calls": [
+    "ext:scipy.signal.resample_poly",
+    "ext:wfdb.processing.XQRS",
+    "ext:scipy.signal.butter/filtfilt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "native fs differs from 250 Hz",
+     "effect": "resample; else use as float64"
+    },
+    {
+     "at": "+6",
+     "cond": "for each 5-min chunk",
+     "effect": "detect"
+    },
+    {
+     "at": "+8",
+     "cond": "padded chunk shorter than 20 s",
+     "effect": "skipped (trailing fragment gets no peaks)"
+    },
+    {
+     "at": "+14",
+     "cond": "any chunk produced peaks",
+     "effect": "concatenate; else empty array"
+    },
+    {
+     "at": "+20",
+     "cond": "for each approximate peak",
+     "effect": "refine to local band-pass maximum"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "f224fb394acbfca1",
+   "does": "CLI: for each record argument, tries ECG_LABELS until edf_read_channel succeeds; if none, writes <rec>.skip.json and continues; otherwise parses the hypnogram, detects peaks, converts to (t_ms, rr_ms) points and writes <rec>.json with record, ecg_label, fs, edf_start, detector string, n_peaks, duration_h, first_epoch_ms, epochs, epoch_tokens, rr_points; prints summary statistics.",
+   "entry": "python3 -I cap_extract_rr.py n1 [n2 ...]",
+   "calls": [
+    "Tools/validation/validation_common.py::def edf_read_channel",
+    "Tools/validation/cap_extract_rr.py::def hms",
+    "Tools/validation/cap_extract_rr.py::def parse_hypnogram",
+    "Tools/validation/cap_extract_rr.py::def detect"
+   ],
+   "reads": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.edf",
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.txt"
+   ],
+   "writes": [
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.json",
+    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.skip.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each record argument",
+     "effect": "process"
+    },
+    {
+     "at": "+8",
+     "cond": "for each candidate ECG label",
+     "effect": "try reading"
+    },
+    {
+     "at": "+13",
+     "cond": "edf_read_channel raises ValueError",
+     "effect": "try next label (any header-parse ValueError is also treated as 'label missing')"
+    },
+    {
+     "at": "+15",
+     "cond": "no label matched (sig is None)",
+     "effect": "writes skip JSON and continues (n16 in the run)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "Any ValueError from edf_read_channel (including a malformed header int()/float() parse, not only a missing label) is swallowed as 'no ECG channel; skipped', so a corrupt EDF is reported as a record without ECG.",
+     "evidence": [
+      "Tools/validation/cap_extract_rr.py:112",
+      "Tools/validation/validation_common.py:94"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/cap_extract_rr.py::def detect": "945691c31ed21042",
+    "Tools/validation/cap_extract_rr.py::def hms": "7f52e7aed0181189",
+    "Tools/validation/cap_extract_rr.py::def parse_hypnogram": "2788e20e153fb96f",
+    "Tools/validation/validation_common.py::def edf_read_channel": "03981954872b82ae"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/cap_extract_rr.py::def main": "5b73e05953c63328",
+  "Tools/validation/validation_common.py::def edf_read_channel": "03981954872b82ae"
+ }
+}

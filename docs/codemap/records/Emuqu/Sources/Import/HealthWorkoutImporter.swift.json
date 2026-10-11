@@ -1,0 +1,131 @@
+{
+ "file": "Emuqu/Sources/Import/HealthWorkoutImporter.swift",
+ "hash": "bb9118c10d11b5dc",
+ "role": "Core of the Apple Health workout importer: the @MainActor struct holding a HealthKitManager, the Candidate value shown in the import list, and the pure policy functions (sport mapping, duplicate-by-start test, step-count->cadence conversion) used by the +Queries and +Rebuild extensions.",
+ "types": [
+  "HealthWorkoutImporter: struct (@MainActor) — imports/rebuilds workouts from Apple Health; extended in +Queries and +Rebuild",
+  "HealthWorkoutImporter.Candidate: struct (Identifiable, Sendable, Equatable) — one external HKWorkout offered for import (id = HKWorkout uuid, dates, sport, sourceName, distance, weather)"
+ ],
+ "state": [
+  "mem:HealthWorkoutImporter.manager (let HealthKitManager)",
+  "mem:HealthWorkoutImporter.minimumImportableDuration (static 60 s; also the interrupted-stub threshold in +Rebuild)",
+  "mem:HealthWorkoutImporter.duplicateStartToleranceSec (static 300 s)"
+ ],
+ "toplevel": "Header comment (7-36) documents that imports carry no RR/RMSSD/SDNN/alpha1, no mean HR/TRIMP/hrTSS, and elevation gain only on rebuild. Instances are constructed by FitnessTabView+DataMenu.swift:77 and AppLaunchRecovery.swift:17 with the dependency HealthKitManager.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HealthWorkoutImporter.Candidate.duration",
+   "hash": "f28cd09d2ce94fbd",
+   "does": "Candidate.duration: endDate minus startDate in seconds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutImporter.sport(for:isIndoor:)",
+   "hash": "d0f2188ce9680607",
+   "does": "Maps an HKWorkoutActivityType plus the indoor flag to an Emuqu Sport, or nil when the activity has no Emuqu equivalent (nil = not offered for import).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "activity == .running",
+     "effect": "isIndoor ? .treadmill : .run"
+    },
+    {
+     "at": "+3",
+     "cond": "activity == .walking",
+     "effect": ".walk (indoor flag ignored)"
+    },
+    {
+     "at": "+4",
+     "cond": "activity == .hiking",
+     "effect": ".hike"
+    },
+    {
+     "at": "+5",
+     "cond": "activity == .cycling",
+     "effect": "isIndoor ? .indoorBike : .bike"
+    },
+    {
+     "at": "+6",
+     "cond": "activity == .rowing",
+     "effect": ".row"
+    },
+    {
+     "at": "+7",
+     "cond": "activity is crossTraining / functionalStrengthTraining / HIIT",
+     "effect": ".crossFit"
+    },
+    {
+     "at": "+9",
+     "cond": "any other activity (swim, elliptical, strength, ...)",
+     "effect": "nil — workout dropped from the candidate list; .trailRun and .airBike are never produced"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)",
+   "hash": "fabde96aba4534d8",
+   "does": "True when any archived start time lies within ±300 s (duplicateStartToleranceSec) of `start`; sport is deliberately not compared.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutImporter.cadenceSamples(from:)",
+   "hash": "b5d4e07f501a2354",
+   "does": "Converts HealthKit step-count windows into (midpoint Date, steps-per-minute) pairs: value / (duration/60), placed at window start + duration/2.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "window duration > 0 and value >= 0",
+     "effect": "continue; otherwise the window is dropped (avoids divide-by-zero)"
+    },
+    {
+     "at": "+5",
+     "cond": "computed perMinute is finite",
+     "effect": "emit the pair; otherwise drop the window"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Each step window yields exactly one cadence point at its midpoint; ImportedWorkoutBuilder.perSecondSamples only fills a second from a sample within ±5 s (nearestValue within 5), so a multi-minute HealthKit step batch shows cadence on ~11 seconds and nil elsewhere, whereas pace/METs in the rebuild are spread across their whole window by bySecond.",
+     "evidence": [
+      "Emuqu/Sources/Import/HealthWorkoutImporter.swift:130",
+      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:172",
+      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:230",
+      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:276"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::var HealthSampleWindow.duration": "eb1d4f3b8568285b"
+   }
+  }
+ ],
+ "deps": {}
+}

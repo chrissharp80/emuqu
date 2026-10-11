@@ -1,0 +1,120 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift",
+ "hash": "66a36734407b7c4e",
+ "role": "Strategy that, for non-good readings, reports the largest deviations: RMSSD >50% / >30% below trend average and resting HR significantly elevated with RMSSD < 80% of average.",
+ "types": [
+  "SevereCauseDetector: class (CauseDetectionStrategy)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SevereCauseDetector.detectCauses(in:)",
+   "hash": "e505fd9c3b1c678c",
+   "does": "Returns [] for good readings; else HRV crash and elevated-HR-with-low-HRV causes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectHRVCrash(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "good or excellent reading",
+     "effect": "returns [] (unreachable via CauseDetector)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)": "6c462b5351e2eb20",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectHRVCrash(in:)": "9b3b196bc8ce3275"
+   }
+  },
+  {
+   "key": "func SevereCauseDetector.detectHRVCrash(in:)",
+   "hash": "95849ae488423143",
+   "does": "With trend data and >= 3 sessions, computes % deviation of RMSSD from trendStats.avgRMSSD: below illnessSevereHRVCrash → 'Sharp HRV Drop' (critical, 0.99); below illnessMajorHRVDrop → 'Major HRV Drop' (veryHigh, 0.92).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no trend data or < 3 sessions",
+     "effect": "returns []"
+    },
+    {
+     "at": "+5",
+     "cond": "deviation < severe-crash threshold",
+     "effect": "returns Sharp HRV Drop"
+    },
+    {
+     "at": "+14",
+     "cond": "deviation < major-drop threshold",
+     "effect": "returns Major HRV Drop; else []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "e447648b612c9e97",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func SevereCauseDetector.detectElevatedHRWithLowHRV(in:)",
+   "hash": "5ab66053fd20bebb",
+   "does": "'Elevated HR + Low HRV' (high, 0.70) when tonight's HR exceeds trendStats.avgHR by more than hrSignificantElevation and RMSSD < 0.8 × avgRMSSD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no trend data, avgHR <= 0 or no current HR",
+     "effect": "returns []"
+    },
+    {
+     "at": "+11",
+     "cond": "HR elevated and HRV suppressed",
+     "effect": "adds cause"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "The 'Elevated HR + Low HRV' path is never exercised: CauseDetectorTests builds every context with HRVSession() (no analysisResult), so context.currentHR is nil and the guard returns [] in every test.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:49",
+      "EmuquTests/CauseDetectorTests.swift:55",
+      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:84"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var CauseDetectionContext.currentHR": "4c3a7898e9bb7b17",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "2a4b8a54e9a27938",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

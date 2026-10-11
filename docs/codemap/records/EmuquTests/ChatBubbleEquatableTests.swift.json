@@ -1,0 +1,200 @@
+{
+ "file": "EmuquTests/ChatBubbleEquatableTests.swift",
+ "hash": "6e9f08fb87b5a7a0",
+ "role": "Tests that ChatBubble equality reflects both the turn and which actions are available, and that ChatMarkdown.displayText converts ATX headings to bold lines while leaving other lines and code fences alone.",
+ "types": [
+  "ChatBubbleEquatableTests: class — @MainActor XCTestCase for ChatBubble ==",
+  "ChatMarkdownTests: class — @MainActor XCTestCase for ChatMarkdown.displayText"
+ ],
+ "state": [
+  "ChatBubbleEquatableTests.turn: fixed assistant ChatTurn 'Your HRV is up this morning.'"
+ ],
+ "toplevel": "Stored property `turn` builds one ChatTurn per test instance.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ChatBubbleEquatableTests.testTheSameTurnWithTheSameActionsIsEqual()",
+   "hash": "c0e83ab440c2919a",
+   "does": "Asserts two ChatBubbles with the same turn and both having onCopy are equal (closure identity ignored).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+   }
+  },
+  {
+   "key": "func ChatBubbleEquatableTests.testAnActionAppearingMakesTheBubbleUnequal()",
+   "hash": "73f56224143b4d91",
+   "does": "Asserts a bubble without onRegenerate differs from one with it, and one with onShare differs from one without.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+   }
+  },
+  {
+   "key": "func ChatBubbleEquatableTests.testADifferentTurnIsUnequal()",
+   "hash": "c4402c4cc9b25185",
+   "does": "Asserts bubbles for two different assistant turns are unequal.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "`other` is a new ChatTurn with its own random UUID id and createdAt, and ChatTurn's Equatable is synthesized over all stored properties, so the bubbles are unequal because of the id alone; the test would still pass if ChatBubble == stopped comparing text/content.",
+     "evidence": [
+      "EmuquTests/ChatBubbleEquatableTests.swift:24",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:154",
+      "Emuqu/Sources/Assistant/Providers/AIProvider.swift:205"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.==(lhs:rhs:)": "f0f7e79db4474adc",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::init ChatBubble(turn:onRemember:onCopy:onRegenerate:onSendEmail:onShare:)": "a91ce7f4e9fc268c"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testHeadingsOfEveryLevelBecomeBoldLines()",
+   "hash": "609def9520046ac6",
+   "does": "Asserts '#', '##', '###' and '######' headings become '**title**'.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testClosingHashesIndentAndExistingBoldAreDropped()",
+   "hash": "5fd2d6ad0131534d",
+   "does": "Asserts closing '##' is removed, up-to-3-space indent is accepted, existing '**' in the title is dropped before re-bolding, and a bare '##' becomes an empty line.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testNonHeadingsAreUnchanged()",
+   "hash": "d9f8a42d041415c0",
+   "does": "Asserts '#hashtag', seven hashes, 4-space-indented heading, 'C# is a language', 'Score: #1', '- item' and '1. item' are returned unchanged.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of 7 non-heading lines",
+     "effect": "asserts displayText(line) == line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testBoldAndListsSurviveAroundAHeading()",
+   "hash": "52bd0196b3994cbf",
+   "does": "Asserts a multi-line reply converts only the heading line and preserves bold text and list lines.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testHeadingsInsideCodeFencesAreLeftAlone()",
+   "hash": "2dc0a86559f588fd",
+   "does": "Asserts a '## ' line inside a ``` fence is left as-is while a heading after the fence is bolded.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  },
+  {
+   "key": "func ChatMarkdownTests.testRenderedHeadingShowsNoHashMarks()",
+   "hash": "1379c176277429cd",
+   "does": "Parses displayText('## Recovery\\nYour **HRV** rose.') with inline-only Markdown and asserts the plain characters contain no '#' and the 'Recovery' run is stronglyEmphasized.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)",
+    "ext:Foundation.AttributedString(markdown:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.displayText(_:)": "469edda741108c92",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatMarkdown.headingTitle(_:)": "b3375ef53b8bb0d7"
+   }
+  }
+ ],
+ "deps": {}
+}

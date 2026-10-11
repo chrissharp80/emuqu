@@ -1,0 +1,160 @@
+{
+ "file": "scripts/add_swift_file.py",
+ "hash": "ddfc550ea957ef99",
+ "role": "Developer tool that registers a new .swift file in Emuqu.xcodeproj/project.pbxproj (PBXFileReference, PBXBuildFile, PBXGroup child, target Sources phase).",
+ "types": [],
+ "state": [
+  "file:Emuqu.xcodeproj/project.pbxproj (read and rewritten in place)",
+  "TARGET_FOR_PREFIX (module constant)"
+ ],
+ "toplevel": "Module docstring (lines 1-46); imports; TARGET_FOR_PREFIX tuple (lines 139-144) mapping path prefixes EmuquUITests/EmuquTests/EmuquWatch Watch App/Emuqu to target names; `if __name__ == '__main__': main()` (line 341-342).",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "No idempotency check: re-running for an already-registered file inserts a second PBXFileReference/PBXBuildFile and a second Sources-phase row; Xcode then fails with 'Multiple commands produce' (check_no_orphan_swift.sh duplicate check catches it). README claims the script 'Can be safely re-run'.",
+   "evidence": [
+    "scripts/add_swift_file.py:180",
+    "scripts/README.md:224",
+    "scripts/check_no_orphan_swift.sh:92"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def generate_unique_id",
+   "hash": "7479a4067e98657f",
+   "does": "Loops forever generating IDs '<prefix><6 digits><000|001>' with prefix from [A1,EF,UC,P2,CK,RF,OB] until one is not in existing_ids; returns it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def extract_all_ids",
+   "hash": "6cf23d396ae191a0",
+   "does": "Returns the set of all 11-24 char [A-Z0-9] tokens in the pbxproj text (superset of real object IDs).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def find_group_id_for_path",
+   "hash": "71466cb0327715cc",
+   "does": "Strips slashes from folder_path; returns the hard-coded group ID for 26 known folders; otherwise regex-searches for the first `<ID> /* <basename> */ = { isa = PBXGroup; ... path = <basename>;` and returns its ID, or None. The fallback picks the FIRST group with that basename (Views/Utilities currently resolves to A0000000014, which precedes Sources/Utilities in the file).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Basename fallback returns the first matching group in file order, so a folder name that exists twice (Utilities exists under Sources/ and Sources/Views/) resolves correctly only because of pbxproj ordering.",
+     "evidence": [
+      "scripts/add_swift_file.py:115",
+      "scripts/add_swift_file.py:118"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519"
+   }
+  },
+  {
+   "key": "def target_for_path",
+   "hash": "43ec55b239bf0270",
+   "does": "Normalises backslashes and returns the first target from TARGET_FOR_PREFIX whose prefix equals or prefixes the folder path (EmuquUITests before EmuquTests before watch before Emuqu); None otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def find_sources_build_phase_id",
+   "hash": "570eeb849e83b986",
+   "does": "Finds the PBXNativeTarget block named target_name, collects all `/* Sources */ = { isa = PBXSourcesBuildPhase;` IDs, and returns the first buildPhases entry that is a Sources phase; None if the target or phase is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def add_file_to_project",
+   "hash": "ed786fe0ba1c0de0",
+   "does": "Reads project.pbxproj, generates file-ref and build-file IDs, inserts a PBXBuildFile line and a PBXFileReference line at the start of their sections, inserts the file into its PBXGroup children list, resolves the owning target and inserts the build file into that target's Sources files list, writes the file back and returns True. Returns False (with a message) when no group, no PBXBuildFile/PBXFileReference section, no group children match, no owning target, no Sources phase, or no files list is found. Earlier failures leave the file untouched because the write happens only at the end.",
+   "entry": null,
+   "calls": [
+    "scripts/add_swift_file.py::def extract_all_ids",
+    "scripts/add_swift_file.py::def find_group_id_for_path",
+    "scripts/add_swift_file.py::def generate_unique_id",
+    "scripts/add_swift_file.py::def target_for_path",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id",
+    "ext:open(project.pbxproj) read/write"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "No duplicate-registration check before inserting; re-running for the same path registers the file twice.",
+     "evidence": [
+      "scripts/add_swift_file.py:223",
+      "scripts/add_swift_file.py:229"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "scripts/add_swift_file.py::def extract_all_ids": "b99bbb150d460717",
+    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519",
+    "scripts/add_swift_file.py::def generate_unique_id": "4ece1b9e975d9603",
+    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "d7a88001f832ff1b",
+   "does": "CLI entry: requires exactly one argument (else usage, exit 1); locates project.pbxproj next to scripts/ (missing -> exit 1); rejects non-.swift paths (exit 1); warns if the file does not exist yet; calls add_file_to_project and exits 0 on success, 1 on failure.",
+   "entry": "`python3 scripts/add_swift_file.py <path>` via the __main__ guard",
+   "calls": [
+    "scripts/add_swift_file.py::def add_file_to_project"
+   ],
+   "reads": [
+    "file:Emuqu.xcodeproj/project.pbxproj"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+ }
+}

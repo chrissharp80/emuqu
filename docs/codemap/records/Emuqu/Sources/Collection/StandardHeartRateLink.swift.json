@@ -1,0 +1,678 @@
+{
+ "file": "Emuqu/Sources/Collection/StandardHeartRateLink.swift",
+ "hash": "8e50b3bd6d4a7756",
+ "role": "Reads live heart rate directly from the strap's standard BLE Heart Rate Service (0x180D/0x2A37) through its own CBCentralManager attached to the SDK-connected peripheral, delivering samples as an AsyncThrowingStream; one subscription at a time.",
+ "types": [
+  "StandardHeartRateLink: class (NSObject, MainActor) — HR Service subscription",
+  "StandardHeartRateLink.LinkError: enum — strapNotConnected, bluetoothUnavailable, serviceNotFound, disconnected",
+  "StandardHeartRateLink.Subscription: struct — active stream bookkeeping",
+  "extension StandardHeartRateLink: CBCentralManagerDelegate",
+  "extension StandardHeartRateLink: CBPeripheralDelegate"
+ ],
+ "state": [
+  "StandardHeartRateLink.heartRateService = CBUUID 180D",
+  "StandardHeartRateLink.heartRateMeasurement = CBUUID 2A37",
+  "central (lazy CBCentralManager on main queue)",
+  "held: CBPeripheral?",
+  "measurement: CBCharacteristic?",
+  "active: Subscription?"
+ ],
+ "toplevel": "lazy var central creates CBCentralManager(delegate: self, queue: .main) on first access. Owned as PolarManager.standardHeartRate (PolarManager.swift:432) and used by StrapAPI.startHrStreaming.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StandardHeartRateLink.samples(peripheralId:)",
+   "hash": "3b2fa2f57cb88aea",
+   "does": "Creates an AsyncThrowingStream of HR samples for peripheralId: finishes immediately with strapNotConnected when id is nil; otherwise ends any previous subscription, registers the new one (onTermination → end(id)) and calls attach.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.end(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.attach()"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:HR Measurement 2A37 subscription"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "peripheralId is nil",
+     "effect": "stream finished with LinkError.strapNotConnected and returned"
+    },
+    {
+     "at": "+10",
+     "cond": "a previous subscription is active",
+     "effect": "finished normally (nil error) before the new one starts"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.attach()": "99e058c1530e8d6d",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.end(_:)": "44703d6f0c809be4",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.releaseAll()",
+   "hash": "6abd9904c402ea7e",
+   "does": "Ends the active subscription normally, forgets the held peripheral and characteristic, and cancels this central's connection if Bluetooth is on and the peripheral is not already disconnected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)",
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:strap peripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a subscription is active",
+     "effect": "finished with nil error"
+    },
+    {
+     "at": "+2",
+     "cond": "no held peripheral",
+     "effect": "returns without touching central"
+    },
+    {
+     "at": "+5",
+     "cond": "central powered on and peripheral not disconnected",
+     "effect": "cancels the connection; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.attach()",
+   "hash": "1205810d60a25535",
+   "does": "Advances the active subscription: waits on unknown/resetting Bluetooth, fails with bluetoothUnavailable when off/unauthorized, subscribes if the held peripheral is the right one and connected, waits if it is connecting, else connects to the requested peripheral.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.subscribe(on:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connect(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no active subscription",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "central.state == .poweredOn",
+     "effect": "proceeds"
+    },
+    {
+     "at": "+4",
+     "cond": "state unknown or resetting",
+     "effect": "returns and waits for centralManagerDidUpdateState"
+    },
+    {
+     "at": "+5",
+     "cond": "any other state (off, unauthorized, unsupported)",
+     "effect": "finishes subscription with bluetoothUnavailable"
+    },
+    {
+     "at": "+9",
+     "cond": "held peripheral matches subscription id",
+     "effect": "returns after possibly subscribing; else connect(to:)"
+    },
+    {
+     "at": "+10",
+     "cond": "held peripheral state == .connected",
+     "effect": "subscribe(on:); else waits for didConnect"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connect(to:)": "052fa1130243ede2",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)": "508449aa55b956fb",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.subscribe(on:)": "2ac5093464ddd57c"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.connect(to:)",
+   "hash": "d5e115773f2e1f91",
+   "does": "Releases any held different peripheral, retrieves the subscription's peripheral by identifier, sets delegate, holds it and calls central.connect.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.releaseHeldPeripheral()",
+    "ext:CBCentralManager.retrievePeripherals",
+    "ext:CBCentralManager.connect"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:strap peripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "iOS knows the peripheral identifier",
+     "effect": "connects; else finishes subscription with strapNotConnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.releaseHeldPeripheral()": "6fde0489ba73784d"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.releaseHeldPeripheral()",
+   "hash": "e3f35f561eed320d",
+   "does": "Forgets the held peripheral and characteristic and cancels its connection unless already disconnected.",
+   "entry": null,
+   "calls": [
+    "ext:CBCentralManager.cancelPeripheralConnection"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:strap peripheral connection"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held is nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "peripheral not disconnected",
+     "effect": "cancels the connection; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StandardHeartRateLink.subscribe(on:)",
+   "hash": "6efd5b27bf27adba",
+   "does": "Turns notifications on for the known measurement characteristic, or starts service discovery for 0x180D when it is not yet known.",
+   "entry": null,
+   "calls": [
+    "ext:CBPeripheral.discoverServices",
+    "ext:CBPeripheral.setNotifyValue"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:HR Measurement 2A37 notify"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "measurement characteristic known",
+     "effect": "setNotifyValue(true); else discoverServices([180D])"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StandardHeartRateLink.end(_:)",
+   "hash": "9e01b3aa5f8df950",
+   "does": "Stream termination handler: if the terminating subscription is still active, clears it and turns notifications off.",
+   "entry": "AsyncThrowingStream onTermination (consumer cancelled or stream finished), via Task @MainActor",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.stopNotifying()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "active subscription id == id",
+     "effect": "clears and stops notifying; else no-op"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.stopNotifying()": "237d0d1e6ab46818"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.finish(_:throwing:)",
+   "hash": "fa727fde53952655",
+   "does": "Finishes a subscription's stream with the given error (nil = normal end); if it was the active one, clears it and turns notifications off first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.stopNotifying()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "subscription is the active one",
+     "effect": "clears active and stops notifying; continuation finished either way"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.stopNotifying()": "237d0d1e6ab46818"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.stopNotifying()",
+   "hash": "cdae1edeb8cfc8ac",
+   "does": "Turns HR notifications off on the held, connected peripheral when the characteristic is known; leaves the connection up.",
+   "entry": null,
+   "calls": [
+    "ext:CBPeripheral.setNotifyValue"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:HR Measurement 2A37 notify"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held peripheral connected and measurement known",
+     "effect": "setNotifyValue(false); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)": "508449aa55b956fb"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.isHeld(_:)",
+   "hash": "105e303b0cd3c924",
+   "does": "True when the peripheral's identifier equals the held peripheral's.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StandardHeartRateLink.powerChanged()",
+   "hash": "e5d96489bd52ba42",
+   "does": "Bluetooth state change: drops held peripheral/characteristic unless powered on, then re-runs attach.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.attach()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "central.state != .poweredOn",
+     "effect": "clears held and measurement; then attach either way"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.attach()": "99e058c1530e8d6d"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.connected(_:)",
+   "hash": "cd5070460afcdb8d",
+   "does": "Connection established: subscribes on the peripheral if it is the held one and a subscription is active.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.subscribe(on:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held peripheral and active subscription",
+     "effect": "subscribe; else ignore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.subscribe(on:)": "2ac5093464ddd57c"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.lost(_:error:)",
+   "hash": "0f4cf497cd0dc45e",
+   "does": "Disconnect/failed-connect: when the held peripheral is truly disconnected, forgets it and finishes the active subscription with the CoreBluetooth error or LinkError.disconnected.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "peripheral is held and state == .disconnected",
+     "effect": "clears held state; else ignored (stale callback for a released link)"
+    },
+    {
+     "at": "+4",
+     "cond": "active subscription exists",
+     "effect": "finished with error"
+    },
+    {
+     "at": "+4",
+     "cond": "error ?? LinkError.disconnected",
+     "effect": "uses CoreBluetooth error when given, else .disconnected"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.discoveredServices(on:error:)",
+   "hash": "b8f565c17e5bb468",
+   "does": "Services discovered: finds 0x180D and discovers 0x2A37 on it; finishes the subscription when the service is missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)",
+    "ext:CBPeripheral.discoverCharacteristics"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held peripheral with active subscription",
+     "effect": "continues; else ignore"
+    },
+    {
+     "at": "+2",
+     "cond": "heart-rate service present",
+     "effect": "discover characteristics; else finish"
+    },
+    {
+     "at": "+3",
+     "cond": "error ?? serviceNotFound",
+     "effect": "finishes with CB error when given, else serviceNotFound"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.discoveredCharacteristics(of:on:error:)",
+   "hash": "31dce7846774e06d",
+   "does": "Characteristics discovered: stores 0x2A37 and enables notifications; finishes the subscription when missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)",
+    "ext:CBPeripheral.setNotifyValue"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:HR Measurement 2A37 notify"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held peripheral with active subscription",
+     "effect": "continues; else ignore"
+    },
+    {
+     "at": "+2",
+     "cond": "measurement characteristic present",
+     "effect": "stores and enables notify; else finish"
+    },
+    {
+     "at": "+3",
+     "cond": "error ?? serviceNotFound",
+     "effect": "finishes with CB error when given, else serviceNotFound"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.notificationStateChanged(on:error:)",
+   "hash": "8211eb0f748f02a3",
+   "does": "Notification-state update with an error on the held peripheral finishes the active subscription with that error so the feed retries.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error present, peripheral held, subscription active",
+     "effect": "finish with error; else ignore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.finish(_:throwing:)": "588810325b799441",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.received(_:from:)",
+   "hash": "a60feb3da6fd0beb",
+   "does": "Parses an HR Measurement payload and yields it as a one-sample batch; logs latency on the first sample of a subscription. Unparseable payloads are dropped silently.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held peripheral, active subscription and payload parses",
+     "effect": "continues; else returns (sample dropped)"
+    },
+    {
+     "at": "+2",
+     "cond": "first sample for this subscription",
+     "effect": "marks delivered, logs time-to-first-sample"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.parse(_:)": "c8a7afe1bb363397",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.receiveFailed(from:error:)",
+   "hash": "47ddd03c88f98a23",
+   "does": "Logs a value-read error once per subscription.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held, active, and not yet reported",
+     "effect": "marks reported and logs; else ignore"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.isHeld(_:)": "b52dbc34b3af7088",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.centralManagerDidUpdateState(_:)",
+   "hash": "8a693b8cddda7657",
+   "does": "CBCentralManagerDelegate state update → powerChanged on MainActor.",
+   "entry": "CoreBluetooth centralManagerDidUpdateState (main queue)",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.powerChanged()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.powerChanged()": "c28df1cce3f168e2"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.centralManager(_:didConnect:)",
+   "hash": "379e43008bbd9321",
+   "does": "CBCentralManagerDelegate didConnect → connected(peripheral).",
+   "entry": "CoreBluetooth didConnect (main queue)",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.connected(_:)": "508449aa55b956fb"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.centralManager(_:didFailToConnect:error:)",
+   "hash": "1800cd442d7c8bff",
+   "does": "CBCentralManagerDelegate didFailToConnect → lost(peripheral, error).",
+   "entry": "CoreBluetooth didFailToConnect (main queue)",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.lost(_:error:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.lost(_:error:)": "7d88c28661792345"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.centralManager(_:didDisconnectPeripheral:error:)",
+   "hash": "30da97a955141f6c",
+   "does": "CBCentralManagerDelegate didDisconnectPeripheral → lost(peripheral, error).",
+   "entry": "CoreBluetooth didDisconnectPeripheral (main queue)",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.lost(_:error:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.lost(_:error:)": "7d88c28661792345"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.peripheral(_:didDiscoverServices:)",
+   "hash": "b206bec4273f3905",
+   "does": "CBPeripheralDelegate didDiscoverServices → discoveredServices.",
+   "entry": "CoreBluetooth didDiscoverServices",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.discoveredServices(on:error:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.discoveredServices(on:error:)": "74896a1469ae1e98"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.peripheral(_:didDiscoverCharacteristicsFor:error:)",
+   "hash": "1327ab25e9f00c6f",
+   "does": "CBPeripheralDelegate didDiscoverCharacteristicsFor → discoveredCharacteristics.",
+   "entry": "CoreBluetooth didDiscoverCharacteristicsFor",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.discoveredCharacteristics(of:on:error:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.discoveredCharacteristics(of:on:error:)": "cf5567aba8217c08"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.peripheral(_:didUpdateNotificationStateFor:error:)",
+   "hash": "fb00c29abb795f8f",
+   "does": "CBPeripheralDelegate didUpdateNotificationStateFor → notificationStateChanged.",
+   "entry": "CoreBluetooth didUpdateNotificationStateFor",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.notificationStateChanged(on:error:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.notificationStateChanged(on:error:)": "0bc3450b6575368e"
+   }
+  },
+  {
+   "key": "func StandardHeartRateLink.peripheral(_:didUpdateValueFor:error:)",
+   "hash": "a11fba9251cf7774",
+   "does": "CBPeripheralDelegate didUpdateValueFor: for the 0x2A37 characteristic, reports a read error once or forwards the value data to received().",
+   "entry": "CoreBluetooth didUpdateValueFor (main queue)",
+   "calls": [
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.receiveFailed(from:error:)",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.received(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "characteristic is 0x2A37",
+     "effect": "continues; else ignored"
+    },
+    {
+     "at": "+6",
+     "cond": "error present",
+     "effect": "receiveFailed; else"
+    },
+    {
+     "at": "+8",
+     "cond": "value data present",
+     "effect": "received(data); else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.receiveFailed(from:error:)": "83b1cee5ab3e717f",
+    "Emuqu/Sources/Collection/StandardHeartRateLink.swift::func StandardHeartRateLink.received(_:from:)": "271bd917baf61d72"
+   }
+  }
+ ],
+ "deps": {}
+}

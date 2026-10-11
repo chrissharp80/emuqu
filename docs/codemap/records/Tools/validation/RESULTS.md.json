@@ -1,0 +1,28 @@
+{
+ "file": "Tools/validation/RESULTS.md",
+ "hash": "e4d1fd76c7d1c059",
+ "role": "Generated cross-implementation validation report (make_results.py output from RESULTS_template.md): port fidelity table (114/114 Swift test expectations reproduced), RR-only sleep staging vs PSG (slpdb kappa 0.072, CAP 0.146), artifact/ectopic detection vs mitdb, DFA alpha1 under injected artifacts vs nsr2db. Cited by docs/whitepapers/01-04 and README.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown; identical to RESULTS_template.md except the placeholders are filled with tables. The 'Subject (age, sex)' column shows 'x M' for slp67x (header comment parsing) and is blank for all CAP records (cap_records supplies no age_sex).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Section 0's 'Not reproduced' list is incomplete: 12 tests of the listed suites that existed at e028039 were not ported and are not mentioned - 8 HRVSleepStageClassifierTests.testPercentile* tests, TimeDomainTests.testArrivalClockDropoutIsARecordingBreak (the port ignores wallClockMs), and HRVReferenceValidationTests.testEctopicFilterOnlyEverRemovesBeats / testMeanHeartRateAgreesInScaleWithMeanRR / testEveryMetricIsFiniteAndNonNegative - while the text says the ports 're-implement every test case listed above' and the white paper cites '114 of 114 cases' as port fidelity.",
+   "evidence": [
+    "Tools/validation/RESULTS.md:34",
+    "Tools/validation/RESULTS.md:43",
+    "EmuquTests/HRVSleepStageClassifierTests.swift:431",
+    "EmuquTests/TimeDomainTests.swift:418",
+    "EmuquTests/HRVReferenceValidationTests.swift:179",
+    "EmuquTests/HRVReferenceValidationTests.swift:196",
+    "EmuquTests/HRVReferenceValidationTests.swift:210",
+    "docs/whitepapers/02-exercise-hrv-and-training-load.md:631"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

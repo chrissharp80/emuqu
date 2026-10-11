@@ -1,0 +1,279 @@
+{
+ "file": "EmuquTests/SnapshotTesting.swift",
+ "hash": "05ea666fdabf4924",
+ "role": "In-repo snapshot harness: renders a SwiftUI view to RGBA via ImageRenderer at fixed size/scale/light/en_US, rejects blank renders, and compares against gzipped raw references in EmuquTests/__Snapshots__ with per-channel and drawn-fraction tolerances; SNAPSHOT_RECORD=1 rewrites references and fails.",
+ "types": [
+  "SnapshotTesting: enum — harness constants",
+  "SnapshotTesting: extension — render/isBlank",
+  "SnapshotTesting.Difference: struct — changed/drawn/total pixel counts",
+  "SnapshotTesting: extension — drawnCount/compare",
+  "XCTestCase: extension — assertSnapshot(of:named:size:)"
+ ],
+ "state": [
+  "SnapshotTesting.defaultSize = 402x874",
+  "SnapshotTesting.scale = 1",
+  "SnapshotTesting.channelTolerance = 8",
+  "SnapshotTesting.drawnFractionTolerance = 0.02",
+  "file:EmuquTests/__Snapshots__/<name>.raw (\"WxH\\n\" header + zlib RGBA)",
+  "env:SNAPSHOT_RECORD"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SnapshotTesting.render(_:size:)",
+   "hash": "2e480372bd3b839f",
+   "does": "Renders the view framed to `size` on systemBackground in light mode, en_US locale, LTR via ImageRenderer at scale 1, then draws the CGImage into an sRGB premultiplied-last RGBA buffer; returns (pixels,width,height) or nil on any failure.",
+   "entry": null,
+   "calls": [
+    "ext:SwiftUI.ImageRenderer",
+    "ext:CoreGraphics.CGContext"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "renderer.cgImage is nil",
+     "effect": "returns nil (caller fails 'view failed to render'); else continues"
+    },
+    {
+     "at": "+19",
+     "cond": "width>0 and height>0",
+     "effect": "false: returns nil; true: continues"
+    },
+    {
+     "at": "+22",
+     "cond": "sRGB CGColorSpace creation fails",
+     "effect": "returns nil; else continues"
+    },
+    {
+     "at": "+25",
+     "cond": "CGContext creation over the buffer fails",
+     "effect": "closure returns false; else draws image and returns true"
+    },
+    {
+     "at": "+34",
+     "cond": "drew is false",
+     "effect": "returns nil; else returns the pixel tuple"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "65922f80a2b0ebd5",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+   }
+  },
+  {
+   "key": "func SnapshotTesting.isBlank(_:)",
+   "hash": "29fb51254c4851bd",
+   "does": "Returns true when the buffer has fewer than 8 bytes or every RGBA pixel equals the first pixel.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pixels.count >= 8",
+     "effect": "false: returns true (treated blank); true: scans"
+    },
+    {
+     "at": "+4",
+     "cond": "while more pixels remain",
+     "effect": "loops over every pixel in steps of 4"
+    },
+    {
+     "at": "+5",
+     "cond": "pixel differs from the first",
+     "effect": "returns false immediately; else continues; after the loop returns true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SnapshotTesting.Difference.fraction",
+   "hash": "90c85d41c647576f",
+   "does": "Difference.fraction = changedPixels/drawnPixels, or 0 when drawnPixels is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "drawnPixels == 0",
+     "effect": "true: 0 (any change passes); false: changed/drawn"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When the reference is a single flat colour drawnPixels is 0 so fraction is 0 and any rendered change passes; blank references are prevented only at record time by isBlank on the new shot, not checked on a stored reference.",
+     "evidence": [
+      "EmuquTests/SnapshotTesting.swift:130",
+      "EmuquTests/SnapshotTesting.swift:168",
+      "EmuquTests/SnapshotTesting.swift:200"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SnapshotTesting.drawnCount(_:)",
+   "hash": "f698a5e1331f0903",
+   "does": "Counts RGBA colours and returns total pixels minus the count of the most common colour (the background).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "while more pixels remain",
+     "effect": "tallies each pixel colour"
+    },
+    {
+     "at": "+10",
+     "cond": "counts is empty (?? total)",
+     "effect": "fallback total used only for an empty buffer, giving 0 drawn"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SnapshotTesting.compare(_:_:)",
+   "hash": "37810c6a5c9eb2e5",
+   "does": "Compares two equal-length non-empty RGBA buffers; a pixel is changed when any channel differs by more than 8; returns Difference with drawnPixels from lhs (reference), or nil for shape mismatch/empty.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lhs.count == rhs.count and lhs non-empty",
+     "effect": "false: nil (not comparable); true: compares"
+    },
+    {
+     "at": "+4",
+     "cond": "while more pixels remain",
+     "effect": "compares each pixel"
+    },
+    {
+     "at": "+9",
+     "cond": "max channel delta > channelTolerance",
+     "effect": "true: increments changed; false: unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.drawnCount(_:)": "36f2591e498a9d25"
+   }
+  },
+  {
+   "key": "func XCTestCase.assertSnapshot(of:named:size:file:line:)",
+   "hash": "3099715c21b5974e",
+   "does": "Pins English, renders the view, fails on render failure or blank image, encodes 'WxH\\n'+zlib pixels; when SNAPSHOT_RECORD=1 or no reference exists writes the reference and fails; otherwise reads the reference, checks dims, decompresses, compares, and fails when changed/drawn fraction > 2%.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)",
+    "EmuquTests/SnapshotTesting.swift::var SnapshotTesting.Difference.fraction",
+    "ext:NSData.compressed(using:.zlib)",
+    "ext:NSData.decompressed(using:.zlib)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write(to:)",
+    "ext:Data(contentsOf:)",
+    "ext:ProcessInfo.environment"
+   ],
+   "reads": [
+    "file:EmuquTests/__Snapshots__/<name>.raw",
+    "env:SNAPSHOT_RECORD"
+   ],
+   "writes": [
+    "file:EmuquTests/__Snapshots__/<name>.raw"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "render returned nil",
+     "effect": "XCTFail 'view failed to render' and return"
+    },
+    {
+     "at": "+18",
+     "cond": "rendered image is blank",
+     "effect": "XCTFail 'single flat colour' and return; else continues"
+    },
+    {
+     "at": "+38",
+     "cond": "zlib compression fails (try? nil)",
+     "effect": "XCTFail 'could not compress' and return"
+    },
+    {
+     "at": "+49",
+     "cond": "not recording and reference file exists",
+     "effect": "false: creates dir (error ignored by try?), writes reference (write error → XCTFail and return), then always XCTFail 'reference recorded' and return; true: proceeds to compare"
+    },
+    {
+     "at": "+55",
+     "cond": "catch on header.write",
+     "effect": "XCTFail 'could not write reference' with the error, return"
+    },
+    {
+     "at": "+70",
+     "cond": "reference read fails (try? nil)",
+     "effect": "XCTFail 'reference unreadable' and return"
+    },
+    {
+     "at": "+74",
+     "cond": "no newline in stored data",
+     "effect": "XCTFail 'reference malformed' and return"
+    },
+    {
+     "at": "+78",
+     "cond": "header not UTF-8 (?? \"\")",
+     "effect": "dims becomes empty string, so the dimension check fails"
+    },
+    {
+     "at": "+80",
+     "cond": "stored dims == rendered dims",
+     "effect": "false: XCTFail 'size changed' and return; true: continues"
+    },
+    {
+     "at": "+90",
+     "cond": "decompression fails",
+     "effect": "XCTFail 'could not be decompressed' and return"
+    },
+    {
+     "at": "+96",
+     "cond": "compare returns nil",
+     "effect": "XCTFail 'buffers not comparable' and return"
+    },
+    {
+     "at": "+100",
+     "cond": "diff.fraction > 0.02",
+     "effect": "true: XCTFail with changed count and percent; false: passes silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "32155a47f52729b7",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "cbd2c7b66dba2797",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "266f0659f8d7aa5b",
+    "EmuquTests/SnapshotTesting.swift::var SnapshotTesting.Difference.fraction": "5865e29d3a9351b4"
+   }
+  }
+ ],
+ "deps": {}
+}

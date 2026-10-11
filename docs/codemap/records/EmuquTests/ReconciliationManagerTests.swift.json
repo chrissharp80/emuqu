@@ -1,0 +1,308 @@
+{
+ "file": "EmuquTests/ReconciliationManagerTests.swift",
+ "hash": "b3823435f3027aa7",
+ "role": "XCTest suite for ReconciliationManager's offline queue (queueForSync, duplicate rejection, sessionExists, pending) and OfflineSession.needsSync.",
+ "types": [
+  "ReconciliationManagerTests: class — XCTestCase for ReconciliationManager"
+ ],
+ "state": [
+  "archive: SessionArchive.shared (the app's shared archive)",
+  "manager: lazy ReconciliationManager(archive:)",
+  "file:Documents/HRVOffline/pending.json (real app queue)"
+ ],
+ "toplevel": "Uses the process-wide SessionArchive.shared and a ReconciliationManager that persists to the real Documents/HRVOffline/pending.json; there is no setUp/tearDown cleanup.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "queueForSync appends full HRVSessions to the app host's real Documents/HRVOffline/pending.json and nothing removes them; every run grows that file by four sessions, and pending/needsSync assertions then run over residue from earlier runs.",
+   "evidence": [
+    "EmuquTests/ReconciliationManagerTests.swift:8",
+    "EmuquTests/ReconciliationManagerTests.swift:29",
+    "EmuquTests/ReconciliationManagerTests.swift:62",
+    "Emuqu/Sources/Storage/Reconciliation.swift:24",
+    "Emuqu/Sources/Storage/Reconciliation.swift:106"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "The offline queue exercised here (queueForSync / pending) has no production caller; grep finds only this test file, and Reconciliation.swift's header comment says nothing drains it. These tests are the only callers.",
+   "evidence": [
+    "Emuqu/Sources/Storage/Reconciliation.swift:5",
+    "Emuqu/Sources/Storage/Reconciliation.swift:56",
+    "Emuqu/Sources/Storage/Reconciliation.swift:73",
+    "EmuquTests/ReconciliationManagerTests.swift:29"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ReconciliationManagerTests.makeSession(id:)",
+   "hash": "1932feefcaa166b4",
+   "does": "Test helper: a complete HRVSession of one hour starting now with the given id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testQueueForSync_addsSessionToPending()",
+   "hash": "01f037ed987903be",
+   "does": "Queues a new session and asserts manager.pending contains it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "writes": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "f1c58ab871c8ec54",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testQueueForSync_duplicateRejection()",
+   "hash": "b43fab452cd8819a",
+   "does": "Queues a session twice and asserts the second throws ReconciliationError.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testSessionExists_inPending()",
+   "hash": "7f809da1049b224c",
+   "does": "Queues a session and asserts sessionExists returns true (pending match).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testSessionExists_notQueued()",
+   "hash": "61145f0cf5a850ff",
+   "does": "Asserts sessionExists(UUID()) is false for an unknown id (checks SessionArchive.shared then pending).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.shared.exists",
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "92ae4c7489717cfc",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testPending_returnsOnlyUnsyncedSessions()",
+   "hash": "b0ce12b930ca7663",
+   "does": "Queues two sessions and asserts pending has >= 2 entries all with needsSync.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "writes": [
+    "file:Documents/HRVOffline/pending.json (real app queue)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "pending filters by needsSync itself, so `allSatisfy(\\.needsSync)` is true by construction and cannot fail.",
+     "evidence": [
+      "EmuquTests/ReconciliationManagerTests.swift:67",
+      "Emuqu/Sources/Storage/Reconciliation.swift:76"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "da04559a4c7cfed5",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "7301ebb7599b2aa9",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "ff17c74b78c86109",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pending": "f1c58ab871c8ec54",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testOfflineSession_needsSync_trueInitially()",
+   "hash": "635ad5256204a6c2",
+   "does": "Asserts a new OfflineSession needsSync with 0 attempts and nil syncedAt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testOfflineSession_needsSync_falseAfterThreeAttempts()",
+   "hash": "b4f0e21cc8ae4fd5",
+   "does": "Asserts needsSync false after 3 attempts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same assertion as RRModelsTests.testOfflineSessionMaxRetries.",
+     "evidence": [
+      "EmuquTests/RRModelsTests.swift:449"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  },
+  {
+   "key": "func ReconciliationManagerTests.testOfflineSession_needsSync_falseWhenSynced()",
+   "hash": "a5c31a89b4db1667",
+   "does": "Asserts needsSync false once syncedAt is set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same assertion as RRModelsTests.testOfflineSessionNeedsSync.",
+     "evidence": [
+      "EmuquTests/RRModelsTests.swift:439"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "aef3f494c707c5b4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "b859746f1d933b9c",
+    "EmuquTests/ReconciliationManagerTests.swift::func ReconciliationManagerTests.makeSession(id:)": "eae3ea75b47bed99"
+   }
+  }
+ ],
+ "deps": {}
+}

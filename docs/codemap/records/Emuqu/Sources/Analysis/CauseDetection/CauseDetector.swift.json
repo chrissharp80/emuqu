@@ -1,0 +1,296 @@
+{
+ "file": "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift",
+ "hash": "f243eb483db3053b",
+ "role": "Cause-detection core: DetectedCause value (cause, pattern-match label, explanation, ranking weight), CauseDetectionContext (tonight's metrics, tags, trend/sleep inputs, recent sessions), the CauseDetectionStrategy protocol, and CauseDetector which runs six strategies and returns the top-N causes by ranking weight for AnalysisSummaryGenerator.probableCauses.",
+ "types": [
+  "DetectedCause: struct — one candidate cause",
+  "DetectedCause.CauseConfidence: enum String — English raw pattern-match labels (badge colour key) + localized label",
+  "CauseDetectionContext: struct — inputs to every strategy",
+  "CauseDetectionStrategy: protocol — detectCauses(in:)",
+  "CauseDetector: class — aggregates Positive, Severe, TagBased, Sleep, MetricBased, Pattern strategies",
+  "DetectedCause: extension — toProbableCause()"
+ ],
+ "state": [],
+ "toplevel": "CauseConfidence raw values are English display strings used as keys (AnalysisSummaryGenerator.swift:35 maps them back to .label).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DetectedCause.CauseConfidence.label",
+   "hash": "08c6ac508b8a30a6",
+   "does": "Returns the localized (NarrativeLanguage bundle) text for each confidence case.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "ext:String(localized:bundle:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case critical",
+     "effect": "'Full pattern match'"
+    },
+    {
+     "at": "+3",
+     "cond": "case veryHigh",
+     "effect": "'Strong pattern match'"
+    },
+    {
+     "at": "+4",
+     "cond": "case high",
+     "effect": "'Clear pattern match'"
+    },
+    {
+     "at": "+5",
+     "cond": "case moderateHigh",
+     "effect": "'Partial pattern match'"
+    },
+    {
+     "at": "+6",
+     "cond": "case moderate",
+     "effect": "'Partial match'"
+    },
+    {
+     "at": "+7",
+     "cond": "case lowModerate",
+     "effect": "'Weak match'"
+    },
+    {
+     "at": "+8",
+     "cond": "case low",
+     "effect": "'Faint match'"
+    },
+    {
+     "at": "+9",
+     "cond": "case pattern",
+     "effect": "'Pattern'"
+    },
+    {
+     "at": "+10",
+     "cond": "case contributingFactor",
+     "effect": "'Contributing Factor'"
+    },
+    {
+     "at": "+11",
+     "cond": "case goodSign",
+     "effect": "'Good Sign'"
+    },
+    {
+     "at": "+12",
+     "cond": "case excellent",
+     "effect": "'Excellent'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "var CauseDetectionContext.currentHR",
+   "hash": "32b4e23443eaeb6f",
+   "does": "Tonight's mean HR from session.analysisResult (nil without analysis).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CauseDetectionContext.isShortSleep",
+   "hash": "2d0d9d291150490d",
+   "does": "Forwards sleepInput.isShortSleep.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "CauseDetectionContext.isShortSleep is never read (grep finds only AnalysisSleepInput / other structs' isShortSleep uses).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:87"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "d971dbe731a9e976"
+   }
+  },
+  {
+   "key": "var CauseDetectionContext.isGoodSleep",
+   "hash": "1750c4cda8cf1550",
+   "does": "Forwards sleepInput.isGoodSleep (used by MetricBased sleep-debt check).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isGoodSleep": "77fddba22b4b8546"
+   }
+  },
+  {
+   "key": "var CauseDetectionContext.isFragmented",
+   "hash": "f8b65cc1abc2a1d7",
+   "does": "Forwards sleepInput.isFragmented.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "CauseDetectionContext.isFragmented is never read anywhere in app or tests.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:95"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "9be0a2ac3cd93216"
+   }
+  },
+  {
+   "key": "requirement CauseDetectionStrategy.detectCauses(in:)",
+   "hash": "d1485d387194d01d",
+   "does": "Protocol requirement: return the causes this strategy detects for the context.",
+   "entry": null,
+   "calls": [
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift:6"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectCauses(in:)": "cf47554d3bc11411",
+    "Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift::func PatternCauseDetector.detectCauses(in:)": "7901f149aed57126",
+    "Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift::func PositiveCauseDetector.detectCauses(in:)": "dc4d0402e285c0a1",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "70ebad944f53b04e",
+    "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.detectCauses(in:)": "6371202711fe6096",
+    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func TagBasedCauseDetector.detectCauses(in:)": "761eaa9ab29e59db"
+   }
+  },
+  {
+   "key": "init CauseDetector()",
+   "hash": "0696c31c11d508a2",
+   "does": "Default init with strategies [Positive, Severe, TagBased, Sleep, MetricBased, Pattern].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init CauseDetector(strategies:)",
+   "hash": "6ae452f60238bf70",
+   "does": "Init with custom strategies.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "init(strategies:) has no app caller; its only caller is testDetectorWithCustomStrategies.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift:124",
+      "EmuquTests/CauseDetectorTests.swift:97"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CauseDetector.detectCauses(in:limit:)",
+   "hash": "021600db82934a96",
+   "does": "Good/excellent reading → positive-only path; otherwise concatenates every strategy's causes, sorts by rankingWeight descending and returns the first `limit` (default 3).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)",
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/PatternCauseDetector.swift:6"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "context.isGoodReading || isExcellentReading",
+     "effect": "returns detectPositiveCausesOnly; else all strategies"
+    },
+    {
+     "at": "+7",
+     "cond": "for each strategy",
+     "effect": "appends its causes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:stress:lfhf:dfa:)": "f75be3d3da4a805f",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectPositiveCausesOnly(in:limit:)": "21de0eeadfe1ad1f"
+   }
+  },
+  {
+   "key": "func CauseDetector.detectPositiveCausesOnly(in:limit:)",
+   "hash": "4a6345eb19a4a53d",
+   "does": "Runs only PositiveCauseDetector and SleepCauseDetector (type check), sorts by weight, returns top `limit`.",
+   "entry": null,
+   "calls": [
+    "dyn:CauseDetectionStrategy.detectCauses → Emuqu/Sources/Analysis/CauseDetection/PositiveCauseDetector.swift:6 | Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:6"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each strategy",
+     "effect": "loops"
+    },
+    {
+     "at": "+4",
+     "cond": "strategy is Positive or Sleep detector",
+     "effect": "collects its causes; other strategies skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DetectedCause.toProbableCause()",
+   "hash": "9b118c84e32141c6",
+   "does": "Converts to AnalysisSummaryGenerator.ProbableCause carrying the English rawValue of confidence (re-localized later via CauseConfidence(rawValue:).label).",
+   "entry": null,
+   "calls": [
+    "ext:AnalysisSummaryGenerator.ProbableCause init (memberwise)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

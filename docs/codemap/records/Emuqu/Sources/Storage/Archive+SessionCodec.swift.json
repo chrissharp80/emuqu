@@ -1,0 +1,161 @@
+{
+ "file": "Emuqu/Sources/Storage/Archive+SessionCodec.swift",
+ "hash": "2d3126eb62dd75d3",
+ "role": "The session-file codec (encode → encrypt-if-available → SHA256 of bytes-as-written) shared by every archive write site, plus derivation of the sleepEnd/sleepSegmentCount index fields.",
+ "types": [
+  "SessionArchive.SessionFileCodec: enum — sha256Hex, encodeForDisk",
+  "SessionArchive.SessionFileCodec.DiskFormat: enum — encrypted / plaintextPendingEncryption",
+  "SessionArchive: extension — deriveSleepIndexFields helpers"
+ ],
+ "state": [],
+ "toplevel": "File-private free function encryptOrReportFailure.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+   "hash": "01fdfb1150e585b6",
+   "does": "Returns the lowercase hex SHA256 digest of the data.",
+   "entry": null,
+   "calls": [
+    "ext:CryptoKit.SHA256"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
+   "hash": "80c91b82352ba5f6",
+   "does": "Inside an autoreleasepool: JSON-encodes the session with the caller's encoder, encrypts it when possible, and returns (bytes, sha256 of bytes, format) — plaintext with .plaintextPendingEncryption when encryption is unavailable or fails. Encoding errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
+    "closure:onPlaintextFallback (default no-op; no call site passes one)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "encryption produced bytes",
+     "effect": "return encrypted + hash + .encrypted; else plaintext + hash + .plaintextPendingEncryption"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "dd54ddf7bc0c2442",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "267af528614df645"
+   }
+  },
+  {
+   "key": "func SessionArchive.deriveSleepIndexFields(from:)",
+   "hash": "9772315fb5d3e55c",
+   "does": "Returns (sleepEnd, sleepSegmentCount) derived from the session for index mirroring.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepSegmentCount(of:)": "0fbe1a7727a1a59b"
+   }
+  },
+  {
+   "key": "func SessionArchive.sleepEnd(of:)",
+   "hash": "53e6e16bf45be768",
+   "does": "Sleep end: sleepSnapshot.sleepEnd if present, else startDate + sleepEndMs when >0, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "snapshot has sleepEnd",
+     "effect": "return it"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepEndMs nil or <= 0",
+     "effect": "return nil; else start + offset"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func SessionArchive.sleepSegmentCount(of:)",
+   "hash": "0d977ae9da6d5e99",
+   "does": "Segment count: number of snapshot segments when non-empty; else stored sleepSegments count when non-empty; else 1 when a snapshot exists, nil otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "snapshot with non-empty segments",
+     "effect": "return its count"
+    },
+    {
+     "at": "+8",
+     "cond": "stored sleepSegments non-empty",
+     "effect": "return its count"
+    },
+    {
+     "at": "+13",
+     "cond": "snapshot exists",
+     "effect": "return 1; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def"
+   }
+  },
+  {
+   "key": "func encryptOrReportFailure(_:onFailure:)",
+   "hash": "46b9843ee10fa184",
+   "does": "Returns encrypted bytes, or nil (calling onFailure) when the encryption manager is unavailable or encrypt throws (error logged at .error).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "manager not available",
+     "effect": "onFailure, return nil (no log)"
+    },
+    {
+     "at": "+8",
+     "cond": "catch: encrypt threw",
+     "effect": "log error, onFailure, return nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "6236f6fa0100fadb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "660c20ec52781b17",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

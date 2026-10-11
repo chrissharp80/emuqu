@@ -1,0 +1,396 @@
+{
+ "file": "EmuquTests/MaxHeartRateTests.swift",
+ "hash": "d29895b5663376e0",
+ "role": "XCTest suite for MaxHeartRate: Tanaka formula values vs 220−age, monotonicity, 130/220 clamps, completed-years age with an explicit calendar, and effective() precedence (user value ≥ 80, else Tanaka from birthday, else 180 default).",
+ "types": [
+  "MaxHeartRateTests: class — XCTestCase over MaxHeartRate"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MaxHeartRateTests.utc",
+   "hash": "499979766a4f4b6d",
+   "does": "Computed fixture: gregorian calendar pinned to GMT+0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "TimeZone(secondsFromGMT: 0) ?? .gmt",
+     "effect": "falls back to .gmt only if the zero-offset zone cannot be built"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func MaxHeartRateTests.date(_:_:_:)",
+   "hash": "920c6b79aa856eec",
+   "does": "Fixture: UTC date for year/month/day, or distantPast if components fail.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "utc.date(from:) ?? .distantPast",
+     "effect": "distantPast only when the calendar cannot build the date"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testTanakaDiffersFromTwoTwentyMinusAgeEitherSideOfForty()",
+   "hash": "aaf9307c0d453d54",
+   "does": "Asserts tanaka at ages 30/40/60/70 = 187/180/166/159.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testTanakaExceedsTwoTwentyMinusAgeForOlderAdults()",
+   "hash": "78d5b4dd67d05c3e",
+   "does": "Asserts tanaka(age) > 220 − age for every age 45…85.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for age in 45...85",
+     "effect": "asserts Tanaka exceeds 220−age"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testMaxHeartRateFallsAsAgeRises()",
+   "hash": "d1e255fed9823b6d",
+   "does": "Asserts tanaka is non-increasing over ages 20…60.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testRealAgesGetTheFormulaValueRatherThanTheFloor()",
+   "hash": "c6a44e6b7caad92f",
+   "does": "Asserts tanaka(85)=149, tanaka(95)=142 and tanaka(95) > floor (130).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The test's doc comment says the 130 floor (age ~111) means 'a real age always gets the real formula value and only impossible input is caught', but the production doc comment states the opposite: 'It is NOT true that 130 only catches input that was never an age... ages 112-122 are real and DO get clamped'.",
+     "evidence": [
+      "EmuquTests/MaxHeartRateTests.swift:65",
+      "EmuquTests/MaxHeartRateTests.swift:66",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:43",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:46"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testImplausiblyHighAgesHitTheFloor()",
+   "hash": "7868edef8ad832d9",
+   "does": "Asserts tanaka(200) == floor.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testImplausibleAgesAreCapped()",
+   "hash": "72b3efc84b904c91",
+   "does": "Asserts tanaka(0)=208 and tanaka(-100)=ceiling (220).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testEveryAgeStaysInsideTheClamp()",
+   "hash": "54eccdcb01e53244",
+   "does": "Asserts every age −50…150 yields a value within [floor, ceiling].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for age in -50...150",
+     "effect": "asserts clamp bounds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testAgeIsCompletedYears()",
+   "hash": "c833ff21f6daab24",
+   "does": "Asserts age from 1990-06-15 to 2026-06-15 in UTC is 36.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testTheDayBeforeABirthdayIsStillTheYoungerAge()",
+   "hash": "840c0e85c5bc25d5",
+   "does": "Asserts age is 35 on 2026-06-14 and 36 on 2026-06-15 for a 1990-06-15 birthday.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testAgeIsStableAcrossCalendarTimeZones()",
+   "hash": "dc717f404603769f",
+   "does": "For calendars at GMT −12, −5, 0, +5, +14 asserts the age is 35 or 36.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 5 offsets",
+     "effect": "builds a calendar and checks the age"
+    },
+    {
+     "at": "+5",
+     "cond": "TimeZone(secondsFromGMT:) ?? .gmt",
+     "effect": "falls back to GMT if the offset zone cannot be built"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Accepts either 35 or 36, so it would pass even if the age moved with the calendar's zone; it does not pin stability as its name claims.",
+     "evidence": [
+      "EmuquTests/MaxHeartRateTests.swift:115"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testAUserEnteredValueWins()",
+   "hash": "e1ee82bcb3e1b1a8",
+   "does": "Asserts effective(userEntered: 191, …) returns 191.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testANonPositiveUserValueFallsThroughToTheEstimate()",
+   "hash": "039ebf4ad37ff230",
+   "does": "Asserts entered 0 and −5 fall through to Tanaka at age 36 (183).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for entered in [0, -5]",
+     "effect": "asserts fallback to 183"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Only non-positive entries are checked; the real gate is userEntered >= 80 (MaxHeartRate.swift:94), and values 1…79 (the '18' case its comment cites) are never tested.",
+     "evidence": [
+      "EmuquTests/MaxHeartRateTests.swift:132",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:94"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testWithNothingToGoOnASafeDefaultIsReturned()",
+   "hash": "85c5c986f51eb8bc",
+   "does": "Asserts effective with no birthday returns defaultWithoutBirthday (180) for nil and 0 entries.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  },
+  {
+   "key": "func MaxHeartRateTests.testTheResultIsAlwaysUsable()",
+   "hash": "34e3a7df6e68fd05",
+   "does": "For entries nil/0/−10/150/300 and birthdays nil/1930/2020 asserts effective() > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each entered value",
+     "effect": "iterates 5 entries"
+    },
+    {
+     "at": "+2",
+     "cond": "for each birthday",
+     "effect": "asserts result > 0"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Asserts only > 0 and includes userEntered 300, which effective() returns unchanged because there is no upper bound on user-entered values (MaxHeartRate.swift:94); a 300 bpm max HR rescales every zone and TRIMP, and the test treats it as 'usable'.",
+     "evidence": [
+      "EmuquTests/MaxHeartRateTests.swift:158",
+      "Emuqu/Sources/Analysis/MaxHeartRate.swift:94"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.age(from:to:calendar:)": "2e6eb44b6beb64cf",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.tanaka(age:)": "212234a9fc356fe8",
+    "EmuquTests/MaxHeartRateTests.swift::func MaxHeartRateTests.date(_:_:_:)": "dd935bc21ba416a0",
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,342 @@
+{
+ "file": "Emuqu/Sources/Models/MorningFeelingTag.swift",
+ "hash": "7e791863c866ecbc",
+ "role": "Morning-feeling context tags (9 tags in body/mind clusters) shown as chips when the user rates the morning 1-2, plus a lenient array wrapper that drops unknown tags when decoding archived sessions.",
+ "types": [
+  "MorningFeelingTag: enum (String, Codable, CaseIterable) — infection/allergies/hangover/stomach/sore/tired/headache/stressed/down",
+  "MorningFeelingTag.Cluster: enum — body/mind",
+  "MorningFeelingTagArray: struct (Codable) — forward-compatible [MorningFeelingTag] wrapper"
+ ],
+ "state": [],
+ "toplevel": "Raw values (case names) are the persisted form inside SessionMetadata.morningFeelingTags and the strings Flo context/fact resolver send (rawValue). Encode of a single tag is synthesized (rawValue string).",
+ "flags": [],
+ "units": [
+  {
+   "key": "var MorningFeelingTag.cluster",
+   "hash": "0a42f62a48f01411",
+   "does": "Cluster for a tag: body for infection..headache, mind for stressed/down; used to split chip rows.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "somatic tags",
+     "effect": "body"
+    },
+    {
+     "at": "+4",
+     "cond": "stressed/down",
+     "effect": "mind"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingTag.emoji",
+   "hash": "a6009ec74cf63450",
+   "does": "Emoji for each tag shown on the chip.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case infection",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+3",
+     "cond": "case allergies",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+4",
+     "cond": "case hangover",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+5",
+     "cond": "case stomach",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+6",
+     "cond": "case sore",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+7",
+     "cond": "case tired",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+8",
+     "cond": "case headache",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+9",
+     "cond": "case stressed",
+     "effect": "its emoji"
+    },
+    {
+     "at": "+10",
+     "cond": "case down",
+     "effect": "its emoji"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingTag.label",
+   "hash": "cd8e6414478a9129",
+   "does": "Fixed English label per tag.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case infection",
+     "effect": "English label"
+    },
+    {
+     "at": "+3",
+     "cond": "case allergies",
+     "effect": "English label"
+    },
+    {
+     "at": "+4",
+     "cond": "case hangover",
+     "effect": "English label"
+    },
+    {
+     "at": "+5",
+     "cond": "case stomach",
+     "effect": "English label"
+    },
+    {
+     "at": "+6",
+     "cond": "case sore",
+     "effect": "English label"
+    },
+    {
+     "at": "+7",
+     "cond": "case tired",
+     "effect": "English label"
+    },
+    {
+     "at": "+8",
+     "cond": "case headache",
+     "effect": "English label"
+    },
+    {
+     "at": "+9",
+     "cond": "case stressed",
+     "effect": "English label"
+    },
+    {
+     "at": "+10",
+     "cond": "case down",
+     "effect": "English label"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No reader found: chips use localizedLabel, and Flo/fact-resolver read rawValue (ContextBuilder:370, AppFactResolver+Sleep:695), contradicting the comment that label 'is what Flo and the exports read'.",
+     "evidence": [
+      "Emuqu/Sources/Models/MorningFeelingTag.swift:70",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:370",
+      "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift:695",
+      "Emuqu/Sources/Views/MorningResults/MorningFeelingPrompt.swift:203"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var MorningFeelingTag.localizedLabel",
+   "hash": "54679fde3c1188b9",
+   "does": "Localized chip label in the app language bundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case infection",
+     "effect": "localized label"
+    },
+    {
+     "at": "+4",
+     "cond": "case allergies",
+     "effect": "localized label"
+    },
+    {
+     "at": "+5",
+     "cond": "case hangover",
+     "effect": "localized label"
+    },
+    {
+     "at": "+6",
+     "cond": "case stomach",
+     "effect": "localized label"
+    },
+    {
+     "at": "+7",
+     "cond": "case sore",
+     "effect": "localized label"
+    },
+    {
+     "at": "+8",
+     "cond": "case tired",
+     "effect": "localized label"
+    },
+    {
+     "at": "+9",
+     "cond": "case headache",
+     "effect": "localized label"
+    },
+    {
+     "at": "+10",
+     "cond": "case stressed",
+     "effect": "localized label"
+    },
+    {
+     "at": "+11",
+     "cond": "case down",
+     "effect": "localized label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "init MorningFeelingTag(from:)",
+   "hash": "9b315fcf41453ceb",
+   "does": "Decodes a single tag from its raw string; throws DecodingError.dataCorrupted on unknown values.",
+   "entry": "Decodable witness: would run only when a MorningFeelingTag is decoded directly or through a synthesized Codable container; the only such container, TrendAnalyzer.TrendDataPoint (TrendAnalysis.swift:8,27), is never decoded (grep), and SessionMetadata decodes tags through MorningFeelingTagArray (SessionMetadata.swift:551), which reads the raw String itself. Never invoked in app or tests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "raw value unknown",
+     "effect": "throw dataCorrupted; else assign"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Custom init(from:) is never executed: no code decodes MorningFeelingTag.self or a decoded container holding it (SessionMetadata uses MorningFeelingTagArray, TrendDataPoint is Codable but never decoded, MorningFeelingTagCodecTests decode only the wrapper); its behaviour (throw dataCorrupted on unknown raw value) is identical to the synthesized RawRepresentable decode it replaces.",
+     "evidence": [
+      "Emuqu/Sources/Models/MorningFeelingTag.swift:95",
+      "Emuqu/Sources/Models/SessionMetadata.swift:551",
+      "Emuqu/Sources/Analysis/TrendAnalysis.swift:27",
+      "EmuquTests/MorningFeelingTagCodecTests.swift:23"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init MorningFeelingTagArray(_:)",
+   "hash": "af18a3c2ff130afc",
+   "does": "Wraps a tag array for encoding.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init MorningFeelingTagArray(from:)",
+   "hash": "9a168e51b1b3455b",
+   "does": "Decodes a tag array leniently via decodeTags from an unkeyed container.",
+   "entry": "Decodable: SessionMetadata decode of morningFeelingTags (SessionMetadata.swift:551).",
+   "calls": [
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::func MorningFeelingTagArray.decodeTags(from:)": "a6ccaa980492e29b"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagArray.decodeTags(from:)",
+   "hash": "da6bd7744ab21fec",
+   "does": "Iterates the unkeyed container, using superDecoder to always advance, keeping entries that decode as a known raw string and dropping anything else; stops if the container fails to advance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "container not at end",
+     "effect": "process next element"
+    },
+    {
+     "at": "+4",
+     "cond": "superDecoder throws",
+     "effect": "break (stop, keep tags so far)"
+    },
+    {
+     "at": "+9",
+     "cond": "element decodes as string and maps to a tag",
+     "effect": "append; else drop silently"
+    },
+    {
+     "at": "+15",
+     "cond": "currentIndex did not advance",
+     "effect": "break to avoid infinite loop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"
+   }
+  },
+  {
+   "key": "func MorningFeelingTagArray.encode(to:)",
+   "hash": "d2d858f09e84ae62",
+   "does": "Encodes each tag's rawValue into an unkeyed container.",
+   "entry": "Encodable: SessionMetadata encode (SessionMetadata.swift:617).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each tag",
+     "effect": "encode rawValue"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

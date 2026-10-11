@@ -1,0 +1,90 @@
+{
+ "file": "Emuqu/Sources/Views/HelpContent.swift",
+ "hash": "e6a31243671fe916",
+ "role": "Help Center data model: HelpCategory, HelpArticle (with flattened lowercase search text) and the ArticleSection enum of renderable blocks.",
+ "types": [
+  "HelpCategory: struct — id/title/SF-symbol icon/color/articles",
+  "HelpArticle: struct — id/title/icon/summary/sections plus searchableText",
+  "ArticleSection: enum — text/heading/tip/warning/note/bullets/steps/keyValue/divider blocks"
+ ],
+ "state": [],
+ "toplevel": "Pure value types; no stored globals. ArticleSection.keyValue carries an array of labelled tuples, so ArticleSection is not Equatable/Codable.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var HelpArticle.searchableText",
+   "hash": "17ce97729b7f2902",
+   "does": "Builds a lowercased string of title + summary + every section's plain text (via plainText) joined by spaces; HelpCenterView.searchResults (HelpCenterView.swift:25) filters articles with `.contains(query)` on it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/HelpContent.swift::func HelpArticle.plainText(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/HelpContent.swift::func HelpArticle.plainText(of:)": "804f8efbb4d3994b"
+   }
+  },
+  {
+   "key": "func HelpArticle.plainText(of:)",
+   "hash": "9361b3f8ee978d77",
+   "does": "Returns the user-visible words of one ArticleSection for search: the string payload for text/heading/tip/warning/note, the joined items for bullets/steps, 'label value' pairs joined for keyValue, and '' for divider.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "section is .text",
+     "effect": "returns the text"
+    },
+    {
+     "at": "+3",
+     "cond": "section is .heading",
+     "effect": "returns the heading"
+    },
+    {
+     "at": "+4",
+     "cond": "section is .tip",
+     "effect": "returns the tip text"
+    },
+    {
+     "at": "+5",
+     "cond": "section is .warning",
+     "effect": "returns the warning text"
+    },
+    {
+     "at": "+6",
+     "cond": "section is .note",
+     "effect": "returns the note text"
+    },
+    {
+     "at": "+7",
+     "cond": "section is .bullets",
+     "effect": "returns items joined by spaces"
+    },
+    {
+     "at": "+8",
+     "cond": "section is .steps",
+     "effect": "returns items joined by spaces"
+    },
+    {
+     "at": "+9",
+     "cond": "section is .keyValue",
+     "effect": "returns each 'label value' pair joined by spaces"
+    },
+    {
+     "at": "+10",
+     "cond": "section is .divider",
+     "effect": "returns empty string"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

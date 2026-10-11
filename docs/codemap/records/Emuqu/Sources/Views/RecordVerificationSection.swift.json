@@ -1,0 +1,248 @@
+{
+ "file": "Emuqu/Sources/Views/RecordVerificationSection.swift",
+ "hash": "757a907906a49ccf",
+ "role": "'Data Quality' card shown after a reading from a Verification.Result and optional WindowSelector.RecoveryWindow: pass badge, analysis window duration/quality, artifact %, clean beats, errors and warnings. qualityBadge is static for reuse.",
+ "types": [
+  "RecordVerificationSection: struct — View; pure function of verification + recoveryWindow"
+ ],
+ "state": [],
+ "toplevel": "Three file-private free functions (analysisWindowDurationRow, analysisWindowQualityRow, verificationNote) build rows.",
+ "flags": [
+  {
+   "kind": "hack",
+   "sev": "low",
+   "text": "Quality row thresholds are hard-coded in the view (artifact < 10% green, clean beats >= 200 green) and do not match the verifier's own limits (warn above HRVConstants.Artifacts.warnPercentThreshold 5%, fail above 15%; minPoints HRVConstants.MinimumBeats.forAnalysis 300). A reading at 7% artifacts shows a green tick next to an orange 'Artifacts 7%' warning, and 200–299 clean beats shows green although below the analysis minimum.",
+   "evidence": [
+    "Emuqu/Sources/Views/RecordVerificationSection.swift:54",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift:59",
+    "Emuqu/Sources/Utilities/Constants.swift:160",
+    "Emuqu/Sources/Utilities/Constants.swift:204",
+    "Emuqu/Sources/Analysis/Verification.swift:303"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RecordVerificationSection.body",
+   "hash": "6db6d6cfd4205cd0",
+   "does": "Header, optional window rows and metric rows on a grouped card.",
+   "entry": "SwiftUI view body; built by RecordView.verificationSectionIfPending (RecordView+Sections.swift:254) when sessionState.verificationResult is set",
+   "calls": [
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.header",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.windowRows",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows"
+   ],
+   "reads": [
+    "mem:SessionState.verificationResult",
+    "mem:SessionState.recoveryWindow"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.header": "312853e3c1d89484",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows": "d0d9017318906d30",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.windowRows": "4f0552e6324be4fd"
+   }
+  },
+  {
+   "key": "var RecordVerificationSection.header",
+   "hash": "b5af3369d098898d",
+   "does": "'Data Quality' headline with the Good/Issues Found badge.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)": "4a9622eaafb08a73"
+   }
+  },
+  {
+   "key": "var RecordVerificationSection.windowRows",
+   "hash": "188bec663f6096ff",
+   "does": "When a recovery window exists, shows its duration and quality and the caption 'Best window from the middle of your sleep'.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowDurationRow(_:)",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowQualityRow(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryWindow non-nil",
+     "effect": "true: two rows + caption; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowDurationRow(_:)": "2617ca88a00bb413",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowQualityRow(_:)": "9788ca70eced8ad1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var RecordVerificationSection.metricRows",
+   "hash": "c05b8ed5e8959daf",
+   "does": "Artifact % row (green when < 10), Clean Beats row (green when nnCount >= 200), then one red note per error and one orange note per warning.",
+   "entry": "SwiftUI subview",
+   "calls": [
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityRow(_:value:isGood:)",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func verificationNote(_:icon:tint:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Quality row thresholds are hard-coded in the view (artifact < 10% green, clean beats >= 200 green) and do not match the verifier's own limits (warn above HRVConstants.Artifacts.warnPercentThreshold 5%, fail above 15%; minPoints HRVConstants.MinimumBeats.forAnalysis 300). A reading at 7% artifacts shows a green tick next to an orange 'Artifacts 7%' warning, and 200–299 clean beats shows green although below the analysis minimum.",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:54",
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:59",
+      "Emuqu/Sources/Utilities/Constants.swift:160",
+      "Emuqu/Sources/Utilities/Constants.swift:204",
+      "Emuqu/Sources/Analysis/Verification.swift:303"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityRow(_:value:isGood:)": "0862c52519389e57",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func verificationNote(_:icon:tint:)": "b0d62d06b6fc09eb"
+   }
+  },
+  {
+   "key": "func RecordVerificationSection.qualityBadge(_:)",
+   "hash": "97cc7cc538609b1f",
+   "does": "Badge 'Good' (green) when passed, 'Issues Found' (orange) otherwise. Only used by this section; MorningResultsView has its own private qualityBadge.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "passed ? :",
+     "effect": "'Good' vs 'Issues Found' text"
+    },
+    {
+     "at": "+7",
+     "cond": "passed ? :",
+     "effect": "green vs orange background"
+    },
+    {
+     "at": "+8",
+     "cond": "passed ? :",
+     "effect": "green vs orange foreground"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says it is static 'so the morning-results screen can reuse the same badge', but MorningResultsView+DetailCards.swift declares its own private qualityBadge and never calls this one (grep RecordVerificationSection.qualityBadge finds no external use).",
+     "evidence": [
+      "Emuqu/Sources/Views/RecordVerificationSection.swift:70",
+      "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift:133"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RecordVerificationSection.qualityRow(_:value:isGood:)",
+   "hash": "aba7a28b44696b80",
+   "does": "Label on the left, green check or orange exclamation plus value on the right.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "isGood ? :",
+     "effect": "checkmark.circle.fill vs exclamationmark.circle.fill"
+    },
+    {
+     "at": "+7",
+     "cond": "isGood ? :",
+     "effect": "green vs orange"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func analysisWindowDurationRow(_:)",
+   "hash": "bcfa8d228c746fec",
+   "does": "'Analysis Window' row with (endMs − startMs)/60000 formatted '%.1f min'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func analysisWindowQualityRow(_:)",
+   "hash": "63fed08363da7404",
+   "does": "'Quality' row with qualityScore × 100 formatted '%.0f%'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func verificationNote(_:icon:tint:)",
+   "hash": "ea0e89108af95a40",
+   "does": "Icon + caption text tinted by the given colour, used for verifier errors and warnings.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

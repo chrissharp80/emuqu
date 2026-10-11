@@ -1,0 +1,506 @@
+{
+ "file": "Emuqu/Sources/Analysis/ReadinessScoring.swift",
+ "hash": "93726810b8e593b3",
+ "role": "Training readiness model split out of RecoveryScoreCalculator: acute fatigue, capacity-ratio mapping, ACWR damper, freshness bonus, recovery modulation, and the readiness label/message copy.",
+ "types": [
+  "ReadinessScoring: enum — static readiness math and copy",
+  "ReadinessScoring.WorkoutLoad: struct — hoursAgo + trimp (re-exported as RecoveryScoreCalculator.WorkoutLoad)"
+ ],
+ "state": [],
+ "toplevel": "All constants come from RecoveryScoreConstants.Readiness / ReadinessLabels (Constants+RecoveryScore.swift:110-222). Doc comment numbers (0.30, tau 24h, CTL 3.2, breakpoints 0.8/1.0/1.3/1.5/2.0 → 85/70/50/30/10, ACWR 1.3, confidence CTL 50, rescue at recovery 70 cap 0.10, freshness 1.5x cap 20, trust CTL/40*0.55, uplift 0.30, novel 0.5 floor 10) match the constants.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+   "hash": "ee0d1ac8e9637a54",
+   "does": "Readiness 0-100: acute fatigue → base readiness (capacity ratio or novel-load model) → ACWR damper → freshness bonus → recovery modulation; non-finite → 50; clamped 0..100. Reached via RecoveryScoreCalculator.calculateReadiness (LiveReadiness, ReanalysisService, TrainingReadinessCard, tests).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+27",
+     "cond": "readiness not finite",
+     "effect": "return 50 (midpoint) instead of clamp; else clamp 0..100"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "docs/API_REFERENCE.md says training readiness is 'independent of recovery score' and shows WorkoutLoad declared on RecoveryScoreCalculator. In code the recovery score modulates readiness (applyRecoveryModulation, ACWR rescue), as this file's own doc says, and WorkoutLoad is ReadinessScoring.WorkoutLoad behind a typealias.",
+     "evidence": [
+      "docs/API_REFERENCE.md:1047",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:21",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:142",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:291"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "e88756532c3a791e",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "09f5a5e0dc237a38",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
+   "hash": "784f49592f201e0a",
+   "does": "Acute fatigue: with recent loads, raw = Σ trimp*exp(-h/24) and scaled = raw*0.30; otherwise scaled = todayTrimp*0.35 and raw = todayTrimp.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "recentWorkoutLoads non-nil and non-empty",
+     "effect": "exponential decay sum; else flat todayTrimp fallback (0.35 coefficient)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The doc says the exponential decay 'replaces the previous flat same-day penalty (todayTrimp × 0.35) which created a cliff at midnight'. But the flat 0.35 path still runs whenever recentWorkoutLoads is nil. TrainingReadinessCard never passes loads, so it always uses it, and LiveReadiness passes nil whenever todayTrimp == 0.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:49",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:163",
+      "Emuqu/Sources/Views/MorningResults/TrainingReadinessCard.swift:35",
+      "Emuqu/Sources/Analysis/LiveReadiness.swift:81"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)",
+   "hash": "bfee7955c858ede3",
+   "does": "Base readiness: if CTL >= 3.2 maps (ATL+scaled acute fatigue)/CTL through the piecewise table; else novel-load model max(10, 100 - (ATL + raw acute fatigue)*0.5).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "ctl < 3.2",
+     "effect": "novel-load strain model using the UNSCALED raw acute fatigue; else capacity-ratio model with scaled fatigue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.mapCapacityRatioToReadiness(_:)",
+   "hash": "d9bc183158871eaa",
+   "does": "Piecewise-linear map of capacity ratio onto readiness: 0→100, 0.8→85, 1.0→70, 1.3→50, 1.5→30, 2.0→10, beyond 2.0 → 10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "capacityRatio <= 0 (or NaN)",
+     "effect": "return 100"
+    },
+    {
+     "at": "+14",
+     "cond": "first breakpoint with ratio <= breakpoint",
+     "effect": "interpolate between previous and this breakpoint; none matched → 10"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A NaN capacity ratio (effectiveLoad NaN) fails `capacityRatio > 0` and returns 100 (fully ready) rather than propagating NaN; the final isFinite guard in calculateReadiness only catches NaN that survives to the end.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:194",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:145"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+   "hash": "79b8a900df189097",
+   "does": "Multiplies readiness by (1 - dampened penalty) only when ACR > 1.3.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "acr nil or <= 1.3",
+     "effect": "no change; else apply dampened penalty"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The worked tester example in the doc says that at CTL 16, ACWR 1.63 and recovery 73 'autonomic cap engages, effective penalty shrinks to ~0.07'. The code gives (0.05 + 0.33*0.50) * 16/50 = 0.0688, which is already below the 0.10 rescue cap, so the cap does not engage in that example; only the confidence ramp acts.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:251",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:255",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:283",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:288",
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:291",
+      "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:175"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "31f46ca54792db88"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)",
+   "hash": "aa7b957620310dc7",
+   "does": "Penalty = min(0.05 + (acr-1.3)*0.50, 0.40) * min(ctl/50, 1); if recoveryScore >= 70 capped at 0.10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "recoveryScore >= 70",
+     "effect": "cap penalty at 0.10; else uncapped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)",
+   "hash": "0c31f2dd84224d97",
+   "does": "Adds min(max(0, morningATL - atl)*1.5, 20) when morningATL > 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "morningATL nil or <= 0",
+     "effect": "no bonus"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)",
+   "hash": "d5724acc9a6d5d6e",
+   "does": "Asymmetric blend with recovery score: above recovery keeps gap*min(ctl/40,1)*0.55; below recovery gives back 30% of the gap; equal unchanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "readiness > recoveryScore",
+     "effect": "recovery + gap*trust"
+    },
+    {
+     "at": "+5",
+     "cond": "readiness < recoveryScore",
+     "effect": "readiness + gap*0.30; equal → unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReadinessScoring.readinessLabel(for:)",
+   "hash": "e14a0f08c3369e21",
+   "does": "Band label on the clamped 0-10 scale: >=7 Ready, >=4.5 Moderate, >=2 Fatigued, else Rest.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.tenScaleClamped(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "s >= 7",
+     "effect": "'Ready'"
+    },
+    {
+     "at": "+3",
+     "cond": "s >= 4.5",
+     "effect": "'Moderate'"
+    },
+    {
+     "at": "+4",
+     "cond": "s >= 2",
+     "effect": "'Fatigued'; else 'Rest'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.tenScaleClamped(_:)": "d90138bfa6b599a2"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.readinessLabel(for:load:)",
+   "hash": "8bc91422d05f5585",
+   "does": "Label held to 'Moderate' when the plain label is Ready and the training advice gate level is .easier.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "label != Ready or gate level != .easier",
+     "effect": "return plain label; else 'Moderate'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.displayReadinessLabel(for:)",
+   "hash": "5ddbfe3a12dffd69",
+   "does": "Localized readinessLabel(for:) without load.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is the RecoveryScoreCalculator.displayReadinessLabel forwarder, which itself has no callers.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:354",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift:46"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)": "3fceb87f201cead0",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.displayReadinessLabel(for:load:)",
+   "hash": "28e66076fce67ab5",
+   "does": "Localized readinessLabel(for:load:). Called by TrainingReadinessCard.swift:26.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)": "3fceb87f201cead0",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.displayLabel(_:)",
+   "hash": "f1131b1966474b63",
+   "does": "Maps English label to NarrativeLanguage string; anything not Ready/Moderate/Fatigued becomes 'Rest'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "'Ready'",
+     "effect": "localized Ready"
+    },
+    {
+     "at": "+3",
+     "cond": "'Moderate'",
+     "effect": "localized Moderate"
+    },
+    {
+     "at": "+4",
+     "cond": "'Fatigued'",
+     "effect": "localized Fatigued"
+    },
+    {
+     "at": "+5",
+     "cond": "default",
+     "effect": "localized Rest"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.tenScaleClamped(_:)",
+   "hash": "acead51ea8bc166d",
+   "does": "Clamps to 0...10; non-finite → 5.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "score not finite",
+     "effect": "return 5"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ReadinessScoring.readinessMessage(for:acuteChronicRatio:)",
+   "hash": "8c0eca48ca59a2ba",
+   "does": "Wraps a bare ACWR into TrainingAdviceGate.Load(acwr:) and delegates to readinessMessage(for:load:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is the RecoveryScoreCalculator.readinessMessage forwarder, which has no callers in app or tests.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/ReadinessScoring.swift:388",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift:54"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.readinessMessage(for:load:)",
+   "hash": "e2ad464033a0dc37",
+   "does": "Coaching message: a load reason from TrainingAdviceGate always wins; otherwise thresholds on clamped 0-10 readiness (>=8.5, >=7, >=4.5, >=2, else). Called by TrainingReadinessCard.swift:177 and LiveReadiness.headline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.recentLoadMessage(_:acwr:)",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.tenScaleClamped(_:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "gate yields a load message",
+     "effect": "return it"
+    },
+    {
+     "at": "+4",
+     "cond": "readiness >= 8.5",
+     "effect": "'Well within your capacity'"
+    },
+    {
+     "at": "+7",
+     "cond": "readiness >= 7",
+     "effect": "'Good capacity available'"
+    },
+    {
+     "at": "+10",
+     "cond": "readiness >= 4.5",
+     "effect": "'Moderate load relative to your fitness'"
+    },
+    {
+     "at": "+13",
+     "cond": "readiness >= 2",
+     "effect": "'Carrying significant fatigue'; else 'Load is high relative to your fitness — prioritize recovery'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.recentLoadMessage(_:acwr:)": "edecb3aabcf71b6b",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.tenScaleClamped(_:)": "d90138bfa6b599a2",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  },
+  {
+   "key": "func ReadinessScoring.recentLoadMessage(_:acwr:)",
+   "hash": "85503cb6509fc6e5",
+   "does": "Load message: sharp increase with ACWR > 1.8 → 'prioritize recovery today'; otherwise the gate's reasonLine (nil when clear).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage (english vs app bundle)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "reasons contain .sharpIncrease and acwr > 1.8",
+     "effect": "severe-load sentence; else assessment.reasonLine"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)": "bcfbcdac1a60f330",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
+   }
+  }
+ ],
+ "deps": {}
+}

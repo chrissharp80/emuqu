@@ -1,0 +1,348 @@
+{
+ "file": "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift",
+ "hash": "57dcf4e4f3ed24e3",
+ "role": "Extension of MorningProcessingService answering when the user fell asleep and woke: prefetched/cached sleep, a HealthKit poll loop (15 x 2 s foreground, 1 attempt background), RR-based and Watch-HR fallback estimates, and conversion to millisecond offsets.",
+ "types": [],
+ "state": [
+  "mem:MorningProcessingService.emptyPollResult (static let: no boundaries, source .recordingBounds)"
+ ],
+ "toplevel": "Static emptyPollResult initializer only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningProcessingService.timedSleepPoll(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+   "hash": "92fa0d015a93531a",
+   "does": "Runs pollForSleepData and logs elapsed ms, boundary source and night sleep minutes (-1 when none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "fetchedSleepData nil",
+     "effect": "log prints totalSleepMin=-1"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
+   "hash": "3064be7b3d64cfed",
+   "does": "Computes the recording end from series duration (else now()), returns prefetched/cached sleep when ready and plausible, otherwise polls HealthKit, applies RR/Watch-HR estimates, and clamps a negative sleep-start offset to 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "series.durationMs > 0",
+     "effect": "recordingEnd = effectiveStart + durationMs (last.endMs - first.t_ms); else now()"
+    },
+    {
+     "at": "+12",
+     "cond": "readySleepData returned a result",
+     "effect": "return it immediately (no poll, no estimates, no negative clamp)"
+    },
+    {
+     "at": "+25",
+     "cond": "sleepStartMs < 0",
+     "effect": "set to 0; otherwise unchanged"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "recordingEnd uses RRSeries.durationMs (last.endMs - first.t_ms, a first-to-last span) added to effectiveStartDate, which is short by first.t_ms when the first beat is not at 0; ReanalysisService+Sleep.swift:129-131 documents that the recording runs to the last beat's end for exactly this reason. The plausibility window for prefetched/cached sleep is shortened accordingly.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:48",
+      "Emuqu/Sources/Models/RRModels.swift:77",
+      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:129"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "30864de341a2b936",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "758f705c6d43df97"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)",
+   "hash": "5e03d6414693ef85",
+   "does": "Returns a poll result from prefetched sleep when it has night minutes and plausibly belongs to the recording; otherwise (foreground only) from SleepDataCache when its entry has night minutes and is plausible; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:SleepDataCache.v2"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "prefetched exists, nightSleepMinutes > 0 and plausible for start..recordingEnd",
+     "effect": "return clamped poll result from prefetched (also for background refinement)"
+    },
+    {
+     "at": "+11",
+     "cond": "background refinement, or no cache entry, or 0 minutes, or implausible",
+     "effect": "return nil (go to the poll); else return clamped result from cache"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)": "0e93dbf9c9ccf0fd",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)",
+   "hash": "1e71f9d2cf33e8cc",
+   "does": "Polls HealthKit sleep up to 15 times (1 when background) 2 s apart; stops on the first attempt with night minutes, on a locked-database abort, or when skipSleepWait is set; reports waitingForSleep status between foreground attempts; returns empty poll result when nothing found.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)",
+    "closure:statusCallback — set in RRCollector+MorningProcessing.swift:43 to write collector.morningStatus",
+    "closure:MorningProcessingService.sleep (SleepProvider, default Task.sleep from init)"
+   ],
+   "reads": [
+    "mem:MorningProcessingService.skipSleepWait"
+   ],
+   "writes": [
+    "mem:RRCollector.morningStatus (via statusCallback)"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "isBackgroundRefinement",
+     "effect": "maxAttempts 1; else 15"
+    },
+    {
+     "at": "+11",
+     "cond": "for attempt in 1...maxAttempts",
+     "effect": "loop"
+    },
+    {
+     "at": "+15",
+     "cond": "attempt returned sleepData",
+     "effect": "map into poll result (no recording-start clamp) and break"
+    },
+    {
+     "at": "+19",
+     "cond": "abortRetries or skipSleepWait",
+     "effect": "break with empty result"
+    },
+    {
+     "at": "+20",
+     "cond": "attempt == maxAttempts",
+     "effect": "log exhaustion and break"
+    },
+    {
+     "at": "+21",
+     "cond": "!isBackgroundRefinement",
+     "effect": "call statusCallback(.waitingForSleep); background skips; then sleep 2 s"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)": "f428b9606923ede3",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "cda6475872605b79",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)": "533eda06b49c590c",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)",
+   "hash": "1947af423f73e4a9",
+   "does": "One HealthKit sleep fetch (RR-validated) plus prior-day nap credit; returns the data only when night minutes > 0; on error returns abortRetries=true only for HKError errorDatabaseInaccessible (device locked).",
+   "entry": null,
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "dyn:HealthKitServiceProtocol.fetchDaytimeNapMinutes → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:37|Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:) (default, used by MockHealthKitService)",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "napMinutes > 0",
+     "effect": "adds nap minutes; else fetched sleep unchanged"
+    },
+    {
+     "at": "+10",
+     "cond": "nightSleepMinutes > 0",
+     "effect": "return (sleepData, false); else (nil, false) → retry"
+    },
+    {
+     "at": "+11",
+     "cond": "fetchSleepData throws",
+     "effect": "error logged"
+    },
+    {
+     "at": "+14",
+     "cond": "error is HKErrorDomain errorDatabaseInaccessible",
+     "effect": "return (nil, true) to abort retries; any other error → (nil, false) retry"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The morning pass credits the prior day's nap (fetchDaytimeNapMinutes + withNapSleepMinutes) into the sleep it scores and snapshots, but acceptance overwrites sleepSnapshot with a fetch that adds no nap credit and re-scores from it, so the score shown on the results screen and the frozen accepted score use different 24 h sleep totals for the same night.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:160",
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:161",
+      "Emuqu/Sources/Services/MorningProcessingService+Merging.swift:455",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:161",
+      "Emuqu/Sources/Services/SessionAcceptanceService.swift:293"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
+   "hash": "23ade4de69ec8a68",
+   "does": "When no sleep start and source is not .healthKit, applies RR-based HR sleep estimate (.hrEstimated); then if still no fetched sleep data, applies Apple Watch passive-HR estimate over start..overnightWindowEnd (.healthKitHREstimated).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
+    "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:160 → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:45|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)"
+   ],
+   "reads": [
+    "hk:heartRate samples (Watch passive HR)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "sleepStartMs nil, source != .healthKit and RR estimate non-nil",
+     "effect": "apply RR estimate (sets offsets, source, fetchedSleepData); else skip"
+    },
+    {
+     "at": "+15",
+     "cond": "fetchedSleepData already set or Watch-HR estimate nil",
+     "effect": "return; else apply Watch-HR estimate"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "The RR-based estimate is called as the concrete static HealthKitManager.estimateSleepFromHR rather than through the injected healthKit protocol, so tests injecting MockHealthKitService cannot stub this fallback and always run the real estimator.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift:193",
+      "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:59"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "79f0f89f4f7e769a"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)",
+   "hash": "ea03807f79b99cba",
+   "does": "Clamps sleep data to the recording start and converts its start/end (and segments when >1) to ms offsets from effectiveStartDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedToRecordingStart(_:)",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.offsetMs(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "more than one sleep segment",
+     "effect": "sleepSegments set to per-segment offsets; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedToRecordingStart(_:)": "ed2ca67c9732baf3",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.offsetMs(_:from:)": "504ed71bcdaff5e6",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.offsetMs(_:from:)",
+   "hash": "5a8ad319f01745e3",
+   "does": "ms offset of date from start via MillisecondOffset.between with fallback 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.logPollExhausted(_:)",
+   "hash": "b3ba06a097a1a141",
+   "does": "Logs that no sleep was found after maxAttempts (prints maxAttempts*2 s).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

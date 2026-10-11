@@ -1,0 +1,922 @@
+{
+ "file": "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift",
+ "hash": "7211a05a53de9bdb",
+ "role": "VoiceAudioPipeline extension for the capture lifecycle: audio-session claim, defensive engine reset/tap/prepare/start via SafeObjC shims, mic tap buffer deep copy and routing (SFSpeech request, WhisperKit), recognition task creation/restart, transcript tracking, per-turn reset, RMS/VAD accounting; plus two file-private helpers for session activation and input format.",
+ "types": [
+  "VoiceAudioPipeline: extension — capture lifecycle (struct declared in VoiceAudioPipeline.swift, @MainActor)"
+ ],
+ "state": [
+  "mic tap: bus 0, bufferSize 1024",
+  "recognition request: partial results, punctuation, on-device when supported, taskHint .search",
+  "diagnostic thresholds: non-silent log at rms>0.003, tick log every 200 buffers"
+ ],
+ "toplevel": "File-scope private funcs activateAudioSessionForListening and configuredInputFormat (fileprivate). logAudioPipelineDiagnostic body is compiled only under #if DEBUG.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "auditBufferActivity's comment says buffers 'come on a high-priority audio thread' and hops to the main actor, but it is only called from consumeMicBuffer, which already runs on the main actor (VoiceAudioPipeline is @MainActor); the extra Task hop just delays processVAD and reorders it relative to later buffers.",
+   "evidence": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:467",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:117",
+    "Emuqu/Sources/Assistant/VoiceAudioPipeline.swift:25"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func VoiceAudioPipeline.configureAudioSessionForConversation()",
+   "hash": "bdfa6debabccbe47",
+   "does": "Claims the audio session for .voice/.voiceRecord through AudioSessionCoordinator, then setActive(true, notifyOthersOnDeactivation); throws if activation fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
+    "ext:AVAudioSession.setActive",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator claims (.voice)",
+    "ext:AVAudioSession category/active"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.resetAudioEngineSafely()",
+   "hash": "64373642d82d17a5",
+   "does": "Pre-flight engine reset: stops the engine if running, removes any tap on input bus 0, resets the engine — each through a SafeObjC shim so NSExceptions become logged errors.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.audioEngine"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine"
+   ],
+   "branches": [
+    {
+     "at": "+26",
+     "cond": "engine running",
+     "effect": "attempt stop"
+    },
+    {
+     "at": "+28",
+     "cond": "stop shim failed",
+     "effect": "log warning and continue"
+    },
+    {
+     "at": "+29",
+     "cond": "stopErr nil ??",
+     "effect": "logs '?'"
+    },
+    {
+     "at": "+33",
+     "cond": "removeTap shim failed",
+     "effect": "log info and continue (no tap is normal)"
+    },
+    {
+     "at": "+36",
+     "cond": "removeTapErr nil ??",
+     "effect": "logs 'no-op'"
+    },
+    {
+     "at": "+39",
+     "cond": "reset shim failed",
+     "effect": "log warning and continue"
+    },
+    {
+     "at": "+40",
+     "cond": "resetErr nil ??",
+     "effect": "logs '?'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineReset": "de1302811e9b0894",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16e5d0538860dce2",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.startAudioEngineAndRecognizer()",
+   "hash": "c9e82415fa2c047f",
+   "does": "Restarts capture: requires a recognizer that isAvailable, activates the session, resets the engine, reads the input format (voice processing off), clears buffer diagnostics, installs the mic tap, prepares and starts the engine (with one retry).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func activateAudioSessionForListening()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.resetAudioEngineSafely()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func configuredInputFormat(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.installMicTap(on:format:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.prepareAudioEngine()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineWithRetry()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.recognizer"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.bufferLoggedNonSilent",
+    "mem:VoiceConversationController.bufferTickCount",
+    "mem:VoiceConversationController.audioEngine"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recognizer nil",
+     "effect": "throw VoiceError.recognizerUnavailable"
+    },
+    {
+     "at": "+2",
+     "cond": "recognizer.isAvailable false",
+     "effect": "throw VoiceError.recognizerNotAvailable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.installMicTap(on:format:)": "b227af29d4ed8079",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.prepareAudioEngine()": "76ffe15a0d3655b6",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.resetAudioEngineSafely()": "ba90db9d71700dd1",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineWithRetry()": "e567c7f594431a2b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func activateAudioSessionForListening()": "6487821d08794e88",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func configuredInputFormat(of:)": "550b0086057cbbac",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.makeMicTapBlock()",
+   "hash": "b3669849d3ccb5c0",
+   "does": "Builds the tap closure: on the render thread deep-copies each buffer and hops to the main actor to consume the copy.",
+   "entry": "Returned closure is invoked by AVAudioEngine's input tap on the realtime audio thread",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.deepCopyPCMBuffer(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.consumeMicBuffer(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deep copy failed (nil)",
+     "effect": "buffer dropped silently"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.consumeMicBuffer(_:)": "0dfe0545b12b9242",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.deepCopyPCMBuffer(_:)": "767bd4ce069aeacf",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.consumeMicBuffer(_:)",
+   "hash": "79f8a325539ea415",
+   "does": "Appends the buffer to the current SFSpeech recognition request, forwards it to WhisperKit only when the session uses WhisperKit and state is .listening, and audits it for RMS/VAD.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.appendAudio(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.auditBufferActivity(_:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.recognitionRequest",
+    "mem:VoiceConversationController.useWhisperKitForCurrentSession",
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [
+    "mem:WhisperKitSTTBridge audio buffer"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "WhisperKit session and .listening",
+     "effect": "append audio to WhisperKit bridge; else skip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.appendAudio(_:)": "8a9691a7530c9514",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.auditBufferActivity(_:)": "d3c68dce182ce627",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.installMicTap(on:format:)",
+   "hash": "2ba15296af89f34e",
+   "does": "Installs the mic tap via FRSafeInstallTap with the explicit format; on failure retries with nil (bus default) format; throws audioSessionUnavailable if both fail.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeMicTapBlock()",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine input tap"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "first install failed",
+     "effect": "log warning, retry with nil format"
+    },
+    {
+     "at": "+5",
+     "cond": "tapErr nil ??",
+     "effect": "reason 'unknown installTap failure'"
+    },
+    {
+     "at": "+10",
+     "cond": "still not installed",
+     "effect": "log, throw VoiceError.audioSessionUnavailable(reason)"
+    },
+    {
+     "at": "+11",
+     "cond": "tapErr nil ??",
+     "effect": "reason 'unknown installTap failure'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeMicTapBlock()": "a6589a1cd493d67f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap": "7e6c68b98e72edff"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.prepareAudioEngine()",
+   "hash": "355ca062bb826c3b",
+   "does": "Prepares the engine through FRSafePrepareAudioEngine; on failure removes the tap and throws audioSessionUnavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.removeMicTapBestEffort()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "prepare succeeded",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "prepErr nil ??",
+     "effect": "reason 'unknown prepare failure'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.removeMicTapBestEffort()": "c67b89dda4c79104",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine": "22735babeeafa906"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.startAudioEngineWithRetry()",
+   "hash": "063411ab7fbbdc6d",
+   "does": "Starts the engine; on failure sleeps 200 ms and retries once; on second failure removes the tap and throws audioSessionUnavailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.removeMicTapBestEffort()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "first start succeeded",
+     "effect": "return"
+    },
+    {
+     "at": "+3",
+     "cond": "startErr nil ??",
+     "effect": "'unknown failure'"
+    },
+    {
+     "at": "+7",
+     "cond": "retry succeeded",
+     "effect": "return"
+    },
+    {
+     "at": "+9",
+     "cond": "startErr nil ??",
+     "effect": "'unknown failure'; then remove tap and throw"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.removeMicTapBestEffort()": "c67b89dda4c79104",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine": "2fd985820cf7bd86"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.removeMicTapBestEffort()",
+   "hash": "220b4f9fef630eef",
+   "does": "Removes the input-bus tap through the shim, ignoring any error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine input tap"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "e092b86f3fe2a08e"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.startFreshRecognitionTask()",
+   "hash": "7f8f54b152c7bfae",
+   "does": "Cancels the current recognition task, ends audio on the old request, creates a new request, resets per-task buffer diagnostics, and starts a new recognition task whose callback hops to applyRecognition.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeRecognitionRequest(for:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.applyRecognition(_:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:SFSpeechRecognizer.recognitionTask"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.recognizer"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.recognitionTask",
+    "mem:VoiceConversationController.recognitionRequest",
+    "mem:VoiceConversationController.buffersSinceTaskStart",
+    "mem:VoiceConversationController.peakRMSSinceTaskStart",
+    "mem:VoiceConversationController.lastBufferRMS"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recognizer nil",
+     "effect": "return without touching the task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.applyRecognition(_:_:)": "d5eb0ad99ef112a8",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeRecognitionRequest(for:)": "ccca613235661451",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.applyRecognition(_:_:)",
+   "hash": "0b5d00edcb2039b6",
+   "does": "Recognition callback body: an error goes to reportRecognitionError, otherwise a result's best transcription goes to handleTranscription.",
+   "entry": "SFSpeechRecognitionTask result handler (via Task @MainActor hop)",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.reportRecognitionError(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleTranscription(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "error present",
+     "effect": "report/handle error (any result in the same callback is ignored)"
+    },
+    {
+     "at": "+4",
+     "cond": "result present",
+     "effect": "handle transcription; neither → nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleTranscription(_:)": "9828a5b70422da4d",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.reportRecognitionError(_:)": "89f57fae6d038318"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.makeRecognitionRequest(for:)",
+   "hash": "b30b20c5e3610d41",
+   "does": "Builds an SFSpeechAudioBufferRecognitionRequest with partial results, punctuation (iOS16+), on-device recognition when supported, and taskHint .search.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "#available iOS 16",
+     "effect": "addsPunctuation=true (always true on the iOS 17+ target)"
+    },
+    {
+     "at": "+4",
+     "cond": "supportsOnDeviceRecognition",
+     "effect": "requiresOnDeviceRecognition=true; else server recognition allowed"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "privacy",
+     "sev": "low",
+     "text": "When the recognizer does not support on-device recognition for the locale, requiresOnDeviceRecognition stays false and the user's speech is sent to Apple's servers with no flag or notice in this path.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:267"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioPipeline.reportRecognitionError(_:)",
+   "hash": "17b260db658edd19",
+   "does": "Logs a recognition error at warning when not the 1110 silence code or when listening with zero buffers, else info; logs the debug diagnostic; then hands to handleRecognitionError.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.logAudioPipelineDiagnostic(level:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state",
+    "mem:VoiceConversationController.buffersSinceTaskStart"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "mightBeRealProblem ?:",
+     "effect": "warning level; else info"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)": "3d3c8acb5214ba65",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.logAudioPipelineDiagnostic(level:)": "b3fdd462a6b6e7e6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.logAudioPipelineDiagnostic(level:)",
+   "hash": "a97ccf988b68f4cf",
+   "does": "DEBUG builds only: logs buffers/peak/last RMS/engine running/output route/state.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController diagnostics"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no current route output ??",
+     "effect": "route 'unknown'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.handleRecognitionError(_:)",
+   "hash": "8b0f70c465505fce",
+   "does": "If the policy allows restart for this error, and the 1.5 s cooldown has elapsed, stamps the restart time and starts a fresh recognition task.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.lastRecognitionRestartAt"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.lastRecognitionRestartAt"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "policy says no restart",
+     "effect": "return (task stays dead until next turn)"
+    },
+    {
+     "at": "+4",
+     "cond": "last restart within cooldown",
+     "effect": "return without restarting; else restart"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "startFreshRecognitionTask cancels the old task, and the old task's callback has no task-identity check (Pipeline:241-242). It routes the cancellation error kLSRErrorDomain:301, which the code itself labels 'cancelled' and lists as restartable, into handleRecognitionError. Each deliberate restart while .listening (beginUserTurn, the stalled-recognizer and empty-transcript re-arms) therefore triggers a second restart once the 1.5 s cooldown has elapsed, which cancels the fresh task. Per the comment at Pipeline:337-338, the cancel-and-restart cycle drops audio buffered in that task, here the start of the user's turn.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:232",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:241",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:242",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:320",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:326",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:341",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:412",
+      "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:61"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)": "761bcd095bdbfc99",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.shouldRestartRecognition(after:)",
+   "hash": "1278e19c69f7d753",
+   "does": "Delegates to VoiceTurnPolicy.shouldRestartRecognition with the error domain/code and current state (restartable codes only while .listening).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.handleTranscription(_:)",
+   "hash": "67a660da4867dbc5",
+   "does": "Stores the transcript as partialTranscript and stamps transcript growth time when its length changed.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:VoiceConversationController.lastTranscriptLength"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.partialTranscript",
+    "mem:VoiceConversationController.lastTranscriptLength",
+    "mem:VoiceConversationController.lastTranscriptGrowthAt"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "length changed",
+     "effect": "update length + growth timestamp; else nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioPipeline.beginUserTurn()",
+   "hash": "e4e9d028df2d0d5d",
+   "does": "Starts a user turn: resets turn accumulators, restarts the audio engine+tap; on failure sets permissionError and stop(); if voice went idle meanwhile, stop(); else starts a fresh recognition task, arms the silence timer and sets .listening.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.resetTurnAccumulators()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineAndRecognizer()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.armSilenceTimer()"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.permissionError",
+    "mem:VoiceConversationController.state"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "catch from startAudioEngineAndRecognizer",
+     "effect": "log error, permissionError='Couldn't restart the mic: …', stop(), return"
+    },
+    {
+     "at": "+13",
+     "cond": "state == .idle after the await",
+     "effect": "stop() again and return (user ended voice)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "med",
+     "text": "beginUserTurn unconditionally sets .listening after the await; it does not check whether a trigger moved state to .triggerSpeaking meanwhile, so a trigger that starts during the engine restart is overwritten to .listening while its line is still playing (the mic then listens to the alert and didFinish's .triggerSpeaking branch never fires).",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:407",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:414",
+      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:437"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.armSilenceTimer()": "4e5e7dd079105b1b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.resetTurnAccumulators()": "b10b0cb9ef7c0891",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startAudioEngineAndRecognizer()": "a98befaf9d4c2e82",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "94106eb87646cd75",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.resetTurnAccumulators()",
+   "hash": "c36274af9c2ff79f",
+   "does": "Clears partial transcript and VAD/growth accumulators, stamps turnStartedAt, zeroes first-partial restarts and consecutiveEmptyReArms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.partialTranscript",
+    "mem:VoiceConversationController.turnStartedAt",
+    "mem:VoiceConversationController.consecutiveEmptyReArms",
+    "mem:VoiceConversationController VAD accumulators"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioPipeline.deepCopyPCMBuffer(_:)",
+   "hash": "0bf0d5b21049e267",
+   "does": "Allocates a same-format PCM buffer and memcpy's each AudioBuffer's bytes (min of src/dst sizes) so the copy outlives the tap callback.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioPCMBuffer"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "allocation fails",
+     "effect": "return nil (buffer dropped)"
+    },
+    {
+     "at": "+7",
+     "cond": "buffer list counts differ",
+     "effect": "return nil"
+    },
+    {
+     "at": "+8",
+     "cond": "for each audio buffer",
+     "effect": "copy bytes"
+    },
+    {
+     "at": "+9",
+     "cond": "either mData nil",
+     "effect": "skip that buffer (copy keeps uninitialised/zero data for it)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioPipeline.auditBufferActivity(_:)",
+   "hash": "a9f694b700ccf99f",
+   "does": "Increments the tap counter (logging #1 and every 200th), computes RMS, records diagnostic RMS, and schedules processVAD on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.recordBufferRMS(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.processVAD(rms:at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.bufferTickCount"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "first tick or every 200th",
+     "effect": "debug log"
+    },
+    {
+     "at": "+5",
+     "cond": "rms nil (non-float or empty buffer)",
+     "effect": "return: no VAD update"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.processVAD(rms:at:)": "197cac22f0d7f884",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.recordBufferRMS(_:)": "a135282636eacec9",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.rms(of:)",
+   "hash": "a4f717ffdefc6e89",
+   "does": "Root-mean-square of the first float channel; nil when no float data or zero frames.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no floatChannelData",
+     "effect": "nil (int16 input formats never produce VAD)"
+    },
+    {
+     "at": "+3",
+     "cond": "frames == 0",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "for each frame",
+     "effect": "accumulate squares"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceAudioPipeline.recordBufferRMS(_:)",
+   "hash": "99599c245d7e4f04",
+   "does": "Counts buffers since task start, tracks peak and last RMS, logs once when the first buffer above 0.003 arrives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.buffersSinceTaskStart",
+    "mem:VoiceConversationController.peakRMSSinceTaskStart",
+    "mem:VoiceConversationController.lastBufferRMS",
+    "mem:VoiceConversationController.bufferLoggedNonSilent"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "rms > peak",
+     "effect": "update peak"
+    },
+    {
+     "at": "+4",
+     "cond": "first non-silent buffer (rms>0.003)",
+     "effect": "set flag and log"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func VoiceAudioPipeline.processVAD(rms:at:)",
+   "hash": "58b0186f82f3314d",
+   "does": "Accumulates voiced seconds during .listening (dt<0.5 s, rms over 0.012), stamps lastVoiceDetectedAt when over 0.012, and stamps lastSubBargeInRMSAt when below 0.018 (else logs loud audio every 5th tick while speaking).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:VoiceConversationController.lastBufferAt",
+    "mem:VoiceConversationController.state"
+   ],
+   "writes": [
+    "mem:VoiceConversationController.totalVoiceSecondsThisTurn",
+    "mem:VoiceConversationController.lastBufferAt",
+    "mem:VoiceConversationController.lastVoiceDetectedAt",
+    "mem:VoiceConversationController.lastSubBargeInRMSAt"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "previous buffer time known",
+     "effect": "compute dt"
+    },
+    {
+     "at": "+5",
+     "cond": "0<dt<0.5, rms>voice threshold, listening",
+     "effect": "add dt to voiced time; else skip"
+    },
+    {
+     "at": "+10",
+     "cond": "rms > 0.012",
+     "effect": "lastVoiceDetectedAt = now"
+    },
+    {
+     "at": "+11",
+     "cond": "rms < 0.018",
+     "effect": "lastSubBargeInRMSAt = now"
+    },
+    {
+     "at": "+13",
+     "cond": "else speaking and tick%5==0",
+     "effect": "debug log loud audio during speaking"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func activateAudioSessionForListening()",
+   "hash": "dd142559911422fb",
+   "does": "setActive(true) on the shared AVAudioSession; on error logs and throws VoiceError.audioSessionUnavailable(reason).",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioSession.setActive",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ext:AVAudioSession active"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch setActive error",
+     "effect": "rethrown as audioSessionUnavailable with the original description"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func configuredInputFormat(of:)",
+   "hash": "ece71deb20260602",
+   "does": "Disables voice processing on the input node via shim (logging either way), reads outputFormat(forBus:0), and throws audioInputUnusable when sample rate or channel count is zero.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSetVoiceProcessing",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:VoiceConversationController.audioEngine inputNode voiceProcessing"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "voice processing disable succeeded",
+     "effect": "log info; else log warning and continue"
+    },
+    {
+     "at": "+5",
+     "cond": "vpErr nil ??",
+     "effect": "'?'"
+    },
+    {
+     "at": "+11",
+     "cond": "sampleRate>0 and channels>0",
+     "effect": "return format; else throw audioInputUnusable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSetVoiceProcessing": "1ab4448a123205bb"
+   }
+  }
+ ],
+ "deps": {}
+}

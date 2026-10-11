@@ -1,0 +1,316 @@
+{
+ "file": "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift",
+ "hash": "be2dde9fbe4c9113",
+ "role": "Extension on HealthKitManager that forwards heart-rate reads/exports to HeartRateHealthQueries and re-exposes its bounded-query helpers and query-timeout constants for every other HealthKit query class.",
+ "types": [
+  "HealthKitManager: extension — heart-rate forwarders + bounded-query plumbing"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func HealthKitManager.fetchHeartRateSamples(from:to:)",
+   "hash": "1e1dfb82bbed77a0",
+   "does": "Forwards to HeartRateHealthQueries.fetchHeartRateSamples(from:to:), returning (date,hr) pairs for the window; satisfies HealthKitServiceProtocol.fetchHeartRateSamples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamples(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamples(from:to:)": "c784e2af79431c01",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchHeartRateSamplesDetailed(from:to:)",
+   "hash": "b70c8ecb37404b41",
+   "does": "Forwards to HeartRateHealthQueries.fetchHeartRateSamplesDetailed(from:to:) returning HeartRateSample values (used by AppFactResolver).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamplesDetailed(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamplesDetailed(from:to:)": "8f59d9f2131ad4a0",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.fetchDaytimeRestingHR(for:)",
+   "hash": "5b251a45d411e913",
+   "does": "Forwards to HeartRateHealthQueries.fetchDaytimeRestingHR(for:); protocol witness for HealthKitServiceProtocol.fetchDaytimeRestingHR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchDaytimeRestingHR(for:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchDaytimeRestingHR(for:)": "bb3eb4f255d5abaf",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.calculateHRStats(from:to:)",
+   "hash": "7ac6a59bf0b0ba98",
+   "does": "Forwards to HeartRateHealthQueries.calculateHRStats(from:to:) (mean/min/max/nadir for a range); protocol witness, called by MorningResultsView+Reanalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.calculateHRStats(from:to:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [
+    "hk:heartRate"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.calculateHRStats(from:to:)": "3a891f1e0f4db5a7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.exportHeartRate(value:at:sessionId:)",
+   "hash": "8c92af56f57e8754",
+   "does": "Forwards a single heart-rate export (value, date, sessionId) to HeartRateHealthQueries.exportHeartRate; called by HealthWriteAndObserve.exportHRMetrics for short sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRate(value:at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRate"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRate(value:at:sessionId:)": "d2d39405fef92eb3",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.exportRestingHeartRate(value:at:sessionId:)",
+   "hash": "82c62a3899f19fd4",
+   "does": "Forwards a resting-heart-rate export to HeartRateHealthQueries.exportRestingHeartRate; called by exportRHRMetric.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportRestingHeartRate(value:at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:restingHeartRate"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportRestingHeartRate(value:at:sessionId:)": "fbf6ff56da2986e2",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.removeExportedRestingHeartRate(at:sessionId:)",
+   "hash": "50d0935e6cf19fe0",
+   "does": "Forwards removal of a session's previously exported resting HR to HeartRateHealthQueries.removeExportedRestingHeartRate; called by exportRHRMetric when the session has no nocturnal median.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.removeExportedRestingHeartRate(at:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:restingHeartRate"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.removeExportedRestingHeartRate(at:sessionId:)": "c77bda05bf23693e",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)",
+   "hash": "6522b273ba3225ec",
+   "does": "Forwards a minute-level heart-rate series export built from RR points to HeartRateHealthQueries.exportHeartRateSeries; called by exportHRMetrics.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRate"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "42fad6af6a9bb55a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.hrReadExcludingOwnWrites(dateRange:)",
+   "hash": "b77b92f6c9cd4a65",
+   "does": "Forwards to HeartRateHealthQueries.hrReadExcludingOwnWrites, returning the date predicate AND not-from-this-app; used by VitalsHealthQueries+Queries:366.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrReadExcludingOwnWrites(dateRange:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrReadExcludingOwnWrites(dateRange:)": "632f08d17e120d89",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
+   "hash": "2158a94cf1dab4fa",
+   "does": "Forwards to HeartRateHealthQueries.runBoundedQuery: executes the HKQuery built by makeQuery on the manager's store and returns its resolved value, or nil when the timeout fires first (query stopped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)": "43beaf0bc1403424",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+   "hash": "bf992a8b7660c4eb",
+   "does": "Forwards to HeartRateHealthQueries.runBoundedThrowingQuery: executes the query and returns/throws its Result, or onTimeout()'s Result when the timeout fires first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "45647c3e333d067a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "51320de96efb9598"
+   }
+  },
+  {
+   "key": "func HealthKitManager.sampleResult(_:_:)",
+   "hash": "07707d47bb6ee7d2",
+   "does": "Static forwarder to HeartRateHealthQueries.sampleResult: maps (results, error) to .failure(error) or .success(results ?? []).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.sampleResult(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.sampleResult(_:_:)": "a854bbc26a96e590"
+   }
+  },
+  {
+   "key": "func HealthKitManager.quantityResult(_:_:)",
+   "hash": "e6d294becbfacd49",
+   "does": "Static forwarder to HeartRateHealthQueries.quantityResult: maps (results, error) to a Result of HKQuantitySample; used by HealthKitManager+HRV.swift:48,235.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.quantityResult(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.quantityResult(_:_:)": "a0707c16ebddea3f"
+   }
+  },
+  {
+   "key": "var HealthKitManager.vitalsQueryTimeoutSec",
+   "hash": "26b96d4fed1fbb5e",
+   "does": "Static computed re-export of HeartRateHealthQueries.vitalsQueryTimeoutSec (6.0 s, HealthKitManager+HeartRate.swift:35).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeartRateHealthQueries.vitalsQueryTimeoutSec"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.sleepQueryTimeoutSec",
+   "hash": "dddacd067d0ce8bd",
+   "does": "Static computed re-export of HeartRateHealthQueries.sleepQueryTimeoutSec (8.0 s, HealthKitManager+HeartRate.swift:37).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeartRateHealthQueries.sleepQueryTimeoutSec"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.hrvQueryTimeoutSec",
+   "hash": "fcc6bb2c41bc3b80",
+   "does": "Static computed re-export of HeartRateHealthQueries.hrvQueryTimeoutSec (6.0 s); read by HRRCaptureService.swift:283,357.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeartRateHealthQueries.hrvQueryTimeoutSec"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var HealthKitManager.backgroundAggregateQueryTimeoutSec",
+   "hash": "a7232cd63d5717f5",
+   "does": "Static computed re-export of HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec (30.0 s); read by workout/training/heat/import queries.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

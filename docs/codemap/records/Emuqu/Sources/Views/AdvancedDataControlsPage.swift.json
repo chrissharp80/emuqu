@@ -1,0 +1,495 @@
+{
+ "file": "Emuqu/Sources/Views/AdvancedDataControlsPage.swift",
+ "hash": "add76f591a6bb3a6",
+ "role": "Two settings pages: AdvancedDataControlsPage (Settings → Privacy → Advanced Data Controls, a warning plus a link to DeleteAllDataPage) and PerformanceSettingsPage (Performance & Battery toggles bound to SettingsManager.settings).",
+ "types": [
+  "AdvancedDataControlsPage: struct (View) — destructive-actions shelter page",
+  "PerformanceSettingsPage: struct (View) — feature/perf master switches"
+ ],
+ "state": [],
+ "toplevel": "Two #Preview blocks (91, 272). PerformanceSettingsPage reads @Environment(\\.dependencies). Toggles write settings via Bindable(settingsManager).settings.<flag>; persistence and UserDefaults mirroring happen in SettingsManager (SettingsManager.swift:231-233).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "restartNoticeSection says the AI toggle takes effect on next launch, but MainTabView reads settings.enableAIAssistant live (MainTabView.swift:504, 683), so the Flo tab disappears immediately.",
+   "evidence": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:265",
+    "Emuqu/Sources/Views/MainTabView.swift:504"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AdvancedDataControlsPage.body",
+   "hash": "8177c25794b1d686",
+   "does": "List with the warning and delete sections, form background and inline title.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.permanentWarningSection",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataSection": "a5b4c2ad0ad79f45",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.permanentWarningSection": "945fa271ed7127d8",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.permanentWarningSection",
+   "hash": "47651a170b13bda1",
+   "does": "Section with a warning label and explanatory text, header 'Erase Data'.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.deleteAllDataSection",
+   "hash": "56210157e8bd5db3",
+   "does": "Section with the delete-all row, header 'Destructive' and the footer.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFooter",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFields": "c1f452d799e6eedd",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataFooter": "25f2bf27e9e1e2e9"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.deleteAllDataFields",
+   "hash": "900e0ee5576b18cc",
+   "does": "Delete-all row with accessibility identifier settings.deleteAllData (used by UI tests).",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataButton"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllDataButton": "0224a776fd9da45e"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.deleteAllDataButton",
+   "hash": "b7b1165ca6382038",
+   "does": "NavigationLink to DeleteAllDataPage labelled by deleteAllMyDataSection.",
+   "entry": "SwiftUI body evaluation; tap navigates",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllMyDataSection",
+    "ext:DeleteAllDataPage (View)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var AdvancedDataControlsPage.deleteAllMyDataSection": "fd11f5efbc06442c"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.deleteAllMyDataSection",
+   "hash": "34885644e9978b20",
+   "does": "Label 'Delete All My Data' with subtitle listing what is wiped and a trash icon.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Subtitle says it wipes 'local sessions, API keys, AI chats, memory facts' but the purge also deletes the user's iCloud copies (DeleteAllDataPage.swift:75, 83; DataPurgeService remoteDeleted).",
+     "evidence": [
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:75",
+      "Emuqu/Sources/Views/DeleteAllDataPage.swift:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var AdvancedDataControlsPage.deleteAllDataFooter",
+   "hash": "79d18d435a75668f",
+   "does": "Footer text saying a typed confirmation phrase is required on the next screen (DeleteAllDataPage requires 'DELETE MY DATA').",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Computed accessor for dependencies.app.settingsManager.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.bundle",
+   "hash": "a09fa21a9fb1c9bd",
+   "does": "Computed accessor for LanguageManager.appBundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.body",
+   "hash": "705c131fee122483",
+   "does": "Form with cold-start, battery, AI/voice, Watch, cloud/training and restart notice sections.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.coldStartSection",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantSection",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.watchConnectivityFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncSection",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.restartNoticeSection",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantSection": "4be264818812d85c",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.coldStartSection": "802fd9a9486685c1",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncSection": "6643a1586cb3a30c",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.restartNoticeSection": "492802d8a8013828",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnFields": "12aba2ce18a79240",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.watchConnectivityFields": "4580e040e993b6c8",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.coldStartSection",
+   "hash": "44d3c5a3d4df0849",
+   "does": "Explanatory section about cold start on older iPhones.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.screenOnFields",
+   "hash": "4220d07f7a2d32f6",
+   "does": "Battery section with toggle bound to settings.keepScreenOnDuringRecording.",
+   "entry": "SwiftUI body evaluation; toggle writes settings",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnToggleLabel"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.keepScreenOnDuringRecording"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.screenOnToggleLabel": "e56f12c0590a6221",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.screenOnToggleLabel",
+   "hash": "8a33cc401550c66b",
+   "does": "Label for screen-on toggle (says Default ON, matching UserSettings default true).",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Label does not mention that Low Power Mode overrides the toggle (shouldKeepScreenOnDuringRecording = toggle && !isLowPowerModeEnabled), so ON does not keep the screen on in Low Power Mode.",
+     "evidence": [
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:155",
+      "Emuqu/Sources/Models/UserSettings+Model.swift:702"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.aiAssistantSection",
+   "hash": "caceeebcfb095f7b",
+   "does": "Section 'AI / Voice' with the AI fields and footer.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFooter",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFields": "c4c0e7731ce58dcc",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.aiAssistantFooter": "b4d1f76bcec9f9cb",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.aiAssistantFields",
+   "hash": "12006675c7f1d772",
+   "does": "Toggles for enableAIAssistant and enableVoiceMode; voice toggle disabled while AI is off.",
+   "entry": "SwiftUI body evaluation; toggles write settings",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableAIAssistant"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.enableAIAssistant",
+    "mem:SettingsManager.settings.enableVoiceMode"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.aiAssistantFooter",
+   "hash": "f86d44eb71263121",
+   "does": "Footer pointing to per-provider kill switches in Settings → Flo.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.watchConnectivityFields",
+   "hash": "e071973c7cab8767",
+   "does": "Section 'Apple Watch' containing the connectivity toggle.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.appleWatchConnectivitySection",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.appleWatchConnectivitySection": "345bbb8483aebb10",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.appleWatchConnectivitySection",
+   "hash": "b246403433a03730",
+   "does": "Toggle for enableWatchConnectivity (read at launch through UserSettings.performanceFlag by WatchConnectivityBridge).",
+   "entry": "SwiftUI body evaluation; toggle writes settings",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.enableWatchConnectivity"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.icloudSyncSection",
+   "hash": "02f98826871e1243",
+   "does": "Section 'Cloud + Training surfaces'.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncFields": "3090f293f1365301"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.icloudSyncFields",
+   "hash": "3047691c80711e6e",
+   "does": "iCloud sync row plus toggles for enableTrainingLoadIntegration and hideFitnessTab.",
+   "entry": "SwiftUI body evaluation; toggles write settings",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncToggleRow",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration",
+    "mem:SettingsManager.settings.hideFitnessTab"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "hideFitnessTab and enableTrainingLoadIntegration toggles are also on TrainingSettingsPage (TrainingSettingsPage.swift:74, 205), two UIs for one setting.",
+     "evidence": [
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:231",
+      "Emuqu/Sources/Views/TrainingSettingsPage.swift:74"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.icloudSyncToggleRow": "c178b466bd444ba6",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.icloudSyncToggleRow",
+   "hash": "5e27e4983225eb1f",
+   "does": "Toggle for iCloudSyncEnabled.",
+   "entry": "SwiftUI body evaluation; toggle writes settings",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.body": "fae58ee6e59d512a",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.settingsManager": "24095de5adcd9ef0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var PerformanceSettingsPage.restartNoticeSection",
+   "hash": "73bd26bf08892bd5",
+   "does": "Footnote explaining which toggles need a relaunch.",
+   "entry": "SwiftUI body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Notice (and docs/USERS_MANUAL.md:40,1526) say the AI Assistant toggle applies on next launch, but the Flo tab and Ask Flo toolbar item read settings.enableAIAssistant live (MainTabView.swift:683, 504; HistoryView.swift:251), so they disappear immediately.",
+     "evidence": [
+      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:265",
+      "docs/USERS_MANUAL.md:40",
+      "docs/USERS_MANUAL.md:1526",
+      "Emuqu/Sources/Views/MainTabView.swift:683"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/AdvancedDataControlsPage.swift::var PerformanceSettingsPage.bundle": "479c489f72ab0850",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

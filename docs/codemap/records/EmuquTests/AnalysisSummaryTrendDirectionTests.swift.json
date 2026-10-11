@@ -1,0 +1,168 @@
+{
+ "file": "EmuquTests/AnalysisSummaryTrendDirectionTests.swift",
+ "hash": "2ddcc4de1935bbcc",
+ "role": "XCTest suite checking the morning report's 7-day HRV trend line and 'Upward Trend' cause follow the shared TrendVerdict: a clean +8% rise is reported, a noisy +12.3% week is not.",
+ "types": [
+  "AnalysisSummaryTrendDirectionTests: class — @MainActor XCTestCase over AnalysisSummaryGenerator trend wording"
+ ],
+ "state": [],
+ "toplevel": "Stored property today = Date() captured at instance creation; all fixture nights are offset from it.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.setUp()",
+   "hash": "aed33f0704c2c3c0",
+   "does": "Async per-test setUp: super then pinEnglishLanguage().",
+   "entry": "XCTest: instance setUp() async before each test",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:AppleLanguages (via LanguageManager.setLanguage when host is non-English)",
+    "notif:LanguageManager.languageDidChangeNotification (posted by setLanguage, also in the registered teardown)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.result(rmssd:)",
+   "hash": "e87e2c71b7b6fa4d",
+   "does": "Builds an HRVAnalysisResult with the given RMSSD, fixed time-domain/nonlinear metrics, no frequency or ANS metrics, analysisDate today.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.night(daysAgo:rmssd:)",
+   "hash": "57ff29274a091e8d",
+   "does": "Builds a complete 8-hour overnight HRVSession ending daysAgo days before today with result(rmssd:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)": "1b0443b96c642eff"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.summary(earlier:)",
+   "hash": "735d2d0b47353d28",
+   "does": "Builds tonight (RMSSD 55) plus history nights oldest-first from the given RMSSD list and returns AnalysisSummaryGenerator(...).generate().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.night(daysAgo:rmssd:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "tonight.analysisResult is nil",
+     "effect": "falls back to result(rmssd: 55); never taken because night() always sets analysisResult"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.night(daysAgo:rmssd:)": "80178bf68a799398",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)": "1b0443b96c642eff",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)",
+   "hash": "510dce9d6c1e80fe",
+   "does": "Returns true when any key finding or the trendInsight contains '7-day HRV trend'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)": "6db4385438e086f7"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testACleanRiseUnderTenPercentIsReported()",
+   "hash": "691eecaf79bc06a1",
+   "does": "Feeds 7 nights alternating 49.5/50.5 then 7 alternating 53.5/54.5 and asserts the 7-day trend is mentioned and a key finding contains 'improving'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isMultiple(of: 2) for each of 7 earlier nights",
+     "effect": "49.5 for even index, 50.5 for odd"
+    },
+    {
+     "at": "+2",
+     "cond": "isMultiple(of: 2) for each of 7 recent nights",
+     "effect": "53.5 for even, 54.5 for odd"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)": "74a4d6063eac8e5e",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)": "6db4385438e086f7"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testANoisyWeekPastTenPercentIsNotReported()",
+   "hash": "af7708740e03f18e",
+   "does": "Feeds 14 noisy 40/60 nights (recent mean +12.3%) and asserts no 7-day trend mention and no 'Upward Trend' probable cause.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)": "74a4d6063eac8e5e",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)": "6db4385438e086f7"
+   }
+  }
+ ],
+ "deps": {}
+}

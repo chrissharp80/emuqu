@@ -1,0 +1,1072 @@
+{
+ "file": "Emuqu/Sources/Views/CoachHomeV2View.swift",
+ "hash": "4b189a0aa02c3ad2",
+ "role": "Flo (coach) tab wrapper around AssistantChatView: adds a model badge opening a model/routing picker sheet, a strip of context chips (latest recovery, last workout, mode flags) with explainer sheets, and a categorized suggested-prompts sheet.",
+ "types": [
+  "CoachHomeV2View: struct View — coach tab chrome",
+  "CoachHomeV2View.ContextChipKind: enum Hashable — recovery/lastWorkout/modeFlag(String)",
+  "CoachHomeV2View.IdentifiedChip: struct (private) Identifiable — sheet item wrapper",
+  "CoachSuggestedPromptsSheet: struct View (private) — categorized prompt list",
+  "CoachModelPickerSheet: struct View (private) — routing mode + provider/model picker",
+  "CoachContextDetailSheet: struct View (private) — explainer for a chip"
+ ],
+ "state": [
+  "mem:CoachHomeV2View.recoveryChipText/workoutChipText (@State)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references CoachHomeV2View's chip selection (recoveryChip/workoutChip) logic.",
+   "evidence": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift:249",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift:266"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var CoachHomeV2View.providerRegistry",
+   "hash": "5376daae32e44a09",
+   "does": "Shorthand for dependencies.providers.providerRegistry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerRegistry": "011c65c2dc3b4ab7"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.assistantInbox",
+   "hash": "83f3a9ec6f5cf136",
+   "does": "Shorthand for dependencies.assistant.assistantInbox.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "The private assistantInbox accessor is never used: withCoachSheets writes dependencies.assistant.assistantInbox directly.",
+     "evidence": [
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:27",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:91",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:92"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.body",
+   "hash": "fd51037712b2bb1b",
+   "does": "Emits a keyboard-perf signpost event then returns coachStack wrapped in the three sheets.",
+   "entry": "SwiftUI body of the Flo tab.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.withCoachSheets(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.coachStack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.withCoachSheets(_:)": "42ea08dcd1f3681f",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.coachStack": "9a65820145b0a70c"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.coachStack",
+   "hash": "e20f9441b6ca8515",
+   "does": "VStack of modelBadge, context chip strip, divider and AssistantChatView(title: 'Flo'), inline navigation title 'Flo', lightbulb toolbar item.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modelBadge",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChipStrip",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.promptsToolbarItem"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChipStrip": "2188430977ebfccd",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modelBadge": "0f4a79ea1ebb9528",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.promptsToolbarItem": "2632c89c39e6de49"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.promptsToolbarItem",
+   "hash": "0300826de16a5333",
+   "does": "Toolbar lightbulb button that sets showingPromptSheet = true.",
+   "entry": "Toolbar button tap.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.withCoachSheets(_:)",
+   "hash": "335e825102d8de6f",
+   "does": "Attaches the suggested-prompts sheet (picking a prompt dismisses it, sets assistantInbox.pendingDraft and calls requestOpen), the model-picker sheet, and the context-detail sheet bound through IdentifiedChip.",
+   "entry": "Sheet presentations driven by @State flags; prompt pick is a user tap in CoachSuggestedPromptsSheet.",
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.suggestedPromptsCategorized",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.body",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.body",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.body"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantInbox.pendingDraft",
+    "mem:AssistantInbox.openRequestToken"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.body": "8390973edd590a82",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry": "31869709dabfb9d6",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.suggestedPromptsCategorized": "17ee68b9d060fd50",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.body": "1d141b626e3cb558",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.body": "eb402d5efb60f6ad"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.IdentifiedChip.id",
+   "hash": "bc6fce741c6cfc51",
+   "does": "Identifiable id = the chip kind itself.",
+   "entry": "Identifiable requirement used by .sheet(item:).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var CoachHomeV2View.modelBadge",
+   "hash": "f2b4a5ea819c9ff5",
+   "does": "Button reading registry.activeProvider/activeModel (on-device when provider id == .apple) that opens the model picker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.modelBadgeLabel(provider:model:isOnDevice:)"
+   ],
+   "reads": [
+    "mem:ProviderRegistry.activeProvider",
+    "mem:ProviderRegistry.activeModel"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.modelBadgeLabel(provider:model:isOnDevice:)": "04e440327a011cd9",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.providerRegistry": "31869709dabfb9d6"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.modelBadgeLabel(provider:model:isOnDevice:)",
+   "hash": "95da6193632f1748",
+   "does": "HStack 'sparkles · model · provider · On device/Cloud ›'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.modelNameText(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.providerNameText(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.onDeviceText(_:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.modelNameText(_:)": "62f305f6149ede61",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.onDeviceText(_:)": "fa4af09f859538b3",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.providerNameText(_:)": "6fc550695fe0f1dc",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.onDeviceText(_:)",
+   "hash": "eb67a0adf78d1907",
+   "does": "'On device' or 'Cloud' text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "isOnDevice (provider == .apple)",
+     "effect": "'On device'; otherwise 'Cloud'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.providerNameText(_:)",
+   "hash": "c070db593f1bb3f8",
+   "does": "Provider display name text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.modelNameText(_:)",
+   "hash": "f4dc0019cd94920f",
+   "does": "Model display name text, one line, scale-to-fit 0.75.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.contextChipStrip",
+   "hash": "c225c7057c04e8bd",
+   "does": "Horizontal scroll of contextChips; .task(id: archiveSignal.version) reruns loadChipData once per archive mutation.",
+   "entry": ".task(id:) SwiftUI lifecycle — on appear and whenever ArchiveSignal.version changes.",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChips",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()"
+   ],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.loadChipData()": "e7d9506d913385f0",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.contextChips": "3d43469beed2ace8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.contextChips",
+   "hash": "0e5c39bb25f0d7f5",
+   "does": "HStack of recovery chip, workout chip (when their texts are loaded) and one chip per active mode flag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.chipButton(label:kind:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modeChips"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recoveryChipText non-nil",
+     "effect": "shows recovery chip; otherwise omitted"
+    },
+    {
+     "at": "+5",
+     "cond": "workoutChipText non-nil",
+     "effect": "shows last-workout chip; otherwise omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.chipButton(label:kind:)": "36d2c1ac178b55f3",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modeChips": "bee86444444ce618"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.chipButton(label:kind:)",
+   "hash": "ba25524e56b87766",
+   "does": "Capsule chip button (44 pt min height) that sets showingContextDetail = kind.",
+   "entry": "Chip tap.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.loadChipData()",
+   "hash": "3aa142a95e9b2b0f",
+   "does": "Loads the 8 most recent archive sessions off-main (recentSessionsAsync), computes the recovery and workout chip strings, and sets both @State texts on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.recoveryChip(_:baselineNights:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.workoutChip(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries (prefix 8, lightweight sessions)",
+    "mem:BaselineTracker.historicalData (daysCollected)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The chip strings embed a RelativeDateTimeFormatter result ('2 hr. ago') computed once per archive version; the .task only reruns on archiveSignal.version, so the relative time goes stale while the tab stays alive (e.g. still '5 min. ago' hours later).",
+     "evidence": [
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:186",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:255",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:263",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:271"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.recoveryChip(_:baselineNights:)": "2ecdad0cf365efe0",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.workoutChip(_:)": "bd6e181236f9710f"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.recoveryChip(_:baselineNights:)",
+   "hash": "ba7d68e1e70e2093",
+   "does": "Returns 'Recovery <score×10> · <relative time>' for the first of the recent sessions that is overnight, reliable for HRV aggregates and has a recoveryScore; nil before the 14-night baseline or if none qualifies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "baseline nights < 14 (showsScore false)",
+     "effect": "returns nil, chip hidden"
+    },
+    {
+     "at": "+2",
+     "cond": "no overnight+reliable+scored session among the 8 most recent",
+     "effect": "returns nil; otherwise formats the score"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Comment says it 'Mirrors the dashboard's latestOvernightComplete', but it takes the newest qualifying session, while latestOvernightComplete groups by night and picks the LONGEST session of the most recent night (and also requires analysisResult). On a night with a split recording the chip can show a different score than the dashboard ring.",
+     "evidence": [
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:245",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:251",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:176",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:185"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Only the 8 newest archive entries are searched (loadChipData limit: 8), so after 8+ workouts/spot-checks since the last good night the chip disappears even though a reliable overnight score exists.",
+     "evidence": [
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:233",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:251"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)": "278118ed9d1e2973"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.relativeWhen(_:)",
+   "hash": "345206b5ce9d3fa2",
+   "does": "Abbreviated RelativeDateTimeFormatter string for date relative to now in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "ext:RelativeDateTimeFormatter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func CoachHomeV2View.workoutChip(_:)",
+   "hash": "a0fe3a4c4462ecac",
+   "does": "Returns 'Last workout: <sport> · <distance or indoor> · <relative time>' for the newest workout session with metadata among the recent 8, else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy standard suite fallback, migrated on read)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no workout session with workoutMetadata in the recent 8",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "distanceMeters nil",
+     "effect": "?? 'indoor' — used for any workout with no distance, including outdoor ones whose GPS distance was not recorded"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "Any workout without distanceMeters is labelled 'indoor', including GPS sports (Sport.usesGPS) whose distance was not recorded, e.g. location denied on an outdoor run.",
+     "evidence": [
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:269",
+      "Emuqu/Sources/Views/CoachHomeV2View.swift:270",
+      "Emuqu/Sources/Models/WorkoutMetadata.swift:83"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var Sport.localizedName": "dbe667c792d47f39",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachHomeV2View.relativeWhen(_:)": "278118ed9d1e2973"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.modeChips",
+   "hash": "0d624f4ddfb35ff5",
+   "does": "Localized mode-flag chip labels: '🌿 Comeback' when comeback mode active, '🎯 Overreach' when intentional overreach in effect.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "settings.isComebackModeActive",
+     "effect": "adds Comeback chip"
+    },
+    {
+     "at": "+4",
+     "cond": "settings.isIntentionalOverreachInEffect",
+     "effect": "adds Overreach chip"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isIntentionalOverreachInEffect": "89d88619860d2f61",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.suggestedPromptsCategorized",
+   "hash": "7b3dc00adde10389",
+   "does": "Array of the five prompt categories: Today, Training, Sleep, Trends, How-to.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.todayPrompts",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.trainingPrompts",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.sleepPrompts",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.trendPrompts",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.howToPrompts"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.howToPrompts": "4039f524baf9a407",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.sleepPrompts": "1070fa97d6eff29d",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.todayPrompts": "1eddf4590899f01e",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.trainingPrompts": "0799ef763f233a24",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.trendPrompts": "5332da94aaf1c4e8"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.todayPrompts",
+   "hash": "9ac51be81917978f",
+   "does": "'Today' category with 4 localized prompts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.trainingPrompts",
+   "hash": "a1696ae6a2343e4b",
+   "does": "'Training' category with 4 localized prompts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.sleepPrompts",
+   "hash": "d1437feddfa1648b",
+   "does": "'Sleep' category with 3 localized prompts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.trendPrompts",
+   "hash": "7dd6d419bae82053",
+   "does": "'Trends' category with 3 localized prompts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachHomeV2View.howToPrompts",
+   "hash": "8423e3eac0df155e",
+   "does": "'How-to' category with 3 localized prompts (TRIMP, how Emuqu scores recovery, DFA-α1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachSuggestedPromptsSheet.body",
+   "hash": "54ad22692d28423d",
+   "does": "NavigationStack wrapping promptList.",
+   "entry": "SwiftUI body of the prompts sheet.",
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.promptList"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.promptList": "b828d0746403ef47"
+   }
+  },
+  {
+   "key": "var CoachSuggestedPromptsSheet.promptList",
+   "hash": "3029ad28df159d7b",
+   "does": "Inset-grouped List of prompt sections titled 'Suggested prompts'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.promptSections",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachSuggestedPromptsSheet.promptSections": "85f4c62c16d6679e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var CoachSuggestedPromptsSheet.promptSections",
+   "hash": "e73ef81c3415bc4e",
+   "does": "ForEach category (id = category title) → promptSection.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptSection(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptSection(_:)": "bd0ae00e8982e6af"
+   }
+  },
+  {
+   "key": "func CoachSuggestedPromptsSheet.promptSection(_:)",
+   "hash": "9d9c0182cfa8e7a8",
+   "does": "Section titled with the category containing its prompt buttons.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptButtons(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptButtons(_:)": "7389b409b69e427d"
+   }
+  },
+  {
+   "key": "func CoachSuggestedPromptsSheet.promptButtons(_:)",
+   "hash": "94c3a00815f9f442",
+   "does": "ForEach prompt (id = text) → promptButton.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptButton(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachSuggestedPromptsSheet.promptButton(_:)": "648777d2611fdde9"
+   }
+  },
+  {
+   "key": "func CoachSuggestedPromptsSheet.promptButton(_:)",
+   "hash": "267714ec6da745b6",
+   "does": "Row button showing the prompt with an arrow; tap calls onPick(prompt).",
+   "entry": "User tap.",
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "closure:onPick — set in CoachHomeV2View.withCoachSheets to dismiss and hand the prompt to AssistantInbox (pendingDraft + requestOpen)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.settingsManager",
+   "hash": "a5b9ef0fa49aaa67",
+   "does": "Shorthand for dependencies.app.settingsManager.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.body",
+   "hash": "410973e20043b1e3",
+   "does": "NavigationStack List of routing section then provider sections, titled 'Choose model', with a Done button.",
+   "entry": "SwiftUI body of the model picker sheet.",
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.routingSection",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.providerSections",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.doneToolbarItem",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.doneToolbarItem": "627026316766f03f",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.providerSections": "60ac965c16ad82e7",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.routingSection": "6fdd5a2862823bc8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.routingSection",
+   "hash": "a214d150a9fdbb93",
+   "does": "Section with the routing segmented picker, the current mode's blurb, header 'AI routing' and a long footer describing Quick/Auto/Deep/Manual routing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.routingPicker",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.settingsManager",
+    "Emuqu/Sources/Models/UserSettings.swift::var RoutingMode.blurb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.routingMode"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
+    "Emuqu/Sources/Models/UserSettings.swift::var RoutingMode.blurb": "b4eb6da71560aae3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.routingPicker": "371374be4065222c",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.settingsManager": "b54c51d549aa94f0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.routingPicker",
+   "hash": "7914b4d243ba98ab",
+   "does": "Segmented Picker over RoutingMode.allCases bound to settings.routingMode (persisted by SettingsManager).",
+   "entry": "User changes the segmented control.",
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.settingsManager",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.routingMode"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings.routingMode",
+    "file:user_settings.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "8a8722554b9cf157",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachModelPickerSheet.settingsManager": "b54c51d549aa94f0"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.providerSections",
+   "hash": "800ef7f380ed3c9a",
+   "does": "One section per registry.visibleProviders with header, model rows and footer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerModels(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerHeader(_:)",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerFooter(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "14b8c52d4b300460",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerFooter(_:)": "98b9eaf3203fc7bb",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerHeader(_:)": "033dcc41420645ff",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::func CoachModelPickerSheet.providerModels(_:)": "9279ffae93f6bab4"
+   }
+  },
+  {
+   "key": "func CoachModelPickerSheet.providerModels(_:)",
+   "hash": "71b10424dfef1ea7",
+   "does": "Lists ModelOptionRow per model when the provider is available; for unavailable Apple Intelligence shows AppleIntelligenceStatus.current.explanation; otherwise 'Currently unavailable.'",
+   "entry": null,
+   "calls": [
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:87|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable",
+    "dyn:AIProvider.availableModels → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:79|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.current",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider.isAvailable",
+     "effect": "ForEach model rows"
+    },
+    {
+     "at": "+6",
+     "cond": "unavailable and provider is Apple",
+     "effect": "shows why Apple Intelligence can't run; else (unavailable cloud provider) 'Currently unavailable.'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.current": "514de06774065ba8",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation": "da17108be4f76166",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func CoachModelPickerSheet.providerFooter(_:)",
+   "hash": "541f79113f2bdf0e",
+   "does": "Footer text about Apple Intelligence being on-device and others needing an API key, only for the Apple section.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "provider.id == .apple",
+     "effect": "shows footer; otherwise empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachModelPickerSheet.doneToolbarItem",
+   "hash": "b2f34de7d69dd2c4",
+   "does": "Done toolbar button calling dismiss().",
+   "entry": "Toolbar button tap.",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CoachModelPickerSheet.providerHeader(_:)",
+   "hash": "250c528198ef0382",
+   "does": "Header: provider symbol, name and 'On device · free · private' (Apple) or 'Cloud · uses your API key'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provider.id == .apple",
+     "effect": "on-device subtitle; otherwise cloud subtitle"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "01f7b50221806224",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.symbolName": "66f4ed752cc89e1b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+   }
+  },
+  {
+   "key": "var CoachContextDetailSheet.body",
+   "hash": "34f3ca2309f00e45",
+   "does": "NavigationStack with the chip's title and explanatory detail text.",
+   "entry": "SwiftUI body of the context detail sheet.",
+   "calls": [
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.title",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.detail",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.detail": "f39e4492adee0175",
+    "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachContextDetailSheet.title": "be71764b0ed70a6c",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var CoachContextDetailSheet.title",
+   "hash": "f1a23126e3fa6140",
+   "does": "Title per chip kind.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .recovery",
+     "effect": "'Recovery context'"
+    },
+    {
+     "at": "+3",
+     "cond": "case .lastWorkout",
+     "effect": "'Last workout context'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .modeFlag(m)",
+     "effect": "the mode chip label itself"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CoachContextDetailSheet.detail",
+   "hash": "dc07d6d5ce40188c",
+   "does": "Static explanatory text per chip kind about what Flo can read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case .recovery",
+     "effect": "text says Flo reads 'today's Recovery Score' (the chip may show an older night)"
+    },
+    {
+     "at": "+4",
+     "cond": "case .lastWorkout",
+     "effect": "text about most recent workout TRIMP/HR/α1/splits/decoupling"
+    },
+    {
+     "at": "+6",
+     "cond": "case .modeFlag",
+     "effect": "one shared text describing both Overreach and Comeback regardless of which chip was tapped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

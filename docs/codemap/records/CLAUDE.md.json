@@ -1,0 +1,53 @@
+{
+ "file": "CLAUDE.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Instructions for AI coding agents working in this repository: keeping the code map current is part of every change.",
+ "types": [],
+ "state": [],
+ "toplevel": "Two heading sections only; no text outside them.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Working in this repository",
+   "hash": "798ce7e814ea00e8",
+   "does": "Title section with no text of its own; contains the code-map section.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Working in this repository > The code map is part of every change",
+   "hash": "06f21ca10f2610a2",
+   "does": "States that docs/codemap/records holds a record per unit, that a call graph is built from the records and the code, and that CI (gates.yml, ci.yml, make ci) and the pre-commit hook fail while any record is missing, older than its code, or older than a change in what one of its callees does. Before a change: run codemap.py impact <path::key> (or make codemap-impact) and read the record, callers, triggers, tests, shared state and open findings. During: make codemap-guard; sync for added/removed units; rewrite each listed record against the code (removing fixed flags, adding found problems); re-read each re-check caller against its callee's new behaviour and fix the caller or its record; then stamp, callees before callers; guard clean before committing. High- and medium-severity findings only go down: a fix deletes the flag and lowers .ci/codemap_open_high.txt or .ci/codemap_open_med.txt in the same change; a new one is fixed, not recorded. Forbids stamping a record or a re-check that was not re-read, and rewording a record whose behaviour did not change (it sends every caller back). Every command named exists.",
+   "entry": null,
+   "calls": [
+    "Makefile::target codemap-guard",
+    "Makefile::target codemap-impact",
+    "scripts/codemap/codemap.py::def cmd_impact",
+    "scripts/codemap/codemap.py::def cmd_sync",
+    "scripts/codemap/codemap.py::def cmd_stamp",
+    "scripts/codemap/codemap.py::def dependency_problems",
+    "scripts/codemap/codemap.py::def budget_problems",
+    "ext:scripts/check_codemap.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Makefile::target codemap-guard": "86407f3ed9c5a020",
+    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
+    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
+    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
+    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
+    "scripts/codemap/codemap.py::def cmd_sync": "74a108b4c1742e10",
+    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91"
+   }
+  }
+ ],
+ "deps": {}
+}

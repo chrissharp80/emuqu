@@ -1,0 +1,13 @@
+{
+ "file": "scripts/check_dated_comment_budget.sh",
+ "hash": "e0a9dabca3880556",
+ "role": "CI gate: counts Swift comment lines containing an ISO date (20YY-MM-DD) across all four Swift roots and fails above .ci/dated_comment_budget.txt (0).",
+ "types": [],
+ "state": [
+  "file:.ci/dated_comment_budget.txt"
+ ],
+ "toplevel": "cd to repo root; sources lib/preflight.sh (no helper used). Missing budget -> exit 2. grep -rhE counts lines with //, ///, /*, or leading * followed by a date; >budget -> exit 1; <budget -> SLACK hint; else clean. Budget not validated as an integer. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [],
+ "units": [],
+ "deps": {}
+}

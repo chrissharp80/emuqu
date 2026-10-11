@@ -1,0 +1,1277 @@
+{
+ "file": "Emuqu/Sources/Views/VitalsDetailV2View.swift",
+ "hash": "feccee11a76eaf06",
+ "role": "SwiftUI Vitals detail screen pushed from the Dashboard vitals card: status banner (Normal/Watch/Elevated/No data), four expandable rows (sleep HR, respiratory rate, wrist temp, SpO2), a 30-day overnight HR/resp trend chart and an explanatory card; merges stored overnight vitals with a HealthKit re-fetch.",
+ "types": [
+  "VitalsDetailV2View: struct (View) — vitals detail; inputs vitals, recentSessions, temperatureUnit",
+  "VitalsDetailV2View.Row: enum — expandable row key",
+  "VitalsDetailV2View.VitalsBannerStatus: enum — banner word/glyph/colour/summary",
+  "VitalsDetailV2View.TrendPoint: struct (Identifiable, UUID id) — one chart point"
+ ],
+ "state": [
+  "mem:VitalsDetailV2View.expandedRow (@State Row?)",
+  "mem:VitalsDetailV2View.refreshedVitals (@State RecoveryVitals?)",
+  "@Environment RRCollector collector (VitalsDetailV2View.swift:18)",
+  "mem:VitalsDetailV2View.rhrSeries / respSeries (static computed localized series names)"
+ ],
+ "toplevel": "Stored inputs and @State; TrendPoint.id = UUID() per construction, so chart identities are regenerated on every buildTrend call (each body evaluation). No #if.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The \"Why vitals matter\" copy says vitals make up 15% of the Recovery Score, which holds only for Tier 3 outside Comeback mode; Comeback weights vitals at 0 and Tier 2 has no vitals factor.",
+   "evidence": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift:471",
+    "Emuqu/Sources/Utilities/Constants.swift:399-425"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var VitalsDetailV2View.effectiveVitals",
+   "hash": "930f9031dd26f729",
+   "does": "Merged vitals for the screen: stored = latest reliable overnight session's vitalsSnapshot (falls back to the passed-in vitals only when there is no such session), fresh = refreshedVitals; fresh wins per field except RHR, which is strap meanHR of the latest overnight, else stored, else fresh. Returns heart-rate-only vitals or nil with neither stored nor fresh.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.heartRateOnlyVitals(_:)"
+   ],
+   "reads": [
+    "mem:VitalsDetailV2View.refreshedVitals"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "latestOvernight nil",
+     "effect": "stored = passed-in vitals; when latestOvernight exists but has no vitalsSnapshot, stored = nil (passed-in vitals ignored)"
+    },
+    {
+     "at": "+6",
+     "cond": "strap meanHR nil / stored RHR nil",
+     "effect": "mergedRHR falls back strap → stored → fresh → nil"
+    },
+    {
+     "at": "+9",
+     "cond": "fresh nil and stored nil",
+     "effect": "returns heartRateOnlyVitals(mergedRHR) or nil"
+    },
+    {
+     "at": "+13",
+     "cond": "fresh respiratoryRate nil",
+     "effect": "stored respiratoryRate"
+    },
+    {
+     "at": "+14",
+     "cond": "fresh resp baseline nil",
+     "effect": "stored baseline"
+    },
+    {
+     "at": "+15",
+     "cond": "fresh SpO2 nil",
+     "effect": "stored SpO2"
+    },
+    {
+     "at": "+16",
+     "cond": "fresh SpO2 min nil",
+     "effect": "stored SpO2 min"
+    },
+    {
+     "at": "+17",
+     "cond": "fresh wrist temp nil",
+     "effect": "stored wrist temp"
+    },
+    {
+     "at": "+18",
+     "cond": "fresh temp baseline nil",
+     "effect": "stored temp baseline"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same merge rule as SleepDetailV2View.effectiveVitals.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:46",
+      "Emuqu/Sources/Views/SleepDetailV2View.swift:83"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.heartRateOnlyVitals(_:)": "d6297f4ca0ccb37d",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "7b1199d827613405"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.heartRateOnlyVitals(_:)",
+   "hash": "6c1194728a35d640",
+   "does": "Builds a RecoveryVitals carrying only restingHeartRate.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VitalsDetailV2View.latestOvernight",
+   "hash": "32488ea67952b589",
+   "does": "Latest reliable, analysed overnight session (longest on the newest night) from recentSessions via DashboardSessionPolicy.latestOvernightComplete.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.status",
+   "hash": "c465c83be06acc5d",
+   "does": "Banner status from effectiveVitals.status: normal → Normal, elevated → Watch, warning → Elevated; No data when empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "effectiveVitals nil or empty",
+     "effect": ".noData"
+    },
+    {
+     "at": "+3",
+     "cond": "status .normal",
+     "effect": ".normal"
+    },
+    {
+     "at": "+4",
+     "cond": "status .elevated",
+     "effect": ".watch"
+    },
+    {
+     "at": "+5",
+     "cond": "status .warning",
+     "effect": ".elevated"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "RecoveryVitals.status returns .warning only for resp AND temp elevated; resp+low SpO2 or temp+low SpO2 stay .elevated, so the banner says \"One vital is outside your usual range\" while two are flagged, and SpO2 alone never reaches the \"Elevated/Multiple vitals\" state.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:88-92",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:130",
+      "Emuqu/Sources/Models/RecoveryVitals.swift:83-90"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "RecoveryVitals.status is .normal whenever nothing can be compared (no baselines, no SpO2, or only the strap HR from heartRateOnlyVitals), and resting HR is never part of status; the banner then reads \"Normal - All vitals within your usual range\" although no vital was checked against a range.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:56",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:87-89",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:128",
+      "Emuqu/Sources/Models/RecoveryVitals.swift:57-90"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.status": "ca0501f437b2e6eb",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.VitalsBannerStatus.word",
+   "hash": "5c9aeff77039096c",
+   "does": "Localized banner word per status.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "\"Normal\""
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "\"Watch\""
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "\"Elevated\""
+    },
+    {
+     "at": "+5",
+     "cond": ".noData",
+     "effect": "\"No data\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.VitalsBannerStatus.glyph",
+   "hash": "18aa9dc8eeab886c",
+   "does": "SF Symbol per status.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "checkmark.seal.fill"
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "exclamationmark.circle.fill"
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "exclamationmark.triangle.fill"
+    },
+    {
+     "at": "+5",
+     "cond": ".noData",
+     "effect": "circle.dashed"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var VitalsDetailV2View.VitalsBannerStatus.color",
+   "hash": "ebe1c47f8f904ab9",
+   "does": "Colour per status.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "wongOptimal"
+    },
+    {
+     "at": "+3",
+     "cond": ".watch",
+     "effect": "wongCaution"
+    },
+    {
+     "at": "+4",
+     "cond": ".elevated",
+     "effect": "wongAttention"
+    },
+    {
+     "at": "+5",
+     "cond": ".noData",
+     "effect": "textTertiary"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.VitalsBannerStatus.summary",
+   "hash": "84b51b3958db2ff6",
+   "does": "One-line localized summary per status.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".normal",
+     "effect": "all within usual range"
+    },
+    {
+     "at": "+4",
+     "cond": ".watch",
+     "effect": "one vital outside usual range"
+    },
+    {
+     "at": "+5",
+     "cond": ".elevated",
+     "effect": "multiple vitals above baseline + common causes"
+    },
+    {
+     "at": "+6",
+     "cond": ".noData",
+     "effect": "no vitals data yet"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.body",
+   "hash": "a8ebecd054f2ad92",
+   "does": "SwiftUI body: ScrollView of banner, rows, trend chart and why-card, \"Vitals\" title, .task keyed on latestOvernight?.id running refreshVitals.",
+   "entry": "SwiftUI View.body; .task(id:) on appear and when the latest overnight changes",
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBanner",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rowsSection",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.trendChart",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.whyCard",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()": "ee2a7a42d5d7fb85",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "7b1199d827613405",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rowsSection": "c156dda1ed058d5c",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBanner": "5f2677e2f25873ad",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.trendChart": "ae0d8e55fea1c434",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.whyCard": "2400b79bf5f4d993"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.refreshVitals()",
+   "hash": "084649517fd41696",
+   "does": "Fetches HealthKit recovery vitals relative to the latest overnight's end (or start), overrides RHR with its strap meanHR, and stores them in refreshedVitals when non-empty.",
+   "entry": ".task(id: latestOvernight?.id) in body",
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty"
+   ],
+   "reads": [
+    "hk:respiratoryRate",
+    "hk:oxygenSaturation",
+    "hk:appleSleepingWristTemperature",
+    "hk:restingHeartRate"
+   ],
+   "writes": [
+    "mem:VitalsDetailV2View.refreshedVitals"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no latest overnight session",
+     "effect": "returns without fetching; screen uses the passed-in vitals only"
+    },
+    {
+     "at": "+3",
+     "cond": "latest endDate nil",
+     "effect": "reference = startDate"
+    },
+    {
+     "at": "+8",
+     "cond": "fresh non-empty",
+     "effect": "assigns refreshedVitals; empty result leaves previous value"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "7b1199d827613405"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.statusBanner",
+   "hash": "97881b11fe731040",
+   "does": "Banner HStack with status glyph and copy on statusBackground.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.glyph",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.color",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusCopy",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBackground",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.color": "1b39372383ccc25d",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.glyph": "a7ccf635c59d2dbb",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status": "cc5c614f5cbc54eb",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBackground": "dfc58436e50727f0",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusCopy": "352b57667c9cce58"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.statusCopy",
+   "hash": "f5a1e9005ed0bfe7",
+   "does": "Banner text: status word and summary.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.word",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.summary",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.summary": "c1878b9316d8c502",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.word": "8216f9e1ebfeca90",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status": "cc5c614f5cbc54eb"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.statusBackground",
+   "hash": "b2cb9138c9182d28",
+   "does": "Card background with a status-coloured border.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.color"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.VitalsBannerStatus.color": "1b39372383ccc25d",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.status": "cc5c614f5cbc54eb"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.rowsSection",
+   "hash": "55a8a123cfc69e67",
+   "does": "Four rows: Sleep heart rate, Respiratory rate, Wrist temperature, SpO2 with values and deviation lines.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.row(_:label:value:deviation:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrValue",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrDeviation",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respRateValue",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respRateDeviation",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempValue",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempDeviation",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.spo2Value",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.spo2Deviation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.row(_:label:value:deviation:)": "18b6d7aa7dcaa077",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respRateDeviation": "e50e3a48e3962318",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respRateValue": "a172c86eb433e093",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrDeviation": "7fe7fcaaa14dba97",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrValue": "65caad4630b81d08",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.spo2Deviation": "c9c8e74251651797",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.spo2Value": "3ad7a3f0339dab4d",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempDeviation": "cc441e2e8133e53c",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempValue": "812ba97610f6a548"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.row(_:label:value:deviation:)",
+   "hash": "f4286201395d1905",
+   "does": "Row button toggling expandedRow between this key and nil with animation.",
+   "entry": "Button action",
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rowLabel(_:label:value:deviation:)"
+   ],
+   "reads": [
+    "mem:VitalsDetailV2View.expandedRow"
+   ],
+   "writes": [
+    "mem:VitalsDetailV2View.expandedRow"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "row already expanded",
+     "effect": "collapse to nil; else expand this row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rowLabel(_:label:value:deviation:)": "7b68797303425202"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.rowLabel(_:label:value:deviation:)",
+   "hash": "66d097c61db22444",
+   "does": "Row content: header, deviation line, and explanation when expanded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rowHeader(label:value:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.explanation(for:)",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [
+    "mem:VitalsDetailV2View.expandedRow"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "expandedRow == key",
+     "effect": "shows explanation text; else hidden"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.explanation(for:)": "3496f824aece9a08",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rowHeader(label:value:)": "6f08133a5d813a82"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.rowHeader(label:value:)",
+   "hash": "cf3f7e5fa712a131",
+   "does": "Label and large value text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.rhrValue",
+   "hash": "fbf66b6fef32d872",
+   "does": "Sleep HR value \"N bpm\" or \"—\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "restingHeartRate nil",
+     "effect": "\"—\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.rhrDeviation",
+   "hash": "c8f75b968f7ffdaa",
+   "does": "Source line for sleep HR: \"No data\", strap nocturnal mean when the latest overnight has meanHR > 0, else \"Apple Watch resting HR (daytime sample)\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "effective RHR nil",
+     "effect": "\"No data\""
+    },
+    {
+     "at": "+8",
+     "cond": "latest overnight strap meanHR > 0",
+     "effect": "strap-derived label; else Apple daytime label"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Source label is decided only from latestOvernight; when there is no reliable overnight the displayed RHR comes from the passed-in snapshot, which session acceptance may already have overridden with strap meanHR (withStrapNocturnalRHR), yet it is labelled \"Apple Watch resting HR (daytime sample)\".",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:279-283",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:47",
+      "Emuqu/Sources/Models/RecoveryVitals.swift:96-104"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "7b1199d827613405"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.respRateValue",
+   "hash": "dfe13aad758bb010",
+   "does": "Resp rate \"%.1f br/min\" or \"—\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "respiratoryRate nil",
+     "effect": "\"—\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.respRateDeviation",
+   "hash": "6de1cdac832b2b13",
+   "does": "Resp deviation: \"No baseline yet\", \"Within range\" (<0.5), else signed delta vs baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviation nil",
+     "effect": "\"No baseline yet\""
+    },
+    {
+     "at": "+2",
+     "cond": "dev ≥ 0",
+     "effect": "prefix \"+\"; else no prefix (format adds \"-\")"
+    },
+    {
+     "at": "+3",
+     "cond": "|dev| < 0.5",
+     "effect": "\"Within range\"; else \"±x.x vs baseline\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.tempValue",
+   "hash": "29eb7b2161627180",
+   "does": "Wrist temp deviation as signed °C or °F delta; \"—\" without baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviation nil",
+     "effect": "\"—\""
+    },
+    {
+     "at": "+3",
+     "cond": ".celsius",
+     "effect": "%+.1f°C"
+    },
+    {
+     "at": "+4",
+     "cond": ".fahrenheit",
+     "effect": "%+.1f°F of t*9/5"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.tempDeviation",
+   "hash": "fd1c6ac178e12f77",
+   "does": "Temp deviation line: unavailable reason, \"Within\" (<0.3), else \"Deviation from your personal baseline\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempUnavailableReason",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deviation nil",
+     "effect": "tempUnavailableReason"
+    },
+    {
+     "at": "+2",
+     "cond": "|t| < 0.3",
+     "effect": "\"Within\"; else deviation text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempUnavailableReason": "b5b37a8f706b9b3b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.tempUnavailableReason",
+   "hash": "0d53423c8d2241f1",
+   "does": "\"No data\" without a wrist temperature, \"No baseline yet\" with a reading but no baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "wristTemperature nil",
+     "effect": "\"No data\"; else \"No baseline yet\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.spo2Value",
+   "hash": "bc5447e48d91b50f",
+   "does": "SpO2 \"NN%\" or \"—\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "oxygenSaturation nil",
+     "effect": "\"—\""
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.spo2Deviation",
+   "hash": "931bcf8f3617335d",
+   "does": "SpO2 line: \"Not measured · tap to learn why\"; below 95 \"flat -10 score penalty applied\"; else \"no penalty\".",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "SpO2 nil",
+     "effect": "\"Not measured\" line"
+    },
+    {
+     "at": "+11",
+     "cond": "SpO2 < 95",
+     "effect": "says penalty applied; else no-penalty line"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "The \"penalty applied\" text is derived from the merged/refreshed SpO2 on this screen, not from the stored ScoreBreakdown.spo2PenaltyApplied; when HealthKit writes a <95% reading after the score was computed (the refresh this screen exists for) it tells the user a -10 penalty was applied that the score never received, and vice versa.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:334",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:24",
+      "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift:664"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.explanation(for:)",
+   "hash": "24e0f31ade255d36",
+   "does": "Long-form explanation per row.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rhrExplanation()",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.spo2Explanation()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".rhr",
+     "effect": "rhrExplanation"
+    },
+    {
+     "at": "+3",
+     "cond": ".respRate",
+     "effect": "resp text"
+    },
+    {
+     "at": "+8",
+     "cond": ".temp",
+     "effect": "temperature text"
+    },
+    {
+     "at": "+10",
+     "cond": ".spo2",
+     "effect": "spo2Explanation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.rhrExplanation()": "77138850fae97d2a",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.spo2Explanation()": "d2e882aa9ce3c8bb"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.rhrExplanation()",
+   "hash": "a4f0976dede9db52",
+   "does": "RHR explanation: strap analysis-window text when latest overnight meanHR > 0, else Apple daytime fallback text.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strap meanHR > 0",
+     "effect": "strap text; else fallback text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "7b1199d827613405"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.spo2Explanation()",
+   "hash": "a7266448ce97f1c9",
+   "does": "SpO2 explanation: how Apple Watch records SpO2 when no reading, else the -10 penalty explanation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "SpO2 nil",
+     "effect": "measurement-requirements text; else penalty text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "d7e76b01d9aded2b"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.trendChart",
+   "hash": "4e58335cfaa14642",
+   "does": "ChartCard \"30-day trend\" containing trendContent(buildTrend()).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.body",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendContent(_:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.buildTrend()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.body": "978e8dd7c28844cd",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.buildTrend()": "cb41ee59871835ca",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendContent(_:)": "caf99407503006ea"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.trendContent(_:)",
+   "hash": "6f5a55600c856a0c",
+   "does": "EmptyState when the series is empty, else the plot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.body",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendPlot(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "series empty",
+     "effect": "EmptyState \"No trend data yet\"; else trendPlot"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/EmptyState.swift::var EmptyState.body": "8705ed93c438c991",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendPlot(_:)": "28024a04ca969ef9"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.trendPlot(_:)",
+   "hash": "41ab1d063a0c8f54",
+   "does": "Chart of trend marks with series colour scale (RHR wongAttention, Resp wongGood), leading Y axis, bottom legend and an audio-graph descriptor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendMarks(_:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendAudioDescriptor(_:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/LoadTrajectoryView.swift::var LoadTrajectoryView.chartLegend": "019797017df84188",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendAudioDescriptor(_:)": "1176cad75eee5d33",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendMarks(_:)": "52e392c61440adac",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries": "a0b72a66b435fb82",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries": "e49fc8fa9ddcf76d"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.trendMarks(_:)",
+   "hash": "984039ea12960c0a",
+   "does": "LineMarks for the RHR series and the Resp series, coloured by metric.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Sleep HR (~45-70 bpm) and respiratory rate (~12-20 br/min) share one Y axis, so the respiratory line is compressed to a near-flat band.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:401",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:408-421"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries": "a0b72a66b435fb82",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries": "e49fc8fa9ddcf76d"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.trendAudioDescriptor(_:)",
+   "hash": "fb6910952b26fada",
+   "does": "Audio-graph descriptor over the RHR series only.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/AudioGraphHelpers.swift::func AudioGraphDescriptor.line(title:xLabel:yLabel:points:)": "30acaeef99b7e535",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries": "e49fc8fa9ddcf76d"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.rhrSeries",
+   "hash": "fbfa44e1f3bddb1f",
+   "does": "Localized \"RHR\" series name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.respSeries",
+   "hash": "3948b1784b1ce9af",
+   "does": "Localized \"Resp\" series name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func VitalsDetailV2View.buildTrend()",
+   "hash": "2dffa25ec5b9b3b3",
+   "does": "Builds trend points for overnight sessions in the last 30 days: RHR = strap meanHR else snapshot RHR, resp = snapshot resp rate; sorted by date.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "calendar date arithmetic nil",
+     "effect": "cutoff = now (empty window)"
+    },
+    {
+     "at": "+3",
+     "cond": "session older than cutoff or not overnight",
+     "effect": "skipped"
+    },
+    {
+     "at": "+5",
+     "cond": "strap meanHR nil",
+     "effect": "falls back to snapshot restingHeartRate; adds RHR point when either exists"
+    },
+    {
+     "at": "+8",
+     "cond": "snapshot respiratoryRate non-nil",
+     "effect": "adds resp point"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Unlike latestOvernight it does not apply isReliableForHRVAggregates or one-session-per-night, so insufficient/pre-sleep recordings and multiple recordings per night all add points.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:452",
+      "Emuqu/Sources/Models/DashboardSessionPolicy.swift:176"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "buildTrend runs on every body evaluation (including each row expand/collapse) and TrendPoint.id is a fresh UUID each time, the pattern SleepDetailV2View's TrendNight comment documents as making ForEach treat every element as removed and re-inserted.",
+     "evidence": [
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:376",
+      "Emuqu/Sources/Views/VitalsDetailV2View.swift:439-444",
+      "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift:413-418"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries": "a0b72a66b435fb82",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries": "e49fc8fa9ddcf76d"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.whyCard",
+   "hash": "e282dcae821401e8",
+   "does": "\"Why vitals matter\" card with explanatory text and fitnessAdaptationNote.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.fitnessAdaptationNote",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sectionTint": "6c53c4c95f5cb401",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.fitnessAdaptationNote": "0e8919cc02a19f80"
+   }
+  },
+  {
+   "key": "var VitalsDetailV2View.fitnessAdaptationNote",
+   "hash": "e2ea7f38e998f985",
+   "does": "Text noting falling sleep HR over weeks indicates improving fitness.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  }
+ ],
+ "deps": {}
+}

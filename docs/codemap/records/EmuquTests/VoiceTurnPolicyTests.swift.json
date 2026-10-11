@@ -1,0 +1,361 @@
+{
+ "file": "EmuquTests/VoiceTurnPolicyTests.swift",
+ "hash": "8dbfa2cb5aa44e19",
+ "role": "XCTest suite for VoiceTurnPolicy: which recogniser errors restart recognition (only kAFAssistantErrorDomain:1110 / kLSRErrorDomain:301 while listening), when a proactive trigger must wait (isBusyWithUserResponse), and stream-generation edge detection for queued turns and spoken-response completion.",
+ "types": [
+  "VoiceTurnPolicyTests: class (XCTestCase) — pure policy tests"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func VoiceTurnPolicyTests.testTheKnownRecoverableErrorsRestartWhileListening()",
+   "hash": "5b91bbbce1fa610e",
+   "does": "Asserts both known recoverable errors restart while .listening.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testARecoverableErrorDoesNotRestartWhileSpeaking()",
+   "hash": "9634b39b5e98d29a",
+   "does": "Asserts the recoverable 1110 error does not restart while .speaking or .triggerSpeaking.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testOnlyListeningRestarts()",
+   "hash": "3b41e109add751cb",
+   "does": "Asserts kLSRErrorDomain:301 does not restart in idle, starting, thinking, speaking, triggerSpeaking.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each non-listening state",
+     "effect": "one XCTAssertFalse per state"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testUnknownErrorsAreNotRestarted()",
+   "hash": "8ed469203a3f015c",
+   "does": "Asserts unknown code 1101, NSURLErrorDomain 1110 and empty domain are not restarted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testTheDomainAndCodeMustMatchAsAPair()",
+   "hash": "2c4807ff3155755d",
+   "does": "Asserts swapped domain/code pairs are not restarted.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "51998feee6f0b7de"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+   "hash": "4b485dcf0cfe2ceb",
+   "does": "Helper: calls isBusyWithUserResponse with the state and flags (llm task, streaming, synthesiser speaking, partial transcript), all defaulting false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testAUserMidSentenceIsBusy()",
+   "hash": "fce69890979f2ccc",
+   "does": "Asserts .listening with a partial transcript is busy.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testListeningWithNothingSaidYetIsFree()",
+   "hash": "76e71e23665e6be3",
+   "does": "Asserts .listening without a partial transcript is free.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testAnInFlightResponseIsBusy()",
+   "hash": "19b5bf2e11537094",
+   "does": "Asserts an in-flight LLM task (thinking or listening) or streaming while listening is busy.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testThinkingIsBusyEvenWithNoTaskHandle()",
+   "hash": "4876499c0744461e",
+   "does": "Asserts .thinking with no flags is busy.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testASpeakingSynthesiserOnlyBlocksWhileTheStateAgrees()",
+   "hash": "62c5c5f062f76717",
+   "does": "Asserts synthesiser speaking is busy only in .speaking, not in .idle or .listening.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testATriggerStillPlayingOrGeneratingIsBusy()",
+   "hash": "5fb58e7e007f44c3",
+   "does": "Asserts .triggerSpeaking is busy while the synthesiser speaks or an LLM task runs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testAFinishedTriggerChainsIntoTheNext()",
+   "hash": "1844767f5eb1fe02",
+   "does": "Asserts .triggerSpeaking with only a partial transcript or only streaming is free.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testIdleAndStartingAreFree()",
+   "hash": "1775d52ff4b6000d",
+   "does": "Asserts .idle and .starting with no flags are free.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testEveryStateIsBusyWhileWorkIsInFlight()",
+   "hash": "ac660c71a7ae5529",
+   "does": "Asserts every state is busy with llm and streaming both true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each of six states",
+     "effect": "one XCTAssertTrue per state"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Doc says 'a response being generated makes the conversation busy' in every state, but the test sets llm AND streaming together; .triggerSpeaking ignores isStreamingResponse (production returns llm||synth), and testAFinishedTriggerChainsIntoTheNext pins streaming-only as free, so the whole-space property holds only via the llm flag.",
+     "evidence": [
+      "EmuquTests/VoiceTurnPolicyTests.swift:134",
+      "EmuquTests/VoiceTurnPolicyTests.swift:138",
+      "EmuquTests/VoiceTurnPolicyTests.swift:123",
+      "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:97"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "0afa835abcd8c59d",
+    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "9830c62027eb0cf8"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testAQueuedTurnIsVisibleWhenFinishAndRedispatchCollapseIntoOneDelivery()",
+   "hash": "fddb818041988904",
+   "does": "Asserts queuedTurnStarted is true when streaming stays true but generation moves 4→5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)": "7efc2fb975fc9e56"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testTheInFlightStreamDoesNotCountAsTheQueuedTurn()",
+   "hash": "b9bfe3c6bfae123d",
+   "does": "Asserts the same edge re-delivered, or a stop at the same generation, is not a queued-turn start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)": "7efc2fb975fc9e56"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testACancelledStreamDoesNotStartSpeaking()",
+   "hash": "f4eeafcd676061ed",
+   "does": "Asserts a cancel (generation bump with isStreaming false) is not a queued-turn start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.queuedTurnStarted(wiredTo:now:)": "7efc2fb975fc9e56"
+   }
+  },
+  {
+   "key": "func VoiceTurnPolicyTests.testASpokenResponseFinishesOnStopOrOnReplacement()",
+   "hash": "9338ea390eb3896f",
+   "does": "Asserts spokenResponseFinished on stop at the same generation and on replacement by a new streaming generation, but not on the unchanged edge.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.spokenResponseFinished(wiredTo:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.spokenResponseFinished(wiredTo:now:)": "cae82a7bdf0e9e47"
+   }
+  }
+ ],
+ "deps": {}
+}

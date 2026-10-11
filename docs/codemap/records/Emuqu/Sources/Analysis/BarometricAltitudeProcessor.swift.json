@@ -1,0 +1,211 @@
+{
+ "file": "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift",
+ "hash": "770b9067541e3f30",
+ "role": "Pure post-hoc elevation gain/loss computation from a buffer of raw CMAltimeter relative-altitude samples: 15-sample symmetric moving average then 2 m hysteresis over the smoothed series.",
+ "types": [
+  "BarometricAltitudeProcessor: enum — namespace for process/movingAverage",
+  "BarometricAltitudeProcessor.Result: struct — gainMeters, lossMeters, smoothedSampleCount",
+  "BarometricAltitudeProcessor.HysteresisAccumulator: struct (private) — climb/descent hysteresis state machine"
+ ],
+ "state": [],
+ "toplevel": "Header comment documents algorithm and references; no top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
+   "hash": "0f3821ae2d24bd31",
+   "does": "Returns gain/loss for time-ordered barometric samples: if fewer samples than the smoother window returns zeros; otherwise smooths altitudes with movingAverage, feeds each smoothed level after the first into a HysteresisAccumulator (threshold default 2.0 m), commits the trailing run with finish(), and returns gain, loss and smoothed count. Timestamps are ignored (window is sample-count, not time).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "samples.count >= smootherWindow (default 15)",
+     "effect": "false: returns Result(0,0,0) (workouts under ~15 s of barometer get 0 gain); true: continues"
+    },
+    {
+     "at": "+9",
+     "cond": "smoothed has a first element",
+     "effect": "false only when samples is empty with smootherWindow <= 0 (no caller passes that): returns zeros; true: seeds the accumulator with the first smoothed level"
+    },
+    {
+     "at": "+13",
+     "cond": "for each smoothed level after the first",
+     "effect": "adds each to the hysteresis accumulator"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Smoothing window and hysteresis are defined in sample counts, not seconds, and timestamps are ignored. Callers feed it the CMAltimeter buffer (WorkoutRecorder+Lifecycle.swift:178, WorkoutRecoveryService.swift:452) and also per-split GPS altitude from CLLocation fixes (WorkoutAnalyzer.swift:466, window min(15, fixes.count)); any delivery rate other than 1 Hz changes the effective time constant the doc relies on.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:72",
+      "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift:119",
+      "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift:466",
+      "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift:178",
+      "Emuqu/Sources/Services/WorkoutRecoveryService.swift:452"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)": "02e24277c3ec8217",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "51a9e22199e6bbd3",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)": "a43f2e4739ab3bd5",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)": "d2d26ff5933b09da"
+   }
+  },
+  {
+   "key": "init BarometricAltitudeProcessor.HysteresisAccumulator(threshold:start:)",
+   "hash": "3f8945c66e672dae",
+   "does": "Initialises the accumulator with the threshold and sets anchor, low and high to the start level; direction 0, gain/loss 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "678cfda3cef40fca"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessor.HysteresisAccumulator.add(_:)",
+   "hash": "754fa8a139baa317",
+   "does": "Updates running low/high with the new level and, depending on direction, turns a climb into a descent (or vice versa) once the level is threshold away from the run's extreme, or starts the first run once the level is threshold above the low / below the high.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.turn(to:at:)",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "direction == 1 and high - level >= threshold",
+     "effect": "turn(to:-1, at: level): commits the climb anchor→high and starts a descent from high"
+    },
+    {
+     "at": "+5",
+     "cond": "direction == -1 and level - low >= threshold",
+     "effect": "turn(to:1, at: level): commits the descent anchor→low and starts a climb from low"
+    },
+    {
+     "at": "+6",
+     "cond": "direction == 0 and level - low >= threshold",
+     "effect": "start(1, from: low): first run is a climb anchored at the lowest level seen"
+    },
+    {
+     "at": "+7",
+     "cond": "direction == 0 and high - level >= threshold",
+     "effect": "start(-1, from: high): first run is a descent anchored at the highest level seen"
+    },
+    {
+     "at": "+8",
+     "cond": "default",
+     "effect": "no state change beyond low/high update (sub-threshold wobble)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)": "678cfda3cef40fca",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.turn(to:at:)": "e00b486bbce174c7"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessor.HysteresisAccumulator.finish()",
+   "hash": "a9d9ffa79c53bb68",
+   "does": "Commits the run in progress: adds high-anchor to gain when climbing, anchor-low to loss when descending; nothing when direction is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "direction == 1",
+     "effect": "gain += high - anchor; else no gain change"
+    },
+    {
+     "at": "+2",
+     "cond": "direction == -1",
+     "effect": "loss += anchor - low; else no loss change"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BarometricAltitudeProcessor.HysteresisAccumulator.start(_:from:)",
+   "hash": "4457a697b151f12f",
+   "does": "Sets direction and anchor to the given extreme (first run start).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func BarometricAltitudeProcessor.HysteresisAccumulator.turn(to:at:)",
+   "hash": "1e58a42220749278",
+   "does": "Commits the current run via finish(), re-anchors at the extreme just reached (high for a new descent, low for a new climb), sets the new direction and resets low/high to span level and anchor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "newDirection == -1",
+     "effect": "anchor = high (descent starts at the peak); else anchor = low (climb starts at the trough)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.HysteresisAccumulator.finish()": "51a9e22199e6bbd3"
+   }
+  },
+  {
+   "key": "func BarometricAltitudeProcessor.movingAverage(_:window:)",
+   "hash": "d45ea9d6eb219e4d",
+   "does": "Centred moving average with the window clamped at the array ends (endpoint-preserving). Returns input unchanged when shorter than window or window <= 1. O(n·window).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values.count >= window and window > 1",
+     "effect": "false: returns values unsmoothed; true: smooths"
+    },
+    {
+     "at": "+4",
+     "cond": "for each index i",
+     "effect": "computes the mean of values[max(0,i-half)...min(n-1,i+half)]"
+    },
+    {
+     "at": "+8",
+     "cond": "for j in lo...hi",
+     "effect": "sums the window values"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

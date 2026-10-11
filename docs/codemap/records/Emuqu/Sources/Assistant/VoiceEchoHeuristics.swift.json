@@ -1,0 +1,223 @@
+{
+ "file": "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift",
+ "hash": "41de874577cdbe40",
+ "role": "Pure token-overlap heuristics deciding whether recognised speech is the mic hearing the app's own TTS: tokenizer, word count, overlap ratio, in-flight (barge-in) and post-turn echo tests with fixed thresholds.",
+ "types": [
+  "VoiceEchoHeuristics: enum — static pure echo heuristics"
+ ],
+ "state": [
+  "longTranscriptEchoThreshold=0.6",
+  "shortTranscriptEchoThreshold=0.85",
+  "shortTranscriptTokenCount=4",
+  "inFlightEchoThreshold=0.65"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func VoiceEchoHeuristics.tokens(_:)",
+   "hash": "408f505b13c47628",
+   "does": "Set of tokens from words().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.wordCount(_:)",
+   "hash": "3242c0cb3208d3f3",
+   "does": "Count of words() including repeats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.words(_:)",
+   "hash": "df6d08693a7d2774",
+   "does": "Lowercases and enumerates words with the system word breaker, keeping words of length >= 2 or a CJK/Hangul first scalar.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "word nil or single char non-CJK",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "4701b58abb895889"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.isCJKOrHangul(_:)",
+   "hash": "97ac8670cb7184be",
+   "does": "True when the first scalar is >= U+3000.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no first scalar ??",
+     "effect": "0 → false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "U+3000 and above also covers non-CJK blocks (e.g. Yi, private use, emoji/supplementary planes), so single-character tokens from those count as words; the comment claims it is the CJK/kana/Hangul range.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:45",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:47"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func VoiceEchoHeuristics.overlapRatio(of:against:)",
+   "hash": "d46d388dc0250745",
+   "does": "Fraction of transcript tokens also present in reference tokens; 0 for empty transcript.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no transcript tokens",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)",
+   "hash": "acef7c716408504c",
+   "does": "Barge-in echo: false when nothing has streamed or candidate has no tokens; else overlap >= 0.65.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "streamedSoFar empty or candidate tokenless",
+     "effect": "false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "The comment (and the test testTheInFlightThresholdIsLooserThanThePostTurnOne) says 0.65 is 'more permissive' so a missed barge-in beats a false one. But a HIGHER echo threshold classifies FEWER candidates as echo than the post-turn 0.6, so more AI-echo candidates pass as real barge-ins, which is the opposite trade. The docs also describe this gate as a Jaccard overlap with a 'length-sensitive threshold', but it is a one-sided overlap fraction with a fixed 0.65.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:62",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:63",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:66",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:86",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:95",
+      "EmuquTests/VoiceEchoHeuristicsTests.swift:141",
+      "docs/VOICE_AND_TOOL_USE.md:614"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.looksLikeEcho(transcript:ofLastAssistantTurn:)",
+   "hash": "798f6d9bb283a4c2",
+   "does": "Post-turn echo: false for empty inputs or tokenless transcript; else overlap with the last assistant turn >= 0.85 (<=4 tokens) or 0.6.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either string empty",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "no transcript tokens",
+     "effect": "false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Recomputes the token overlap ratio inline instead of calling overlapRatio(of:against:), the very drifting-copy pattern the type's doc says it was extracted to remove.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:79",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:52",
+      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:10"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+   }
+  },
+  {
+   "key": "func VoiceEchoHeuristics.threshold(forTokenCount:)",
+   "hash": "87e88faa9ea0c1e5",
+   "does": "Short-transcript threshold 0.85 for <=4 tokens, else 0.6.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count <= 4 ?:",
+     "effect": "0.85; else 0.6"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

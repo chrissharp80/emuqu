@@ -1,0 +1,156 @@
+{
+ "file": "Emuqu/Sources/Utilities/LogCorrelation.swift",
+ "hash": "562e12b410fe6375",
+ "role": "Process-wide stack of correlation tags (label-4hex) that debugLog prefixes onto every line while a flow (sync, workout) is open.",
+ "types": [
+  "LogCorrelation: enum — ambient correlation scope stack",
+  "LogCorrelation.Entry: struct — token + label",
+  "LogCorrelation.Token: struct — scope handle"
+ ],
+ "state": [
+  "mem:LogCorrelation.storage (OSAllocatedUnfairLock<[Entry]>)"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "The tag is process-global: any line from any thread during an open scope (e.g. CloudKit sync) is tagged with that flow even when unrelated, as the header admits.",
+   "evidence": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift:12",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift:76"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var LogCorrelation.current",
+   "hash": "ca6fdf86c445b1d0",
+   "does": "Returns the innermost open scope's label, or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LogCorrelation.storage"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LogCorrelation.begin(_:)",
+   "hash": "0f04352a393d8164",
+   "does": "Pushes a new Entry with label '<name>-<4 hex>' and returns its token.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LogCorrelation.end(_:)",
+   "hash": "a27118b64b2b4c48",
+   "does": "Removes the entry with this token (no-op if already removed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func LogCorrelation.scope(_: String, _: () throws -> T)",
+   "hash": "0e1d608be1eac738",
+   "does": "Runs body inside a begin/end scope.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller in the repo; flows use begin/end directly (CloudKitSyncManager.swift:658, WorkoutRecorder+Correlation.swift:24).",
+     "evidence": [
+      "Emuqu/Sources/Utilities/LogCorrelation.swift:118",
+      "Emuqu/Sources/Storage/CloudKitSyncManager.swift:658"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "f2338e1b697e822d",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)": "e4ae920d0963a98d"
+   }
+  },
+  {
+   "key": "func LogCorrelation.scope(_: String, _: () async throws -> T)",
+   "hash": "288d11957a950b48",
+   "does": "Async variant of scope.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller in the repo (grep \"scope(\").",
+     "evidence": [
+      "Emuqu/Sources/Utilities/LogCorrelation.swift:125"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "f2338e1b697e822d",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)": "e4ae920d0963a98d"
+   }
+  },
+  {
+   "key": "func LogCorrelation.resetForTesting()",
+   "hash": "da303636be2008c6",
+   "does": "Clears all open scopes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LogCorrelation.storage"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Documented as test teardown but no test (or other code) calls resetForTesting.",
+     "evidence": [
+      "Emuqu/Sources/Utilities/LogCorrelation.swift:136"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

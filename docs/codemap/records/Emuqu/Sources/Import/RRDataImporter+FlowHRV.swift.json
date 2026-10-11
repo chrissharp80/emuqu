@@ -1,0 +1,394 @@
+{
+ "file": "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift",
+ "hash": "3aede6df10b1b7d4",
+ "role": "Parser for Emuqu's own multi-session RR CSV export (session_date,timestamp_ms,rr_ms[,session_type]): groups beats per session, validates timestamps, skips workouts and short/undated sessions, and builds raw-RR HRVSessions for re-analysis.",
+ "types": [
+  "RRDataImporter.FlowHRVColumns: struct — column indices",
+  "RRDataImporter: extension — Emuqu multi-session parsing"
+ ],
+ "state": [
+  "mem:RRDataImporter.minimumBeatsPerSession (private static 60)"
+ ],
+ "toplevel": "Counterpart of the exporter at ExportAndArchiveViews.swift:258-259, which writes session_date with a POSIX/gregorian 'yyyy-MM-dd_HHmm' formatter in the device time zone.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Sessions are keyed by session_date at minute precision in the device's current time zone (both exporter and importer formatters set no timeZone): two recordings that start in the same minute are merged into one series, imported start times lose their seconds, and importing on a device in a different time zone shifts every session.",
+   "evidence": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:180",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:123",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift:259"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)",
+   "hash": "d74f617610b0c524",
+   "does": "Parses an Emuqu multi-session export: requires a header and at least one data line, resolves columns, builds sessions, throws noRRData if none survive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "header exists and >= 2 lines",
+     "effect": "continue; otherwise throw noRRData"
+    },
+    {
+     "at": "+9",
+     "cond": "at least one session built",
+     "effect": "return result; otherwise throw noRRData"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVColumns(fromHeaderLine:)": "ad01ee95d6d4666f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessions(dataLines:columns:)": "3018f564681b281a"
+   }
+  },
+  {
+   "key": "func RRDataImporter.flowHRVSessions(dataLines:columns:)",
+   "hash": "fb18af664d01467f",
+   "does": "Groups beats by session, reads session types, logs group sizes, drops workout sessions, builds each remaining session (>=60 beats, parseable date) and sorts oldest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)": "e57b5b8d429df10b",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.flowHRVSessionDateFormatter()": "9b0df6ebcaa2d009",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.groupBeatsBySession(dataLines:columns:)": "9097911eed35291e",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.isImportableType(_:sessionDateStr:)": "dd155be8ec5fb845",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.logSessionGroups(_:)": "4834b5b3e95f964f",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.sessionTypesBySession(dataLines:columns:)": "edff31699c67bbba"
+   }
+  },
+  {
+   "key": "func RRDataImporter.logSessionGroups(_:)",
+   "hash": "35d7e744bd546e39",
+   "does": "Debug-logs the number of distinct session_date values and each one's beat count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each session group",
+     "effect": "log one line"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRDataImporter.flowHRVColumns(fromHeaderLine:)",
+   "hash": "31e656f2097a1a08",
+   "does": "Resolves session_date, rr_ms (required) and timestamp_ms, session_type (optional) column indices by last header containing each name; throws invalidFormat when a required column is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session_date and rr_ms columns found",
+     "effect": "return columns; otherwise throw invalidFormat"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func RRDataImporter.sessionTypesBySession(dataLines:columns:)",
+   "hash": "ed9390d8003a565b",
+   "does": "Maps each session_date to the SessionType parsed from its session_type field (last row wins); empty when the column is absent.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session_type column exists",
+     "effect": "scan rows; otherwise return [:]"
+    },
+    {
+     "at": "+6",
+     "cond": "for each data line",
+     "effect": "split by comma"
+    },
+    {
+     "at": "+8",
+     "cond": "row long enough and type raw value parses",
+     "effect": "record type; otherwise skip row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+   }
+  },
+  {
+   "key": "func RRDataImporter.isImportableType(_:sessionDateStr:)",
+   "hash": "d00690ef75e0f576",
+   "does": "True unless the type is .workout (which is logged and skipped).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "type != .workout",
+     "effect": "true; otherwise log 'Skipping ... workout session' and false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRDataImporter.groupBeatsBySession(dataLines:columns:)",
+   "hash": "23afbca848466d26",
+   "does": "Splits each data row, keeps rows whose rr_ms is an Int within 300-2000 ms, computes/validates the beat timestamp, and appends (timestamp, rr) to the session's group; throws invalidTimestamps on the first bad timestamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each data line",
+     "effect": "process"
+    },
+    {
+     "at": "+7",
+     "cond": "row has session and rr columns",
+     "effect": "continue; otherwise skip row"
+    },
+    {
+     "at": "+10",
+     "cond": "rr_ms parses as Int and is 300-2000 ms",
+     "effect": "continue; otherwise row silently skipped"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "Beats outside 300-2000 ms (or written as non-integers) are dropped silently when re-importing Emuqu's own export, although the archive stored them and the importer's own storable range is 1-30000 ms; when the export lacks timestamp_ms the following synthesised timestamps also shift earlier by the dropped beats.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:123",
+      "Emuqu/Sources/Import/RRDataImporter.swift:66",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:172"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "9fcc368a80967cc6",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)": "6d686641c98c8997",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  },
+  {
+   "key": "func RRDataImporter.beatTimestamp(sessionKey:fields:columns:groups:)",
+   "hash": "fb97267fc58d111d",
+   "does": "Returns the row's stated timestamp, or one synthesised from the session's last beat, and throws invalidTimestamps when it is outside 0...7 days ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "stated timestamp is nil",
+     "effect": "?? synthesise from previous beat end (0 for the first)"
+    },
+    {
+     "at": "+8",
+     "cond": "timestamp within recordingTimestampRange",
+     "effect": "return it; otherwise throw invalidTimestamps(session prefix 40)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)": "3c666223a68a7715",
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.synthesisedTimestamp(after:)": "5502b37523292e31"
+   }
+  },
+  {
+   "key": "func RRDataImporter.statedTimestamp(sessionKey:fields:columns:)",
+   "hash": "2ef4e024231bed5e",
+   "does": "Returns Int64 timestamp_ms from the row, nil when the column is absent or the row is short, and throws when the field is not an integer.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "timestamp column exists and row reaches it",
+     "effect": "parse; otherwise nil"
+    },
+    {
+     "at": "+2",
+     "cond": "field parses as Int64",
+     "effect": "return it; otherwise throw invalidTimestamps"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.synthesisedTimestamp(after:)",
+   "hash": "fed5cfea802262cf",
+   "does": "Next beat timestamp = last.timestamp + last.rr, or 0 for the first beat.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastPoint exists",
+     "effect": "sum; otherwise 0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.flowHRVSessionDateFormatter()",
+   "hash": "96993a0643cced5d",
+   "does": "Creates a DateFormatter with format yyyy-MM-dd_HHmm and the en_US_POSIX locale (Gregorian calendar from that locale) and no timeZone, so session dates are read in the device's current time zone; the exporter's formatter additionally pins a Gregorian calendar explicitly.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRDataImporter.flowHRVSession(sessionDateStr:points:sessionType:formatter:)",
+   "hash": "1d62004e783fe8eb",
+   "does": "Builds a SessionRRData for one group when it has >=60 beats and its session_date parses; beats sorted by timestamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "points.count >= 60",
+     "effect": "continue; otherwise log and nil"
+    },
+    {
+     "at": "+10",
+     "cond": "session_date parses",
+     "effect": "continue; otherwise log and nil (not dated now)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)",
+   "hash": "d55ee03746cfcc52",
+   "does": "Builds an HRVSession from SessionRRData: RRPoints from the stored timestamps, start at the parsed session date, sessionType from the export or .overnight, endDate = start + sum of RR, import note.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each RR interval",
+     "effect": "append point"
+    },
+    {
+     "at": "+4",
+     "cond": "index < timestamps.count",
+     "effect": "use stated timestamp; otherwise index x rr"
+    },
+    {
+     "at": "+15",
+     "cond": "sessionData.sessionType is nil (older export)",
+     "effect": "?? .overnight"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "rrIntervals and timestamps are always built from the same sorted array (flowHRVSession lines 209-210), so the fallback `Int64(index) * Int64(rr)` can never run; it is also not a cumulative timestamp, so it would be wrong if it did.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:222",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:209",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:210"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "endDate is set to start + the sum of RR intervals while the points keep the exported timestamps; for a series with gaps between beats (e.g. a merged night whose t_ms jumps), endDate falls before the last beat's timestamp, so the imported session's stated end and duration are shorter than its data.",
+     "evidence": [
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:222",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:232",
+      "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift:235"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+   }
+  }
+ ],
+ "deps": {}
+}

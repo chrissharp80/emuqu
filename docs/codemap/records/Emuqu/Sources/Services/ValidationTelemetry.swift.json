@@ -1,0 +1,233 @@
+{
+ "file": "Emuqu/Sources/Services/ValidationTelemetry.swift",
+ "hash": "0cff6553f0a03d98",
+ "role": "Local-only UserDefaults counters for the v2 dashboard rollout (dashboard opens, chip drill-ins, trajectory visits, mode activations, methodology views), shown in Diagnostics.",
+ "types": [
+  "ValidationTelemetry: final class (@Observable, @MainActor) — rollout counters",
+  "ValidationTelemetry.Keys: enum — UserDefaults keys",
+  "ValidationTelemetry.ChipKey: enum (hrv, sleep, vitals, load)",
+  "ValidationTelemetry.ModeKind: enum (comeback, intentionalOverreach)"
+ ],
+ "state": [
+  "mem:ValidationTelemetry.shared",
+  "ud:telemetry.dashboardOpens",
+  "ud:telemetry.lastDashboardOpenAt",
+  "ud:telemetry.chipDrillInsByKey",
+  "ud:telemetry.trajectoryVisits",
+  "ud:telemetry.lastTrajectoryVisit",
+  "ud:telemetry.modeActivationsByKind",
+  "ud:telemetry.methodologyViews"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "telemetry.lastDashboardOpenAt and telemetry.lastTrajectoryVisit timestamps are written on every event but never read (only removed by reset).",
+   "evidence": [
+    "Emuqu/Sources/Services/ValidationTelemetry.swift:50",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift:71",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift:117"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "init ValidationTelemetry(defaults:)",
+   "hash": "4e3f36c727fb6f1c",
+   "does": "Loads counters and per-key dictionaries from UserDefaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:telemetry.dashboardOpens",
+    "ud:telemetry.chipDrillInsByKey",
+    "ud:telemetry.trajectoryVisits",
+    "ud:telemetry.modeActivationsByKind",
+    "ud:telemetry.methodologyViews"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "chipDrillIns dictionary absent or not [String:Int]",
+     "effect": "uses [:]"
+    },
+    {
+     "at": "+6",
+     "cond": "modeActivations dictionary absent or not [String:Int]",
+     "effect": "uses [:]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.recordDashboardOpen()",
+   "hash": "50e93be8d896524c",
+   "does": "Increments dashboardOpens and stores it plus a last-open epoch timestamp. Called from DashboardV2View.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.dashboardOpens",
+    "ud:telemetry.lastDashboardOpenAt"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Counters are held in the singleton's memory; Delete All My Data sweeps the telemetry.* UserDefaults keys but never calls reset(), so Diagnostics keeps the old counts and the next record* call writes the stale in-memory total back.",
+     "evidence": [
+      "Emuqu/Sources/Services/ValidationTelemetry.swift:48",
+      "Emuqu/Sources/Services/ValidationTelemetry.swift:49",
+      "Emuqu/Sources/Services/DataPurgeService.swift:328",
+      "Emuqu/Sources/Services/DataPurgeService.swift:696"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.recordChipTap(_:)",
+   "hash": "20d3767091f653a9",
+   "does": "Increments the per-chip drill-in count and stores the dictionary. Called from DashboardV2View+Chips.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.chipDrillInsByKey"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ValidationTelemetry.totalDrillIns",
+   "hash": "6646b6ab1dbc08c6",
+   "does": "Sum of all chip drill-in counts.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.recordTrajectoryVisit()",
+   "hash": "73e34787983c7eb4",
+   "does": "Increments trajectoryVisits and stores it plus a timestamp. Called from LoadTrajectoryLoader.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.trajectoryVisits",
+    "ud:telemetry.lastTrajectoryVisit"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.recordModeActivation(_:)",
+   "hash": "9f6d9054dfa1e890",
+   "does": "Increments the per-mode activation count and stores it. Called from ModesSettingsPage.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.modeActivationsByKind"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.recordMethodologyView()",
+   "hash": "177462c25eba9c5a",
+   "does": "Increments methodologyViews and stores it. Called from RecoveryMethodologyView .task.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.methodologyViews"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ValidationTelemetry.diagnosticsSummary",
+   "hash": "e9a700ff67bdd7a8",
+   "does": "Five localized lines summarizing the counters for Diagnostics.",
+   "entry": "SwiftUI: read by SettingsPages+Diagnostics (line 328)",
+   "calls": [
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.totalDrillIns",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.counts(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.counts(_:)": "5d9bced1925e244b",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::var ValidationTelemetry.totalDrillIns": "54cf81b416346693"
+   }
+  },
+  {
+   "key": "func ValidationTelemetry.counts(_:)",
+   "hash": "8ab2408af2306534",
+   "does": "Formats a tally as sorted 'key=value' pairs joined by ', '.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ValidationTelemetry.reset()",
+   "hash": "146befe72f2eae7f",
+   "does": "Zeroes all counters and removes all seven keys. Wired to Diagnostics reset.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:telemetry.dashboardOpens",
+    "ud:telemetry.lastDashboardOpenAt",
+    "ud:telemetry.chipDrillInsByKey",
+    "ud:telemetry.trajectoryVisits",
+    "ud:telemetry.lastTrajectoryVisit",
+    "ud:telemetry.modeActivationsByKind",
+    "ud:telemetry.methodologyViews"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each of the seven keys",
+     "effect": "removeObject(forKey:)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Type doc says reset is at 'Settings → Advanced → Diagnostics → Reset telemetry'; the button is 'Reset usage counts' in the Diagnostics usage-counts section.",
+     "evidence": [
+      "Emuqu/Sources/Services/ValidationTelemetry.swift:11",
+      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:334"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

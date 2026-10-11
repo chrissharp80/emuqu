@@ -1,0 +1,95 @@
+{
+ "file": "EmuquTests/WorkoutSubObservablesTests.swift",
+ "hash": "23068d648b8767e4",
+ "role": "@MainActor characterisation tests for WorkoutMotion and WorkoutHR default values and reset().",
+ "types": [
+  "WorkoutSubObservablesTests: class — XCTestCase for recorder sub-observables"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc says the tests guard `WorkoutRecorder.incrementalBackupTick / resetMetrics`, but no `resetMetrics` exists in the repo (resets happen in WorkoutRecorder+Start.swift:287 and +Stop.swift:230) and neither test exercises incrementalBackupTick; they only construct the observables directly.",
+   "evidence": [
+    "EmuquTests/WorkoutSubObservablesTests.swift:9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift:230"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func WorkoutSubObservablesTests.testWorkoutMotionDefaults()",
+   "hash": "770d072f190df39c",
+   "does": "Asserts a new WorkoutMotion has zero distance/elevation/steps, empty track, nil cadence/power, footPodActive false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodActive": "c783733cbe74fe58",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack": "924ba2b6224b866d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func WorkoutSubObservablesTests.testWorkoutMotionResetRestoresDefaults()",
+   "hash": "bfcebc962c796480",
+   "does": "Sets every WorkoutMotion field, calls reset(), and asserts all are back to defaults.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()": "e66746c1f69c25d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodActive": "c783733cbe74fe58",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack": "924ba2b6224b866d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+   }
+  },
+  {
+   "key": "func WorkoutSubObservablesTests.testWorkoutHRDefaults()",
+   "hash": "5688695df115e9f8",
+   "does": "Asserts a new WorkoutHR has nil currentHR, peakHR 0 and beatCount 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d"
+   }
+  },
+  {
+   "key": "func WorkoutSubObservablesTests.testWorkoutHRResetRestoresDefaults()",
+   "hash": "70d97a6d7e9a24ea",
+   "does": "Sets WorkoutHR fields, calls reset(), and asserts defaults are restored.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutHR.swift::func WorkoutHR.reset()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutHR.swift::func WorkoutHR.reset()": "fad94d4b8d475c1e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "6e06787e1d321c6d"
+   }
+  }
+ ],
+ "deps": {}
+}

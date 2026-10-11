@@ -1,0 +1,497 @@
+{
+ "file": "EmuquTests/ProviderConsentTrackerTests.swift",
+ "hash": "4677a19f835d1d37",
+ "role": "XCTest suite for ProviderConsentTracker: Apple exempt, cloud providers need consent by default, acknowledge/revoke flip and persist across instances with a grant date, schema version ≥8 (each historical disclosure bump), every cloud provider has data-use notes (Gemini two), the consent sheet names every Overpass host, and providersRequiringConsent covers all non-Apple ProviderID cases.",
+ "types": [
+  "ProviderConsentTrackerTests: class — @MainActor XCTestCase over ProviderConsentTracker.shared and ProviderConsentSheet statics"
+ ],
+ "state": [
+  "mem:ProviderConsentTrackerTests.providersToReset ([.anthropic,.openai,.gemini,.grok,.deepseek])"
+ ],
+ "toplevel": "providersToReset stored-property initializer.",
+ "flags": [
+  {
+   "kind": "test-defect",
+   "sev": "med",
+   "text": "setUp and tearDown revoke() every cloud provider on ProviderConsentTracker.shared, which deletes the real assistant.consent.v8.* keys in the host app's standard UserDefaults. Running the suite on a device or simulator where the user had consented wipes that consent (fails safe for privacy, but the user is re-prompted and the consent history/grant date is lost).",
+   "evidence": [
+    "EmuquTests/ProviderConsentTrackerTests.swift:30",
+    "EmuquTests/ProviderConsentTrackerTests.swift:36",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:127"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func ProviderConsentTrackerTests.setUp()",
+   "hash": "90207ba3805df690",
+   "does": "Revokes consent for the five cloud providers before each test.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)",
+    "mem:ProviderConsentTracker.shared.acknowledgedProviders"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each provider in providersToReset",
+     "effect": "revoke(p)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.tearDown()",
+   "hash": "25ffe19c39d144db",
+   "does": "Revokes consent for the five cloud providers after each test.",
+   "entry": "XCTest per-test tearDown",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)",
+    "mem:ProviderConsentTracker.shared.acknowledgedProviders"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each provider in providersToReset",
+     "effect": "revoke(p)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testAppleIntelligenceDoesNotRequireConsent()",
+   "hash": "13c9c27dbb2269aa",
+   "does": "Asserts .apple never requires consent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testCloudProvidersRequireConsentByDefault()",
+   "hash": "927ef45f545648fb",
+   "does": "Asserts each of the five cloud providers requires consent after reset.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each provider in providersToReset",
+     "effect": "asserts requiresConsent is true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testAcknowledgeFlipsRequiresConsent()",
+   "hash": "46be20b09de69bc6",
+   "does": "Asserts acknowledging .anthropic turns requiresConsent from true to false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testAcknowledgePersistsAcrossInstances()",
+   "hash": "2af1a68cd3327116",
+   "does": "Acknowledges .openai on shared and asserts a fresh tracker instance loads it as consented.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::init ProviderConsentTracker()",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::init ProviderConsentTracker()": "efb714e09f397544"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testRevokeRequiresConsentAgain()",
+   "hash": "7acb828360ade231",
+   "does": "Asserts .gemini acknowledge then revoke returns to requiring consent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testAcknowledgeAppleIsNoOp()",
+   "hash": "826b18c8c96fc46a",
+   "does": "Asserts acknowledging .apple does not add it to acknowledgedProviders.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionIsAtLeastTwo()",
+   "hash": "36fcdd54ecf46adc",
+   "does": "Asserts consentSchemaVersion ≥ 2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let (ProviderConsentTracker.swift:76)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversTheFullDataList()",
+   "hash": "037102d0ff059879",
+   "does": "Asserts consentSchemaVersion ≥ 3.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversContactsAndServerSearch()",
+   "hash": "1dff89752942457b",
+   "does": "Asserts consentSchemaVersion ≥ 4.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversStepsTrailHomeAndNotes()",
+   "hash": "12e36ff3593417f3",
+   "does": "Asserts consentSchemaVersion ≥ 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversTheWeatherProviderChange()",
+   "hash": "da556dea5a82b792",
+   "does": "Asserts consentSchemaVersion ≥ 6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversBothOverpassInstances()",
+   "hash": "d7e7cf0f73ed2a11",
+   "does": "Asserts consentSchemaVersion ≥ 7.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testSchemaVersionCoversModelTrainingDisclosures()",
+   "hash": "29776d9b6974c69b",
+   "does": "Asserts consentSchemaVersion ≥ 8.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:ProviderConsentTracker.consentSchemaVersion static let"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "The seven schema-version tests are monotonic lower bounds that only record past bumps; none ties the version to the consent sheet's current content, so a future material edit to ProviderConsentSheet without a bump passes every one of them (the invariant the tracker header calls out).",
+     "evidence": [
+      "EmuquTests/ProviderConsentTrackerTests.swift:93",
+      "EmuquTests/ProviderConsentTrackerTests.swift:136",
+      "Emuqu/Sources/Assistant/ProviderConsentTracker.swift:76"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testEveryCloudProviderStatesItsDataUse()",
+   "hash": "c13103cf0e3fae72",
+   "does": "Asserts every provider requiring consent has non-empty data-use notes with no empty entry, and .apple has none.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each provider in providersRequiringConsent",
+     "effect": "asserts its notes are non-empty and contain no empty string"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "a5c541f8cf1df5b0"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testGeminiStatesBothFreeAndPaidTerms()",
+   "hash": "204de99a62fb640e",
+   "does": "Asserts Gemini has exactly 2 data-use notes (free and paid terms).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "a5c541f8cf1df5b0"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testConsentSheetNamesEveryOverpassHost()",
+   "hash": "8ef7db1c98abbedf",
+   "does": "Asserts OverpassClient.endpoints is non-empty and the consent sheet's location-services bullet contains every endpoint host.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet",
+    "ext:OverpassClient.endpoints static let (OverpassClient.swift:59)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each Overpass endpoint",
+     "effect": "unwraps its host and asserts the bullet names it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet": "4002d927e05dddd5"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testAcknowledgeRecordsGrantDate()",
+   "hash": "c2196eb92bc67d0a",
+   "does": "Asserts .openai has no grant date, then after acknowledge has one no earlier than 1 s before the call.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)": "590793ba5e12212a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testRevokeClearsGrantDate()",
+   "hash": "3a019a1671b7af31",
+   "does": "Asserts acknowledging .gemini sets a grant date and revoking clears it and requires consent again.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.consentGrantedAt(_:)": "590793ba5e12212a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testRevokePersistsAcrossInstances()",
+   "hash": "f26b405d40c6d5b0",
+   "does": "Asserts a fresh instance sees .grok consent after acknowledge and sees it gone after revoke.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::init ProviderConsentTracker()",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "writes": [
+    "ud:assistant.consent.v8.<provider> and .grantedAt (standard suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.grantedDateKey(for:)": "e6302feb3c5fa09a",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "bda6182f0dfa3610",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::init ProviderConsentTracker()": "efb714e09f397544"
+   }
+  },
+  {
+   "key": "func ProviderConsentTrackerTests.testRequiresConsentSetMatchesEnum()",
+   "hash": "04d4d35163ab2ad7",
+   "does": "Asserts every non-Apple ProviderID case is in providersRequiringConsent.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each non-Apple ProviderID",
+     "effect": "asserts membership in providersRequiringConsent"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,355 @@
+{
+ "file": "Emuqu/Sources/Assistant/Views/CitationQuickView.swift",
+ "hash": "72cec705a81cfe30",
+ "role": "Read-only sheet presented from AssistantChatView.citationSheet (AssistantChatView.swift:259-263) when the user taps a date citation in a Flo reply; shows the cited HRVSession's frozen score, HRV metrics, sleep and training snapshots and the cached AnalysisSummary if its fingerprint still matches.",
+ "types": [
+  "CitationQuickView: struct — SwiftUI View rendering one HRVSession's summary in a List"
+ ],
+ "state": [
+  "mem:CitationQuickView.session (let HRVSession input)",
+  "env:dependencies (AppDependencies via @Environment)"
+ ],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var CitationQuickView.cachedSummary",
+   "hash": "556636dbd80cfe10",
+   "does": "Returns the AnalysisSummary cached for session.id in dependencies.assistant.analysisSummaryCache only when the stored fingerprint equals AnalysisSummaryCache.fingerprint(for: session); otherwise nil. Because the view is not inside NarrativeLanguage.english, the fingerprint (which hashes NarrativeLanguage.isEnglish=false) matches summaries cached by MorningResultsViewModel (MorningResultsViewModel.swift:266) and not the English ones cached by ContextBuilder (ContextBuilder.swift:197).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.analysisSummaryCache",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)"
+   ],
+   "reads": [
+    "mem:AnalysisSummaryCache.entries",
+    "mem:AnalysisSummaryCache.fingerprints"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "AnalysisSummaryCache keeps ONE summary+fingerprint per session id (set overwrites entries[id]/fingerprints[id]). ContextBuilder caches the assistant's English summary under the same id with a fingerprint that hashes NarrativeLanguage.isEnglish=true, replacing the display-language summary MorningResultsViewModel stored (isEnglish=false). CitationQuickView is opened from an assistant reply, i.e. after ContextBuilder ran, so for the session the assistant summarised (the latest one) its fingerprint never matches and the Analysis section shows the 'Open this session from History' fallback instead of the summary, for every app language. ARCHITECTURE.md:880-883 says entries are keyed by session AND fingerprint and are read by CitationQuickView, which the single-slot store contradicts.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:34",
+      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:52",
+      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:69",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:181",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:197",
+      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:266",
+      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:16",
+      "docs/ARCHITECTURE.md:880"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "c6a3e36e5c6f1a2a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.analysisSummaryCache": "e99dd75f34be3634"
+   }
+  },
+  {
+   "key": "var CitationQuickView.body",
+   "hash": "323e788789eebf03",
+   "does": "Builds a List of header, HRV, sleep, training and summary sections with the localized title 'Session Detail' in inline mode.",
+   "entry": "SwiftUI body of CitationQuickView, rendered inside the citation sheet NavigationStack (AssistantChatView.swift:261).",
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.headerSection",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.analysisSection",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.sleepSection",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.trainingSection",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.summarySection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.analysisSection": "abe78e40b530267e",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.headerSection": "481f6ecf9c73b08e",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.sleepSection": "39cbe2a177cf3db2",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.summarySection": "1281eb5d68232c92",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.trainingSection": "8fec43acc001797d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CitationQuickView.headerSection",
+   "hash": "57f8bed40b408e0c",
+   "does": "Section titled 'Session' containing sessionFields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.sessionFields"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.sessionFields": "3bb6dc4e7d8912a4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var CitationQuickView.sessionFields",
+   "hash": "dd8ce1560fd2a6dc",
+   "does": "Renders the session start date (complete date + short time in app locale), the recovery score converted to 0-100 via ScoreVerdict.safeDisplayScore(score*10) when present, and the score-breakdown tier when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "session.recoveryScore is non-nil",
+     "effect": "shows 'Recovery score' row with safeDisplayScore(score*10) (clamped 0-100, non-finite → 0); when nil the row is omitted"
+    },
+    {
+     "at": "+11",
+     "cond": "session.scoreBreakdown?.tier is non-nil",
+     "effect": "shows 'Tier N' row (tier is a non-optional Int 1-3, RecoveryScoreCalculator.swift:103); omitted only when session.scoreBreakdown is nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  },
+  {
+   "key": "var CitationQuickView.analysisSection",
+   "hash": "97cee202df9fe4f4",
+   "does": "Shows an 'HRV' section with hrvFields when the session has an analysisResult.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.hrvFields(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.analysisResult is non-nil",
+     "effect": "section rendered with RMSSD/SDNN/HR fields; when nil the whole HRV section is omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.hrvFields(_:)": "46624afee4dccbbe",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CitationQuickView.hrvFields(_:)",
+   "hash": "fd656624cf8d4660",
+   "does": "Renders RMSSD and SDNN (%.1f ms), mean HR (%.0f bpm) and, when available, stress index (%.0f) and DFA α1 (%.2f), all formatted in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "result.ansMetrics?.stressIndex is non-nil",
+     "effect": "adds 'Stress index' row; omitted otherwise"
+    },
+    {
+     "at": "+8",
+     "cond": "result.nonlinear.dfaAlpha1 is non-nil",
+     "effect": "adds 'DFA α1' row; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "var CitationQuickView.sleepSection",
+   "hash": "af174cbe4fa8f6d2",
+   "does": "Shows a 'Sleep' section with sleepFields when the session has a frozen sleepSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.sleepFields(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.sleepSnapshot is non-nil",
+     "effect": "sleep section rendered; omitted when nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.sleepFields(_:)": "797bafce95b9d04a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CitationQuickView.sleepFields(_:)",
+   "hash": "b23e0ee8f6316a7f",
+   "does": "Renders total night sleep (LocalizedDuration.hoursMinutes), efficiency text from SleepDetailV2View.efficiencyText and, when present, deep and REM minutes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "sleep.deepSleepMinutes non-nil",
+     "effect": "adds 'Deep' row; omitted otherwise"
+    },
+    {
+     "at": "+11",
+     "cond": "sleep.remSleepMinutes non-nil",
+     "effect": "adds 'REM' row; omitted otherwise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
+    "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)": "7c48f40f2b1faeb1"
+   }
+  },
+  {
+   "key": "var CitationQuickView.trainingSection",
+   "hash": "76816d0bbeba14d8",
+   "does": "Shows a 'Training' section with trainingFields when the session has a frozen trainingSnapshot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.trainingFields(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "session.trainingSnapshot is non-nil",
+     "effect": "training section rendered; omitted when nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.trainingFields(_:)": "e0c69e378f15c70b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CitationQuickView.trainingFields(_:)",
+   "hash": "fa63299519fe17a0",
+   "does": "Renders ATL (%.0f), CTL (%.0f), TSB (%.1f) and yesterday's TRIMP (%.0f) from the TrainingContext snapshot in the app locale.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+   }
+  },
+  {
+   "key": "var CitationQuickView.summarySection",
+   "hash": "efe096ec5eec8f37",
+   "does": "Shows an 'Analysis' section with the cached summary, or a caption telling the user to open the session from History to compute its full analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.cachedSummary",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.summaryFields(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "cachedSummary is non-nil (cached with matching fingerprint)",
+     "effect": "renders summaryFields; else renders the fallback caption 'Open this session from History (Dashboard → Recent → View all) to compute its full analysis.' — also shown when only an English (assistant) summary exists for the session, since its fingerprint differs"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "Fallback caption at line 138 is what the user sees for the latest session after any chat turn: the assistant's English summary overwrote the display-language entry in the single-slot AnalysisSummaryCache, so cachedSummary (fingerprint with isEnglish=false) is nil. Opening the session from History re-caches the display summary, and the next assistant turn overwrites it again.",
+     "evidence": [
+      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:130",
+      "Emuqu/Sources/Assistant/Views/CitationQuickView.swift:138",
+      "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift:52",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:197"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.summaryFields(_:)": "9f3b64454ed8cde6",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::var CitationQuickView.cachedSummary": "1ddfc45046f80469",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func CitationQuickView.summaryFields(_:)",
+   "hash": "5ee88c0b38473809",
+   "does": "Renders the summary title (headline), explanation (callout) and the key findings list when non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.keyFindingsList(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "summary.keyFindings is non-empty",
+     "effect": "renders keyFindingsList; omitted when empty"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift::func CitationQuickView.keyFindingsList(_:)": "188d026437f7a217"
+   }
+  },
+  {
+   "key": "func CitationQuickView.keyFindingsList(_:)",
+   "hash": "33322db037deef92",
+   "does": "VStack with a 'Key findings' heading and up to the first 5 findings as bullet captions (prefix(5), ForEach id \\.self so duplicate finding strings share an id).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

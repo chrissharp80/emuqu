@@ -1,0 +1,25 @@
+{
+ "file": "scripts/check_empty_range_loops.sh",
+ "hash": "272cae79861f507d",
+ "role": "CI gate: flags `for i in 1 ..< xs.count` and `for i in 0 ..< (xs.count - N)` in Emuqu/Sources without a nearby count/isEmpty guard or `empty-range-ok:` waiver.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources"
+ ],
+ "toplevel": "set -euo pipefail; NO cd. Python over pathlib('Emuqu/Sources'): skips lines containing `max(0,`; finds the enclosing `func` within the previous 60 lines (else from file start); guard = if/guard/while line mentioning var.count >=1/>0/<N, var.isEmpty, !var.isEmpty, count != 0, or a `where var.count >= ...`; waiver within 3 lines above. Problems -> exit 1; else clean. Wired: gates.yml, ci.yml, Makefile.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Any guard mentioning the variable satisfies it regardless of strength: `xs.count > 0` is accepted for `0 ..< xs.count - 2`, which still traps at count 1; for functions longer than 60 lines the window becomes the whole file prefix. Running outside repo root scans nothing and prints clean.",
+   "evidence": [
+    "scripts/check_empty_range_loops.sh:57",
+    "scripts/check_empty_range_loops.sh:51",
+    "scripts/check_empty_range_loops.sh:34"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

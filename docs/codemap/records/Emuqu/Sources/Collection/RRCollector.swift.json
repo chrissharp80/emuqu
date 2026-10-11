@@ -1,0 +1,2085 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector.swift",
+ "hash": "1457b22c4c07d802",
+ "role": "The @Observable MainActor RRCollector orchestration shell: injected dependencies, back-compat forwarders to DeviceStatus/SessionState/CollectorSessionControl, archive read helpers, strap-recovery predicates, training-context/ANS-config builders, wiring factory and deferred baseline rebuild; plus RRCollectorError and two file-scope phase label helpers.",
+ "types": [
+  "RRCollector: class — recording orchestrator (@Observable, @MainActor)",
+  "RRCollector.MorningProcessingStatus: enum — morning card state",
+  "RRCollector.LiveHRVSnapshotMirror: struct — Sendable snapshot for LiveHRVBroker",
+  "RRCollector.MorningProcessingDependencies: struct — factory argument bundle",
+  "RRCollectorError: enum — collector errors with localized descriptions"
+ ],
+ "state": [
+  "mem:RRCollector.current (static weak)",
+  "mem:RRCollector.deviceFetchPolicy",
+  "mem:RRCollector.useDeviceBackupForOvernight",
+  "mem:RRCollector.overnightDeviceBackupActive",
+  "mem:RRCollector.isOvernightEnding",
+  "mem:RRCollector.overnightArmingTask",
+  "mem:RRCollector.armingRetryInterval",
+  "mem:RRCollector.onStreamingComplete",
+  "mem:RRCollector.streamingTimer (OSAllocatedUnfairLock box)",
+  "mem:RRCollector.sessionStartTime",
+  "mem:RRCollector.cancellables",
+  "mem:RRCollector.notificationObservers",
+  "mem:RRCollector.lastSeenReconnectCount",
+  "mem:RRCollector.cachedTrainingLoad",
+  "mem:RRCollector.pastDayTrainingLoads",
+  "mem:RRCollector.lastEmergencyFlush",
+  "mem:RRCollector._recoveryService",
+  "mem:RRCollector._reanalysisService",
+  "mem:RRCollector.inFlightReanalyses",
+  "mem:RRCollector.isAutoRefreshingSleep",
+  "mem:RRCollector.autoRefreshSleepPending",
+  "mem:RRCollector.liveHRVSnapshotMirror",
+  "mem:RRCollector.didBootBaseline",
+  "RRCollector.verification (default Verification)",
+  "RRCollector.streamingVerification (minPoints 120, minDurationHours 0.025, maxArtifact 20%, warn 10%)"
+ ],
+ "toplevel": "Stored-property initializers: deviceFetchPolicy .automatic, useDeviceBackupForOvernight true, overnightDeviceBackupActive false, isOvernightEnding false, armingRetryInterval = StrapRecordingPolicy.armingRetryIntervalSeconds, streamingTimerBox lock(nil), pastDayTrainingLoads [:], inFlightReanalyses [], liveHRVSnapshotMirror lock(nil), didBootBaseline lock(false), verification = Verification(), streamingVerification relaxed config. typealias CollectorError = RRCollectorError.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Header lists +Bindings, +PauseResume, +Streaming, +Recovery etc. as RRCollector extensions, but that behaviour now lives on CollectorSessionControl / SessionRecoveryCoordinator and other coordinators reached through forwarders.",
+   "evidence": [
+    "Emuqu/Sources/Collection/RRCollector.swift:7",
+    "Emuqu/Sources/Collection/CollectorSessionControl.swift:31",
+    "Emuqu/Sources/Collection/SessionRecoveryCoordinator.swift:32"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "duplicate",
+   "sev": "low",
+   "text": "VO2max override/opt-in precedence is implemented twice: trainingContext(from:) and configuredVO2Max.",
+   "evidence": [
+    "Emuqu/Sources/Collection/RRCollector.swift:399",
+    "Emuqu/Sources/Collection/RRCollector.swift:499"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var RRCollector.archiveVersion",
+   "hash": "0346747049ebfefc",
+   "does": "Back-compat getter returning ArchiveSignal.version.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ArchiveSignal.version"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.fetchProgress",
+   "hash": "4cd510f01aa55fb0",
+   "does": "Back-compat getter returning DeviceStatus.fetchProgress.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.fetchProgress"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.isDeviceConnected",
+   "hash": "0954c19f099bd66a",
+   "does": "Back-compat getter returning DeviceStatus.isDeviceConnected.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isDeviceConnected"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.isStreaming",
+   "hash": "15e745a9699e3c15",
+   "does": "Back-compat getter returning DeviceStatus.isStreaming.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isStreaming"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.hasStoredExercise",
+   "hash": "41e1ba4ea981b347",
+   "does": "Back-compat getter returning DeviceStatus.hasStoredExercise.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.hasStoredExercise"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.batteryLevel",
+   "hash": "189a7e19281ab2e4",
+   "does": "Back-compat getter returning DeviceStatus.batteryLevel.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.batteryLevel"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.isRecordingOnDevice",
+   "hash": "d17b02c5c9ea5db7",
+   "does": "Back-compat getter returning DeviceStatus.isRecordingOnDevice.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.isRecordingOnDevice"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.connectedDeviceType",
+   "hash": "b046a7adfc30fd83",
+   "does": "Back-compat getter returning DeviceStatus.connectedDeviceType.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.connectedDeviceType"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.recordingState",
+   "hash": "8b58422d0f6324c0",
+   "does": "Back-compat getter returning DeviceStatus.recordingState.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.recordingState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.connectionState",
+   "hash": "9d3ab047b84eb6be",
+   "does": "Back-compat getter returning DeviceStatus.connectionState.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:DeviceStatus.connectionState"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.recentPausedSession",
+   "hash": "0df22c65acaedbec",
+   "does": "Get/set forwarder to sessionState.recentPausedSession (cached paused session for the resume banner).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionState.recentPausedSession"
+   ],
+   "writes": [
+    "mem:SessionState.recentPausedSession"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.streamingTimer",
+   "hash": "f9d1611f870370f5",
+   "does": "Get/set the streaming Timer through an OSAllocatedUnfairLock so deinit can invalidate it.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RRCollector.streamingTimer"
+   ],
+   "writes": [
+    "mem:RRCollector.streamingTimer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RRCollector.control",
+   "hash": "f934e7bb44284ac6",
+   "does": "Builds a new CollectorSessionControl(collector: self) on each access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.setupBindings()",
+   "hash": "ff99932ba137ba13",
+   "does": "Forwards to CollectorSessionControl.setupBindings on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.setupBindings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.setupBindings()": "744682090bd2a1d6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.armObservationLoops()",
+   "hash": "fc77ec7ff974b453",
+   "does": "Forwards to CollectorSessionControl.armObservationLoops on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.armObservationLoops()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.armObservationLoops()": "3c98608b662ee13b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.runMergeDataLossMigrationIfNeeded()",
+   "hash": "1c19464ddf796cd4",
+   "does": "Forwards to CollectorSessionControl.runMergeDataLossMigrationIfNeeded on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()": "889eb2e1fa165529",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.publishLiveHRVSnapshotsToAssistant()",
+   "hash": "e5050d8ca846cf12",
+   "does": "Forwards to CollectorSessionControl.publishLiveHRVSnapshotsToAssistant on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.publishLiveHRVSnapshotsToAssistant()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.publishLiveHRVSnapshotsToAssistant()": "447243668bf1031b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.startStreamingSession(durationSeconds:)",
+   "hash": "739ff9fb119d699a",
+   "does": "Forwards to CollectorSessionControl.startStreamingSession on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingSession(durationSeconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingSession(durationSeconds:)": "35d1ceb1b5bd967d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.stopStreamingSession()",
+   "hash": "59a2b21d4812b1e4",
+   "does": "Forwards to CollectorSessionControl.stopStreamingSession on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "acb4f2d2d409ba19",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.stopStreamingTimer()",
+   "hash": "0a02282fec558548",
+   "does": "Forwards to CollectorSessionControl.stopStreamingTimer on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingTimer()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingTimer()": "7ef50bedf14e4231",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.pauseOvernightStreaming()",
+   "hash": "50feabd5ecef5168",
+   "does": "Forwards to CollectorSessionControl.pauseOvernightStreaming on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "04f5a4e44402eaba",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.resumeOvernightStreaming(linkedSessionId:)",
+   "hash": "43aa3932e2006389",
+   "does": "Forwards to CollectorSessionControl.resumeOvernightStreaming on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.finalizeFromPause()",
+   "hash": "159da988cbecfc7a",
+   "does": "Forwards to CollectorSessionControl.finalizeFromPause on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.persistPausedSessionState(sessionId:)",
+   "hash": "c739a6054df4c59a",
+   "does": "Forwards to CollectorSessionControl.persistPausedSessionState on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "9430360428757a0f",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.clearPausedSessionState()",
+   "hash": "0265d9937c781820",
+   "does": "Forwards to CollectorSessionControl.clearPausedSessionState on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()": "4ac0a722eeaae537",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.restorePausedStateIfNeeded()",
+   "hash": "c6dce7e2f254828f",
+   "does": "Forwards to CollectorSessionControl.restorePausedStateIfNeeded on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.restorePausedStateIfNeeded()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.restorePausedStateIfNeeded()": "bef642ce1de7a11f",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.refreshRecentPausedSession()",
+   "hash": "cc0209d41a44ff2f",
+   "does": "Forwards to CollectorSessionControl.refreshRecentPausedSession on a fresh control value.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.refreshRecentPausedSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.refreshRecentPausedSession()": "d968bdec59bf7801",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "f5231cd4a715d649"
+   }
+  },
+  {
+   "key": "func RRCollector.findRecentPausedSessionOffMain(archive:maxGap:)",
+   "hash": "23577dae6f83d6e3",
+   "does": "Nonisolated static forwarder to CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)"
+   ],
+   "reads": [
+    "archive:SessionArchive entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "36e3914cdbe2a842"
+   }
+  },
+  {
+   "key": "var RRCollector.archivedSessions",
+   "hash": "07754f50d332095b",
+   "does": "Loads and decodes every archived session (newest first) synchronously via recentSessions(limit: nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve (all)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Synchronous full-archive decrypt+decode on the MainActor (doc warns); used by reanalysis paths.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:249",
+      "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift:320"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431"
+   }
+  },
+  {
+   "key": "func RRCollector.recentSessions(limit:)",
+   "hash": "a29fd667beb3f1eb",
+   "does": "Takes the first `limit` archive entries (all when nil), retrieves each fully, counts and logs failures, and returns the decoded sessions in archive order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "limit != nil (map ?? allEntries)",
+     "effect": "prefix(limit); nil uses all entries"
+    },
+    {
+     "at": "+3",
+     "cond": "limit.map(String.init) ?? \"all\"",
+     "effect": "log text 'all' when no limit"
+    },
+    {
+     "at": "+6",
+     "cond": "for each entry",
+     "effect": "iterate"
+    },
+    {
+     "at": "+7",
+     "cond": "retrieve returned a session",
+     "effect": "appended; else errorCount += 1 (session silently omitted)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveLoggingFailure(_:)": "67cd80e3a94d5ca1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRCollector.retrieveLoggingFailure(_:)",
+   "hash": "4fff5dd105a32ecb",
+   "does": "Retrieves one session from the archive; returns nil (logged) when missing or when decode throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "retrieve returned nil",
+     "effect": "logs not-found and returns nil; else returns session"
+    },
+    {
+     "at": "+7",
+     "cond": "retrieve throws",
+     "effect": "logs the error and returns nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRCollector.recentSessionsAsync(limit:)",
+   "hash": "454587d0d50af87b",
+   "does": "Picks the first `limit` archive entries (all when nil) and decodes them lightweight (no rrSeries) in parallel on a detached userInitiated task, returning them in archive order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "limit != nil",
+     "effect": "prefix(limit); else all entries"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "e5529abf5b483fb8"
+   }
+  },
+  {
+   "key": "func RRCollector.decodeInParallel(_:archive:)",
+   "hash": "d20ea67a9b0dd29a",
+   "does": "Runs a TaskGroup that decodes each entry lightweight and gathers results in original order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)": "60715fa398d424f3",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)": "2564a3a573de0f48"
+   }
+  },
+  {
+   "key": "func RRCollector.addDecodeTasks(_:entries:archive:)",
+   "hash": "3c3191b46d36be82",
+   "does": "Adds one child task per entry calling archive.retrieveLightweightOrLog, tagged with its index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each entry",
+     "effect": "adds a task"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func RRCollector.collectIndexed(_:capacity:)",
+   "hash": "22a105de39e87f26",
+   "does": "Drains the group, drops nil (failed decode) results and sorts by original index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each (index, session?) result",
+     "effect": "appends non-nil sessions; nil dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.retrieveFullSessionAsync(_:)",
+   "hash": "dd7f2812f83a3d6f",
+   "does": "Fully retrieves one session (with rrSeries) on a detached userInitiated task; nil on missing/decode failure (logged).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13"
+   }
+  },
+  {
+   "key": "var RRCollector.hasUnrecoveredData",
+   "hash": "72c0c52c27118175",
+   "does": "True when the strap reports a stored exercise with a known start that the app has not saved (ledger/archive check).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)"
+   ],
+   "reads": [
+    "mem:PolarManager.hasStoredExercise",
+    "mem:PolarManager.storedExerciseDate"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "stored exercise exists and its date is known",
+     "effect": "returns !isStrapRecordingSaved(start); else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "b928802bf3a2b84b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403"
+   }
+  },
+  {
+   "key": "func RRCollector.isStrapRecordingSaved(startedAt:)",
+   "hash": "07ec208012d371e1",
+   "does": "Asks StrapRecordingPolicy.recordingIsSaved using the download ledger (downloaded / predates ledger) and whether the archive has a session within 30 min of the start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)"
+   ],
+   "reads": [
+    "mem:PolarManager.downloadLedger",
+    "archive:SessionArchive index (hasSessionNear)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)": "76e1c4f711e1e502",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "88c9e19a84feca96",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:archiveHasSessionNearStart:)": "04da97b766e0278d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)": "c9fc650a41358dd0"
+   }
+  },
+  {
+   "key": "var RRCollector.offersStrapRecovery",
+   "hash": "fb485520fbd8cf18",
+   "does": "Recover card visibility: hasUnrecoveredData or an orphaned recording running on the strap.",
+   "entry": "RecordView+Sections.swift:108 SwiftUI body read",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "ef19a875cb340fce",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "bf812a1928139cbd"
+   }
+  },
+  {
+   "key": "func RRCollector.createTrainingContext(relativeTo:)",
+   "hash": "6bf0001c945229e9",
+   "does": "Returns a TrainingContext built from the training load held for referenceDate (today's cache or a fetched past-day load), with VO2max override/opt-out applied; nil when no load is held or the context init fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a load is held for the date",
+     "effect": "builds the context; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "36355004b3377251",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "31a203a91ff6c405"
+   }
+  },
+  {
+   "key": "func RRCollector.trainingLoad(asOf:)",
+   "hash": "6692b1911c2578a0",
+   "does": "Returns cachedTrainingLoad for today, else pastDayTrainingLoads[startOfDay(date)].",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RRCollector.cachedTrainingLoad",
+    "mem:RRCollector.pastDayTrainingLoads"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "date is today",
+     "effect": "returns the shared cache; else the past-day map entry (nil if never fetched)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "cachedTrainingLoad carries no date: trainingLoad(asOf:) returns it for any date that is today, so a load fetched before midnight in a long-lived process (overnight recording) is returned as today's after midnight, and createTrainingContextEnsuringFresh then skips its fresh fetch because a context already exists. The property's doc ('Never holds a past day's') is not enforced.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:128",
+      "Emuqu/Sources/Collection/RRCollector.swift:390",
+      "Emuqu/Sources/Collection/RRCollector.swift:423"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+   }
+  },
+  {
+   "key": "func RRCollector.trainingContext(from:relativeTo:)",
+   "hash": "88d53331e59f0dd2",
+   "does": "Builds TrainingContext(from: load, relativeTo:) and applies settings: vo2MaxOverride replaces vo2Max; when not using HealthKit VO2max, vo2Max is cleared.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.vo2MaxOverride",
+    "mem:SettingsManager.settings.useHealthKitVO2Max"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "TrainingContext init succeeds",
+     "effect": "continues; else nil"
+    },
+    {
+     "at": "+5",
+     "cond": "vo2MaxOverride set",
+     "effect": "vo2Max = override"
+    },
+    {
+     "at": "+7",
+     "cond": "no override and useHealthKitVO2Max false",
+     "effect": "vo2Max = nil; otherwise HealthKit value kept"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026"
+   }
+  },
+  {
+   "key": "func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
+   "hash": "80b290baefc5042b",
+   "does": "Returns the held-load context when available; otherwise, with training-load integration on, fetches the load from HealthKit as of referenceDate (caching it only when today) and builds the context; nil when integration is off.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration",
+    "hk:workouts/training load"
+   ],
+   "writes": [
+    "mem:RRCollector.cachedTrainingLoad"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held context exists",
+     "effect": "returns it"
+    },
+    {
+     "at": "+4",
+     "cond": "integration enabled",
+     "effect": "fetches; else returns nil"
+    },
+    {
+     "at": "+9",
+     "cond": "referenceDate is today",
+     "effect": "stores the fetched load in cachedTrainingLoad; past-day loads are not cached (refetched on every call)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says 'If integration is disabled -> return nil', but the held-load check on line 423 runs before the enableTrainingLoadIntegration guard, so a load cached while integration was on is still returned after the user turns it off.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:420",
+      "Emuqu/Sources/Collection/RRCollector.swift:423",
+      "Emuqu/Sources/Collection/RRCollector.swift:426"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "1115324e6b6eb2ac",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingContext(from:relativeTo:)": "36355004b3377251",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "6701fb9622de3bda",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func RRCollector.scoringBaselineStats(for:)",
+   "hash": "03151905d07e7c08",
+   "does": "Returns the BaselineTracker recovery baseline excluding the session's own night and later nights, using the settings sleep schedule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker history",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6"
+   }
+  },
+  {
+   "key": "var RRCollector.currentScoringConfig",
+   "hash": "56e2e7511a92a436",
+   "does": "Builds RecoveryScoreCalculator.ScoringConfiguration from current settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7"
+   }
+  },
+  {
+   "key": "var RRCollector.currentANSConfig",
+   "hash": "926235af2226ea63",
+   "does": "ansConfig(asOf: now) — ANS configuration with today's load and the all-nights baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:)": "fe660fc1908f2f18"
+   }
+  },
+  {
+   "key": "func RRCollector.ansConfig(asOf:)",
+   "hash": "eb5190f695566acd",
+   "does": "ANS configuration as of `date` with the tracker's full recovery baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats"
+   ],
+   "reads": [
+    "mem:BaselineTracker history"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)": "3333501657a97f65"
+   }
+  },
+  {
+   "key": "func RRCollector.ansConfig(for:)",
+   "hash": "b34a65fcdbb3c2b8",
+   "does": "ANS configuration for a session: load as of its end (now if open) and the prior-nights baseline from scoringBaselineStats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.endDate ?? Date()",
+     "effect": "uses now when the session has no end"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)": "3333501657a97f65",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "f465e8f605f0556c"
+   }
+  },
+  {
+   "key": "func RRCollector.ansConfig(asOf:baseline:)",
+   "hash": "92cb420de2578b89",
+   "does": "Builds HRVAnalysisPipeline.ANSConfiguration: baselineRMSSD = exp(baseline lnRmssdMean), else settings.baselineRMSSD, else population baseline; vo2Max and training-load adjustment from the load held for `date`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredVO2Max(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredTrainingLoadAdjustment(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.baselineRMSSD",
+    "mem:SettingsManager.settings.populationBaselineRMSSD"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "baseline stats present",
+     "effect": "baselineRMSSD = exp(lnRmssdMean)"
+    },
+    {
+     "at": "+13",
+     "cond": "?? settings.baselineRMSSD ?? populationBaselineRMSSD",
+     "effect": "legacy settings baseline when no tracker baseline, population value when neither"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredTrainingLoadAdjustment(_:)": "79c755582ed27b93",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.configuredVO2Max(_:)": "e00e5e016195f9a5",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.trainingLoad(asOf:)": "31a203a91ff6c405",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD": "5f7cfa36c20d28ad"
+   }
+  },
+  {
+   "key": "func RRCollector.configuredVO2Max(_:)",
+   "hash": "9fa50c2b4613d41a",
+   "does": "VO2max for ANS config: override if set, else the load's VO2max when HealthKit VO2max is enabled, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.vo2MaxOverride",
+    "mem:SettingsManager.settings.useHealthKitVO2Max"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    },
+    {
+     "at": "+5",
+     "cond": "useHealthKitVO2Max",
+     "effect": "returns load?.vo2Max; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.configuredTrainingLoadAdjustment(_:)",
+   "hash": "2f5bd4fd21dde48b",
+   "does": "Readiness adjustment from the load when training-load integration is on and a load exists; else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "integration on and load present",
+     "effect": "returns load.readinessAdjustment; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::var TrainingLoad.readinessAdjustment": "6ba2f6915f64f998"
+   }
+  },
+  {
+   "key": "func RRCollector.makeDefault()",
+   "hash": "1824afe95412234b",
+   "does": "Production factory: builds the collector from shared dependencies and registers it as the weak static RRCollector.current.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.current"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0"
+   }
+  },
+  {
+   "key": "func RRCollector.boot()",
+   "hash": "2f14799f5226a40e",
+   "does": "Once per collector (lock-guarded flag): if the baseline tracker is empty and the archive has entries, starts an off-main baseline rebuild.",
+   "entry": "AppLaunchTasks.swift:144 timedBoot(\"collector\") after first frame",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
+   ],
+   "reads": [
+    "mem:RRCollector.didBootBaseline",
+    "mem:BaselineTracker.daysCollected",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:RRCollector.didBootBaseline"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "already booted",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "tracker empty and archive non-empty",
+     "effect": "rebuilds; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+   }
+  },
+  {
+   "key": "func boot()",
+   "hash": "3e7c4147a2588fae",
+   "does": "Once per collector (lock-guarded flag): if the baseline tracker is empty and the archive has entries, starts an off-main baseline rebuild.",
+   "entry": "AppLaunchTasks.swift:144 timedBoot(\"collector\") after first frame",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
+   ],
+   "reads": [
+    "mem:RRCollector.didBootBaseline",
+    "mem:BaselineTracker.daysCollected",
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [
+    "mem:RRCollector.didBootBaseline"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "already booted",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "tracker empty and archive non-empty",
+     "effect": "rebuilds; else returns"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+   }
+  },
+  {
+   "key": "func RRCollector.rebuildBaselineOffMain(replacing:)",
+   "hash": "2f14799f5226a40e",
+   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions to the baseline tracker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (all)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "A replacing rebuild resets the tracker with sessions decoded before the hop; a night admitted to the baseline between the snapshot and the commit is wiped until the next rebuild.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:584",
+      "Emuqu/Sources/Collection/RRCollector.swift:589",
+      "Emuqu/Sources/Collection/RRCollector.swift:606"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
+    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func rebuildBaselineOffMain(replacing:)",
+   "hash": "93cf8d2a1c0133d3",
+   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions to the baseline tracker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (all)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "race",
+     "sev": "low",
+     "text": "A replacing rebuild resets the tracker with sessions decoded before the hop; a night admitted to the baseline between the snapshot and the commit is wiped until the next rebuild.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:584",
+      "Emuqu/Sources/Collection/RRCollector.swift:589",
+      "Emuqu/Sources/Collection/RRCollector.swift:606"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func commitRebuiltBaseline(_:replacing:)": "fe744494ea9241d5",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+   }
+  },
+  {
+   "key": "func RRCollector.rebuildBaselineFromArchive()",
+   "hash": "2f14799f5226a40e",
+   "does": "Starts a replacing baseline rebuild from the current archive (after a reviewed night is discarded).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+   }
+  },
+  {
+   "key": "func rebuildBaselineFromArchive()",
+   "hash": "283cbdea2a706b05",
+   "does": "Starts a replacing baseline rebuild from the current archive (after a reviewed night is discarded).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "a73a3a2fcda4dfe4"
+   }
+  },
+  {
+   "key": "func RRCollector.commitRebuiltBaseline(_:replacing:)",
+   "hash": "2f14799f5226a40e",
+   "does": "Replacing: resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule (persists the tracker and fires the onBaselineUpdated callback per BaselineTracker).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker.daysCollected",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [
+    "mem:BaselineTracker history"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "replacing",
+     "effect": "reset tracker then rebuild"
+    },
+    {
+     "at": "+4",
+     "cond": "not replacing and daysCollected > 0",
+     "effect": "returns without rebuilding; else rebuilds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464"
+   }
+  },
+  {
+   "key": "func commitRebuiltBaseline(_:replacing:)",
+   "hash": "51f5210d7d07837c",
+   "does": "Replacing: resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule (persists the tracker and fires the onBaselineUpdated callback per BaselineTracker).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker.daysCollected",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [
+    "mem:BaselineTracker history"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "replacing",
+     "effect": "reset tracker then rebuild"
+    },
+    {
+     "at": "+3",
+     "cond": "not replacing and daysCollected > 0",
+     "effect": "returns without rebuilding; else rebuilds"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "bf511a859401a83f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "d383f3d97b242464"
+   }
+  },
+  {
+   "key": "init RRCollector()",
+   "hash": "02e44bd3a4b20d7b",
+   "does": "Convenience init used by previews/tests: delegates to init(defaultsFromShared:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Previews (e.g. OnboardingView.swift:242) build a real collector wired to AppDependencies shared archive, settings, HealthKit and a new PolarManager.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:628",
+      "Emuqu/Sources/Views/Onboarding/OnboardingView.swift:242"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0"
+   }
+  },
+  {
+   "key": "init RRCollector(defaultsFromShared:)",
+   "hash": "2eee188105310aa4",
+   "does": "Resolves shared settings manager, archive and HealthKit manager from AppDependencies, builds a BaselineTracker whose onBaselineUpdated writes the baseline into SettingsManager, and calls the designated init with a new PolarManager, RawRRBackup, ArtifactDetector, WindowSelector.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.updateBaseline(rmssd:hr:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current"
+   ],
+   "writes": [
+    "mem:SettingsManager.settings baseline (via closure)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.updateBaseline(rmssd:hr:)": "5c568ba65fde510a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "fc8431a6601465db",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+   "hash": "32cb843f577224a9",
+   "does": "Designated init: assigns all dependencies, defaulting nil ones (ArchiveSignal, DeviceStatus, StreamingLifecycle, MorningCoordination, SessionState, CloudKitSyncManager and BackgroundAudioManager from AppDependencies, ReconciliationManager, pipeline, SleepBoundaryResolver, acceptance and morning services via factories), then wireCollaborators.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makePipeline(artifactDetector:windowSelector:healthKit:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeAcceptanceService(archive:healthKit:baselineTracker:rawBackup:cloudSync:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeMorningProcessingService(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)"
+   ],
+   "reads": [
+    "mem:AppDependencies.current"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+30",
+     "cond": "archiveSignal ?? ArchiveSignal()",
+     "effect": "new signal when not injected"
+    },
+    {
+     "at": "+31",
+     "cond": "deviceStatus ?? DeviceStatus()",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+32",
+     "cond": "streamingLifecycle ?? StreamingLifecycle()",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+33",
+     "cond": "morningCoordination ?? MorningCoordination()",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+34",
+     "cond": "sessionState ?? SessionState()",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+35",
+     "cond": "cloudSyncManager ?? AppDependencies shared CloudKitSyncManager",
+     "effect": "shared production sync manager when not injected"
+    },
+    {
+     "at": "+37",
+     "cond": "backgroundAudioManager ?? AppDependencies shared",
+     "effect": "shared when not injected"
+    },
+    {
+     "at": "+38",
+     "cond": "reconciliation ?? ReconciliationManager(archive:)",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+39",
+     "cond": "analysisPipeline ?? makePipeline",
+     "effect": "factory pipeline when not injected"
+    },
+    {
+     "at": "+43",
+     "cond": "sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit:)",
+     "effect": "new when not injected"
+    },
+    {
+     "at": "+44",
+     "cond": "acceptanceService ?? makeAcceptanceService",
+     "effect": "factory when not injected"
+    },
+    {
+     "at": "+48",
+     "cond": "morningProcessingService ?? makeMorningProcessingService",
+     "effect": "factory when not injected"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "coupling",
+     "sev": "low",
+     "text": "Documented 'for testing' with injected dependencies, yet defaults settingsManager, cloudSyncManager and backgroundAudioManager to the AppDependencies shared instances, so a test that injects only polarManager/healthKit runs against the production CloudKit sync manager and settings.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:670",
+      "Emuqu/Sources/Collection/RRCollector.swift:679",
+      "Emuqu/Sources/Collection/RRCollector.swift:706",
+      "Emuqu/Sources/Collection/RRCollector.swift:708"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "165c0cc6e5775dcd",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)": "369483ff74f9e96b",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "649db20a5b80e648",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeAcceptanceService(archive:healthKit:baselineTracker:rawBackup:cloudSync:)": "a81a0e1680b142b6",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeMorningProcessingService(_:)": "14532d33f42490a9",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makePipeline(artifactDetector:windowSelector:healthKit:)": "6926a7e250c1a000",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b79d8ead159ebe60",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "fc8431a6601465db",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "be8f6bf82d955f07",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+   }
+  },
+  {
+   "key": "func RRCollector.makePipeline(artifactDetector:windowSelector:healthKit:)",
+   "hash": "ca752e057268e223",
+   "does": "Builds HRVAnalysisPipeline from the artifact detector, window selector and HealthKit manager.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "458e2091ed3d7cb2"
+   }
+  },
+  {
+   "key": "func RRCollector.makeAcceptanceService(archive:healthKit:baselineTracker:rawBackup:cloudSync:)",
+   "hash": "cf7a664642983a6e",
+   "does": "Builds SessionAcceptanceService with closures that upload a session to CloudKit and delete a CloudKit live backup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ck:session upload / live backup delete (inside closures)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "aba25f71775f0d83",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "45359120e68caf72",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "6be1af35552af634"
+   }
+  },
+  {
+   "key": "func RRCollector.makeMorningProcessingService(_:)",
+   "hash": "67127ca88f44f058",
+   "does": "Builds MorningProcessingService from the dependency bundle.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService.swift::init MorningProcessingService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:verification:baselineTracker:rawBackup:now:sleep:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService.swift::init MorningProcessingService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:verification:baselineTracker:rawBackup:now:sleep:)": "787f1f0ed5950496",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.pipeline": "c6fdbcd680c543f2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+   }
+  },
+  {
+   "key": "func RRCollector.wireCollaborators()",
+   "hash": "72eb05fb6629b446",
+   "does": "Post-init wiring on the launch path: bindings, data-rescue callback, lifecycle observers, Beat-Consistency priors cache binding to the archive signal, rescore and CloudKit-snapshot listeners, paused-state restore, recent-paused refresh, assistant live-HRV publishing, observation loops and the merge data-loss migration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.setupBindings()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupDataRescueCallback()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupLifecycleObservers()",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installRescoreListener()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installCloudKitSnapshotBackfillListener()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restorePausedStateIfNeeded()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.refreshRecentPausedSession()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.publishLiveHRVSnapshotsToAssistant()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.armObservationLoops()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.runMergeDataLossMigrationIfNeeded()"
+   ],
+   "reads": [
+    "mem:AppDependencies.current.analysis.beatConsistencyPriorsCache"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)": "37a3d035a35511fb",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupDataRescueCallback()": "becce29857b32a0b",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.setupLifecycleObservers()": "3247a61d2380a692",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installCloudKitSnapshotBackfillListener()": "64df9cdfe44ecb5d",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.installRescoreListener()": "1d259b690fd6da60",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.armObservationLoops()": "07467b2b6a4675e3",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.publishLiveHRVSnapshotsToAssistant()": "9f24ea924dcde3c3",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.refreshRecentPausedSession()": "82a5b0ab2999df8a",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restorePausedStateIfNeeded()": "527803514997fdac",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.runMergeDataLossMigrationIfNeeded()": "94b8481b7e804cd8",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.setupBindings()": "8cbb662bb077220b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+   }
+  },
+  {
+   "key": "func RRCollector.refreshLiveHRVSnapshotMirror()",
+   "hash": "2f14799f5226a40e",
+   "does": "Clears the live-HRV snapshot mirror when idle; otherwise writes phase machine/human labels, isCollecting, beat count, session start and last error description into the lock-protected mirror read by the LiveHRVBroker provider.",
+   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift:129 onSessionStateChanged)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)"
+   ],
+   "reads": [
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.isCollecting",
+    "mem:SessionState.collectedPoints",
+    "mem:SessionState.currentSession",
+    "mem:SessionState.lastError"
+   ],
+   "writes": [
+    "mem:RRCollector.liveHRVSnapshotMirror"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "phase != .idle",
+     "effect": "builds and stores the mirror; else stores nil and returns"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says it is called from a MainActor Combine sink; it is actually called from onSessionStateChanged, re-armed by withObservationTracking onChange via a Task.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:821",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:122",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:129"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "95b1582000cb698f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "dab0f809cbb1be27",
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)": "5ffb57c8f4d08153",
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)": "9a59104fb3ace3d0"
+   }
+  },
+  {
+   "key": "func refreshLiveHRVSnapshotMirror()",
+   "hash": "1833cb4b8cae927d",
+   "does": "Clears the live-HRV snapshot mirror when idle; otherwise writes phase machine/human labels, isCollecting, beat count, session start and last error description into the lock-protected mirror read by the LiveHRVBroker provider.",
+   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift:129 onSessionStateChanged)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)"
+   ],
+   "reads": [
+    "mem:SessionState.recordingPhase",
+    "mem:SessionState.isCollecting",
+    "mem:SessionState.collectedPoints",
+    "mem:SessionState.currentSession",
+    "mem:SessionState.lastError"
+   ],
+   "writes": [
+    "mem:RRCollector.liveHRVSnapshotMirror"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "phase != .idle",
+     "effect": "builds and stores the mirror; else stores nil and returns"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Comment says it is called from a MainActor Combine sink; it is actually called from onSessionStateChanged, re-armed by withObservationTracking onChange via a Task.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:821",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:122",
+      "Emuqu/Sources/Collection/RRCollector+Bindings.swift:129"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)": "5ffb57c8f4d08153",
+    "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)": "9a59104fb3ace3d0"
+   }
+  },
+  {
+   "key": "deinit RRCollector",
+   "hash": "66c6265886945b06",
+   "does": "Invalidates the streaming timer through the lock and removes block NotificationCenter observers.",
+   "entry": "Swift deinit when the last reference is released",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.streamingTimer",
+    "mem:RRCollector.notificationObservers"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "deinit is nonisolated and may run off the main thread, but the Timer was scheduled on the main run loop; Timer.invalidate must be called from the installing thread.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:854",
+      "Emuqu/Sources/Collection/RRCollector+Streaming.swift:65"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "var RRCollectorError.errorDescription",
+   "hash": "96fc7fc082e12194",
+   "does": "Localized user-facing description per error case; import/morning-fetch cases delegate to outcomeDescription.",
+   "entry": "LocalizedError witness (error.localizedDescription)",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollectorError.outcomeDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "notConnected",
+     "effect": "'Polar device not connected'"
+    },
+    {
+     "at": "+4",
+     "cond": "alreadyRecording",
+     "effect": "'A recording is already in progress on the device'"
+    },
+    {
+     "at": "+6",
+     "cond": "sessionExists",
+     "effect": "'A session with this ID already exists'"
+    },
+    {
+     "at": "+8",
+     "cond": "insufficientData",
+     "effect": "'Not enough RR data collected (need at least 120 beats)'"
+    },
+    {
+     "at": "+10",
+     "cond": "noSessionToAccept",
+     "effect": "'No completed session to accept'"
+    },
+    {
+     "at": "+12",
+     "cond": "noSessionToRecover",
+     "effect": "'No session found to recover data into'"
+    },
+    {
+     "at": "+14",
+     "cond": "dataAlreadyExists or strapRecordingAlreadySaved",
+     "effect": "'Session already has this RR data - no recovery needed'"
+    },
+    {
+     "at": "+16",
+     "cond": "duplicateImport, importNotAnalyzed, strapStillHoldsNight",
+     "effect": "returns outcomeDescription"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollectorError.outcomeDescription": "b33a17d610b3d279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RRCollectorError.outcomeDescription",
+   "hash": "e507553adb8771c0",
+   "does": "Messages for duplicateImport, importNotAnalyzed and strapStillHoldsNight(missingMinutes) (formats the gap with LocalizedDuration.hoursMinutes); nil otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "duplicateImport",
+     "effect": "already-in-history message"
+    },
+    {
+     "at": "+4",
+     "cond": "importNotAnalyzed",
+     "effect": "no complete reading message"
+    },
+    {
+     "at": "+6",
+     "cond": "strapStillHoldsNight",
+     "effect": "missing-gap message telling user to recover from Record screen"
+    },
+    {
+     "at": "+9",
+     "cond": "default",
+     "effect": "nil (never reached via errorDescription)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "default case returns nil but outcomeDescription is private and only called from errorDescription for duplicateImport/importNotAnalyzed/strapStillHoldsNight, all handled explicitly.",
+     "evidence": [
+      "Emuqu/Sources/Collection/RRCollector.swift:897",
+      "Emuqu/Sources/Collection/RRCollector.swift:913"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+   }
+  },
+  {
+   "key": "func phaseMachineLabel(_: RecordingPhase)",
+   "hash": "2f14799f5226a40e",
+   "does": "Machine label for a phase: idle, streaming, overnight, deviceRecording, paused, analyzing, awaitingAcceptance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "idle",
+     "effect": "\"idle\""
+    },
+    {
+     "at": "+4",
+     "cond": "streaming",
+     "effect": "\"streaming\""
+    },
+    {
+     "at": "+5",
+     "cond": "overnightStreaming",
+     "effect": "\"overnight\""
+    },
+    {
+     "at": "+6",
+     "cond": "deviceRecording",
+     "effect": "\"deviceRecording\""
+    },
+    {
+     "at": "+7",
+     "cond": "paused",
+     "effect": "\"paused\""
+    },
+    {
+     "at": "+8",
+     "cond": "analyzing",
+     "effect": "\"analyzing\""
+    },
+    {
+     "at": "+9",
+     "cond": "awaitingAcceptance",
+     "effect": "\"awaitingAcceptance\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func phaseMachineLabel(_:)",
+   "hash": "e574568107258ce3",
+   "does": "Machine label for a phase: idle, streaming, overnight, deviceRecording, paused, analyzing, awaitingAcceptance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "idle",
+     "effect": "\"idle\""
+    },
+    {
+     "at": "+3",
+     "cond": "streaming",
+     "effect": "\"streaming\""
+    },
+    {
+     "at": "+4",
+     "cond": "overnightStreaming",
+     "effect": "\"overnight\""
+    },
+    {
+     "at": "+5",
+     "cond": "deviceRecording",
+     "effect": "\"deviceRecording\""
+    },
+    {
+     "at": "+6",
+     "cond": "paused",
+     "effect": "\"paused\""
+    },
+    {
+     "at": "+7",
+     "cond": "analyzing",
+     "effect": "\"analyzing\""
+    },
+    {
+     "at": "+8",
+     "cond": "awaitingAcceptance",
+     "effect": "\"awaitingAcceptance\""
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func phaseHumanLabel(_: RecordingPhase)",
+   "hash": "2f14799f5226a40e",
+   "does": "Localized human label for a phase in the app language (quick streaming includes the target in minutes), quoted to the user by the assistant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "idle",
+     "effect": "'Idle'"
+    },
+    {
+     "at": "+5",
+     "cond": "streaming(target)",
+     "effect": "'Quick streaming (target N min)' using target/60"
+    },
+    {
+     "at": "+7",
+     "cond": "overnightStreaming",
+     "effect": "'Overnight recording'"
+    },
+    {
+     "at": "+8",
+     "cond": "deviceRecording",
+     "effect": "'Device-internal recording'"
+    },
+    {
+     "at": "+9",
+     "cond": "paused",
+     "effect": "'Paused'"
+    },
+    {
+     "at": "+10",
+     "cond": "analyzing",
+     "effect": "'Analyzing'"
+    },
+    {
+     "at": "+11",
+     "cond": "awaitingAcceptance",
+     "effect": "'Awaiting session review'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  },
+  {
+   "key": "func phaseHumanLabel(_:)",
+   "hash": "2039e0209086a9fb",
+   "does": "Localized human label for a phase in the app language (quick streaming includes the target in minutes), quoted to the user by the assistant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "idle",
+     "effect": "'Idle'"
+    },
+    {
+     "at": "+4",
+     "cond": "streaming(target)",
+     "effect": "'Quick streaming (target N min)' using target/60"
+    },
+    {
+     "at": "+6",
+     "cond": "overnightStreaming",
+     "effect": "'Overnight recording'"
+    },
+    {
+     "at": "+7",
+     "cond": "deviceRecording",
+     "effect": "'Device-internal recording'"
+    },
+    {
+     "at": "+8",
+     "cond": "paused",
+     "effect": "'Paused'"
+    },
+    {
+     "at": "+9",
+     "cond": "analyzing",
+     "effect": "'Analyzing'"
+    },
+    {
+     "at": "+10",
+     "cond": "awaitingAcceptance",
+     "effect": "'Awaiting session review'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+   }
+  }
+ ],
+ "deps": {}
+}

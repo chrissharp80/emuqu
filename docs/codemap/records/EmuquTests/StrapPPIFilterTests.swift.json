@@ -1,0 +1,285 @@
+{
+ "file": "EmuquTests/StrapPPIFilterTests.swift",
+ "hash": "840fc4ddc2f5ab2b",
+ "role": "XCTest suite for StrapPPIFilter, the single optical PPI quality gate shared by the live PPI stream and the downloaded Verity Sense recording: blocker bit, error-estimate cap (20 ms), physiological range 300–2000 ms, and the rrPoints series builder whose t_ms advances only across accepted beats.",
+ "types": [
+  "StrapPPIFilterTests: class — XCTestCase over StrapPPIFilter.acceptedInterval/acceptedRange/rrPoints"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func StrapPPIFilterTests.sample(_:error:blocker:)",
+   "hash": "ca2b95b1577e998f",
+   "does": "Test helper: builds StrapPPISample(ppInMs:, ppErrorEstimate: error (default 0), blockerBit: blocker (default 0)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func StrapPPIFilterTests.testACleanPlausibleIntervalIsAccepted()",
+   "hash": "5fb7d0b158a4f24b",
+   "does": "Asserts acceptedInterval returns 850 for a clean 850 ms sample.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange": "4b23ead6007be4c9",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testABlockedIntervalIsRejectedHoweverPlausible()",
+   "hash": "763765c19a06dc65",
+   "does": "Asserts acceptedInterval returns nil for an 850 ms sample with blockerBit 1 and with blockerBit 2 (any non-zero).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testAnIntervalAboveTheErrorCapIsRejected()",
+   "hash": "f7debecacd4fc27d",
+   "does": "Asserts acceptedInterval accepts error == maxErrorEstimateMs (20) and rejects maxErrorEstimateMs + 1 (inclusive cap).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testIntervalsOutsideThePhysiologicalRangeAreRejected()",
+   "hash": "95d63036a864d7be",
+   "does": "Asserts the range edges: 299 nil, 300 accepted, 2000 accepted, 2001 nil, 0 nil, -5 nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange": "4b23ead6007be4c9",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testTheGateReadsTheSharedPhysiologicalRange()",
+   "hash": "a47f460111f7503a",
+   "does": "Asserts StrapPPIFilter.acceptedRange equals HRVConstants.RRValidity.polarStreamRange (300...2000) and that its bounds equal HRVThresholds.minimumRRIntervalMs (300) and maximumRRIntervalMs (2000), pinning the two constants together.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange": "4b23ead6007be4c9",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testAcceptedIntervalsBecomeBeatsInOrder()",
+   "hash": "bff410d89d1cb060",
+   "does": "Asserts rrPoints over [800, 820, 810] yields rr_ms [800, 820, 810] in order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testTheTimelineAccumulatesAcrossAcceptedBeats()",
+   "hash": "98914e89a88a646b",
+   "does": "Asserts rrPoints t_ms is cumulative over accepted beats: [0, 800, 1620].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testARejectedIntervalContributesNoElapsedTime()",
+   "hash": "86c0514eb3276a0c",
+   "does": "Characterisation: with a blocked 900 ms beat between 800 and 810, asserts rr_ms [800, 810] and t_ms [0, 800] — the dropped beat adds no elapsed time.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testARecordingOfNothingButArtefactYieldsNoBeats()",
+   "hash": "d95978fd89a8ac3d",
+   "does": "Asserts rrPoints over only rejected samples (blocked, error 99, 120 ms, 5000 ms) is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testAnEmptyRecordingYieldsNoBeats()",
+   "hash": "fd2f34db23843ee5",
+   "does": "Asserts rrPoints over [] is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testEveryEmittedBeatIsPhysiologicallyPlausible()",
+   "hash": "94e6c3275d5ce56b",
+   "does": "Property test: 400 synthetic samples (pp 100+7i, error i%40, blocker on every 11th) — asserts at least one beat survives and every emitted rr_ms lies in acceptedRange.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "i % 11 == 0 (ternary choosing blocker bit)",
+     "effect": "true: blocker 1 (sample will be rejected); false: blocker 0"
+    },
+    {
+     "at": "+6",
+     "cond": "for each emitted point",
+     "effect": "asserts acceptedRange.contains(rr_ms); zero iterations only if empty, which the preceding XCTAssertFalse(isEmpty) catches"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::var StrapPPIFilter.acceptedRange": "4b23ead6007be4c9",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  },
+  {
+   "key": "func StrapPPIFilterTests.testTimestampsAreMonotonic()",
+   "hash": "bb9f8575626d0885",
+   "does": "Property test: 200 synthetic samples (pp 250+13i, error i%25, blocker every 7th) — asserts consecutive t_ms values strictly increase.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "i % 7 == 0 (ternary choosing blocker bit)",
+     "effect": "true: blocker 1; false: blocker 0"
+    },
+    {
+     "at": "+5",
+     "cond": "for each consecutive (earlier, later) pair of points",
+     "effect": "asserts earlier.t_ms < later.t_ms; with 0 or 1 points the loop runs zero times and the test passes with no assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "No non-empty precondition: if rrPoints returned 0 or 1 points the zip loop runs zero times and the test passes without asserting anything (the sibling property test at line 109 guards this with XCTAssertFalse(points.isEmpty), this one does not).",
+     "evidence": [
+      "EmuquTests/StrapPPIFilterTests.swift:122",
+      "EmuquTests/StrapPPIFilterTests.swift:123"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.rrPoints(from:)": "de49548f13f9d95c",
+    "EmuquTests/StrapPPIFilterTests.swift::func StrapPPIFilterTests.sample(_:error:blocker:)": "33c79d0930abdc76"
+   }
+  }
+ ],
+ "deps": {}
+}

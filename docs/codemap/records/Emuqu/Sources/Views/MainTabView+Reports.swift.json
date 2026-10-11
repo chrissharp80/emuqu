@@ -1,0 +1,261 @@
+{
+ "file": "Emuqu/Sources/Views/MainTabView+Reports.swift",
+ "hash": "925d46a23d2b0d57",
+ "role": "MainTabView extension rendering the dashboard Send-report PDFs off the main actor: recovery (PDFReportGenerator), daily (HolisticDailyReport) and workout (WorkoutPDFReport), to tmp/emuqu-report-<epoch>.pdf.",
+ "types": [
+  "MainTabView.ReportHRSettings: struct — maxHR/restingHR/LTHR/units/temperature unit bundle"
+ ],
+ "state": [
+  "file:tmp/emuqu-report-<epoch seconds>.pdf"
+ ],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "duplicate",
+   "sev": "med",
+   "text": "The three renderers duplicate ReportsListView's: renderRecoveryReport/recoveryPDFURL are line-for-line the same generator call and temp-file move as ReportsListView.renderRecovery/recoveryPDFURL, and renderDailyReport/renderWorkoutReport rebuild HolisticDailyReport/WorkoutPDFReport like renderHolistic/renderWorkoutOnly; a change to report inputs must be made in both places.",
+   "evidence": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift:71",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift:88",
+    "Emuqu/Sources/Views/ReportsListView.swift:427",
+    "Emuqu/Sources/Views/ReportsListView.swift:444",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift:109",
+    "Emuqu/Sources/Views/ReportsListView.swift:391",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift:129",
+    "Emuqu/Sources/Views/ReportsListView.swift:407"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
+   "hash": "94d5903644f7e26f",
+   "does": "Dispatches by kind to the recovery/daily/workout renderer with a timestamped temp PDF URL; any thrown error becomes .failed(localizedDescription).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderRecoveryReport(_:to:load:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderDailyReport(_:to:recent:load:hr:)",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderWorkoutReport(_:to:hr:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-report-<epoch>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "case .recovery",
+     "effect": "renderRecoveryReport"
+    },
+    {
+     "at": "+16",
+     "cond": "case .daily",
+     "effect": "renderDailyReport with the workout/night pair"
+    },
+    {
+     "at": "+18",
+     "cond": "case .workout",
+     "effect": "renderWorkoutReport"
+    },
+    {
+     "at": "+21",
+     "cond": "catch",
+     "effect": "return .failed(error.localizedDescription) shown in the alert"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderDailyReport(_:to:recent:load:hr:)": "5bb25bbfc56201c5",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderRecoveryReport(_:to:load:)": "0d7e9d371a68e8af",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderWorkoutReport(_:to:hr:)": "5dee7e878db31951",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+   }
+  },
+  {
+   "key": "func MainTabView.withFullSessions(_:)",
+   "hash": "62b78170b3f34d2b",
+   "does": "Replaces the lightweight recovery/workout/pair sessions with full archive reads (RR series included), keeping the lightweight copy when a read fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
+   ],
+   "reads": [
+    "archive:retrieve (full session)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "archive.retrieveOrLog(id) ?? lightweight",
+     "effect": "falls back to the RR-stripped copy when the full read returns nil; the PDF then lacks raw-RR sections"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func MainTabView.renderRecoveryReport(_:to:load:)",
+   "hash": "2cc5651ad778fc43",
+   "does": "Renders the recovery PDF for inputs.recovery, removes any file at the target path and moves the generated PDF there.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.recoveryPDFURL(for:inputs:load:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.moveItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-report-<epoch>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "inputs.recovery nil",
+     "effect": "return .failed('No recent HRV recording…')"
+    },
+    {
+     "at": "+6",
+     "cond": "recoveryPDFURL nil",
+     "effect": "return .failed('Couldn't render the recovery PDF…')"
+    },
+    {
+     "at": "+9",
+     "cond": "file already exists at pdfURL",
+     "effect": "remove it (errors logged by attempt and ignored); then move (throws to renderReport's catch)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.recoveryPDFURL(for:inputs:load:)": "61ddd7fd7d2f2ade"
+   }
+  },
+  {
+   "key": "func MainTabView.recoveryPDFURL(for:inputs:load:)",
+   "hash": "75230081c145c23a",
+   "does": "Calls PDFReportGenerator.generateReportURL (comprehensive, all sections) with the overnight's sleep and vitals snapshots, recent reliable overnights, score breakdown/composite, baseline stats and live load; no sleep trend or HealthKit HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:PDFReportGenerator output URL"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "0bacc660b77071e6",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1f72b8e1242a44d9",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692"
+   }
+  },
+  {
+   "key": "func MainTabView.renderDailyReport(_:to:recent:load:hr:)",
+   "hash": "e158740049df66d7",
+   "does": "Builds HolisticDailyReport for the workout + night pair (with decoded GPS track, recent overnights, HR settings, units, temperature unit, live load) and writes it to pdfURL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-report-<epoch>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pair nil",
+     "effect": "return .failed('No workout with an overnight recording…')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)": "5e196fdbd6cabbac",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "0c576bd61818c007",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+   }
+  },
+  {
+   "key": "func MainTabView.renderWorkoutReport(_:to:hr:)",
+   "hash": "3908dc9ff520ce0f",
+   "does": "Builds WorkoutPDFReport for the workout with decoded track and HR settings and writes it to pdfURL.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-report-<epoch>.pdf"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout nil",
+     "effect": "return .failed('No recent workout to report on…')"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "0c576bd61818c007"
+   }
+  },
+  {
+   "key": "func MainTabView.decodeTrack(for:)",
+   "hash": "daa93fb11b59ee65",
+   "does": "Decodes the workout's stored GPS polyline into CLLocations spread over the session duration.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no workoutMetadata.gpsPolyline",
+     "effect": "return []"
+    },
+    {
+     "at": "+2",
+     "cond": "session.duration ?? 0",
+     "effect": "0 duration makes GPXExporter use 5 s per fix (same as nil)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372"
+   }
+  }
+ ],
+ "deps": {}
+}

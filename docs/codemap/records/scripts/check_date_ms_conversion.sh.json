@@ -1,0 +1,36 @@
+{
+ "file": "scripts/check_date_ms_conversion.sh",
+ "hash": "0bcd79b57b6d6736",
+ "role": "CI gate: forbids `Int64(x.timeIntervalSince(y) * 1000)` in Emuqu/Sources (except Date() receivers, MillisecondOffset.swift, or `date-ms-ok:` lines) in favour of MillisecondOffset.",
+ "types": [],
+ "state": [
+  "dir:Emuqu/Sources"
+ ],
+ "toplevel": "set -euo pipefail; NO cd to repo root. Python scans pathlib('Emuqu/Sources') relative to the cwd; single-line regex only. Problems -> list + exit 1; else 'clean'. Wired: gates.yml (make date-ms-guard), ci.yml, Makefile.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Run from any directory other than the repo root it scans zero files and prints 'clean' (verified by running from scripts/). Multi-line expressions and the watch target are not scanned.",
+   "evidence": [
+    "scripts/check_date_ms_conversion.sh:27",
+    "scripts/check_date_ms_conversion.sh:52"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "broken",
+   "sev": "med",
+   "text": "The receiver group `[A-Za-z_][\\w.?\\[\\]$]*` must start with a letter or underscore, so closure-argument forms `$0.timeIntervalSince(x) * 1000` never match. The banned truncating conversion is live at ReanalysisService+Sleep.swift:94-95, SleepBoundaryResolver.swift:294,295,312,313 (sleep start/end ms offsets) and OvernightChartsView+Stats.swift:637, and the gate prints clean.",
+   "evidence": [
+    "scripts/check_date_ms_conversion.sh:24",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:94",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:294",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:637"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [],
+ "deps": {}
+}

@@ -1,0 +1,522 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarManager+Streaming.swift",
+ "hash": "334350539415f163",
+ "role": "PolarManager extension for session buffering of streamed beats: start/stop of a buffering session, the 1 Hz elapsed timer, ingestion of HR-service RR batches and Verity PPI batches into the capped non-observed buffer, throttled UI publication, and DEBUG test hooks.",
+ "types": [
+  "PolarManager: extension — streaming session buffer and ingestion"
+ ],
+ "state": [],
+ "toplevel": "Header comment: a streaming session does not own any BLE subscription; the feed (StrapHeartRateFeed) runs whenever the strap is linked. Test hooks are under #if DEBUG.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func PolarManager.startStreaming()",
+   "hash": "b133d2f122a98ea4",
+   "does": "Starts a buffering session: requires a connected or at least one known device and no session already running; resets all streaming state, starts the elapsed timer, and for a connected Verity Sense restarts the feed so it switches to PPI.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreamingElapsedTimer()",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.knownDevices",
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamingTimer",
+    "mem:PolarManager.reconnectExhausted"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no connected device and knownDevices empty",
+     "effect": "throw PolarError.notConnected"
+    },
+    {
+     "at": "+5",
+     "cond": "isStreaming already true",
+     "effect": "throw PolarError.alreadyRecording"
+    },
+    {
+     "at": "+10",
+     "cond": "connectedDeviceType == .veritySense",
+     "effect": "restart the feed (PPI kind); H10/unknown type keeps the HR feed already running"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.resetStreamingState()": "c9beeb003f5808b2",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreamingElapsedTimer()": "bbe2f473a1d66388",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarManager.stopStreaming()",
+   "hash": "c9e2c79b40cb15cb",
+   "does": "Stops buffering and returns the buffered RR points (buffer itself is not cleared).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreamingInternal()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager._streamedRRPoints"
+   ],
+   "writes": [
+    "mem:PolarManager.isStreaming"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreamingInternal()": "cd706d435e62f6ad",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarManager.stopStreamingInternal()",
+   "hash": "bf87c82fda39e945",
+   "does": "Invalidates the elapsed timer, clears start time, sets isStreaming false, tells the link the session ended (cancels the reconnect deadline), and for a Verity that was streaming restarts the feed back to HR; reconnectExhausted is intentionally kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()",
+    "ext:Timer.invalidate"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.streamingTimer",
+    "mem:PolarManager.streamingStartTime",
+    "mem:PolarManager.isStreaming",
+    "mem:StrapLinkRuntime.reconnectDeadlineTask",
+    "mem:StrapLinkRuntime.signal (fired)",
+    "mem:StrapLinkRuntime.feedTask (Verity restart)"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "was streaming and device is Verity Sense",
+     "effect": "restart the feed (back to HR); otherwise nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "2d55ec4c54631141",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.sessionEnded()": "664cc74a2baade67"
+   }
+  },
+  {
+   "key": "func PolarManager.resetStreamingState()",
+   "hash": "b8050e52ea69a27f",
+   "does": "Resets the streaming buffer (reserving 32k), counters, UI window, cumulative clock, cap-log flag, start time = now, elapsed seconds, reconnect count, reconnectExhausted, and sets isStreaming true.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamedRRCount",
+    "mem:PolarManager.recentRRPoints",
+    "mem:PolarManager.lastUIUpdateBeatCount",
+    "mem:PolarManager.streamingCumulativeMs",
+    "mem:PolarManager.hasLoggedStreamingCap",
+    "mem:PolarManager.streamingStartTime",
+    "mem:PolarManager.streamingElapsedSeconds",
+    "mem:PolarManager.streamingReconnectCount",
+    "mem:PolarManager.reconnectExhausted",
+    "mem:PolarManager.isStreaming"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.startStreamingElapsedTimer()",
+   "hash": "0f1983bdaea5e19f",
+   "does": "Invalidates any previous timer and schedules a 1 s repeating Timer (tolerance 0.25 s) in RunLoop.main .common mode that calls scheduleElapsedSecondsUpdate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.scheduleElapsedSecondsUpdate()",
+    "ext:Timer",
+    "ext:RunLoop.main.add"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.streamingTimer"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.scheduleElapsedSecondsUpdate()": "6d2fc5fa2161d11d"
+   }
+  },
+  {
+   "key": "func PolarManager.scheduleElapsedSecondsUpdate()",
+   "hash": "7b78a2db22b86301",
+   "does": "Hops to the main queue and sets streamingElapsedSeconds = whole seconds since streamingStartTime.",
+   "entry": "Timer tick every 1 s from startStreamingElapsedTimer",
+   "calls": [
+    "ext:DispatchQueue.main.async"
+   ],
+   "reads": [
+    "mem:PolarManager.streamingStartTime"
+   ],
+   "writes": [
+    "mem:PolarManager.streamingElapsedSeconds"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "manager released or streamingStartTime nil",
+     "effect": "return without updating"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+   }
+  },
+  {
+   "key": "func PolarManager.ingestHeartRate(_:receivedAt:)",
+   "hash": "fb1deeddbc8df75e",
+   "does": "One HR-service batch: notes the sample on the link (feed health), sets currentHeartRate from the last sample with hr>0, and if a session is running appends every positive RR of each RR-carrying sample stamped with the batch's arrival wall-clock offset, stopping at the buffer cap, then publishes progress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.currentHeartRate",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamingCumulativeMs"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "some sample has hr > 0",
+     "effect": "currentHeartRate = last such hr; else unchanged"
+    },
+    {
+     "at": "+5",
+     "cond": "isStreaming false",
+     "effect": "return after updating live HR only (no buffering)"
+    },
+    {
+     "at": "+7",
+     "cond": "for each sample where rrAvailable",
+     "effect": "append its RRs; samples without RR are skipped"
+    },
+    {
+     "at": "+8",
+     "cond": "appendStreamedBeats returned false (cap hit)",
+     "effect": "break out of the batch"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)": "6fcfcf050a07bcd4",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9"
+   }
+  },
+  {
+   "key": "func PolarManager.ingestPpi(_:receivedAt:)",
+   "hash": "21ca6aca7f5432c3",
+   "does": "One Verity PPI batch: notes the sample on the link, sets currentHeartRate from the last reading when >0, and during a session appends each reading that passes StrapPPIFilter.acceptedInterval with hr (nil when 0), stopping at the cap, then publishes progress.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.currentHeartRate",
+    "mem:PolarManager.feedStatus",
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamingCumulativeMs"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "last reading exists and hr > 0",
+     "effect": "currentHeartRate = its hr; else unchanged (only the LAST reading is checked)"
+    },
+    {
+     "at": "+5",
+     "cond": "isStreaming false",
+     "effect": "return, no buffering"
+    },
+    {
+     "at": "+7",
+     "cond": "for each reading",
+     "effect": "filter then append"
+    },
+    {
+     "at": "+8",
+     "cond": "filter rejects the reading (error estimate, blocker bit, out of range)",
+     "effect": "continue (skip)"
+    },
+    {
+     "at": "+11",
+     "cond": "appendStreamedBeat returned false (cap)",
+     "effect": "break"
+    },
+    {
+     "at": "+12",
+     "cond": "reading.hr > 0",
+     "effect": "hr stored; else nil"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "untested",
+     "sev": "low",
+     "text": "ingestPpi (the Verity Sense live-buffering path, incl. the StrapPPIFilter gate and hr=0 → nil mapping) has no test caller; its only caller is StrapHeartRateFeed.swift:139.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:121",
+      "Emuqu/Sources/Collection/StrapHeartRateFeed.swift:139"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.elapsedStreamingMs(at:)": "339893bba3fe4698",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.publishStreamingProgress(heartbeatLabel:)": "038f31a574db4c2d",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteSample(at:)": "58dda9f6dac9b2d9",
+    "Emuqu/Sources/Collection/StrapPPIFilter.swift::func StrapPPIFilter.acceptedInterval(_:)": "f85125fdb05d246c"
+   }
+  },
+  {
+   "key": "func PolarManager.appendStreamedBeats(_:wallClockMs:hr:)",
+   "hash": "83ffbf4ce3c88d7a",
+   "does": "Appends each positive RR interval as a beat; returns false as soon as the cap rejects one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for rr in rrsMs where rr > 0",
+     "effect": "zero/negative intervals skipped"
+    },
+    {
+     "at": "+2",
+     "cond": "appendStreamedBeat returns false",
+     "effect": "return false (cap hit)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf"
+   }
+  },
+  {
+   "key": "func PolarManager.elapsedStreamingMs(at:)",
+   "hash": "a63935fdb6c04984",
+   "does": "Milliseconds between the given date and streamingStartTime (MillisecondOffset fallback 0), or 0 before a session started.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [
+    "mem:PolarManager.streamingStartTime"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "streamingStartTime nil",
+     "effect": "return 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)",
+   "hash": "39e0364ab07612e4",
+   "does": "Appends RRPoint(t_ms: cumulative, rr_ms, wallClockMs, hr) and advances the cumulative clock; at 100,000 points refuses, logging the cap once per session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.hasLoggedStreamingCap"
+   ],
+   "writes": [
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamingCumulativeMs",
+    "mem:PolarManager.hasLoggedStreamingCap"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "buffer count < maxStreamingBufferSize (100,000)",
+     "effect": "true → append and return true; false → return false (beat dropped)"
+    },
+    {
+     "at": "+4",
+     "cond": "cap not yet logged this session",
+     "effect": "log the cap warning once and set the flag"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "data-loss",
+     "sev": "low",
+     "text": "Beats beyond 100,000 in one session are dropped silently apart from one log line; the comment sizes this at ~28 h at 1 beat/s, but at an average HR of 70+ the cap is reached after roughly 24 h, after which the session keeps running with no new data.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager+Streaming.swift:160",
+      "Emuqu/Sources/Collection/PolarManager.swift:281"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarManager.publishStreamingProgress(heartbeatLabel:)",
+   "hash": "888a569df11c686f",
+   "does": "Publishes streamedRRCount every batch, refreshes recentRRPoints (last 60) every ≥5 new beats, and logs a heartbeat line when ≥30 min passed since the last significant log, stamping that time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.lastUIUpdateBeatCount",
+    "mem:PolarManager._lastSignificantLogTime"
+   ],
+   "writes": [
+    "mem:PolarManager.streamedRRCount",
+    "mem:PolarManager.recentRRPoints",
+    "mem:PolarManager.lastUIUpdateBeatCount",
+    "mem:PolarManager._lastSignificantLogTime"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "≥ 5 beats since last UI update",
+     "effect": "copy the last 60 points into recentRRPoints"
+    },
+    {
+     "at": "+7",
+     "cond": "< 1800 s since lastSignificantLogTime",
+     "effect": "return without logging; else log heartbeat and stamp"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime": "0a16c59264ddd485",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "var PolarManager.streamingCumulativeMsForTesting",
+   "hash": "f512b20487da5061",
+   "does": "DEBUG: exposes streamingCumulativeMs to tests.",
+   "entry": "XCTest (PolarManagerTests, PolarManagerIntegrationTests)",
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.streamingCumulativeMs"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.setConnectedDeviceForTesting(id:type:)",
+   "hash": "16b0c51f53b0848a",
+   "does": "DEBUG: sets connectedDeviceId/Type and connectionState (.connected when id non-nil, else .disconnected).",
+   "entry": "XCTest (StrapRecoveryFlowTests, StrapArmingTests, StrapTransferTests, StrapNightTests, PolarConnectionLifecycleTests, PolarManagerTests)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.connectionState"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id == nil",
+     "effect": ".disconnected; else .connected"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.ingestHeartRateForTesting(_:elapsedMs:)",
+   "hash": "1659230290952c5c",
+   "does": "DEBUG: ingests a batch as if received elapsedMs after streamingStartTime (or now when not started).",
+   "entry": "XCTest (PolarManagerIntegrationTests, PolarManagerTests)",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "streamingStartTime nil (??)",
+     "effect": "uses Date() as the base"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968"
+   }
+  },
+  {
+   "key": "func PolarManager.prepareStreamingStateForTesting(startTime:cumulativeMs:existingPoints:)",
+   "hash": "0818c5a6104645c8",
+   "does": "DEBUG: puts the manager into a streaming state with given start time, cumulative ms and existing points, without a timer.",
+   "entry": "XCTest (StrapNightTests, PolarConnectionLifecycleTests, PolarManagerIntegrationTests, PolarManagerTests)",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.streamingStartTime",
+    "mem:PolarManager.streamingCumulativeMs",
+    "mem:PolarManager._streamedRRPoints",
+    "mem:PolarManager.streamedRRCount",
+    "mem:PolarManager.recentRRPoints",
+    "mem:PolarManager.lastUIUpdateBeatCount"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

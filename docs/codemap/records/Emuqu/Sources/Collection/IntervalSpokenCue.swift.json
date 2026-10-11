@@ -1,0 +1,270 @@
+{
+ "file": "Emuqu/Sources/Collection/IntervalSpokenCue.swift",
+ "hash": "c08c16302c20df3f",
+ "role": "Localized fallback strings for interval announcements when the AI coach cannot speak them.",
+ "types": [
+  "IntervalSpokenCue: enum — string builders"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [
+  {
+   "kind": "untested",
+   "sev": "low",
+   "text": "No test references IntervalSpokenCue.",
+   "evidence": [
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift:7"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "func IntervalSpokenCue.step(_:number:of:)",
+   "hash": "92dc384d51fa3bd2",
+   "does": "Builds 'Step N of M: <label>.' plus the target and, when the step has a duration or distance, '<target> for <span>.'",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.localizedLabel(_:)",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "span nil (no duration/distance)",
+     "effect": "header + target only; else header + 'target for span'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.localizedLabel(_:)": "85f9a50b458bf542",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.span(of:)": "d9115bd257c8f7ed",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "fded062e148a8690",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func IntervalSpokenCue.localizedLabel(_:)",
+   "hash": "5d395808decb1f7b",
+   "does": "Localizes the built-in English preset labels; returns user labels unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "'warm up'",
+     "effect": "localized"
+    },
+    {
+     "at": "+4",
+     "cond": "'cool down'",
+     "effect": "localized"
+    },
+    {
+     "at": "+5",
+     "cond": "'easy'",
+     "effect": "localized"
+    },
+    {
+     "at": "+6",
+     "cond": "'hard'",
+     "effect": "localized"
+    },
+    {
+     "at": "+7",
+     "cond": "'interval'",
+     "effect": "localized"
+    },
+    {
+     "at": "+8",
+     "cond": "'recovery'",
+     "effect": "localized"
+    },
+    {
+     "at": "+9",
+     "cond": "'rest'",
+     "effect": "localized"
+    },
+    {
+     "at": "+10",
+     "cond": "'aerobic base'",
+     "effect": "localized"
+    },
+    {
+     "at": "+11",
+     "cond": "default",
+     "effect": "label as written"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "localizedLabel repeats IntervalStep.displayLabel case for case (same eight preset labels, same default); the two lists must be edited together or the spoken and on-screen labels diverge.",
+     "evidence": [
+      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:19",
+      "Emuqu/Sources/Models/IntervalPlan.swift:55"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var IntervalSpokenCue.blockComplete",
+   "hash": "f30733eac3e1c617",
+   "does": "Localized 'Interval block complete...' line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func IntervalSpokenCue.target(_:)",
+   "hash": "19f4030723322997",
+   "does": "Localized description of a step target.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.effort(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".zone",
+     "effect": "'Zone N'"
+    },
+    {
+     "at": "+4",
+     "cond": ".hrRange",
+     "effect": "'heart rate lo to hi'"
+    },
+    {
+     "at": "+5",
+     "cond": ".paceSecPerKm",
+     "effect": "'m:ss per kilometer'"
+    },
+    {
+     "at": "+8",
+     "cond": ".effort",
+     "effect": "effort(cue)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "low",
+     "text": "The scripted interval cue ignores the user's units preference: a pace target is always spoken as 'm:ss per kilometer' and a distance step always in km/m, so an imperial user hears metric targets when the AI path is unavailable.",
+     "evidence": [
+      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:44",
+      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:45",
+      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:74",
+      "Emuqu/Sources/Collection/IntervalSpokenCue.swift:75",
+      "Emuqu/Sources/Views/ThresholdCards+Cards.swift:195"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.effort(_:)": "ab7b1701f8ff3143",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func IntervalSpokenCue.effort(_:)",
+   "hash": "8fcefb2df691ab2b",
+   "does": "Localized effort-cue phrase.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": ".recovery",
+     "effect": "'recovery effort'"
+    },
+    {
+     "at": "+4",
+     "cond": ".easy",
+     "effect": "'easy effort'"
+    },
+    {
+     "at": "+5",
+     "cond": ".moderate",
+     "effect": "'moderate effort'"
+    },
+    {
+     "at": "+6",
+     "cond": ".hard",
+     "effect": "'hard effort'"
+    },
+    {
+     "at": "+7",
+     "cond": ".allOut",
+     "effect": "'all-out effort'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func IntervalSpokenCue.span(of:)",
+   "hash": "c33ed5ca89b00b9e",
+   "does": "Formats duration via DateComponentsFormatter (minutes/seconds, full, app locale) or distance as wide km/m measurement; nil if neither.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "durationSec set",
+     "effect": "format duration"
+    },
+    {
+     "at": "+10",
+     "cond": "no distance",
+     "effect": "nil"
+    },
+    {
+     "at": "+11",
+     "cond": "meters >= 1000",
+     "effect": "kilometers unit; else meters"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "94d9903738bd3545",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+   }
+  }
+ ],
+ "deps": {}
+}

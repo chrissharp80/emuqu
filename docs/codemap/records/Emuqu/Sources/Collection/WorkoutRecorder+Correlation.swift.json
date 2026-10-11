@@ -1,0 +1,62 @@
+{
+ "file": "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift",
+ "hash": "87745e1ae6aaf008",
+ "role": "Opens/closes the workout-wide LogCorrelation token that tags log lines from start() to the end of stop().",
+ "types": [
+  "WorkoutRecorder: extension — correlation scope"
+ ],
+ "state": [
+  "mem:WorkoutRecorder.logCorrelation (declared WorkoutRecorder.swift:184)"
+ ],
+ "toplevel": "None.",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WorkoutRecorder.beginWorkoutCorrelation()",
+   "hash": "482b0891345b96dc",
+   "does": "Closes any open workout correlation then begins a new \"workout\" LogCorrelation token and stores it. Called from WorkoutSessionLifecycle.start (WorkoutRecorder+Start.swift:66).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.logCorrelation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "19e620e7b3d156e6",
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "f2338e1b697e822d"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.endWorkoutCorrelation()",
+   "hash": "d2e0d473345e2baf",
+   "does": "Ends the stored correlation token and clears it; no-op when none. Called at end of stop (WorkoutRecorder+Stop.swift:66) and by start's failure defer (WorkoutRecorder+Start.swift:68).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)"
+   ],
+   "reads": [
+    "mem:WorkoutRecorder.logCorrelation"
+   ],
+   "writes": [
+    "mem:WorkoutRecorder.logCorrelation"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no token stored",
+     "effect": "returns; otherwise ends and clears"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)": "e4ae920d0963a98d"
+   }
+  }
+ ],
+ "deps": {}
+}

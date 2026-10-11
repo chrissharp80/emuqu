@@ -1,0 +1,1157 @@
+{
+ "file": "docs/FLO_ARCHITECTURE.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "Architecture reference for Flo, the in-app AI assistant: turn lifecycle, providers, fact/tool registry, system prompt caching, routing, voice, speech normalization, hallucination guard, persistence, safety gates, memory, deterministic answers, Apple tool bridge, action bridges, tests, gotchas, telemetry.",
+ "types": [],
+ "state": [],
+ "toplevel": "Markdown only; no executable content.",
+ "flags": [],
+ "units": [
+  {
+   "key": "§ Flo — AI Assistant Architecture",
+   "hash": "9a9e6b6b0f96c01d",
+   "does": "no behavioural claim: title, source tree pointer and note that citations omit line numbers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 1. What Flo Is",
+   "hash": "600f8a785afd4311",
+   "does": "Claims six providers behind one protocol, tool use via a FactResolverRegistry, tiered routing only while Apple is selected, SFSpeechRecognizer/WhisperKit STT with AVSpeechSynthesizer TTS, UserFactsStore memory, stable/variable prompt split for caching, voice deterministic shortcuts, number-checking hallucination guard, per-provider consent. All confirmed in Assistant sources.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 2. System Diagram",
+   "hash": "908d6b31d3bf4077",
+   "does": "System diagram: voice controller → AssistantViewModel.send (medical guard, consent, deterministic, dispatch) → TurnRouter/SmartProviderRouter → AssistantSystemPrompt → AIProvider.send stream → tool resolution via CompactToolRouter, text accumulation/speech, post-stream app-state check, CoachVoiceGuard scrub and fact extraction. Consistent with code.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "7fc902d72e8c70f3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle",
+   "hash": "7160b0808c70288d",
+   "does": "no behavioural claim: section header for turn lifecycle.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.1 Input",
+   "hash": "a1088e41d516195a",
+   "does": "Claims text sends call send(text:fromVoice: false) and voice finalizes a transcript then calls send with fromVoice: true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.2 `AssistantViewModel.send(text:fromVoice:)` — gating",
+   "hash": "5641edbf58e632e4",
+   "does": "Claims gate order: empty → rejectedEmpty; Flo off → rejectedNoProvider; medical guard (flag on, or self-harm always) appends a localOnly exchange; no key → rejectedNoProvider; consent required → requiresConsent; streaming → queued (latest wins); voice-only deterministic; else dispatchToProvider appends the user turn, sets nextSendIsVoice, prewarms Apple, dispatch(). Exactly matches send().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`",
+   "hash": "0553e7692590d0fc",
+   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown, fallbackable errors walk orderedFallbackProviders), drops empty turns, finishes, and post-stream clears the Apple registry and applies CoachVoiceGuard + background fact extraction. Matches AssistantViewModel+Routing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:tools:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says a fallbackable provider error (auth, rate limit, network, model unavailable) walks orderedFallbackProviders / goes to the fallback chain; handleFallbackableFailure cuts the chain with TurnRouter.failureFallback, which allows no fallback at all when a cloud model is selected or mode is Manual, and only Apple in Quick. With a cloud model selected an offline or rate-limited turn shows PickedModelFailure instead of falling back.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:104",
+      "docs/FLO_ARCHITECTURE.md:290",
+      "docs/FLO_ARCHITECTURE.md:179",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc (§12.3) says dropped-turn summarization 'gives up after 5 s without blocking the turn'; assembleContextAndTools awaits updateSummaryWith before the prompt is composed, so the user's turn waits up to 5 s for the summary call.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:352",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:515",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:30"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "179031c4c1cc8824",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "7fc902d72e8c70f3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "537ce92b7a789bc8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:tools:)": "020ffb4bd5da5217",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "30b075c2f2967258",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "8d2dcf65247f60cd",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "622f16b8b818387a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "09f2c57019cbac48",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "821bf0093cfa75e8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "15e7aff4eaa429c4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "f7cf122bffee42fe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "c4262b79c1b3a303",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "abaefd31f56e61c4",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`",
+   "hash": "836d3ffdc1a1bdea",
+   "does": "Claims runToolUseLoop streams rounds: textDelta appended with a 33 ms publish throttle, toolUse queued, usage logged with hit ratio, tool calls resolved through CompactToolRouter into ToolExchange rounds, max 8 calls per turn with synthetic missing results and one closing pass, and verifyAppStateNumbers at each round end. Matches (maxToolCallsPerTurn = 8).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says calls past maxToolCallsPerTurn (8) get a synthetic missing result; overBudget is computed per round as totalToolCalls + thisRound.count > 8, so every call in the round that crosses the limit (including ones within the first 8) gets the rateLimited 'tool budget exceeded' result; e.g. 6 used + 4 requested resolves none of the 4.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:117",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:410",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift:446"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "97ac1bb1b318c611",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "acefcc79910f23a4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "95cb9e5ecb20f038"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 4. AssistantViewModel",
+   "hash": "2f545f9f3a067967",
+   "does": "Claims AssistantViewModel is @Observable @MainActor final class with static shared, lists state/API/SendOutcome cases, and that routing/streaming live on AssistantTurnRouter/AssistantToolRunner; resolvers run on the main actor with .sync/.awaitable bodies. Matches AssistantViewModel.swift:35-38, :335-344.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 5. Providers",
+   "hash": "53e417c0c9ac0a44",
+   "does": "no behavioural claim: section header for providers.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 5. Providers > 5.1 Protocol — `Emuqu/Sources/Assistant/Providers/AIProvider.swift`",
+   "hash": "5b5ce7247ad6b21c",
+   "does": "Claims the AIProvider protocol shape (id, availableModels, requiresKey, isAvailable, maxToolSchemaCount, six-arg send returning AsyncThrowingStream<AIStreamEvent>), a four-arg extension send, AIStreamEvent cases, ProviderID cases and ModelOption fields.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::requirement AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::requirement AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "aa4081aa9569fabd"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 5. Providers > 5.2 Provider matrix",
+   "hash": "857c60512594f00a",
+   "does": "Provider matrix: Apple FoundationModels 4096 context; Anthropic cache_control ephemeral ttl 1h with extended-cache-ttl-2025-04-11 beta header; OpenAI reasoning_effort none; Gemini own builder; Grok maxToolSchemaCount 110; DeepSeek thinking disabled; ProviderStream.make maps cancellations/URLErrors; keys in Keychain via APIKeyStore. Spot-checked values match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Provider matrix says Anthropic's prompt cache uses cache_control ephemeral with ttl '1h'; only the tool-catalog breakpoint carries ttl 1h. The stable system block and the conversation-history breakpoint use plain ephemeral (default 5-minute TTL).",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:173",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift:90",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:295",
+      "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:228"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says ProviderStream.make's error mapping means 'an offline turn falls back the same way whichever model was asked'; with a cloud model selected (or Manual) TurnRouter.failureFallback returns .none, so an offline turn does not fall back at all.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:104",
+      "docs/FLO_ARCHITECTURE.md:290",
+      "docs/FLO_ARCHITECTURE.md:179",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "1a9605f184933b33",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "9bf824779ebf7909",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3512c5da27515623",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
+    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "ac452c89288faf61",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "3291746dee017ce6",
+    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "786eeefe853edfb8",
+    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "635788248911791d",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "d43def889cd27b9e"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System",
+   "hash": "2328f61078983915",
+   "does": "no behavioural claim: section intro (facts are reads, actions are writes).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.1 `FactValue` — `Emuqu/Sources/Assistant/Facts/FactValue.swift`",
+   "hash": "63407504eea9b9e6",
+   "does": "Claims FactValue cases, MissingReason cases (notRecorded … partialData), FactNumericArgument range validation returning invalidParameter, and Availability-based schema filtering. FactValue/MissingReason cases match FactValue.swift:19-124.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.accepts(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.accepts(_:)": "fc6fdd48e3931e76",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "ca15e55cd20ce779",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "8034cd0f43244764",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "e5a89b80263d0ea5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement": "68810af19e59c85b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "062bfe524f063982",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)": "e1541cf846f9e85c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "69b6b36b84fd52f6",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "6bb98d051f1fc0e2"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.2 `FactEntry` — `Emuqu/Sources/Assistant/Facts/FactCatalog.swift`",
+   "hash": "cbeadfe742efee60",
+   "does": "Claims FactEntry kinds .fixed/.parameterized/.composite/.action with the stated parameters and [ACTION] description prefix.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.isAction",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.actionSpec(name:description:params:)",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "cc67ad9762ace28b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "0e2da56177e3f63e",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "da5bef37f40af84b",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "2ede3d3bbb6ddc46",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "29b268940e76c9f8",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "86e9844148fa04b2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)": "d69565c0c9ccb59e",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.isAction": "48f24627b4459ae1",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "d3a23443d83d220a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.actionSpec(name:description:params:)": "294f234a8eb3495a",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.3 `CompactToolRouter` — `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift",
+   "hash": "896770271194815e",
+   "does": "Claims CompactToolRouter.schema exposes 21 polymorphic read tools plus allowedActionNames actions, deduped by name and sorted, with read results gated (rate limit, size cap, time budget) and capabilityIndex for the cached prompt. Matches; allowedActionNames also includes assistant_artifacts_add/update_status, which the doc's list omits.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "e215c6a75e5ffda3"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.4 Registry and namespaces",
+   "hash": "84b01a84557f833e",
+   "does": "Claims AppFactResolverFactory.build returns a FactResolverRegistry with every FactNamespaceResolver namespace registered.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.build(archive:settings:)": "608c160d07cbda8d",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 6. Fact / Tool System > 6.5 Resolver time budget — `FactResolverRegistry`",
+   "hash": "73ed4b5c795deb64",
+   "does": "Claims resolvers over 2 s (defaultResolveBudgetSec) log a warning and read results become .missing(.internalError); actions over 4 s (watchdogWarnSec) log WATCHDOG-WARN; awaitable resolvers use FactResolveTimeout.withTimeout. Constants match FactResolverRegistry.swift:266,273.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.budgetOverrun(name:elapsed:)": "40f9e06a4cd740b9",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.logActionDuration(name:elapsed:)": "845fecd2cf79e387"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 7. AssistantSystemPrompt — Cache-aware composition",
+   "hash": "e6aa505518e09d25",
+   "does": "Claims composeSplit returns stable/variable halves and compose joins them with cacheSplitMarker; Anthropic caches the stable block, others strip the marker.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "ec3ef6cdbe2c72e5",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.composeSplit(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "52a5af558f45018e"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 7. AssistantSystemPrompt — Cache-aware composition > 7.1 Stable sections (`stableSections`)",
+   "hash": "96f0069f8e14b7b0",
+   "does": "Lists stable sections: base, forced-English override, locale/units and disabled features, tool overlay + capabilityIndex (or non-tool overlay), voice overlay, knowledge base, UserFactsStore block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 7. AssistantSystemPrompt — Cache-aware composition > 7.2 Variable sections (`variableSections`)",
+   "hash": "507e2f59bffeb9b3",
+   "does": "Lists variable sections: nowSnapshot, training-load numbers, active workout marker, MetricsVerifier pending corrections, dropped-turn summary, Apple rendered data block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "c45e112f4774b840"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter`",
+   "hash": "460b1d0508051565",
+   "does": "no behavioural claim: section header listing routing files.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter` > 8.1 Tiers and modes",
+   "hash": "15d715fa184c3b87",
+   "does": "Claims routing acts only with Apple selected; Tier raw values 1/2/3; mapper quick → Apple, auto → consented Grok then DeepSeek else Apple, deep → same mid-tier; RoutingMode quick/deep pin, auto classifies, manual uses picker. Matches TurnRouter.preTierDecision and TierProviderMapper.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.mapping(for:registry:)": "cea711b44f092f91",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter` > 8.2 Classification and stickiness (`.auto`)",
+   "hash": "800337baeb8518e1",
+   "does": "Claims classify uses NLContextualEmbedding prototypes, falling back to NLEmbedding then keywords; four flags → tiers; stickiness rules (upgrade, first 3 turns, quick with no flags). Matches CapabilityClassifier.classify, SmartProviderRouter.embed and stickyTier (settlingTurns 3).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "084fda77aeca56c8",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter` > 8.3 Overrides",
+   "hash": "4ce8779cc926c81e",
+   "does": "Claims overrides: voice bypass to first consented cloud when Apple selected; action-intent rerouting off Apple; 50/day deep cap; Apple guardrail refusals not retried elsewhere, context overflow retried once trimmed, other failures to fallback chain. Matches TurnRouter.appleVoiceBypass and SmartProviderRouter.dailyTier3Cap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says a fallbackable provider error (auth, rate limit, network, model unavailable) walks orderedFallbackProviders / goes to the fallback chain; handleFallbackableFailure cuts the chain with TurnRouter.failureFallback, which allows no fallback at all when a cloud model is selected or mode is Manual, and only Apple in Quick. With a cloud model selected an offline or rate-limited turn shows PickedModelFailure instead of falling back.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:104",
+      "docs/FLO_ARCHITECTURE.md:290",
+      "docs/FLO_ARCHITECTURE.md:179",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:662",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:312",
+      "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift:326"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "3ef922608ce1ed67",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "8d2dcf65247f60cd",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "f7cf122bffee42fe",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "3741e44c1cf00c40",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "6aa8195fe8c9c640"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 9. Voice",
+   "hash": "43dc9969fea13622",
+   "does": "no behavioural claim: section header for voice.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 9. Voice > 9.1 `VoiceConversationController`",
+   "hash": "35492a88e6a2e59b",
+   "does": "Claims VoiceConversationController (@Observable @MainActor) has states idle/starting/listening/thinking/speaking/triggerSpeaking and forceFinalizeTurn for push-to-talk. Matches VoiceConversationController.swift:91-96 and +Speech.swift:184.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()": "58a69b2f331f5c98"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 9. Voice > 9.2 Speech-to-text — `Emuqu/Sources/Assistant/Chat/STTProvider.swift`",
+   "hash": "e3179cbfcdcecece",
+   "does": "Claims STTProviderKind .apple (SFSpeechRecognizer) or .whisperKit chosen by UserSettings.preferredSTTProvider. Cases match STTProvider.swift:28-32.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)",
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the STT engine is chosen by UserSettings.preferredSTTProvider; STTProviderKind.effective forces .apple whenever the preferred engine does not support the in-app language (WhisperKit is English-only), so a non-English user who picks WhisperKit gets Apple Speech.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:304",
+      "Emuqu/Sources/Assistant/Chat/STTProvider.swift:62"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:)": "687179e75ace4551",
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "3f0e7550bc0a4074"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 9. Voice > 9.3 Speech — `VoiceConversationController+Speech.swift`",
+   "hash": "0144cf3fa8ca92bd",
+   "does": "Claims speak() applies coach-voice scrub, hallucination guard, first-chunk preamble, TTSTextNormalizer, at 0.96 × default rate with zero delays; SpokenTextChunker buffers sentences. Matches speak/makeUtterance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "6d0bc9e51bb0b30f",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "ce20410284e62cc7",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "cec472cd370263df",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)": "5c1172247f2a4d40",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "888659b798b8a97a"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 10. Speech Text Normalization",
+   "hash": "055efa51c8966b10",
+   "does": "no behavioural claim: section header for speech normalization.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 10. Speech Text Normalization > 10.1 `TTSTextNormalizer.swift`",
+   "hash": "0e12b63aceea63ad",
+   "does": "Claims normalize(_:english:) expands domain abbreviations, pace strings (bare 8:45 left alone) and years for English voices, then hands off to PhoneticOverrides.speechAttributedString.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:)": "e72d4dc3005247db",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "7727ef5d1e310593",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "2f666bc746f61c13",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "adce142074b83cbb",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "6d0bc9e51bb0b30f"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 10. Speech Text Normalization > 10.2 `PhoneticOverrides.swift`",
+   "hash": "a83bf303d1105ab5",
+   "does": "Claims PhoneticOverrides.resolve runs expandZipCodes, stripAuthoredMarkup ([[word|IPA]] → IPA attribute) and domainRules respellings skipping authored ranges.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)": "b702e90ed306617a",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "3095a30a1fadbcb9",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)": "230a032e3951ced5",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)": "939c0b5ec1f0331e"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 11. MetricsVerifier — Hallucination Guard",
+   "hash": "92525c4895fa8e93",
+   "does": "Claims MetricsVerifier.verify checks live-workout numbers, verifyAppStateClaims checks training-load/overnight numbers, recordCorrections buffers up to 4 deduped discrepancies and consumePendingCorrectionsBlock injects them into the next variable prompt. Cap of 4 stated at MetricsVerifier.swift:585.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "d65cb8c4cec5d587",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "dd3c70ebe0ab95bb",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "75b05213d1f548a3"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation",
+   "hash": "ce5a5e948cb12125",
+   "does": "no behavioural claim: section header for persistence and truncation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.1 `ChatTurn` — `Emuqu/Sources/Assistant/Providers/AIProvider.swift`",
+   "hash": "8c44fc92a5a8c49d",
+   "does": "Claims ChatTurn fields including subsystem and localOnly, with local-only turns never leaving the device.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.displayName",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "4f9bc6406c876d19",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.displayName": "c799101ae6fddbb9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "73ef5abc02f722d9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)": "10a36de797d5da95",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.2 `ConversationStore` — `Emuqu/Sources/Assistant/Chat/ConversationStore.swift",
+   "hash": "a09b958eeed5e749",
+   "does": "Claims ConversationStore writes Assistant/conversation.json atomically with .completeFileProtection in the App Group container, API load/save/clear/mergedWithDisk/retryHeldSave. Matches ConversationStore.swift:39,139.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "5ec8797cc5e4303e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "c5edee68d81706b7",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.3 Truncation — `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.",
+   "hash": "fcaadd37f6a0af27",
+   "does": "Claims token budgets Apple 1200, DeepSeek 60000, others 80000, chars/4 estimate, truncateForSend drops oldest and keeps newest, and updateSummaryWith asks for ≤ 120 words with a 5 s timeout. Matches AssistantViewModel+Context.swift:98-151, :30, :75.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)"
+   ],
+   "reads": [
+    "ud:assistant.priorSummary"
+   ],
+   "writes": [
+    "ud:assistant.priorSummary"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says updateSummaryWith gives up after 5 s 'without blocking the turn'; it is awaited inside assembleContextAndTools, so the turn's first provider call waits for it (up to 5 s). The summary is also persisted to UserDefaults 'assistant.priorSummary', which the section does not mention.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:352",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift:515",
+      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:35"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "9f6626b5c70a4ba3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "64cbb4b678594599"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates",
+   "hash": "2109e46867d69e31",
+   "does": "no behavioural claim: section header for safety gates.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates > 13.1 `MedicalQueryGuard.swift`",
+   "hash": "c10793f2a380e9ad",
+   "does": "Claims MedicalQueryGuard refuses self-harm, acute symptoms, injury, heart-rhythm and risk-judgement questions in that order, locally, gated by medicalGuardEnabled except self-harm. Matches classify order (selfHarm, emergency, injury, rhythm, generalConcern) and send's gate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates > 13.2 `ProviderConsentTracker.swift`",
+   "hash": "33ef9143c9bf2f1e",
+   "does": "Claims Apple is consent-exempt and cloud consent is stored in UserDefaults key assistant.consent.v<consentSchemaVersion>.<provider>. Matches ProviderConsentTracker.swift:76-79 (version 8).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.acknowledge(_:)": "9fa1066b036acf46",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "d7cf432e48ac4980"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates > 13.3 `CoachVoiceGuard.swift`",
+   "hash": "106e9711609a832d",
+   "does": "Claims CoachVoiceGuard.scrub replaces whole sentences with neutral deflections and runs per streamed sentence, per utterance and on the final message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)": "8d7f0ecf06491c3d"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates > 13.4 Prompt-level boundary",
+   "hash": "1d727ba87edf6fab",
+   "does": "Claims base prompt opens with an information-access principle followed by a narrow MEDICAL BOUNDARY; local guard applies if ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says base 'opens with' the information-access principle. In base, the persona, BREVITY and number/TSB rules come first, and INFORMATION ACCESS PRINCIPLE starts at line 170, about 155 lines in. Consequence: the doc misdescribes the order of the prompt, which matters for anyone reasoning about precedence or cache prefixes. The rest is accurate: a narrow MEDICAL BOUNDARY follows the principle, and its injury reply matches MedicalQueryGuard.injuryReply word for word.",
+     "evidence": [
+      "docs/FLO_ARCHITECTURE.md:372",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:13",
+      "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift:170"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "209910bab182d4ea",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "c502663f6adb75fd",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "83e46a4441edf3a9",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "3e6965e433423017",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "86ccd35fb6f38610",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "febc96bd0c0829d4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory",
+   "hash": "e66cd2c1551c433b",
+   "does": "Claims UserFactsStore persists Assistant/user_facts.json with add (case-normalized dedupe), remove, clear, systemPromptBlock. Matches UserFactsStore.swift:63.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory > 14.1 Auto-extraction",
+   "hash": "41534196ca03bef9",
+   "does": "Claims runAutoFactExtraction runs in background when enabled, prefers Apple, checks consent, asks for {\"facts\": [...]}, 8 s timeout, filters candidates. Timeout matches AssistantViewModel+Context.swift:182.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)": "6b6b9b462f6a376d"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory > 14.2 Model-driven memory",
+   "hash": "77a180816e5d7443",
+   "does": "Claims assistant.memory.add/.remove/.clear actions let the model edit memory (allowedActionNames includes assistant_memory_*).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 15. DeterministicIntent — No-model answers",
+   "hash": "d4605e599417242d",
+   "does": "Claims DeterministicIntent is voice-only, narrow regex patterns, first match wins, handler returns nil to fall through, no confidence score and no production counter (debug log only). Matches send() and servedDeterministically.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "bfb830f7af5aef07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 16. AppleToolDispatcher",
+   "hash": "63efb1a3a44d08fc",
+   "does": "Claims AppleToolDispatcher adapts ToolSpecs to FoundationModels tools, reached via AppDependencies.current.providers.appleToolDispatcher, registry set for Apple turns and cleared afterwards.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.publishAppleDispatcher(provider:factRegistry:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7fe971dbead49f86",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.publishAppleDispatcher(provider:factRegistry:)": "cdfa043826306513"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 17. Action Bridges",
+   "hash": "e806eeafd3f6762a",
+   "does": "Claims email compose stages a draft for MFMailComposeViewController (user sends), contacts add/remove plus list, Tavily web search requiring the user's key, Anthropic server web search alternative.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)": "accba99566f6e6c2"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 18. Tests",
+   "hash": "b3a4b171765de19b",
+   "does": "Lists test suites PhoneticOverridesTests, TTSTextNormalizerTests, HallucinationFeedbackTests, DeterministicIntentTests, TurnRouterTests, MedicalQueryGuardTests, CoachVoiceGuardTests, FactCatalogValidationTests — all exist in EmuquTests/.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/PhoneticOverridesTests.swift::func PhoneticOverridesTests.testStripForDisplayRemovesAuthoredMarkup()",
+    "EmuquTests/TTSTextNormalizerTests.swift::func TTSTextNormalizerTests.testExpandsBPMOnly()",
+    "EmuquTests/HallucinationFeedbackTests.swift::func HallucinationFeedbackTests.setUp()",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.setUp()",
+    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.testEveryScrubbedConceptHasARule()",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/CoachVoiceGuardTests.swift::func CoachVoiceGuardTests.testEveryScrubbedConceptHasARule()": "daba3cba303d5536",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()": "45f6c8cc5d6f0c73",
+    "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "e66d98b76fb854e7",
+    "EmuquTests/HallucinationFeedbackTests.swift::func HallucinationFeedbackTests.setUp()": "0f543ccc1518ea42",
+    "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.setUp()": "8a74c6522603f16b",
+    "EmuquTests/PhoneticOverridesTests.swift::func PhoneticOverridesTests.testStripForDisplayRemovesAuthoredMarkup()": "1cd8e1d021a5e933",
+    "EmuquTests/TTSTextNormalizerTests.swift::func TTSTextNormalizerTests.testExpandsBPMOnly()": "8c29f9ce055e6a64",
+    "EmuquTests/TurnRouterTests.swift::func TurnRouterTests.model(_:_:)": "997fc6ae350f4e78"
+   }
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 19. Known Gotchas",
+   "hash": "b380facc5d75b6dc",
+   "does": "no behavioural claim: list of implementation gotchas (MainActor.assumeIsolated, AVAudioConverter Sendable, duplicate tool names, voice fallback, no lexicon API, year spelling, watchdog, cache prefix, whole tool calls).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "§ Flo — AI Assistant Architecture > 20. Telemetry",
+   "hash": "9cb0a5be38c377c4",
+   "does": "Claims telemetry goes through debugLog with the listed log line prefixes; Troubleshooting shows warnings/errors. Log formats for usage and deterministic hit match code strings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)": "4104a3ed8563b698"
+   }
+  }
+ ],
+ "deps": {}
+}

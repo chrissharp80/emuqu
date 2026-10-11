@@ -1,0 +1,165 @@
+{
+ "file": "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift",
+ "hash": "931d55f42e3c39b4",
+ "role": "Static helpers for the morning processing pipeline: mapping fetched/estimated sleep into SleepPollResult, and running artifact detection/verification and window selection on detached tasks with timing logs.",
+ "types": [
+  "MorningProcessingService: extension — sleep-boundary mapping and off-actor analysis passes"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)",
+   "hash": "50d2dfd74afa5efc",
+   "does": "Maps fetched SleepData to a SleepPollResult: sleep start/wake as signed ms offsets from effectiveStartDate (MillisecondOffset.between, fallback 0 only when the interval is not representable, i.e. beyond a century; negative offsets are kept), the boundary source, per-segment offsets only when there is more than one segment, and the fetched data itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_: Date)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "segments.count > 1 ?:",
+     "effect": "map segments to SleepSegmentMs; else nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_: Date)": "6eff75dba5f3bc80",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.offsetMs(_: Date)",
+   "hash": "53d1299bc9600288",
+   "does": "Nested helper: ms offset of a date from effectiveStartDate, fallback 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
+   "hash": "a26794b2a3fbce07",
+   "does": "Writes an estimate's sleep start/end offsets into the result (only when present), sets the boundary source label and fetchedSleepData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_: Date) #2"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "estimate.sleepStart present",
+     "effect": "overwrite sleepStartMs; else keep previous"
+    },
+    {
+     "at": "+10",
+     "cond": "estimate.sleepEnd present",
+     "effect": "overwrite wakeTimeMs; else keep previous"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When the estimate lacks a start or end, the previous result's value is kept while source and fetchedSleepData are replaced, so boundaries can come from one source and be labelled with another.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift:55-58"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.offsetMs(_: Date) #2": "65eed6f312164d0a",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.offsetMs(_: Date) #2",
+   "hash": "53d1299bc9600288",
+   "does": "Nested helper: ms offset from effectiveStartDate, fallback 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.detectArtifacts(in:)",
+   "hash": "0a4249ee8ef35809",
+   "does": "Runs ArtifactDetector().detectArtifacts and Verification().verify on a detached userInitiated task and logs elapsed ms; returns (flags, verification).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "b781aa85db54b975",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "2f614f09191c6c2d",
+    "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)": "369483ff74f9e96b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func MorningProcessingService.selectWindow(in:flags:sleepResult:baselineStats:)",
+   "hash": "1954b5393db7c4ce",
+   "does": "Runs a fresh default WindowSelector().findBestWindowWithCapacity with sleep bounds and baseline on a detached task and logs elapsed ms.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "silent-failure",
+     "sev": "low",
+     "text": "The local selector's lastOrganizedZones (set as a side effect of the search) is discarded, so morning-processed sessions get no organizedRecoveryZones (HRVAnalysisPipeline.analyzeWithAutoWindow sets them; this path does not) and the overnight chart must recompute them from disk. The doc's \"WindowSelector is stateless\" is wrong: it holds organizedZonesBox.",
+     "evidence": [
+      "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift:94",
+      "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift:104-111",
+      "Emuqu/Sources/Analysis/WindowSelection.swift:158-165",
+      "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift:233-235",
+      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:255-295"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "c6fe89367e88ef08",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -1,0 +1,354 @@
+{
+ "file": "Emuqu/Sources/Views/DeleteAllDataPage.swift",
+ "hash": "feef968df4dcc8bb",
+ "role": "Settings → Privacy → Advanced Data Controls → 'Delete All My Data' page: explains what is removed, gates the wipe behind typing 'DELETE MY DATA' plus a confirmation dialog, then runs DataPurgeService.purgeAllUserData and shows the report.",
+ "types": [
+  "DeleteAllDataPage: struct (View) — GDPR/CCPA delete-all page"
+ ],
+ "state": [
+  "mem:DeleteAllDataPage.confirmPhrase (static let \"DELETE MY DATA\")",
+  "mem:DeleteAllDataPage.typedConfirmation (@State)",
+  "mem:DeleteAllDataPage.showingConfirmation (@State)",
+  "mem:DeleteAllDataPage.report (@State DataPurgeService.Report?)",
+  "mem:DeleteAllDataPage.isPurging (@State)"
+ ],
+ "toplevel": "Reads RRCollector and SettingsManager from the environment. #Preview (lines 219-225) builds the page with AppDependencies.current.app.settingsManager and a fresh RRCollector(). Reached from AdvancedDataControlsPage.swift:64 and PaywallView.swift:417; snapshot-tested in PageSnapshotTests.swift:29 and driven by EmuquUITests/DataDeletionUITests.swift.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var DeleteAllDataPage.phraseMatches",
+   "hash": "41407fa5f67013ff",
+   "does": "True when typedConfirmation trimmed of whitespace/newlines equals exactly 'DELETE MY DATA' (case-sensitive).",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [],
+   "reads": [
+    "mem:DeleteAllDataPage.typedConfirmation"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var DeleteAllDataPage.confirmationActions",
+   "hash": "bb2fd504a76b6c23",
+   "does": "Confirmation dialog buttons: destructive 'Delete All My Data' calls performPurge(); 'Cancel' does nothing.",
+   "entry": "SwiftUI confirmationDialog actions; button taps",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "2d6f177d70af20c6"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.body",
+   "hash": "56169c443833638f",
+   "does": "List of sections with zen background, inline title, and a 'Delete everything?' confirmationDialog bound to showingConfirmation with confirmationActions and a last-chance message.",
+   "entry": "SwiftUI body (NavigationLink destination from AdvancedDataControlsPage / PaywallView)",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.sections",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.confirmationActions",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.confirmationActions": "bf3f2c886010d8dc",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.sections": "93ae69822ee3a2db",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.sections",
+   "hash": "865f56100f3de536",
+   "does": "List of warning, what-gets-removed, what-stays, confirm field, delete button, purging progress and result sections.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.warningSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatGetsRemovedSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatStaysSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.confirmFieldSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteButtonSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.purgingProgressSection",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.resultSection"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.confirmFieldSection": "e3a279f05ef21ba4",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteButtonSection": "3da0ce656a42143f",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.purgingProgressSection": "8d54446d1574efab",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.resultSection": "59a2f30bcbb0a34f",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.warningSection": "88192f5b90775990",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatGetsRemovedSection": "4ad54f0afde276d1",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatStaysSection": "0703c5aa08405907"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.warningSection",
+   "hash": "784996edea394153",
+   "does": "Section with the localized warning that everything on device and in iCloud is removed.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.whatGetsRemovedSection",
+   "hash": "43bdd4ef7c310acf",
+   "does": "Section 'What gets removed' with nine bullets (sessions, iCloud copies, raw RR backups, sync state, Keychain AI keys, AI conversations, AI memory facts, disclaimer flag, settings/profile).",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.bullet(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.bullet(_:)": "4df4492d9b8a1a15"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.whatStaysSection",
+   "hash": "a88fdd6c4b1d76cf",
+   "does": "Section listing what is NOT removed (Apple Health samples, with Health-app removal steps) and a footer saying local data is still removed if iCloud deletion fails and to rerun once online.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.bullet(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.bullet(_:)": "4df4492d9b8a1a15"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.confirmFieldSection",
+   "hash": "a66f9440128f9767",
+   "does": "Section with markdown instruction 'Type **DELETE MY DATA** below…', a TextField bound to typedConfirmation (id deleteAllData.confirmField, no autocorrect, all-caps autocapitalization, disabled while purging), header and footer.",
+   "entry": "SwiftUI rendering; text field edits",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DeleteAllDataPage.typedConfirmation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.deleteButtonSection",
+   "hash": "1ab80da794521808",
+   "does": "Destructive button (id deleteAllData.confirmButton) that sets showingConfirmation; disabled while purging or until phraseMatches.",
+   "entry": "Button tap",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteSectionLabel",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DeleteAllDataPage.showingConfirmation"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteSectionLabel": "9c2b04e28eac9e44",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "8aa342b61ee12090"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.deleteSectionLabel",
+   "hash": "b74f6cfd0005efd1",
+   "does": "Centered semibold 'Delete All My Data' label.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "2d6308bb50fa86bd"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.purgingProgressSection",
+   "hash": "fd649c951a455b8d",
+   "does": "Shows a section with purgingRow only while isPurging.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.purgingRow"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "isPurging",
+     "effect": "true: section with spinner row; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.purgingRow": "e1853fcf5315ae0a"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.purgingRow",
+   "hash": "70dce73b9b8ec398",
+   "does": "Spinner plus 'Deleting… this includes removing your data from iCloud…' text.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.resultSection",
+   "hash": "4192b292be6a9aa0",
+   "does": "When a purge report exists, 'Result' section with report.outcomeText and problemRows.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeText",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.problemRows(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "report non-nil (purge has finished at least once)",
+     "effect": "true: Result section; false: nothing"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeText": "48621913a1091577",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.problemRows(_:)": "07b2cc9d23ea1940",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func DeleteAllDataPage.problemRows(_:)",
+   "hash": "a52f40f2933c7884",
+   "does": "When report.problemText is non-nil, a warning Label 'Some steps did not finish' plus the problem lines.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.problemText",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "report.problemText non-nil (errors array non-empty)",
+     "effect": "true: warning label + text; false: nothing rendered"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.problemText": "878f043be24193e8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+   }
+  },
+  {
+   "key": "func DeleteAllDataPage.bullet(_:)",
+   "hash": "46c97015d53ac674",
+   "does": "HStack of a localized bullet glyph and the given text in secondary subheadline.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+   }
+  },
+  {
+   "key": "func DeleteAllDataPage.performPurge()",
+   "hash": "aaa4aa6172401c03",
+   "does": "Sets isPurging, then in a Task awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — remote CloudKit zone deletion then local container/defaults/keychain wipe — stores the Report and clears isPurging.",
+   "entry": "Called from confirmation dialog destructive button",
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:DeleteAllDataPage.isPurging",
+    "mem:DeleteAllDataPage.report",
+    "ck:private DB zones (deleted via purgeAllUserData)",
+    "file:all app containers (swept)",
+    "ud:all keys (swept)",
+    "kc:AI provider keys",
+    "archive:SessionArchive in-memory index (reset)",
+    "notif:flowRecoveryArchiveChanged (posted by DataPurgeService.sweepAndForget, DataPurgeService.swift:219)"
+   ],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "typedConfirmation is not cleared after a purge, so the button stays enabled and a second confirmation immediately reruns the full purge; this is the intended retry path for a failed iCloud deletion but nothing distinguishes it from an accidental re-run.",
+     "evidence": [
+      "Emuqu/Sources/Views/DeleteAllDataPage.swift:35",
+      "Emuqu/Sources/Views/DeleteAllDataPage.swift:129",
+      "Emuqu/Sources/Views/DeleteAllDataPage.swift:202"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:)": "738ba787af751fec"
+   }
+  }
+ ],
+ "deps": {}
+}

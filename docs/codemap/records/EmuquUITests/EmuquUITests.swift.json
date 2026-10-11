@@ -1,0 +1,1685 @@
+{
+ "file": "EmuquUITests/EmuquUITests.swift",
+ "hash": "56f72419590fcffa",
+ "role": "Shared UI-test harness for the whole EmuquUITests target (timing scale, English launch args, accessibility-identifier constants, element lookup, tab/More navigation, first-run gate walking) plus the EmuquUITests smoke suite (tabs, dashboard, record, settings, history, paywall, disclaimer, Flo) and UITestTimingTests pinning the timing scale.",
+ "types": [
+  "UITestTiming: enum — global wait multiplier (scale=2) and s() to widen deadlines",
+  "UITestLanguage: enum — launch args forcing en/en_US",
+  "UITestID: enum — string constants mirroring app .accessibilityIdentifier values and tab titles",
+  "UITestFind: enum — element lookup/tap helpers tolerant of SwiftUI identifier forwarding",
+  "UITestNav: enum — tab selection and More/Dashboard navigation with retries",
+  "UITestLaunch: enum (+ extension) — walks disclaimer/onboarding/paywall gates; background-to-persist",
+  "EmuquUITests: class — XCTestCase smoke suite of main flows",
+  "UITestTimingTests: class — XCTestCase pinning UITestTiming.scale"
+ ],
+ "state": [
+  "mem:UITestTiming.scale (static let = 2)",
+  "mem:UITestLanguage.english",
+  "mem:UITestID.* (static let identifier/title constants, lines 65-179)",
+  "mem:UITestLaunch.firstRunGates [disclaimer.agree, onboarding.skip, onboarding.advance]",
+  "mem:UITestLaunch.paywallGates [paywall.skipDebug]",
+  "mem:EmuquUITests.unconditionalTabs (Dashboard, Record, More)",
+  "mem:EmuquUITests.optionalTabs (Fitness, Flo)",
+  "EmuquUITests.app (instance XCUIApplication)"
+ ],
+ "toplevel": "Static constant tables only: UITestID identifiers (all verified to appear as string literals in Emuqu/ sources), tab titles (tabCoachTitle='Flo'), gate lists in UITestLaunch, and EmuquUITests tab tables. UITestTiming.scale is a hardcoded 2 (comment lines 16-24 explains env var TEST_RUNNER_UITEST_TIMEOUT_SCALE did not reach the runner).",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/EmuquUITests.swift:783",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "UITestFind doc comment at lines 201-213 describes an `onScreen` helper using debugDescription but is orphaned above isSafelyHittable's doc; onScreen itself is at line 274 with no doc. Cosmetic only.",
+   "evidence": [
+    "EmuquUITests/EmuquUITests.swift:201",
+    "EmuquUITests/EmuquUITests.swift:274"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "UITestID constants moreAbout, paywallTermsOfUse, settingsMetricGuide, settingsMethodology, settingsTermsOfUse, settingsRoutes, settingsTags and settingsPermissions are referenced by no test in EmuquUITests (grep UITestID.<name>)",
+   "evidence": [
+    "EmuquUITests/EmuquUITests.swift:109",
+    "EmuquUITests/EmuquUITests.swift:69",
+    "EmuquUITests/EmuquUITests.swift:131",
+    "EmuquUITests/EmuquUITests.swift:124"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func UITestTiming.s(_:)",
+   "hash": "06d0a44dd4ebd542",
+   "does": "Returns seconds * UITestTiming.scale (2), widening every wait deadline in the target.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestFind.tabButton(in:identifier:title:)",
+   "hash": "742a68f33a88dc3b",
+   "does": "Returns the tab-bar button whose identifier matches, else the first tab-bar button whose label BEGINSWITH[c] the title (SwiftUI does not forward .accessibilityIdentifier to tab-bar buttons).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "button with the identifier exists",
+     "effect": "true: return it; false: fall back to label BEGINSWITH[c] title firstMatch (which may not exist)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+   }
+  },
+  {
+   "key": "func UITestFind.isSafelyHittable(_:in:)",
+   "hash": "a08090bd562c05f5",
+   "does": "Returns whether an element exists, is enabled, has a frame >1x1 intersecting the app frame, and then whether XCUITest reports it hittable (includes occlusion).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "element missing or disabled",
+     "effect": "return false"
+    },
+    {
+     "at": "+3",
+     "cond": "frame width or height <=1",
+     "effect": "return false"
+    },
+    {
+     "at": "+4",
+     "cond": "frame does not intersect app frame",
+     "effect": "return false; otherwise return element.isHittable (can still raise mid-transition)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Two harness comments contradict each other about isHittable under a fullScreenCover: 228-235 says isHittable is the only thing that knows a cover sits on the tab bar, 681-684 says on iOS 26 the tab bar under a fullScreenCover reports hittable. toMainUI's final readiness poll (642-645) and OnboardingFlowUITests' 'tabs must not be tappable' assertion both rely on the first claim; if the second is true, toMainUI's true does not prove no cover is up and the onboarding assertion fails on iOS 26",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:231",
+      "EmuquUITests/EmuquUITests.swift:682",
+      "EmuquUITests/EmuquUITests.swift:642",
+      "EmuquUITests/OnboardingFlowUITests.swift:74"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func UITestFind.tapSafely(_:in:)",
+   "hash": "45ca4659b8a5b036",
+   "does": "Taps the centre of an element by normalized coordinate after validating existence, enabled state and a real frame inside the app; never asks isHittable. Returns whether a tap was sent (not whether it landed).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "element missing or disabled",
+     "effect": "return false, no tap"
+    },
+    {
+     "at": "+4",
+     "cond": "frame <=1pt in either dimension",
+     "effect": "return false"
+    },
+    {
+     "at": "+5",
+     "cond": "frame outside app frame",
+     "effect": "return false; otherwise coordinate tap and return true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "A coordinate tap on an element covered by a sheet is delivered to the cover and still returns true, so callers that use the result as 'tapped' (e.g. EmuquUITests.swift:1276) cannot tell a swallowed tap from a real one",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:270",
+      "EmuquUITests/EmuquUITests.swift:1276"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func UITestFind.onScreen(_:limit:)",
+   "hash": "f25bdb3314200f5a",
+   "does": "Returns app.debugDescription, truncated to `limit` (2000) characters with a '… (truncated)' suffix, for failure messages.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "dump length <= limit",
+     "effect": "true: whole dump; false: first `limit` chars + truncation marker"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestFind.tapWhenReady(_:timeout:)",
+   "hash": "e3a6805f403f642a",
+   "does": "Waits for existence, then polls until the element has a >1pt frame and is enabled and coordinate-taps its centre; returns whether a tap happened. Does not check that the frame is inside the window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "element never appears within timeout",
+     "effect": "return false"
+    },
+    {
+     "at": "+4",
+     "cond": "deadline not reached",
+     "effect": "loop polling"
+    },
+    {
+     "at": "+6",
+     "cond": "frame >1x1 and enabled",
+     "effect": "coordinate tap, return true; else re-wait 1s (0.5*scale) and retry; after deadline return false"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "No app-frame intersection check: a frame laid out below the window gets a tap off-screen that reports true; acceptAssistantDisclaimer documents exactly this failure and works around it by swiping first",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:295",
+      "EmuquUITests/EmuquUITests.swift:309"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+   "hash": "6bb3c77ffe764f95",
+   "does": "If the Flo AI-disclosure accept button (assistant.disclaimerAccept) appears within timeout, swipes up to 4 times until its frame is inside the first window, then taps it via tapWhenReady; returns whether tapped (false if no disclosure).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapWhenReady(_:timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "accept button does not appear within timeout",
+     "effect": "return false (no disclosure showing)"
+    },
+    {
+     "at": "+5",
+     "cond": "accept frame not inside window and fewer than 4 swipes",
+     "effect": "swipe up and repeat; then tapWhenReady"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapWhenReady(_:timeout:)": "67c164f48d9ec75f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestFind.anyElement(in:identifier:)",
+   "hash": "d6d9567fd37f4da8",
+   "does": "Returns the first descendant of any element type whose identifier equals `identifier`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6"
+   }
+  },
+  {
+   "key": "func UITestFind.row(in:identifier:label:timeout:)",
+   "hash": "3401f425ba3ceca5",
+   "does": "Polls until timeout across six candidate queries (buttons/cells/otherElements/staticTexts by identifier, then buttons/cells whose label CONTAINS[c] label) and returns the first that exists; if none by the deadline returns app.buttons[identifier].",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "repeat-while: deadline not passed",
+     "effect": "keep polling all candidates (busy loop with no sleep)"
+    },
+    {
+     "at": "+17",
+     "cond": "for each candidate closure",
+     "effect": "evaluate candidate"
+    },
+    {
+     "at": "+19",
+     "cond": "candidate exists",
+     "effect": "return it immediately"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The label fallback CONTAINS[c] can match a different row or section header containing the same word (e.g. 'Profile' also matches 'Identity & Profile', noted at line 1171)",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:359",
+      "EmuquUITests/EmuquUITests.swift:1171"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestNav.selectTab(_:identifier:title:attempts:)",
+   "hash": "a054f7fd743eb270",
+   "does": "Waits for the tab bar and the tab button, then up to `attempts` times polls hittability (3s*scale), coordinate-taps the tab via tapSafely and waits (3*attempt s*scale) for an element carrying the tab identifier (which SwiftUI puts on the tab content). Returns whether the content appeared; final return is content.exists.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "tab bar never appears in 16s",
+     "effect": "return false"
+    },
+    {
+     "at": "+10",
+     "cond": "tab button never appears",
+     "effect": "return false"
+    },
+    {
+     "at": "+13",
+     "cond": "for attempt in 1...attempts",
+     "effect": "retry loop"
+    },
+    {
+     "at": "+19",
+     "cond": "tab not safely hittable and before deadline",
+     "effect": "sleep 100ms and re-poll"
+    },
+    {
+     "at": "+24",
+     "cond": "tapSafely refused (missing/disabled/no frame)",
+     "effect": "continue to next attempt without tapping"
+    },
+    {
+     "at": "+25",
+     "cond": "tab content appears within 3*attempt s",
+     "effect": "return true; else next attempt; after all attempts return content.exists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestNav.scrollTo(_:identifier:label:attempts:)",
+   "hash": "8cd8a9aaa06391ca",
+   "does": "Waits for any cell (or static text) to exist, then swipes up to `attempts` times re-querying UITestFind.row until the row exists and is safely hittable; if still not found swipes down up to `attempts` times. Returns the last row query (possibly non-existent).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+16",
+     "cond": "no cell appears in 16s",
+     "effect": "wait up to 8s for any static text, then continue regardless"
+    },
+    {
+     "at": "+22",
+     "cond": "row not existing+hittable and tries < attempts",
+     "effect": "swipe up and re-query"
+    },
+    {
+     "at": "+27",
+     "cond": "row found going down",
+     "effect": "return row"
+    },
+    {
+     "at": "+34",
+     "cond": "row not found and tries < attempts (upward sweep)",
+     "effect": "swipe down and re-query; return final row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestNav.openFromMore(_:identifier:label:attempts:)",
+   "hash": "a783f4f76527fad4",
+   "does": "Up to `attempts` (3) times: on the last attempt terminates, relaunches and re-walks gates (toMainUI); selects the More tab, finds the row by identifier/label, waits 5*attempt s, polls hittability 3s, then taps it and returns true. Returns false after all attempts.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIApplication.launch"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for attempt in 1...attempts",
+     "effect": "retry loop"
+    },
+    {
+     "at": "+12",
+     "cond": "attempt == attempts (last)",
+     "effect": "terminate + relaunch app with same launch args (re-runs -UITests-FreshInstall wipe if present) + toMainUI"
+    },
+    {
+     "at": "+17",
+     "cond": "More tab selection fails",
+     "effect": "continue to next attempt"
+    },
+    {
+     "at": "+23",
+     "cond": "row does not appear in 5*attempt s",
+     "effect": "continue"
+    },
+    {
+     "at": "+28",
+     "cond": "row not hittable and before deadline",
+     "effect": "sleep 100ms"
+    },
+    {
+     "at": "+31",
+     "cond": "row still not hittable",
+     "effect": "continue; else tap and return true"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The last-attempt relaunch replays the original launch arguments, so in suites launched with -UITests-FreshInstall it wipes any state the test created before navigating (e.g. a test that changed a setting then reopened Settings would silently lose it)",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:517",
+      "Emuqu/Sources/Services/AppLaunchRecovery.swift:185"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestNav.openSettings(_:)",
+   "hash": "7a875a991fb2145c",
+   "does": "More → Settings: openFromMore with identifier more.settings, label 'Settings'.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)": "a9dbe08a3481ccb4"
+   }
+  },
+  {
+   "key": "func UITestNav.openTrends(_:)",
+   "hash": "67699142f26bddee",
+   "does": "More → Trends: openFromMore with identifier more.trends, label 'Trends'.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)": "a9dbe08a3481ccb4"
+   }
+  },
+  {
+   "key": "func UITestNav.openHelp(_:)",
+   "hash": "f89adfd0a2ce144b",
+   "does": "More → Help: openFromMore with identifier more.help, label 'Help'.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "UITestNav.openHelp has no caller anywhere in EmuquUITests or EmuquTests (grep \\bopenHelp\\b finds only the declaration); UITestID.moreHelp is used only here",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:555",
+      "EmuquUITests/EmuquUITests.swift:108"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openFromMore(_:identifier:label:attempts:)": "a9dbe08a3481ccb4"
+   }
+  },
+  {
+   "key": "func UITestNav.openHistory(_:)",
+   "hash": "6e4de58e0c8b2d7a",
+   "does": "Selects the Dashboard tab, scrolls (6 attempts) to dashboard.viewAllReadings / 'View all', and taps it if it exists and is safely hittable; returns whether tapped.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Dashboard tab selection fails",
+     "effect": "return false"
+    },
+    {
+     "at": "+5",
+     "cond": "View all missing or not hittable",
+     "effect": "return false; else tap and return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00"
+   }
+  },
+  {
+   "key": "func UITestLaunch.backgroundToPersist(_:)",
+   "hash": "ceaff1dd54ccc099",
+   "does": "Presses Home, waits up to 10s for background, re-activates the app and waits for foreground, so scene-phase change flushes settings and defaults before a terminate.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestLaunch.toMainUI(_:timeout:)",
+   "hash": "6b885db93d225bec",
+   "does": "Walks every first-run and paywall gate (walk) until none is present and the tab bar exists, then polls up to 20s for the tab bar to be safely hittable; returns that hittability (false if a gate remains).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.walk(_:dismissing:until:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.anyPresent(_:_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "a gate is still present or no tab bar after walk",
+     "effect": "return false"
+    },
+    {
+     "at": "+19",
+     "cond": "tab bar not safely hittable and before deadline",
+     "effect": "sleep 100ms and re-poll; return final hittability"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.anyPresent(_:_:)": "4dc56d979dca7dec",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.walk(_:dismissing:until:timeout:)": "a7c4faa5502c42ae",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestLaunch.toPaywall(_:timeout:)",
+   "hash": "20cc84b310672d47",
+   "does": "Walks only the first-run gates until the paywall skip button appears or no first-run gate remains; returns true if paywall.skipDebug is present or appears within 30s.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.walk(_:dismissing:until:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.anyPresent(_:_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "paywall gate already present",
+     "effect": "return true; else wait up to 30s for paywall.skipDebug"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.anyPresent(_:_:)": "4dc56d979dca7dec",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.walk(_:dismissing:until:timeout:)": "a7c4faa5502c42ae",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestLaunch.walk(_:dismissing:until:timeout:)",
+   "hash": "1efffb44708f7028",
+   "does": "Waits up to 20s for the tab bar, then until timeout repeatedly checks isDone and otherwise dismisses one gate, waiting 2s for a static text when nothing was tappable. Returns silently on timeout.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.dismissOneGate(_:gates:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "closure:isDone predicate passed by toMainUI/toPaywall"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "before deadline",
+     "effect": "loop"
+    },
+    {
+     "at": "+9",
+     "cond": "isDone() true",
+     "effect": "return"
+    },
+    {
+     "at": "+10",
+     "cond": "no gate dismissed this pass",
+     "effect": "wait up to 2s for any static text; else loop immediately"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.dismissOneGate(_:gates:)": "78b18af0d6e864f5",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestLaunch.anyPresent(_:_:)",
+   "hash": "fe24fb7ea4e76e4b",
+   "does": "Returns whether any gate identifier resolves to an existing button.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func UITestLaunch.element(_:gate:)",
+   "hash": "919b3c8690013df8",
+   "does": "Resolves all buttons matching the identifier from one snapshot and returns the first, or app.buttons[identifier] when none match.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no matches",
+     "effect": "?? fallback: app.buttons[identifier] (non-existent query)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestLaunch.dismissOneGate(_:gates:)",
+   "hash": "3610baf968701146",
+   "does": "For each gate identifier: skips missing buttons; if the button is disabled, swipes the disclaimer's scroll view (disclaimer.scroll, else first scroll view) up to 8 times until enabled; taps the first enabled, safely hittable gate and returns true. Returns false when nothing was tapped.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each gate",
+     "effect": "iterate in order disclaimer.agree, onboarding.skip, onboarding.advance, paywall.skipDebug"
+    },
+    {
+     "at": "+3",
+     "cond": "button does not exist",
+     "effect": "continue"
+    },
+    {
+     "at": "+7",
+     "cond": "button disabled",
+     "effect": "scroll the disclaimer to enable it"
+    },
+    {
+     "at": "+13",
+     "cond": "disclaimer.scroll exists",
+     "effect": "?: use it; else scrollViews.firstMatch (may be the dashboard behind the cover)"
+    },
+    {
+     "at": "+14",
+     "cond": "no scroll view",
+     "effect": "continue to next gate"
+    },
+    {
+     "at": "+15",
+     "cond": "for up to 8 swipes while button still disabled",
+     "effect": "swipe up"
+    },
+    {
+     "at": "+22",
+     "cond": "button enabled and safely hittable",
+     "effect": "tap, return true; else next gate"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d"
+   }
+  },
+  {
+   "key": "func EmuquUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func EmuquUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func EmuquUITests.waitForTabBar(timeout:)",
+   "hash": "94dc30c5c910d2f6",
+   "does": "Waits (default 20s) for the tab bar and asserts it exists; returns it.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.selectTab(_:_:timeout:)",
+   "hash": "42540b16b22539a7",
+   "does": "Waits for the tab bar, finds the tab via UITestFind.tabButton, asserts it exists within 6s and calls plain tap() (no hittability poll, no confirmation the tab content appeared).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Weaker copy of UITestNav.selectTab: asserts existence then taps without hittability polling or content confirmation; the file's own comment at 935-944 records CI run 33230172290 failing because of this gap, yet 5 tests still use it",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:822",
+      "EmuquUITests/EmuquUITests.swift:400",
+      "EmuquUITests/EmuquUITests.swift:935"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.openSettings()",
+   "hash": "910814d53fd7542d",
+   "does": "Asserts UITestNav.openSettings succeeds, with the screen dump in the message.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a"
+   }
+  },
+  {
+   "key": "func EmuquUITests.openHistory()",
+   "hash": "1587bcbfe0925b50",
+   "does": "Terminates and relaunches with -UITests, -UITests-FreshInstall, -UITests-SeedArchive (app plants one scored synthetic overnight reading), waits 60s for the disclaimer, walks gates, then asserts UITestNav.openHistory reaches History via the Dashboard Recent strip.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.plantIfRequested(into:)": "2b754ae9ec1519fb",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.seedsArchive": "f3ca67b3d6af7d2c",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openHistory(_:)": "1c1ff9e3f23f61f1",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.dismissModalIfPresent()",
+   "hash": "d8209297945c7eda",
+   "does": "Calls UITestLaunch.toMainUI (ignoring the result). Most tests call it again although setUp already did; the paywall tests (1264, 1300, 1314) and testHealthDisclaimerGatesAFreshInstall do not.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testAppLaunchShowsTabBar()",
+   "hash": "51e8c565d81e73f4",
+   "does": "Asserts the tab bar exists after launch and gate walk.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts only tabBar.exists, which the harness itself documents is true while the disclaimer cover is still up (lines 593-599); toMainUI's result is discarded, so the test passes even if gates were never cleared",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:870",
+      "EmuquUITests/EmuquUITests.swift:593"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testAllTabsExist()",
+   "hash": "1ece91a2e4b7d555",
+   "does": "Asserts the Dashboard, Record and More tab buttons exist and the tab bar has at least 3 buttons.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "for each unconditional tab",
+     "effect": "assert its tab button exists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testCanSwitchBetweenAllTabs()",
+   "hash": "e73b6aa4c3e873e9",
+   "does": "Walks Record, each optional tab that exists (Fitness, Flo), More, Dashboard via UITestNav.selectTab (accepting the Flo disclosure after each), re-walks gates, re-selects Dashboard and asserts dashboard.root renders.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each optional tab where its button exists",
+     "effect": "append to the walk (absent tabs are silently skipped)"
+    },
+    {
+     "at": "+12",
+     "cond": "for each tab in the walk",
+     "effect": "assert selectTab succeeds, then accept Flo disclosure if present"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "5fdc71f029ac6f55",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testDashboardShowsRecoveryScoreSection()",
+   "hash": "076c45f87e3531af",
+   "does": "Selects Dashboard, asserts dashboard.root exists, then asserts any of 'Recovery' or 'first reading' text/button labels exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "5fdc71f029ac6f55",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)": "63cd54fc27484582",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testDashboardShowsTrainingReadinessSection()",
+   "hash": "8c2191f1e5500535",
+   "does": "Selects Dashboard, swipes up once if a scroll view exists and no 'Readiness' text is visible, then asserts only that a scroll view exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "scroll view exists and Readiness text absent",
+     "effect": "swipe up once; otherwise nothing"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Named testDashboardShowsTrainingReadinessSection but never asserts the Readiness text; readinessText is only used to decide whether to swipe, and the sole assertion is scrollView.exists, which every screen satisfies (see DashboardUITests.swift:50-51)",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1011",
+      "EmuquUITests/EmuquUITests.swift:999"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)": "63cd54fc27484582"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testDashboardStartRecordingNavigation()",
+   "hash": "4551945692d8f5f7",
+   "does": "Selects Dashboard; if a 'Start Recording'/'Record Now' button appears within 6s taps it and, if the Record tab button exists, asserts it isSelected. Otherwise passes with no assertion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "start button appears",
+     "effect": "tap it; else test ends with no assertion"
+    },
+    {
+     "at": "+14",
+     "cond": "Record tab button exists",
+     "effect": "assert isSelected; else no assertion"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "Can pass with zero assertions (no start button, or Record tab button not found), and relies on isSelected which the same file says SwiftUI does not reliably surface (line 950-952)",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1023",
+      "EmuquUITests/EmuquUITests.swift:1029",
+      "EmuquUITests/EmuquUITests.swift:950"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "Emuqu/Sources/Assistant/Views/ModelPicker.swift::var ModelOptionRow.isSelected": "ffcd72ae50b88d8a",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)": "63cd54fc27484582",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "08e19cd88b3cee20",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testRecordViewShowsSessionSelector()",
+   "hash": "7f599d9f8193fa66",
+   "does": "Selects Record and asserts a static text containing 'Choose session' appears within 10s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)": "63cd54fc27484582",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testRecordViewSessionTypeSelection()",
+   "hash": "707f7823e5d9868a",
+   "does": "Selects Record, requires the 'Choose session' header, then optionally taps an 'Extended' button and asserts a 'Change' button appears, optionally taps Change, and optionally taps a 'Quick' button. The Quick selection has no assertion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "header not found",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+17",
+     "cond": "Extended button appears",
+     "effect": "tap and assert Change button appears; else skipped silently"
+    },
+    {
+     "at": "+34",
+     "cond": "Change button exists",
+     "effect": "tap it and wait for header"
+    },
+    {
+     "at": "+43",
+     "cond": "Quick button appears",
+     "effect": "tap it; no assertion either way"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "All selection steps are conditional; if neither 'Extended' nor 'Quick' buttons exist the test passes having asserted only the header, and the Quick tap is never verified",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1070",
+      "EmuquUITests/EmuquUITests.swift:1096"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.selectTab(_:_:timeout:)": "63cd54fc27484582",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testSettingsViewShowsSections()",
+   "hash": "fecc412691a12366",
+   "does": "Opens Settings and asserts the Profile, Biometrics and Sleep rows each appear within 6s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each of 3 rows",
+     "effect": "assert row exists"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "01786865d0eb86fd",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testSettingsViewShowsHelpSection()",
+   "hash": "b83e72f97ae785bc",
+   "does": "Opens Settings, swipes the table/collection view and the app up, then asserts a static text containing 'Help & Learn' appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "a table exists",
+     "effect": "?: use it; else first collection view"
+    },
+    {
+     "at": "+6",
+     "cond": "list exists",
+     "effect": "swipe up once"
+    },
+    {
+     "at": "+15",
+     "cond": "Help & Learn text not yet visible",
+     "effect": "swipe app up once more"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "01786865d0eb86fd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testSettingsViewShowsAboutSection()",
+   "hash": "c08bd4f4909db3c3",
+   "does": "Opens Settings, swipes up twice, asserts any of 'Version', 'Privacy Policy' or 'Terms of Use' static texts exists (no wait).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Uses .exists with no wait right after two swipes; passes or fails on scroll position and timing, and uses English labels contrary to the UITestID contract at lines 51-58",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1162",
+      "EmuquUITests/EmuquUITests.swift:53"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "01786865d0eb86fd"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testSettingsNavigateToProfile()",
+   "hash": "f6e85bcac1697975",
+   "does": "Opens Settings, finds settings.profile row, taps it, and asserts any navigation-bar button appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Asserts only navigationBars.buttons.firstMatch exists, which Settings itself already has (pushed from More), so it passes even if the Profile tap did nothing",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1178"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "01786865d0eb86fd",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testHistoryViewAppears()",
+   "hash": "51692d42ff421e19",
+   "does": "Seeds the archive and opens History, asserts a navigation bar appears and that a scroll view or list exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openHistory()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "a table exists",
+     "effect": "?: use it; else first collection view"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Final assertion is scrollView.exists || list.exists, which every screen satisfies (DashboardUITests.swift:50-51 says so), and navigationBars.firstMatch also exists on the Dashboard; the test passes even if History never opened beyond openHistory's own tap",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1202",
+      "EmuquUITests/DashboardUITests.swift:50"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openHistory()": "c98cb3a433f4dee0",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testHistoryViewShowsNavigationTitle()",
+   "hash": "4fb095c2751c6ae0",
+   "does": "Seeds and opens History, asserts a navigation bar, then asserts a nav bar or static text containing 'History' exists.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openHistory()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openHistory()": "c98cb3a433f4dee0",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.relaunchToPaywall()",
+   "hash": "9f0ff8597ccc5894",
+   "does": "Terminates, relaunches fresh (-UITests-FreshInstall), walks gates, backgrounds to persist, terminates, relaunches with -UITests-ForcePaywall (no fresh install) and asserts toPaywall reports the purchase gate.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toPaywall(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "4e4f0ca729be0f84",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.backgroundToPersist(_:)": "b4902c0b81652495",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toPaywall(_:timeout:)": "5b8ffc5b100c8ed7"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testPaywallPrivacyPolicyButton()",
+   "hash": "e08d17442208ecf3",
+   "does": "Reaches the paywall, asserts paywall.privacyPolicy exists, opens the policy (retrying taps until paywall.privacyDone appears), taps Done via tapSafely and asserts the privacy button is visible again.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openPrivacyPolicy(_:done:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openPrivacyPolicy(_:done:)": "a16e4514a189fe74",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()": "b2afb53a6c2cd94a",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.openPrivacyPolicy(_:done:)",
+   "hash": "ddd8b0f09027fb77",
+   "does": "Up to 3 times: tapSafely the link and wait 10s for the Done button; returns true once it appears, false after 3 tries.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for 3 attempts",
+     "effect": "retry"
+    },
+    {
+     "at": "+2",
+     "cond": "tapSafely refused",
+     "effect": "continue without waiting"
+    },
+    {
+     "at": "+3",
+     "cond": "Done appears",
+     "effect": "return true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testPaywallShowsFeatures()",
+   "hash": "519281672d4d87d3",
+   "does": "Reaches the paywall and asserts a static text containing 'Overnight' or 'Recovery' exists (no wait).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Checks feature labels with .exists and no wait immediately after toPaywall returns, which happens as soon as paywall.skipDebug exists (EmuquUITests.swift:660-661), so the result depends on whether the feature list has laid out yet; it also matches English copy contrary to the identifier contract at lines 51-58",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1310",
+      "EmuquUITests/EmuquUITests.swift:660",
+      "EmuquUITests/EmuquUITests.swift:53"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()": "b2afb53a6c2cd94a"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testPaywallRestorePurchaseButton()",
+   "hash": "58fee002233edaa1",
+   "does": "Reaches the paywall and asserts paywall.restore exists and is enabled; does not tap it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.relaunchToPaywall()": "b2afb53a6c2cd94a",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testHealthDisclaimerGatesAFreshInstall()",
+   "hash": "fe08173e1b5e10c4",
+   "does": "Terminates and relaunches with setUp's arguments (which still include -UITests-FreshInstall) and asserts disclaimer.agree appears within 20s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testSettingsProfileNavigationSmoke()",
+   "hash": "6e01dfecab7823db",
+   "does": "Asserts tab bar exists, opens Settings and asserts the settings.profile row appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "Same assertions as testSettingsViewShowsSections' first row and testSettingsNavigateToProfile's first half",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1344",
+      "EmuquUITests/EmuquUITests.swift:1103",
+      "EmuquUITests/EmuquUITests.swift:1166"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says the disclaimer/paywall are 'dismissed by -UITests', but no production code reads -UITests; the gates are walked by UITestLaunch.toMainUI",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1341",
+      "Emuqu/Sources/Services/AppLaunchRecovery.swift:185"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "01786865d0eb86fd",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "3baa26cf27145a90",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func EmuquUITests.testAssistantTabSmoke()",
+   "hash": "01be9c3e743f9d18",
+   "does": "Selects the Flo tab (skips the test if unreachable), accepts the AI disclosure, and asserts assistant.composer or assistant.prefabChips appears.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "XCTSkipUnless on selectTab turns any Flo navigation failure into a skip, the exact pattern the UITestNav doc (lines 377-380) says hides misses; and unlike AssistantUITests it does not accept the assistant.setup screen, so it fails on a simulator with no model",
+     "evidence": [
+      "EmuquUITests/EmuquUITests.swift:1368",
+      "EmuquUITests/EmuquUITests.swift:379",
+      "EmuquUITests/AssistantUITests.swift:73"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "df2b384e772d94d4",
+    "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "a539816c56ea4757",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func UITestTimingTests.testScaleIsPositive()",
+   "hash": "7e81e896c749b1fe",
+   "does": "Asserts UITestTiming.scale > 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestTimingTests.testScaleWidensRatherThanShortens()",
+   "hash": "09d79b35361bfadf",
+   "does": "Asserts UITestTiming.scale >= 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func UITestTimingTests.testScaleIsAppliedProportionally()",
+   "hash": "88338ae808c6a1da",
+   "does": "Asserts s(10)==10*scale, s(0)==0, s(5)>0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  }
+ ],
+ "deps": {}
+}

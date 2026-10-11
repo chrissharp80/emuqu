@@ -1,0 +1,1208 @@
+{
+ "file": "Emuqu/Sources/Collection/PolarManager.swift",
+ "hash": "6021bf82bce0eee2",
+ "role": "Declares PolarDeviceType and the @Observable @MainActor PolarManager: the observable strap state (connection, recording, battery, firmware, streaming buffer), forwarders into StrapRecordingCoordinator / StrapBatteryUsageTracker / StrapPairingStore, PolarError, and lazy SDK setup with observer wiring.",
+ "types": [
+  "PolarDeviceType: enum — h10 / veritySense with display name, SF symbol, spec runtime hours",
+  "PolarManager: class (@Observable @MainActor NSObject) — the strap link owner and state holder",
+  "PolarManager.ConnectionState: enum — disconnected/scanning/connecting/connected",
+  "PolarManager.RecordingState: enum — idle/starting/recording/stopping/fetching",
+  "PolarManager.PolarError: enum (LocalizedError) — strap errors with user-facing descriptions"
+ ],
+ "state": [
+  "mem:PolarManager.connectionState",
+  "mem:PolarManager.recordingState",
+  "mem:PolarManager.connectedDeviceId",
+  "mem:PolarManager.connectedDeviceType",
+  "mem:PolarManager.pendingDeviceId",
+  "mem:PolarManager.discoveredDevices",
+  "mem:PolarManager.knownDevices",
+  "mem:PolarManager.lastError",
+  "mem:PolarManager.batteryLevel",
+  "mem:PolarManager.isRecordingOnDevice",
+  "mem:PolarManager.readiness (StrapReadiness)",
+  "mem:PolarManager.feedStatus",
+  "mem:PolarManager.linkRuntime (StrapLinkRuntime, ObservationIgnored)",
+  "mem:PolarManager.linkRuntimePump (nonisolated StrapEventPump)",
+  "mem:PolarManager.hasStoredExercise",
+  "mem:PolarManager.storedExerciseDate",
+  "mem:PolarManager.firmwareVersion",
+  "mem:PolarManager.lastConnectedTime",
+  "mem:PolarManager.fetchProgress",
+  "mem:PolarManager.fetchCancelled",
+  "mem:PolarManager.activeTransfer",
+  "mem:PolarManager.transfersInFlight",
+  "mem:PolarManager.savedRecordingCheck (closure set by RRCollector+Lifecycle.swift:64)",
+  "mem:PolarManager.downloadLedger (StrapDownloadLedger)",
+  "mem:PolarManager.disFirmwareRevisionUUID (static CBUUID 2A26)",
+  "mem:PolarManager.disSoftwareRevisionUUID (static CBUUID 2A28)",
+  "mem:PolarManager.hasReceivedSoftwareRevision",
+  "mem:PolarManager.lastBatteryUpdateTime",
+  "mem:PolarManager.isBatteryReadingStale",
+  "mem:PolarManager.batteryLastReportedValue",
+  "mem:PolarManager.batteryLastChangedAt",
+  "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+  "mem:PolarManager.onUnrecoveredDataRescued (closure set by RRCollector+Lifecycle.swift:61)",
+  "mem:PolarManager.isStreaming",
+  "mem:PolarManager.streamingElapsedSeconds",
+  "mem:PolarManager._streamedRRPoints",
+  "mem:PolarManager.streamedRRCount",
+  "mem:PolarManager.recentRRPoints",
+  "mem:PolarManager.recentRRWindowSize (static 60)",
+  "mem:PolarManager.maxStreamingBufferSize (static 100_000)",
+  "mem:PolarManager.lastUIUpdateBeatCount",
+  "mem:PolarManager.uiUpdateBeatInterval (static 5)",
+  "mem:PolarManager._lastSignificantLogTime (OSAllocatedUnfairLock<Date>)",
+  "mem:PolarManager.currentHeartRate",
+  "mem:PolarManager.reconnectExhausted",
+  "mem:PolarManager.api (PolarBleApi?)",
+  "mem:PolarManager.standardHeartRate (lazy StandardHeartRateLink)",
+  "mem:PolarManager.radioForTesting (DEBUG only)",
+  "mem:PolarManager.searchTask",
+  "mem:PolarManager.streamingTimer",
+  "mem:PolarManager.streamingStartTime",
+  "mem:PolarManager.streamingCumulativeMs",
+  "mem:PolarManager.hasLoggedStreamingCap",
+  "mem:PolarManager.streamingReconnectCount",
+  "mem:PolarManager.apiInitialized",
+  "mem:PolarManager.sdkQueue (static DispatchQueue 'com.emuqu.polarsdk', .userInitiated)",
+  "mem:PolarManager.lifecycleObservers (NotificationTokens)"
+ ],
+ "toplevel": "Stored-property initializers: readiness = StrapReadiness.initial, feedStatus = .waitingForStrap, downloadLedger = StrapDownloadLedger() (its own persistence lives in StrapRecording.swift), _lastSignificantLogTime starts at construction time, sdkQueue is a serial userInitiated queue. typealiases DiscoveredDevice/KnownDevice/FetchProgress point at Strap* types. `api`, `standardHeartRate`, `strapAPI`, `searchTask` exist only under canImport(PolarBleSdk); radioForTesting only under DEBUG. The header comment (:10-24) documents the forced Polar SDK 8.x upgrade.",
+ "flags": [
+  {
+   "kind": "unreachable-branch",
+   "sev": "low",
+   "text": "PolarError.notRecording and PolarError.hasUnrecoveredData are never constructed anywhere in the repo (grep of `PolarError.notRecording`/`.hasUnrecoveredData` finds only the declarations and errorDescription cases), so their localized strings are dead.",
+   "evidence": [
+    "Emuqu/Sources/Collection/PolarManager.swift:341",
+    "Emuqu/Sources/Collection/PolarManager.swift:351",
+    "Emuqu/Sources/Collection/PolarManager.swift:372",
+    "Emuqu/Sources/Collection/PolarManager.swift:378"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "lastBatteryUpdateTime is written on every battery callback (StrapBatteryUsageTracker.swift:120) but never read anywhere in the repo, tests included; its doc comment (:176-177) describes state nothing consumes.",
+   "evidence": [
+    "Emuqu/Sources/Collection/PolarManager.swift:178",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift:120"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func PolarDeviceType.from(deviceName:)",
+   "hash": "290740f8afeb7a20",
+   "does": "Classifies a strap from its advertised BLE name: names containing 'sense', 'verity' or 'oh1' (case-insensitive) are .veritySense, everything else .h10.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "lowercased name contains 'sense' or 'verity' or 'oh1'",
+     "effect": "true → .veritySense; false → .h10 (any other Polar device, e.g. an H9, is treated as an H10 and offered H10 exercise recording)"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Device type is guessed from the advertised name, and every non-matching Polar device (polarFilter admits all Polar models) is treated as an H10, so H10-only exercise-recording APIs are attempted on it; the OH1 is lumped with Verity Sense.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager.swift:36",
+      "Emuqu/Sources/Collection/PolarManager.swift:39",
+      "Emuqu/Sources/Collection/PolarSDKFactory.swift:25"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var PolarDeviceType.displayName",
+   "hash": "6e090b6c3198edbd",
+   "does": "Returns the user-facing device name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .h10",
+     "effect": "'Polar H10'"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .veritySense",
+     "effect": "'Polar Verity Sense'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarDeviceType.icon",
+   "hash": "e157a7ecf55d7cd9",
+   "does": "Returns the SF Symbol name for the device type.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "self == .h10",
+     "effect": "'heart.fill'"
+    },
+    {
+     "at": "+3",
+     "cond": "self == .veritySense",
+     "effect": "'waveform.path.ecg'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarDeviceType.specRecordingHours",
+   "hash": "c78cba5e67c09888",
+   "does": "Manufacturer runtime in hours used for battery-staleness judgement (StrapBatteryUsageTracker.recomputeStaleness) and UI.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".h10",
+     "effect": "400.0"
+    },
+    {
+     "at": "+3",
+     "cond": ".veritySense",
+     "effect": "30.0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.isH10RecordingFeatureReady",
+   "hash": "a00550ab26e40890",
+   "does": "True when readiness reports .h10Recording ready.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is EmuquTests/PolarConnectionLifecycleTests.swift:101; no production code reads it.",
+     "evidence": [
+      "EmuquTests/PolarConnectionLifecycleTests.swift:101"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337"
+   }
+  },
+  {
+   "key": "var PolarManager.isHrStreamingReady",
+   "hash": "0168e7044214aa8c",
+   "does": "True when readiness reports .heartRate ready.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "Only caller is EmuquTests/PolarConnectionLifecycleTests.swift:102; no production code reads it.",
+     "evidence": [
+      "EmuquTests/PolarConnectionLifecycleTests.swift:102"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337"
+   }
+  },
+  {
+   "key": "var PolarManager.isOfflineRecordingReady",
+   "hash": "ad8cfa45ac757dd7",
+   "does": "True when readiness reports .offlineRecording ready.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.readiness"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No caller anywhere in the repo, tests included (grep `isOfflineRecordingReady`).",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager.swift:95"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "57a325be71abe337"
+   }
+  },
+  {
+   "key": "var PolarManager.link",
+   "hash": "f838a01a8fe34b2b",
+   "does": "Builds a fresh StrapLinkCoordinator value wrapping self on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.recording",
+   "hash": "be4bd5ce74698198",
+   "does": "Builds a fresh StrapRecordingCoordinator value wrapping self on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.startRecording()",
+   "hash": "7682ff006ac9fa96",
+   "does": "Forwarder: starts the strap's on-device recording via StrapRecordingCoordinator.startRecording (no stillWanted gate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
+   }
+  },
+  {
+   "key": "func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
+   "hash": "f1560927d8f229d6",
+   "does": "Forwarder to StrapRecordingCoordinator.stopDeviceRecordingIfNeeded (bounded H10 stop at session end).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "3ff1ebae6169198f"
+   }
+  },
+  {
+   "key": "func PolarManager.fetchRecording(recordedSince:budget:)",
+   "hash": "188b131b2f031987",
+   "does": "Forwarder to StrapRecordingCoordinator.fetchRecording(recordedSince:budget:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91"
+   }
+  },
+  {
+   "key": "func PolarManager.fetchRecordingIfAvailable(recordedSince:)",
+   "hash": "6158ad78621d66b0",
+   "does": "Forwarder to StrapRecordingCoordinator.fetchRecordingIfAvailable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecordingIfAvailable(recordedSince:)": "8bcbcc1e1d1c72b7"
+   }
+  },
+  {
+   "key": "func PolarManager.reconnectForTransfer()",
+   "hash": "9e6a8d9cc76177ef",
+   "does": "Forwarder to StrapRecordingCoordinator.reconnectForTransfer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()": "9b315a2095aa9510"
+   }
+  },
+  {
+   "key": "func PolarManager.beginTransfer()",
+   "hash": "5a26b0a95ec54efb",
+   "does": "Forwarder to StrapRecordingCoordinator.beginTransfer (clears fetchCancelled).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.fetchCancelled"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e"
+   }
+  },
+  {
+   "key": "func PolarManager.checkRecordingStatus(deviceId:)",
+   "hash": "058f9357cad373bc",
+   "does": "Forwarder to StrapRecordingCoordinator.checkRecordingStatus.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "8e73f9473236c7de",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
+   }
+  },
+  {
+   "key": "func PolarManager.checkForStoredExercises(deviceId:)",
+   "hash": "6fa427cfd0955e62",
+   "does": "Forwarder to StrapRecordingCoordinator.checkForStoredExercises.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkForStoredExercises(deviceId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkForStoredExercises(deviceId:)": "06bbfc526ab6d4f7",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
+   }
+  },
+  {
+   "key": "func PolarManager.clearAnyExistingExercises()",
+   "hash": "ac3cc6b8a7ef6e66",
+   "does": "Forwarder to StrapRecordingCoordinator.clearAnyExistingExercises.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "No call site uses the manager-level forwarder; the only callers (PolarManager+Recording.swift:109,450 and WorkoutRecorder+DeviceBackup.swift:302 comment) reach the coordinator method directly.",
+     "evidence": [
+      "Emuqu/Sources/Collection/PolarManager.swift:136",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:109",
+      "Emuqu/Sources/Collection/PolarManager+Recording.swift:450"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "f318a9f9f819be32",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
+   }
+  },
+  {
+   "key": "func PolarManager.discardStoredExercises()",
+   "hash": "15486d1d3c8f5c5e",
+   "does": "Forwarder to StrapRecordingCoordinator.discardStoredExercises; called from RecordView.discardAndStartFresh.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()": "01368120210b2c2f",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "9849dc873bceeb0d"
+   }
+  },
+  {
+   "key": "func PolarManager.isRecordingSaved(startedAt:)",
+   "hash": "9c92df76edc9da65",
+   "does": "Whether a strap recording starting at `start` is already held: uses the RRCollector-installed savedRecordingCheck closure when set, otherwise the download ledger alone.",
+   "entry": null,
+   "calls": [
+    "closure:savedRecordingCheck — set by RRCollector+Lifecycle.swift:64 to RRCollector.isStrapRecordingSaved (ledger OR pre-ledger recording with an archived session within 30 min)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)"
+   ],
+   "reads": [
+    "mem:PolarManager.savedRecordingCheck",
+    "mem:PolarManager.downloadLedger"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "savedRecordingCheck is nil (??)",
+     "effect": "falls back to downloadLedger.wasDownloaded(recordingStartedAt:) — only before RRCollector wires the closure, or in tests"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "88c9e19a84feca96"
+   }
+  },
+  {
+   "key": "func PolarManager.isActiveDeviceInfoSource(_:)",
+   "hash": "ea4dd34318e7de0d",
+   "does": "True only when a device is connected and its id equals the callback's identifier.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "connectedDeviceId is nil",
+     "effect": "returns false (all device-info callbacks rejected while disconnected); else compares ids"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.battery",
+   "hash": "ebaeab52edcc5ac1",
+   "does": "Builds a StrapBatteryUsageTracker value wrapping self on every access.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.loadBatteryUsageStateIfNeeded(for:)",
+   "hash": "79fc06e73f724ca0",
+   "does": "Forwarder: restore persisted per-device battery usage counters.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.loadState(for:)"
+   ],
+   "reads": [
+    "ud:polar.batteryUsage.value/changedAt/hours.<deviceId> (standard)"
+   ],
+   "writes": [
+    "mem:PolarManager.batteryLastReportedValue",
+    "mem:PolarManager.batteryLastChangedAt",
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.loadState(for:)": "322a6428671c6c08"
+   }
+  },
+  {
+   "key": "func PolarManager.recordRecordingHours(_:)",
+   "hash": "3ea06c319a6595ef",
+   "does": "Forwarder: add recorded hours to the battery usage counter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale",
+    "ud:polar.batteryUsage.*.<deviceId> (standard)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)": "b046416554838434"
+   }
+  },
+  {
+   "key": "func PolarManager.checkBatteryStaleness()",
+   "hash": "022eef629d80751a",
+   "does": "Forwarder: recompute isBatteryReadingStale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()"
+   ],
+   "reads": [
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.connectedDeviceType",
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged"
+   ],
+   "writes": [
+    "mem:PolarManager.isBatteryReadingStale"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "3c2c607e76ead82c"
+   }
+  },
+  {
+   "key": "func PolarManager.applyBatteryLevelUpdate(from:batteryLevel:)",
+   "hash": "2774c9b0d2afe170",
+   "does": "Forwarder: apply a battery callback from the event pump.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.batteryLastReportedValue",
+    "mem:PolarManager.connectedDeviceType"
+   ],
+   "writes": [
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.lastBatteryUpdateTime",
+    "mem:PolarManager.batteryLastReportedValue",
+    "mem:PolarManager.batteryLastChangedAt",
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale",
+    "ud:polar.batteryUsage.value/changedAt/hours.<deviceId> (standard)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "f11567bc6e24a0c6",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "f6454d20b7084cd4"
+   }
+  },
+  {
+   "key": "func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)",
+   "hash": "ed4fdfc7d95cd3c5",
+   "does": "Applies a DIS revision callback from the active device: software revision (2A28) always wins and latches hasReceivedSoftwareRevision; firmware revision (2A26) is used only until a software revision has arrived; other UUIDs ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.hasReceivedSoftwareRevision"
+   ],
+   "writes": [
+    "mem:PolarManager.firmwareVersion",
+    "mem:PolarManager.hasReceivedSoftwareRevision"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "callback identifier is not the connected device",
+     "effect": "return, nothing applied"
+    },
+    {
+     "at": "+3",
+     "cond": "uuid == 2A28 (software revision)",
+     "effect": "set firmwareVersion, latch hasReceivedSoftwareRevision=true, return"
+    },
+    {
+     "at": "+8",
+     "cond": "uuid == 2A26 and no software revision yet",
+     "effect": "true → set firmwareVersion as fallback; false (other UUID or software already received) → return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "b98cbde735b0fd4f",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setFirmwareVersion(_:label:)": "b92655429122a2e0"
+   }
+  },
+  {
+   "key": "func PolarManager.setFirmwareVersion(_:label:)",
+   "hash": "75e19fc3b9ba8470",
+   "does": "Stores the firmware label and logs it only when it changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.firmwareVersion"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "value differs from the previous firmwareVersion",
+     "effect": "log the change; otherwise silent"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarManager.applyFirmwareRevisionUpdate(from:key:value:)",
+   "hash": "59dcd57bd152a81e",
+   "does": "Key-string variant: uppercases the key, ignores anything not '2A26'/'2A28', and forwards as a CBUUID to the UUID variant.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "uppercased key equals the 2A26 or 2A28 uuidString",
+     "effect": "true → forward; false → return"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:)": "c56749b671ba62dc"
+   }
+  },
+  {
+   "key": "var PolarManager.streamedRRPoints",
+   "hash": "89314e0266bc42fb",
+   "does": "Returns the full non-observed streaming buffer (array copy).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager._streamedRRPoints"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.lastSignificantLogTime",
+   "hash": "df982af764b98fbc",
+   "does": "Thread-safe get/set of the last significant-log timestamp through an OSAllocatedUnfairLock.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager._lastSignificantLogTime"
+   ],
+   "writes": [
+    "mem:PolarManager._lastSignificantLogTime"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.connectionHealthWarning",
+   "hash": "8664590cf0e4a600",
+   "does": "True when the heart-rate feed status is .stalled.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.feedStatus"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var PolarManager.PolarError.errorDescription",
+   "hash": "e8c6487b331bc528",
+   "does": "User-facing localized message for each PolarError case (via LanguageManager.appBundle); recordingFailed embeds its message, strapBatteryTooLow delegates to batteryTooLowDescription, fetchFailed/featureNotReady hide their internal payloads.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.PolarError.batteryTooLowDescription(percent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": ".pairingLost",
+     "effect": "forget-and-reconnect instructions"
+    },
+    {
+     "at": "+3",
+     "cond": ".featureNotReady",
+     "effect": "'strap didn't finish setting up' (payload not shown)"
+    },
+    {
+     "at": "+4",
+     "cond": ".notConnected",
+     "effect": "'Polar device not connected'"
+    },
+    {
+     "at": "+5",
+     "cond": ".alreadyRecording",
+     "effect": "'Recording already in progress'"
+    },
+    {
+     "at": "+6",
+     "cond": ".notRecording",
+     "effect": "'No recording in progress' — case never constructed"
+    },
+    {
+     "at": "+7",
+     "cond": ".recordingFailed(msg)",
+     "effect": "'Recording failed: <msg>'"
+    },
+    {
+     "at": "+8",
+     "cond": ".fetchFailed",
+     "effect": "generic download-failed sentence (payload hidden)"
+    },
+    {
+     "at": "+9",
+     "cond": ".sdkNotAvailable",
+     "effect": "'Polar SDK not available'"
+    },
+    {
+     "at": "+10",
+     "cond": ".noRecordingFound",
+     "effect": "'No recording found on device'"
+    },
+    {
+     "at": "+11",
+     "cond": ".noRecordingSinceSessionStart",
+     "effect": "'No recording found on the strap for this session.'"
+    },
+    {
+     "at": "+12",
+     "cond": ".hasUnrecoveredData",
+     "effect": "recover-or-discard sentence — case never constructed"
+    },
+    {
+     "at": "+13",
+     "cond": ".strapBatteryTooLow(percent)",
+     "effect": "batteryTooLowDescription(percent:)"
+    },
+    {
+     "at": "+14",
+     "cond": ".strapHoldsUndownloadedRecording",
+     "effect": "explains the strap's own recording was not started and the night records from the live stream"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.PolarError.batteryTooLowDescription(percent:)": "0fe11a87c7584635",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "func PolarManager.PolarError.batteryTooLowDescription(percent:)",
+   "hash": "efd09a8d68ac8883",
+   "does": "Battery-too-low message with the last reported percent when known.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "percent is nil",
+     "effect": "message without a percentage; else includes '(N%)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var PolarManager.lastConnectedDeviceId",
+   "hash": "55b8ed286a309dc8",
+   "does": "Id of the first (most recent) known device.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.knownDevices"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func PolarManager.addKnownDevice(id:name:deviceType:)",
+   "hash": "2e5e4705dd32d61c",
+   "does": "Moves/inserts the device at the front of knownDevices (dedup by id) and persists the list to the App Group defaults.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.adding(_:to:)",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (App Group suite group.com.chrissharp.flowrecovery)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.adding(_:to:)": "18b43571f8b472ab",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "a106f22c64c8b583"
+   }
+  },
+  {
+   "key": "func PolarManager.removeKnownDevice(id:)",
+   "hash": "a698810a1b4f7b08",
+   "does": "Removes the device id from knownDevices and persists the list.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (App Group suite)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "a106f22c64c8b583"
+   }
+  },
+  {
+   "key": "func PolarManager.loadKnownDevices()",
+   "hash": "4a2de22de13b1078",
+   "does": "Loads known devices from StrapPairingStore (App Group, then legacy .standard migration, then oldest single-id format).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.load()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.knownDevices (App Group, fallback .standard)",
+    "ud:UserDefaultsKeys.legacyLastDeviceId (standard)"
+   ],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (App Group; copied from .standard on legacy migration, or written by save() on oldest-format migration)",
+    "ud:UserDefaultsKeys.legacyLastDeviceId (standard, removed after migration)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.load()": "987533acf19627ff"
+   }
+  },
+  {
+   "key": "func PolarManager.loadLastConnectedTime()",
+   "hash": "17cfc65da209026a",
+   "does": "Loads lastConnectedTime from StrapPairingStore when one is stored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.loadLastConnectedTime()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.lastConnectedTime (App Group, fallback .standard)"
+   ],
+   "writes": [
+    "mem:PolarManager.lastConnectedTime",
+    "ud:UserDefaultsKeys.lastConnectedTime (App Group, copied from .standard when the suite value is 0)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "store returns a time",
+     "effect": "assign it; else lastConnectedTime stays nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.loadLastConnectedTime()": "11fbfe5a34893f2c"
+   }
+  },
+  {
+   "key": "func PolarManager.saveLastConnectedTime()",
+   "hash": "0619bd4d233111d5",
+   "does": "Persists lastConnectedTime when set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.lastConnectedTime"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.lastConnectedTime (App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "lastConnectedTime is non-nil",
+     "effect": "save it; else nothing written"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "64f3f69a5962040d"
+   }
+  },
+  {
+   "key": "var PolarManager.strapAPI",
+   "hash": "ab9a272c6144b5bc",
+   "does": "The radio abstraction the coordinators use: in DEBUG a test-injected radioForTesting wins; otherwise wraps the SDK api in StrapAPI with the standard HR link, or nil when the SDK is not initialized.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.api",
+    "mem:PolarManager.radioForTesting"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "DEBUG build and radioForTesting is set",
+     "effect": "returns the fake radio; else api.map { StrapAPI(...) } (nil before ensureApiReady)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init PolarManager()",
+   "hash": "a0fb6c1c911a6b12",
+   "does": "Creates the link runtime and event pump, loads known devices and last-connected time from defaults, and registers the significant-log and audio-route observers; SDK setup is deferred to ensureApiReady.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadKnownDevices()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadLastConnectedTime()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.observeSignificantLogs()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.observeAudioRouteChanges()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.knownDevices",
+    "ud:UserDefaultsKeys.legacyLastDeviceId",
+    "ud:UserDefaultsKeys.lastConnectedTime",
+    "notif:DebugLogger.significantLogPosted",
+    "notif:AVAudioSession.routeChangeNotification"
+   ],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "mem:PolarManager.lastConnectedTime",
+    "ud:UserDefaultsKeys.knownDevices/lastConnectedTime (App Group, migration only)",
+    "mem:PolarManager.lifecycleObservers"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadKnownDevices()": "d3eca6777b81c08b",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadLastConnectedTime()": "3ce950788dd9b2f6",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.observeAudioRouteChanges()": "56f3a409da9c8a22",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.observeSignificantLogs()": "66bc5f30dc55a060"
+   }
+  },
+  {
+   "key": "func PolarManager.observeSignificantLogs()",
+   "hash": "124e0039103c1563",
+   "does": "Registers a main-queue NotificationCenter observer for DebugLogger.significantLogPosted that stamps lastSignificantLogTime = now (resets the 30-min streaming heartbeat log).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:DebugLogger.significantLogPosted"
+   ],
+   "writes": [
+    "mem:PolarManager._lastSignificantLogTime"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastSignificantLogTime": "0a16c59264ddd485",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+   }
+  },
+  {
+   "key": "func PolarManager.observeAudioRouteChanges()",
+   "hash": "0b78c6cc39937e8d",
+   "does": "Registers the AVAudioSession route-change diagnostic observer via StrapAudioRouteWatch.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.observe(on:into:)"
+   ],
+   "reads": [
+    "notif:AVAudioSession.routeChangeNotification"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapAudioRouteWatch.swift::func StrapAudioRouteWatch.observe(on:into:)": "9751d46d4a3c25b3"
+   }
+  },
+  {
+   "key": "deinit PolarManager",
+   "hash": "1e24bc1748730283",
+   "does": "Removes every block observer token from NotificationCenter.default.",
+   "entry": "Swift deinit when the manager is released (tests build many)",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+   }
+  },
+  {
+   "key": "func PolarManager.ensureApiReady()",
+   "hash": "e9ef1e849a517dec",
+   "does": "One-time lazy SDK initialisation: sets apiInitialized and calls setupPolarApi on first call; later calls do nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setupPolarApi()"
+   ],
+   "reads": [
+    "mem:PolarManager.apiInitialized"
+   ],
+   "writes": [
+    "mem:PolarManager.apiInitialized"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "apiInitialized already true",
+     "effect": "return; else initialise"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.setupPolarApi()": "bb8aab78b5462695"
+   }
+  },
+  {
+   "key": "func PolarManager.setupPolarApi()",
+   "hash": "fbc30109e9574af8",
+   "does": "Starts StrapLinkCoordinator event delivery, builds the SDK api on the dedicated sdkQueue via PolarSDKFactory, assigns self as observer/deviceInfo/deviceFeatures/powerState observer and logger, and logs; without the SDK only logs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startEventDelivery()",
+    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.api",
+    "mem:StrapLinkRuntime.deliveryTask"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
+    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)": "e36e5e29a1f57b04",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startEventDelivery()": "4866c1eafbee76dc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  },
+  {
+   "key": "func PolarManager.sleepIgnoringCancellation(_:context:)",
+   "hash": "e98ace18d4222cdc",
+   "does": "Task.sleep that never throws: a cancellation is logged with the context and swallowed.",
+   "entry": null,
+   "calls": [
+    "ext:Task.sleep",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Task.sleep throws (task cancelled)",
+     "effect": "logs 'Sleep interrupted during <context>' and returns early"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+   }
+  },
+  {
+   "key": "func PolarManager.convertToRRPoints(_:)",
+   "hash": "a8a9377f96e1b67c",
+   "does": "Converts an H10 PolarExerciseData's RR samples (ms) to RRPoints via StrapExerciseDecoder.rrPoints.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9bc1546b53e4cb25",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+   }
+  }
+ ],
+ "deps": {}
+}

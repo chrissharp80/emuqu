@@ -1,0 +1,130 @@
+{
+ "file": "EmuquTests/WatchAlpha1StatusTests.swift",
+ "hash": "b8b29198d664817b",
+ "role": "Tests that the phone's live Watch payload carries the α1 status code and the Watch decoder shows α1 (and its band) only when the status is 'ok' or absent (older phone builds).",
+ "types": [
+  "WatchAlpha1StatusTests: class (XCTestCase) — phone payload + Watch decoder α1 status contract"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "func WatchAlpha1StatusTests.testTheLivePayloadCarriesTheAlpha1Status()",
+   "hash": "f6f5ee155d71f231",
+   "does": "Asserts liveStatePayload with warmup status and nil α1 carries alpha1Status 'warmup' and no alpha1; with α1 0.8 and .ok it carries 'ok' and 0.8.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WatchAlpha1StatusTests.swift::func WatchAlpha1StatusTests.liveState(alpha1:status:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStateBase(sport:peakHR:userMaxHR:totals:band:unitsPreference:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.addHeartRate(_:userMaxHR:to:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code"
+   ],
+   "reads": [
+    "mem:WatchConnectivityBridge.cachedWatchDisplayOnlyMode"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "656fc52bf517fcc1",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.addHeartRate(_:userMaxHR:to:)": "7e0622044c7f6fab",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStateBase(sport:peakHR:userMaxHR:totals:band:unitsPreference:)": "5132ad3de10e754b",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)": "bc8b642a48e64f57",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.watchDisplayOnlyMode()": "656f9a1305b60791",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.LiveState.bandCode": "9d8412b3cbe19c3c",
+    "EmuquTests/WatchAlpha1StatusTests.swift::func WatchAlpha1StatusTests.liveState(alpha1:status:)": "8af807a74dce1e21"
+   }
+  },
+  {
+   "key": "func WatchAlpha1StatusTests.testStatusCodesAreStable()",
+   "hash": "e94811bc26232f18",
+   "does": "Asserts LiveDFAAnalyzer.Status codes: ok, warmup, stalled, fitFailed, tooManyArtifacts.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a"
+   }
+  },
+  {
+   "key": "func WatchAlpha1StatusTests.testTheWatchShowsAlpha1OnlyWhenThePhoneSaysItIsCurrent()",
+   "hash": "a42c7138c890d697",
+   "does": "Asserts the Watch decoder keeps α1 0.8 and band 'Easy' for status ok, and drops α1 and shows band '—' for status stalled.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchAlpha1StatusTests.testAPhoneWithoutTheStatusIsTakenAsSent()",
+   "hash": "f08eeadb8acd59c8",
+   "does": "Asserts a liveState without alpha1Status keeps α1 0.6 and band from 'nearAeT'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.alpha1IsCurrent(_:)": "a878d42f78450ae2",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bandLabel(fromCode:)": "9e4e8799c80f233e",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.bounded(_:_:)": "3968e8278c7e0f73",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "39dec6c2e01740e8",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b9183feba5f06d10",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "ce12742bac2c8d75",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decodedMetrics(_:)": "d8eab7f6f652881a"
+   }
+  },
+  {
+   "key": "func WatchAlpha1StatusTests.liveState(alpha1:status:)",
+   "hash": "924ac3039719a122",
+   "does": "Fixture: a WatchConnectivityBridge.LiveState for a recording run (HR 140, peak 160, max 190, 60 s, 200 m, metric) with the given α1 and status.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

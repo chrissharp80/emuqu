@@ -1,0 +1,681 @@
+{
+ "file": "Emuqu/Sources/Models/UserSettings.swift",
+ "hash": "37cac58936f9fa6a",
+ "role": "Declares the enums UserSettings is built from: FitnessLevel, TrainingGoal, RoutingMode, TemperatureUnit, AppearanceTheme, ColorTheme, SessionMergeMode, with localized labels and small conversions.",
+ "types": [
+  "FitnessLevel: enum — activity level + RMSSD multiplier",
+  "TrainingGoal: enum — maintain/build/peak with localized and English blurbs",
+  "RoutingMode: enum — quick/auto/deep/manual AI routing",
+  "TemperatureUnit: enum — Celsius/Fahrenheit conversions",
+  "AppearanceTheme: enum (@MainActor) — light/dim/dark",
+  "ColorTheme: enum (@MainActor) — accent colors",
+  "SessionMergeMode: enum — off/default/custom"
+ ],
+ "state": [],
+ "toplevel": "",
+ "flags": [],
+ "units": [
+  {
+   "key": "var FitnessLevel.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id = rawValue for FitnessLevel.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(FitnessLevel.allCases) in SettingsView+Pages.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var FitnessLevel.localizedName",
+   "hash": "58aa68dc910878f7",
+   "does": "Localized fitness-level name (raw values stay English for storage).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "case .sedentary",
+     "effect": "'Sedentary'"
+    },
+    {
+     "at": "+4",
+     "cond": "case .lightlyActive",
+     "effect": "'Lightly Active'"
+    },
+    {
+     "at": "+5",
+     "cond": "case .moderatelyActive",
+     "effect": "'Moderately Active'"
+    },
+    {
+     "at": "+6",
+     "cond": "case .active",
+     "effect": "'Active'"
+    },
+    {
+     "at": "+7",
+     "cond": "case .veryActive",
+     "effect": "'Very Active'"
+    },
+    {
+     "at": "+8",
+     "cond": "case .athlete",
+     "effect": "'Athlete'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var FitnessLevel.rmssdBaselineMultiplier",
+   "hash": "96fc6f09871fb9ac",
+   "does": "RMSSD baseline multiplier 0.8–1.3 by fitness level.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sedentary",
+     "effect": "0.8"
+    },
+    {
+     "at": "+3",
+     "cond": "lightlyActive",
+     "effect": "0.9"
+    },
+    {
+     "at": "+4",
+     "cond": "moderatelyActive",
+     "effect": "1.0"
+    },
+    {
+     "at": "+5",
+     "cond": "active",
+     "effect": "1.1"
+    },
+    {
+     "at": "+6",
+     "cond": "veryActive",
+     "effect": "1.2"
+    },
+    {
+     "at": "+7",
+     "cond": "athlete",
+     "effect": "1.3"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingGoal.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue for TrainingGoal.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(TrainingGoal.allCases) in TrainingSettingsPage.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TrainingGoal.displayName",
+   "hash": "b5e842125b9600b8",
+   "does": "Localized goal name Maintain/Build/Peak.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "maintain",
+     "effect": "'Maintain'"
+    },
+    {
+     "at": "+4",
+     "cond": "build",
+     "effect": "'Build'"
+    },
+    {
+     "at": "+5",
+     "cond": "peak",
+     "effect": "'Peak'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingGoal.localizedBlurb",
+   "hash": "bd37d6549998d773",
+   "does": "Localized picker blurb per goal (mentions Flo).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "maintain",
+     "effect": "balanced-load text"
+    },
+    {
+     "at": "+4",
+     "cond": "build",
+     "effect": "ramp text"
+    },
+    {
+     "at": "+5",
+     "cond": "peak",
+     "effect": "taper text"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TrainingGoal.blurb",
+   "hash": "a487d241fbd23011",
+   "does": "English blurb per goal for the assistant context (ContextBuilder).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "maintain",
+     "effect": "balanced-load text"
+    },
+    {
+     "at": "+4",
+     "cond": "build",
+     "effect": "ramp-rate text"
+    },
+    {
+     "at": "+6",
+     "cond": "peak",
+     "effect": "taper text"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RoutingMode.id",
+   "hash": "f53728ec3a21f88e",
+   "does": "Identifiable id = rawValue for RoutingMode.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(RoutingMode.allCases) in CoachHomeV2View / AIAssistantSettingsPage.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var RoutingMode.displayName",
+   "hash": "0044dfec7c9ac90e",
+   "does": "Localized routing mode label.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "quick",
+     "effect": "'Quick mode'"
+    },
+    {
+     "at": "+3",
+     "cond": "auto",
+     "effect": "'Auto'"
+    },
+    {
+     "at": "+4",
+     "cond": "deep",
+     "effect": "'Deep mode'"
+    },
+    {
+     "at": "+5",
+     "cond": "manual",
+     "effect": "'Manual'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var RoutingMode.blurb",
+   "hash": "0b00ff9d2cca7e75",
+   "does": "Localized description of what each routing mode does with the user's data (on-device vs cloud providers).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "quick",
+     "effect": "on-device Apple Intelligence, cloud only for voice/email/directions/web"
+    },
+    {
+     "at": "+8",
+     "cond": "auto",
+     "effect": "session-sticky, escalates to xAI Grok/DeepSeek once keyed+accepted"
+    },
+    {
+     "at": "+10",
+     "cond": "deep",
+     "effect": "every turn to xAI/DeepSeek when keyed, else on-device"
+    },
+    {
+     "at": "+15",
+     "cond": "manual",
+     "effect": "every turn to the picked model"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TemperatureUnit.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id = rawValue for TemperatureUnit.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(TemperatureUnit.allCases) in SettingsView+Pages.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TemperatureUnit.regionDefault",
+   "hash": "5252b1c9e24f006d",
+   "does": "Fahrenheit when Locale.current.measurementSystem is .us, else Celsius.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?: region uses US units",
+     "effect": "fahrenheit; else celsius"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var TemperatureUnit.localizedName",
+   "hash": "1d2d4a5d27f1ccbe",
+   "does": "Localized 'Celsius'/'Fahrenheit'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "?: self == .celsius",
+     "effect": "'Celsius'; else 'Fahrenheit'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var TemperatureUnit.symbol",
+   "hash": "a43f8dd4ca557c80",
+   "does": "Unit symbol °C/°F.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "celsius",
+     "effect": "'°C'"
+    },
+    {
+     "at": "+3",
+     "cond": "fahrenheit",
+     "effect": "'°F'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TemperatureUnit.convert(_:)",
+   "hash": "dbb48647b61e9a72",
+   "does": "Converts a Celsius deviation to the display unit (×9/5 for Fahrenheit, no offset).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "celsius",
+     "effect": "unchanged"
+    },
+    {
+     "at": "+3",
+     "cond": "fahrenheit",
+     "effect": "×1.8"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func TemperatureUnit.absoluteFromDeviation(_:)",
+   "hash": "f2752afc17831f76",
+   "does": "Absolute temperature from a deviation around a fixed 36.5 °C baseline, in C or F.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "celsius",
+     "effect": "36.5+dev"
+    },
+    {
+     "at": "+4",
+     "cond": "fahrenheit",
+     "effect": "(36.5+dev)×9/5+32"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "absoluteFromDeviation is referenced only by EmuquTests/UserSettingsTests.swift; no production caller.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings.swift:163",
+      "EmuquTests/UserSettingsTests.swift:80"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var AppearanceTheme.id",
+   "hash": "3dbeadd51793ce61",
+   "does": "Identifiable id = rawValue for AppearanceTheme.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(AppearanceTheme.allCases) in SettingsView+Appearance.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppearanceTheme.displayName",
+   "hash": "0d468831626aa15c",
+   "does": "Localized Light/Dim/Dark.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "light",
+     "effect": "'Light'"
+    },
+    {
+     "at": "+4",
+     "cond": "dim",
+     "effect": "'Dim'"
+    },
+    {
+     "at": "+5",
+     "cond": "dark",
+     "effect": "'Dark'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var AppearanceTheme.description",
+   "hash": "adf426f400f3b298",
+   "does": "Localized background description per appearance theme.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "light",
+     "effect": "warm off-white"
+    },
+    {
+     "at": "+4",
+     "cond": "dim",
+     "effect": "muted gray"
+    },
+    {
+     "at": "+5",
+     "cond": "dark",
+     "effect": "dark charcoal"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ColorTheme.id",
+   "hash": "3dbeadd51793ce61",
+   "does": "Identifiable id = rawValue for ColorTheme.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(ColorTheme.allCases) in SettingsView+Appearance.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var ColorTheme.displayName",
+   "hash": "7b109c470587b926",
+   "does": "Localized color name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "blue",
+     "effect": "'Blue'"
+    },
+    {
+     "at": "+4",
+     "cond": "teal",
+     "effect": "'Teal'"
+    },
+    {
+     "at": "+5",
+     "cond": "indigo",
+     "effect": "'Indigo'"
+    },
+    {
+     "at": "+6",
+     "cond": "purple",
+     "effect": "'Purple'"
+    },
+    {
+     "at": "+7",
+     "cond": "rose",
+     "effect": "'Rose'"
+    },
+    {
+     "at": "+8",
+     "cond": "orange",
+     "effect": "'Orange'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var ColorTheme.description",
+   "hash": "b54dc2f4a80c54c8",
+   "does": "Localized mood tagline per color theme.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "blue",
+     "effect": "'Trust & calm'"
+    },
+    {
+     "at": "+4",
+     "cond": "teal",
+     "effect": "'Fresh & balanced'"
+    },
+    {
+     "at": "+5",
+     "cond": "indigo",
+     "effect": "'Deep & focused'"
+    },
+    {
+     "at": "+6",
+     "cond": "purple",
+     "effect": "'Premium & insightful'"
+    },
+    {
+     "at": "+7",
+     "cond": "rose",
+     "effect": "'Warm & energetic'"
+    },
+    {
+     "at": "+8",
+     "cond": "orange",
+     "effect": "'Bold & vibrant'"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "ColorTheme.description is never read: the color swatch UI shows only displayName (SettingsView+Appearance.swift:124,134); description is used only for AppearanceTheme.",
+     "evidence": [
+      "Emuqu/Sources/Models/UserSettings.swift:228",
+      "Emuqu/Sources/Views/SettingsView+Appearance.swift:134"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  },
+  {
+   "key": "var SessionMergeMode.id",
+   "hash": "a8312734410457a2",
+   "does": "Identifiable id = rawValue for SessionMergeMode.",
+   "entry": "Identifiable witness used by SwiftUI ForEach(SessionMergeMode.allCases) in SettingsView+Pages.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionMergeMode.displayName",
+   "hash": "870c7b1ff4a3a355",
+   "does": "Localized merge mode label (Off / Default (4.5 hrs) / Custom).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "off",
+     "effect": "'Off'"
+    },
+    {
+     "at": "+3",
+     "cond": "defaultGap",
+     "effect": "'Default (4.5 hrs)'"
+    },
+    {
+     "at": "+4",
+     "cond": "custom",
+     "effect": "'Custom'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+   }
+  }
+ ],
+ "deps": {}
+}

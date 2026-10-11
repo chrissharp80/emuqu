@@ -1,0 +1,369 @@
+{
+ "file": "Tools/validation/make_results.py",
+ "hash": "74f5cbfb25f09837",
+ "role": "Assembles RESULTS.md by filling {{PLACEHOLDER}} tokens in RESULTS_template.md with tables computed from results/*.json and test_ports_output.txt.",
+ "types": [],
+ "state": [
+  "HERE / R = Tools/validation and Tools/validation/results (lines 15-16)",
+  "CN class display names (line 17)",
+  "file:Tools/validation/results/*.json (read)",
+  "file:Tools/validation/test_ports_output.txt (read)",
+  "file:Tools/validation/RESULTS_template.md (read)",
+  "file:Tools/validation/RESULTS.md (written)"
+ ],
+ "toplevel": "Adds script dir to sys.path; runs main() as a script.",
+ "flags": [
+  {
+   "kind": "fragile",
+   "sev": "low",
+   "text": "Only the numeric tables are generated; the Interpretation/Notes prose in RESULTS_template.md hard-codes the figures (e.g. kappa 0.072, 57.5 % sensitivity, 21.6 % false corrections), so regenerating after any code or data change silently produces a RESULTS.md whose text contradicts its own tables.",
+   "evidence": [
+    "Tools/validation/RESULTS_template.md:103",
+    "Tools/validation/RESULTS_template.md:186",
+    "Tools/validation/RESULTS_template.md:252",
+    "Tools/validation/make_results.py:196"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "def load",
+   "hash": "1eabeeb5c7a9d8fa",
+   "does": "Loads results/<name> JSON, or None if the file does not exist.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:Tools/validation/results/<name>"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file exists",
+     "effect": "json.load; else None"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def pct",
+   "hash": "542d9085eafbf887",
+   "does": "Formats a fraction as a percentage string; None/NaN -> 'n/a'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "None or NaN",
+     "effect": "'n/a'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def cm_table",
+   "hash": "45caba694edd5bcf",
+   "does": "Markdown confusion-matrix table (reference rows x app columns) with row/column totals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each class row",
+     "effect": "emit row"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def sleep_section",
+   "hash": "4f46eeb67284815b",
+   "does": "Markdown Table 1a: records classified, 5-min and 30-s epoch counts, accuracy, kappa, majority-class accuracy per variant.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/make_results.py::def pct",
+    "Tools/validation/validation_common.py::def fmt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each variant",
+     "effect": "emit"
+    },
+    {
+     "at": "+5",
+     "cond": "variant data missing",
+     "effect": "skipped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/make_results.py::def pct": "dc266f9b0024be57",
+    "Tools/validation/validation_common.py::def fmt": "49e4f15922e35f68"
+   }
+  },
+  {
+   "key": "def class_table",
+   "hash": "d2c6ac52e06f56e1",
+   "does": "Markdown Table 1d: per-class sensitivity/precision at 5-min and 30-s resolution per variant.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/make_results.py::def pct"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each variant",
+     "effect": "emit"
+    },
+    {
+     "at": "+4",
+     "cond": "variant missing",
+     "effect": "skip"
+    },
+    {
+     "at": "+6",
+     "cond": "for each resolution",
+     "effect": "row"
+    },
+    {
+     "at": "+8",
+     "cond": "res == '5'",
+     "effect": "label '5 min' else '30 s'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/make_results.py::def pct": "dc266f9b0024be57"
+   }
+  },
+  {
+   "key": "def minutes_table",
+   "hash": "2a955c8ed710a2b0",
+   "does": "Markdown Table 1e: Bland-Altman TST/deep/REM minutes per variant.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/validation_common.py::def fmt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each variant",
+     "effect": "emit"
+    },
+    {
+     "at": "+4",
+     "cond": "variant missing",
+     "effect": "skip"
+    },
+    {
+     "at": "+7",
+     "cond": "for each quantity",
+     "effect": "row"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/validation_common.py::def fmt": "49e4f15922e35f68"
+   }
+  },
+  {
+   "key": "def per_record_table",
+   "hash": "71344704b8d43df6",
+   "does": "Markdown per-record table (scored epochs, windows, accuracy, kappa, TST/deep/REM PSG vs app minutes); unclassified records get 'not classified'.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/make_results.py::def pct",
+    "Tools/validation/validation_common.py::def fmt"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each record",
+     "effect": "row"
+    },
+    {
+     "at": "+4",
+     "cond": "record not classified",
+     "effect": "short row and continue"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/make_results.py::def pct": "dc266f9b0024be57",
+    "Tools/validation/validation_common.py::def fmt": "49e4f15922e35f68"
+   }
+  },
+  {
+   "key": "def port_table",
+   "hash": "b8e5aa563a863629",
+   "does": "Counts PASS/total per suite from test_ports_output.txt lines matching '(PASS|FAIL) Suite.'.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:Tools/validation/test_ports_output.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each line",
+     "effect": "match"
+    },
+    {
+     "at": "+5",
+     "cond": "line matches",
+     "effect": "count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def pub_txt",
+   "hash": "29be18811522646a",
+   "does": "Formats the published-only alpha1 bias, 'n/a' when n is 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "n == 0",
+     "effect": "'n/a'"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def main",
+   "hash": "df7e259611cde8ed",
+   "does": "Loads all eight results JSONs, builds every table/sentence replacement (port table, sleep tables, artifact tables, DFA table and false-correction sentence), substitutes them into the template, warns on leftover placeholders, writes RESULTS.md.",
+   "entry": "python3 -I make_results.py",
+   "calls": [
+    "Tools/validation/make_results.py::def load",
+    "Tools/validation/make_results.py::def port_table",
+    "Tools/validation/make_results.py::def sleep_section",
+    "Tools/validation/make_results.py::def cm_table",
+    "Tools/validation/make_results.py::def class_table",
+    "Tools/validation/make_results.py::def minutes_table",
+    "Tools/validation/make_results.py::def per_record_table",
+    "Tools/validation/make_results.py::def pct",
+    "Tools/validation/make_results.py::def pub_txt",
+    "Tools/validation/validation_common.py::def fmt"
+   ],
+   "reads": [
+    "file:Tools/validation/results/*.json",
+    "file:Tools/validation/RESULTS_template.md",
+    "file:Tools/validation/test_ports_output.txt"
+   ],
+   "writes": [
+    "file:Tools/validation/RESULTS.md"
+   ],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "for each suite in port table",
+     "effect": "row"
+    },
+    {
+     "at": "+26",
+     "cond": "CAP full results present",
+     "effect": "CAP per-record table; else placeholder text"
+    },
+    {
+     "at": "+27",
+     "cond": "CAP present",
+     "effect": "CAP confusion matrix; else ''"
+    },
+    {
+     "at": "+31",
+     "cond": "CAP present",
+     "effect": "CAP per-record kappa filled; else {{CAP_PERREC_KAPPA}} stays and is reported as unfilled"
+    },
+    {
+     "at": "+40",
+     "cond": "for each detector",
+     "effect": "rows"
+    },
+    {
+     "at": "+41",
+     "cond": "for each scoring level",
+     "effect": "row"
+    },
+    {
+     "at": "+48",
+     "cond": "for each ectopic symbol",
+     "effect": "row"
+    },
+    {
+     "at": "+56",
+     "cond": "for each RMSSD subset",
+     "effect": "row"
+    },
+    {
+     "at": "+68",
+     "cond": "for each DFA summary entry",
+     "effect": "row"
+    },
+    {
+     "at": "+84",
+     "cond": "for each replacement",
+     "effect": "substitute"
+    },
+    {
+     "at": "+87",
+     "cond": "placeholders left",
+     "effect": "prints them but still writes the file"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "s_full, art and dfa are dereferenced without None checks (lines 134, 148, 181) although load() returns None for a missing file, so a missing slpdb/artifact/DFA result crashes with TypeError while the CAP inputs are guarded.",
+     "evidence": [
+      "Tools/validation/make_results.py:22",
+      "Tools/validation/make_results.py:134",
+      "Tools/validation/make_results.py:155"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Tools/validation/make_results.py::def class_table": "8dd602318caa2fa5",
+    "Tools/validation/make_results.py::def cm_table": "939a36b21f837c83",
+    "Tools/validation/make_results.py::def load": "f2f0f4cdbbbebda5",
+    "Tools/validation/make_results.py::def minutes_table": "eee26f7fd9495518",
+    "Tools/validation/make_results.py::def pct": "dc266f9b0024be57",
+    "Tools/validation/make_results.py::def per_record_table": "9912352b2822a530",
+    "Tools/validation/make_results.py::def port_table": "0609be8c9a517c2c",
+    "Tools/validation/make_results.py::def pub_txt": "f6da8708ffd688f6",
+    "Tools/validation/make_results.py::def sleep_section": "fcc95e79652f9f30",
+    "Tools/validation/validation_common.py::def fmt": "49e4f15922e35f68"
+   }
+  }
+ ],
+ "deps": {
+  "Tools/validation/make_results.py::def main": "908dfd1cde2ba05c",
+  "Tools/validation/validation_common.py::def fmt": "49e4f15922e35f68"
+ }
+}

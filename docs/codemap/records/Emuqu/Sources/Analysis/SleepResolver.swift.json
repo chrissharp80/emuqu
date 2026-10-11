@@ -1,0 +1,1141 @@
+{
+ "file": "Emuqu/Sources/Analysis/SleepResolver.swift",
+ "hash": "e0053bf7369c388e",
+ "role": "Pure sleep resolution for one night from (recording session?, Watch samples?): row 1 Watch stages clipped to session envelope (+AutoSleep extension, optional HRV augmentation), row 2 RR-inferred stages, row 3 Watch-only clipped to bedtime window, row 4 empty. Produces SleepData with totals, stages, segments.",
+ "types": [
+  "SleepResolver: enum — namespace",
+  "Context: struct — pre-fetched inputs",
+  "AutoSleepExtension: struct — post-session sleep bounds + stages",
+  "Resolution: struct (Equatable, custom ==) — sleepData + writeToHealthKit"
+ ],
+ "state": [
+  "mem:SleepResolver.iphoneSleepFilterToleranceMinutes = 15"
+ ],
+ "toplevel": "Static constant; Resolution has a hand-written == comparing only selected SleepData fields.",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "med",
+   "text": "Resolution.writeToHealthKit is documented as 'the sole authorization to export sleep to HK' but no production code reads it: every caller takes `.sleepData` (SleepMergingPipeline.swift:347, HealthKitManager+Sleep.swift:66, +SleepTrends.swift:33) and the export decision is made separately on boundarySource in exportSleepIfSoleSource; only SleepResolverTests read the flag.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift:68",
+    "Emuqu/Sources/Analysis/SleepResolver.swift:167",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:410",
+    "EmuquTests/SleepResolverTests.swift:476"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "ARCHITECTURE says the two-path HRV staging lives in SleepMergingPipeline and that augmentation reclassifies deep<->core and REM<->awake; the paths are in SleepResolver (maybeAugment/inferStagesFromRR) and the rules never move core from deep or REM to awake (only core->deep/REM, awake->REM, deep<->REM).",
+   "evidence": [
+    "docs/ARCHITECTURE.md:530",
+    "docs/ARCHITECTURE.md:535",
+    "Emuqu/Sources/Analysis/SleepResolver.swift:594",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:217"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func SleepResolver.Resolution.==(lhs:rhs:)",
+   "hash": "18d7fecfc6cadad0",
+   "does": "Custom equality: compares writeToHealthKit, nightSleepMinutes, awakeMinutes, sleepStart, sleepEnd and the COUNT of stage intervals only.",
+   "entry": "Equatable conformance (== operator).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "Two resolutions with different deep/REM minutes, efficiency, stage contents or segments compare equal as long as the listed totals and interval count match.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:74"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolve(_:)",
+   "hash": "24cc3de9008b9187",
+   "does": "Dispatches on (sessionBounds != nil, watchSamples non-empty) to rows 1-4.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveEmpty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch (has session, no Watch)",
+     "effect": "dispatch"
+    },
+    {
+     "at": "+2",
+     "cond": "session + Watch",
+     "effect": "row 1"
+    },
+    {
+     "at": "+3",
+     "cond": "session, no Watch",
+     "effect": "row 2"
+    },
+    {
+     "at": "+4",
+     "cond": "no session, Watch",
+     "effect": "row 3"
+    },
+    {
+     "at": "+5",
+     "cond": "neither",
+     "effect": "row 4"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveEmpty(_:)": "771d15b062b7e2c7",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)": "21b9b1d22e669e61",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)": "f31455c090aa3be8",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)": "c394c8b8230c3907"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolveSessionAndWatch(_:)",
+   "hash": "2e19819f5e0a18d0",
+   "does": "Row 1: envelope = linked sessions ∪ extension; Watch samples → stages, drop iPhone early guesses, optional HRV augmentation, merge with extension stages, resolve overlaps, clip (with Watch-span rescue), assemble; source .hrValidated when an extension exists else .healthKit; writeToHealthKit false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.row1Envelope(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipRescuingWatchSleep(_:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "ctx.autoSleepExtension?.stageIntervals ?? []",
+     "effect": "no extension: nothing appended"
+    },
+    {
+     "at": "+14",
+     "cond": "autoSleepExtension != nil",
+     "effect": "true: .hrValidated; false: .healthKit"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "A night with an AutoSleep extension is labelled boundarySource .hrValidated although no HR validation happens on this path; the label only marks 'extension present'.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:116"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "No production code constructs SleepResolver.AutoSleepExtension (only SleepResolverTests:146,385,503; every production call passes nil, as FLOWCHART.md:601 states), so the extension append at line 112 and the .hrValidated source at line 116 never run in the app.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:112",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:116",
+      "EmuquTests/SleepResolverTests.swift:146",
+      "docs/FLOWCHART.md:601"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "f3663e182f40cb89",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "b7b583eb4e09f18e",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipRescuingWatchSleep(_:envelope:)": "d8cd360b8ee65da3",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "1d889b52439dc5b3",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)": "1778960dd5fbe59b",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.row1Envelope(_:)": "4fb6e80cc98675ca",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func SleepResolver.clipRescuingWatchSleep(_:envelope:)",
+   "hash": "62fa59d3e07af756",
+   "does": "Clips stages to the envelope; if the Watch had non-awake sleep but the clip removed all of it, re-clips to the union of non-zero envelope parts and the full span of all stages and returns that rescued envelope.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "had non-awake, clip kept none, span valid",
+     "effect": "true: rescue with Watch span; false: plain clip + original envelope"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The rescue fires on any recording whose envelope overlaps no non-awake stage, not only zero-length/crash-truncated envelopes, and then credits all returned samples' sleep (span of every stage, iPhone included) to the recording.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:145",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:152"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolveSessionOnly(_:)",
+   "hash": "d53cdbc4562fa943",
+   "does": "Row 2: envelope = linked session bounds; stages inferred from RR; assemble with source .hrEstimated; writeToHealthKit = nightSleepMinutes > 0.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "f3663e182f40cb89",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "7a240281c4863d44",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolveWatchOnly(_:)",
+   "hash": "42c4dfd0b714780f",
+   "does": "Row 3: envelope = bedtime window; Watch samples → stages, drop iPhone early guesses, merge, resolve overlaps, clip, assemble with source .healthKit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.assemble(stages:envelope:ctx:source:)": "f3663e182f40cb89",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.classifyWatchSamples(_:)": "b7b583eb4e09f18e",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.clipToEnvelope(_:envelope:)": "09715cc359b6c72e",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.dropIphoneEarlySleepGuesses(_:)": "54501f8038aceaa6",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeStagesAcrossSources(_:)": "9ea124463bab8e01",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolvingOverlaps(_:)": "1778960dd5fbe59b"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolveEmpty(_:)",
+   "hash": "3783e3ad9b00e36e",
+   "does": "Row 4: empty SleepData (all 0, source .recordingBounds) dated fallbackDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepResolver.row1Envelope(_:)",
+   "hash": "066f372bbd1ef949",
+   "does": "Envelope = linked session bounds plus extension bounds, unioned.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "autoSleepExtension non-nil",
+     "effect": "append its bounds"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "autoSleepExtension is always nil in production (no non-test constructor of AutoSleepExtension), so the append branch never runs.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:211",
+      "docs/FLOWCHART.md:601"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.unionIntervals(_:)": "b12b82fbc744750f"
+   }
+  },
+  {
+   "key": "func SleepResolver.unionIntervals(_:)",
+   "hash": "2eba342353b82f97",
+   "does": "Sorts and merges overlapping/touching DateIntervals.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each interval",
+     "effect": "process"
+    },
+    {
+     "at": "+4",
+     "cond": "starts <= last end",
+     "effect": "merge; else append"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.clipToEnvelope(_:envelope:)",
+   "hash": "d7c3722d1f200771",
+   "does": "Intersects each stage with each envelope piece, discards empty results, sorts by start.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.intersect(_:with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "envelope empty",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.intersect(_:with:)": "1943eea28ed02d54"
+   }
+  },
+  {
+   "key": "func SleepResolver.intersect(_:with:)",
+   "hash": "8c8e9bc9edd40c24",
+   "does": "Intersection of a stage and an envelope interval, keeping stage and provenance; nil if no overlap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "start < end",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.totalMinutes(_:)",
+   "hash": "735d055407366c3a",
+   "does": "Sum of durationMinutes over non-awake intervals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepResolver.awakeMinutes(_:)",
+   "hash": "696258908dadf248",
+   "does": "Sum of durationMinutes over awake intervals.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepResolver.dropIphoneEarlySleepGuesses(_:)",
+   "hash": "5255f9e8b2cc60ed",
+   "does": "If Watch-provenance deep/core/REM exist, filters each interval through keptIphoneGuess; otherwise returns input.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.keptIphoneGuess(_:firstDetailed:lastDetailed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "Watch detailed stages exist",
+     "effect": "false: return all intervals unchanged"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.keptIphoneGuess(_:firstDetailed:lastDetailed:)": "ccad46fc3d5a1ead"
+   }
+  },
+  {
+   "key": "func SleepResolver.keptIphoneGuess(_:firstDetailed:lastDetailed:)",
+   "hash": "ffcf36ece1679645",
+   "does": "Non-(iPhone .unspecified) intervals pass; iPhone unspecified kept if after Watch's last detail, kept if wholly before but within 15 min of Watch's first detail, otherwise only the tail past Watch's last detail survives.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "iPhone && unspecified",
+     "effect": "false: return interval unchanged"
+    },
+    {
+     "at": "+9",
+     "cond": "start >= Watch last detailed",
+     "effect": "keep whole"
+    },
+    {
+     "at": "+13",
+     "cond": "ends before Watch first detailed",
+     "effect": "check tolerance"
+    },
+    {
+     "at": "+15",
+     "cond": "start >= first − 15 min",
+     "effect": "keep; else drop"
+    },
+    {
+     "at": "+20",
+     "cond": "end > Watch last detailed",
+     "effect": "true: keep tail from last detailed; false: drop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.mergeStagesAcrossSources(_:)",
+   "hash": "6eee1a85f7c31750",
+   "does": "Groups by stage, coalesces overlapping same-stage intervals, then resolves cross-stage overlaps into one stage per moment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeOverlapping(_:stage:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveCrossStageOverlaps(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mergeOverlapping(_:stage:)": "23b672bccde46e8d",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveCrossStageOverlaps(_:)": "5e41a0cda03851f8"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolveCrossStageOverlaps(_:)",
+   "hash": "c64fb6fa738ab0da",
+   "does": "Cuts the timeline at every boundary; each piece takes the winning covering interval's stage/provenance (detailed > awake > unspecified, earlier start breaks ties); joins adjacent same pieces. Output never overlaps.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningInterval(from:to:in:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.joinAdjacent(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.joinAdjacent(_:)": "d98cc321b3a36ad7",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningInterval(from:to:in:)": "9865e129fc4cf4a2",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.winningInterval(from:to:in:)",
+   "hash": "8c6a44dc9923c31b",
+   "does": "Covering interval with lowest (overlapRank, start).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.overlapRank(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.overlapRank(_:)": "5a2266522563a47f"
+   }
+  },
+  {
+   "key": "func SleepResolver.overlapRank(_:)",
+   "hash": "ddee8442eeb0edf4",
+   "does": "Rank 0 for deep/core/REM, 1 awake, 2 unspecified.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deep/core/rem",
+     "effect": "0"
+    },
+    {
+     "at": "+3",
+     "cond": "awake",
+     "effect": "1"
+    },
+    {
+     "at": "+4",
+     "cond": "unspecified",
+     "effect": "2"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.joinAdjacent(_:)",
+   "hash": "9540755d50d2edba",
+   "does": "Joins consecutive pieces that touch and share stage and provenance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each piece",
+     "effect": "process"
+    },
+    {
+     "at": "+5",
+     "cond": "touches last with same stage/provenance",
+     "effect": "merge; else append"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.resolvingOverlaps(_:)",
+   "hash": "10500251f778a922",
+   "does": "Sorts intervals; if any overlap, splits them into precedence-won pieces (non-iPhone over iPhone, then deep>REM>core>awake>unspecified). Every production call receives the output of mergeStagesAcrossSources, which never overlaps, so it only sorts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasOverlap(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningPieces(_:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "hasOverlap",
+     "effect": "false: return sorted (always, in production)"
+    },
+    {
+     "at": "+7",
+     "cond": "piece equals original bounds",
+     "effect": "return original; else trimmed copy"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "Second overlap resolver with different precedence (provenance first, deep>REM>core) than resolveCrossStageOverlaps (provenance ignored, earlier start wins between detailed stages); because it always runs on already non-overlapping output (lines 112,183) its own rules never apply, so the documented 'non-iPhone source over iPhone guess' rule is not what decides overlaps.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:441",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:384",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:112",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:183"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "hasOverlap is always false on mergeStagesAcrossSources output, so lines 446-452 (and winningPieces/precedence) never run in production.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:445",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:393"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasOverlap(_:)": "e8b41126c973f6da",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.winningPieces(_:)": "37120c35943d563e",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.winningPieces(_:)",
+   "hash": "6759627f37f8cbba",
+   "does": "For each span between boundaries, picks the covering interval index with highest precedence and joins consecutive spans of the same winner.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.precedence(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each span",
+     "effect": "process"
+    },
+    {
+     "at": "+6",
+     "cond": "a covering interval exists",
+     "effect": "false: skip span"
+    },
+    {
+     "at": "+10",
+     "cond": "same winner, contiguous",
+     "effect": "extend; else append"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.precedence(_:)": "db48b91deafb1655"
+   }
+  },
+  {
+   "key": "func SleepResolver.hasOverlap(_:)",
+   "hash": "167584b0ade70c69",
+   "does": "True when any interval starts before the running max end.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each interval",
+     "effect": "check"
+    },
+    {
+     "at": "+3",
+     "cond": "start < latestEnd",
+     "effect": "return true"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.precedence(_:)",
+   "hash": "74b5375d63f6f66d",
+   "does": "Precedence tuple (source 0 iPhone/1 other, stage deep4 rem3 core2 awake1 unspecified0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "provenance == .iphone",
+     "effect": "0 else 1"
+    },
+    {
+     "at": "+3",
+     "cond": "deep",
+     "effect": "4"
+    },
+    {
+     "at": "+4",
+     "cond": "rem",
+     "effect": "3"
+    },
+    {
+     "at": "+5",
+     "cond": "core",
+     "effect": "2"
+    },
+    {
+     "at": "+6",
+     "cond": "awake",
+     "effect": "1"
+    },
+    {
+     "at": "+7",
+     "cond": "unspecified",
+     "effect": "0"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.mergeOverlapping(_:stage:)",
+   "hash": "7f0c8f02b78cc5c7",
+   "does": "Sorted coalescing of one stage's overlapping/touching intervals, keeping the first interval's provenance.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each interval",
+     "effect": "process"
+    },
+    {
+     "at": "+6",
+     "cond": "overlaps/touches last",
+     "effect": "false: append"
+    },
+    {
+     "at": "+10",
+     "cond": "extends past last end",
+     "effect": "false: swallowed; true: extend"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.classifyWatchSamples(_:)",
+   "hash": "b5e3c7bb8d37a472",
+   "does": "Maps HK sleep samples to stage intervals with provenance; drops inBed/unknown values and zero/negative-length samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "value maps to stage",
+     "effect": "false: drop"
+    },
+    {
+     "at": "+5",
+     "cond": "end > start",
+     "effect": "false: drop"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)": "2923de55b8d8550f",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.provenance(for:)": "54d2d3054d882399",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+   }
+  },
+  {
+   "key": "func SleepResolver.provenance(for:)",
+   "hash": "407842edef651ba3",
+   "does": "Provenance from sourceRevision.productType ('watch'→.watch, 'iphone'→.iphone), else user-entered → .iphone, else .watch (third-party).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "productType ?? \"\"",
+     "effect": "no productType: empty string"
+    },
+    {
+     "at": "+2",
+     "cond": "hasPrefix watch",
+     "effect": ".watch"
+    },
+    {
+     "at": "+3",
+     "cond": "hasPrefix iphone",
+     "effect": ".iphone"
+    },
+    {
+     "at": "+8",
+     "cond": "HKMetadataKeyWasUserEntered true",
+     "effect": ".iphone; else .watch"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.mapHKValueToStage(_:)",
+   "hash": "c175dc2d51fca643",
+   "does": "HK sleep value → stage.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "asleepDeep",
+     "effect": ".deep"
+    },
+    {
+     "at": "+3",
+     "cond": "asleepCore",
+     "effect": ".core"
+    },
+    {
+     "at": "+4",
+     "cond": "asleepREM",
+     "effect": ".rem"
+    },
+    {
+     "at": "+5",
+     "cond": "asleepUnspecified",
+     "effect": ".unspecified"
+    },
+    {
+     "at": "+6",
+     "cond": "awake",
+     "effect": ".awake"
+    },
+    {
+     "at": "+7",
+     "cond": "default (inBed etc.)",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.maybeAugment(_:ctx:envelope:)",
+   "hash": "f1f24d842f8e39ef",
+   "does": "Row 1 HRV augmentation: when enabled with >= 100 RR points and a session, runs HRVSleepStageClassifier.augment over the envelope span (ms from session start); returns augmented intervals only when at least one epoch changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "enhanceWithRR && rr >= 100",
+     "effect": "false: unchanged"
+    },
+    {
+     "at": "+6",
+     "cond": "envelope non-empty",
+     "effect": "false: unchanged"
+    },
+    {
+     "at": "+7",
+     "cond": "session start exists",
+     "effect": "false: unchanged"
+    },
+    {
+     "at": "+10",
+     "cond": "end > start",
+     "effect": "false: unchanged"
+    },
+    {
+     "at": "+11",
+     "cond": "augment non-nil && count > 0",
+     "effect": "false: unchanged; true: augmented"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "broken",
+     "sev": "med",
+     "text": "sleepStartMs/sleepEndMs are wall-clock offsets of the envelope but augment() windows the RR series on the beat-sum t_ms clock and dates epochs from it, so after BLE drops the HRV epochs are laid over the wrong Watch intervals (see HRVSleepStageClassifier.featureWindow).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:602",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:603",
+      "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift:206",
+      "Emuqu/Sources/Models/RRModels.swift:9"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "af1b9795453e0ab3",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func SleepResolver.inferStagesFromRR(ctx:envelope:)",
+   "hash": "ead932e2b61e4121",
+   "does": "Row 2: with session and >= 100 RR points, anchors at max(envelope start, detected HR onset) and runs HRVSleepStageClassifier.classify to the envelope end; [] otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "session, rr >= 100, envelope non-empty",
+     "effect": "false: []"
+    },
+    {
+     "at": "+17",
+     "cond": "detectedOnsetMs ?? envelopeStartMs",
+     "effect": "no onset: envelope start"
+    },
+    {
+     "at": "+18",
+     "cond": "end > start",
+     "effect": "false: []"
+    },
+    {
+     "at": "+19",
+     "cond": "classify(...)?.stageIntervals ?? []",
+     "effect": "classifier nil (<6 windows): no stages"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "The comment says onset is anchored at the actual sustained HR drop so a strap put on at 8 PM with sleep at 9:30 is not 'asleep 8:00 PM', but detectSleepOnset clamps any onset to at most 20 min (firstSustainedDrop), so that night is anchored at 8:20 PM and 70 min of pre-sleep windows are classified as sleep.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:627",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:636",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:279",
+      "Emuqu/Sources/Utilities/Constants.swift:258"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "spec-mismatch",
+     "sev": "med",
+     "text": "Doc says the returned stages are tagged `.hrvDerived`, but classify() builds them with the default `.watch` provenance (buildIntervals), so row-2 nights look Watch-sourced downstream.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:618",
+      "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift:44",
+      "Emuqu/Sources/Models/SleepDomain.swift:94"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "The comment claims detectSleepOnset returns ms in the same units as the envelope offsets, but it returns beat-sum t_ms while envelope offsets are wall-clock (MillisecondOffset), which diverge after BLE drops.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:632",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:625",
+      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:243"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+   }
+  },
+  {
+   "key": "func SleepResolver.assemble(stages:envelope:ctx:source:)",
+   "hash": "b9f604918218a197",
+   "does": "Builds SleepData from stages: total = non-awake minutes, awake, inBed = total+awake, deep/REM via stageTotals, sleepStart/End = min/max of non-awake stages, efficiency, segments, inBedStart.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(envelope:ctx:sleepStages:)",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "inBed > 0",
+     "effect": "efficiency = total/inBed*100; else 0"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)": "b67f56bc040a5697",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(envelope:ctx:sleepStages:)": "1ea0f983ef825291",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)": "36bd41e6b3c60dab",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "3a870945beba90a9",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+   }
+  },
+  {
+   "key": "func SleepResolver.inBedStart(envelope:ctx:sleepStages:)",
+   "hash": "e69aeff5a2862593",
+   "does": "inBedStart = envelope first start, else session start, else earliest sleep stage.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "envelope.first?.start ?? sessionBounds?.start ?? min stage start",
+     "effect": "envelope present in rows 1-3 so later fallbacks only apply to an empty envelope"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "spec-mismatch",
+     "sev": "low",
+     "text": "Doc says priority is an 'Apple-supplied in bed envelope segment', but the envelope is never Apple in-bed (inBed samples are discarded at line 586); in row 3 it is the bedtime window, which opens 2 h before bedtime (SleepSchedule.swift:59), contradicting assemble's own note that the envelope start is not a time in bed; inBedStart is stored on SleepData and used by SleepData.sleepLatencyMinutes when no stages exist.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/SleepResolver.swift:680",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:692",
+      "Emuqu/Sources/Analysis/SleepResolver.swift:648",
+      "Emuqu/Sources/Models/SleepSchedule.swift:59"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SleepResolver.stageTotals(_:)",
+   "hash": "df7da635a51f8762",
+   "does": "Deep and REM minutes when any deep/REM stage exists, otherwise (nil, nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "any deep or REM",
+     "effect": "false: (nil,nil)"
+    },
+    {
+     "at": "+6",
+     "cond": "for each stage",
+     "effect": "accumulate"
+    },
+    {
+     "at": "+9",
+     "cond": ".deep",
+     "effect": "deep +="
+    },
+    {
+     "at": "+10",
+     "cond": ".rem",
+     "effect": "rem +="
+    },
+    {
+     "at": "+11",
+     "cond": "default",
+     "effect": "ignored"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "6f9bf915550a68c5"
+   }
+  },
+  {
+   "key": "func SleepResolver.buildSegments(stages:splitGapMinutes:)",
+   "hash": "f2e72f588737dc27",
+   "does": "Display segments: split by time gap, then by accumulated awake, then build segment per group.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "stages empty",
+     "effect": "return []"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.buildSegmentFromIntervals(_:)": "8ccbf0934a013318",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervals(_:gap:)": "bce265cee4d70355",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205"
+   }
+  }
+ ],
+ "deps": {}
+}

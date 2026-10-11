@@ -1,0 +1,373 @@
+{
+ "file": "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift",
+ "hash": "8665a740ce396cab",
+ "role": "Core of the shared morning-summary narrative generator (used by MorningResultsViewModel, PDFReportGenerator+Summary and the assistant ContextBuilder): output/input models, init (filters recent sessions to strictly earlier nights), generate(), and the overnight trend-statistics computation (averages, 5-night baselines, 7-day trend).",
+ "types": [
+  "AnalysisSummaryGenerator: class — builds AnalysisSummary from one HRVAnalysisResult + context; extended by +Interpretation and +Steps",
+  "AnalysisSummaryGenerator.AnalysisSummary: struct — title/icon/diagnosticScore/headlineScore/explanation/causes/findings/steps/trendInsight",
+  "AnalysisSummaryGenerator.ProbableCause: struct — cause, raw English confidence key, explanation",
+  "AnalysisSummaryGenerator.TrendStats: struct — period averages/baselines/7-day trend; static empty",
+  "AnalysisSummaryGenerator.SessionAverages: struct — rmssd/hr/stress/readiness period averages"
+ ],
+ "state": [
+  "mem:AnalysisSummaryGenerator.stats (lazy var TrendStats, computed once per instance via computeTrendStats(referenceDate:))",
+  "mem:AnalysisSummaryGenerator.TrendStats.empty (static let)"
+ ],
+ "toplevel": "Stored lets hold all inputs; `lazy var stats` (line 107) runs computeTrendStats(referenceDate: referenceDate) on first access and caches it (the class is not Sendable/locked; each caller builds its own instance). File-scope private functions sessionBaselines and average live after the class. The TrendStats fields daySpan and trend30Day are written here but read by no production code (only EmuquTests/CauseDetectorTests.swift:41,43 construct them); trend30Day is always nil (line 200).",
+ "flags": [
+  {
+   "kind": "dead",
+   "sev": "low",
+   "text": "TrendStats.daySpan and TrendStats.trend30Day are computed/stored but never read in production; trend30Day is hard-coded nil, so any reader would always see no 30-day trend.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:49",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:51",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:196",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:200",
+    "EmuquTests/CauseDetectorTests.swift:41"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "The doc comment says referenceDate is 'Now for trend-window math (7-day split in computeTrendStats). Injected so trend stats are deterministic', but referenceDate only feeds the `dates.min() ?? referenceDate` fallbacks which are unreachable (validSessions.count >= 2); the 7-day split is TrendVerdict.weeklyRMSSDChange(validSessions), which takes no reference date. No caller passes referenceDate.",
+   "evidence": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:88",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:146",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:197",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:199"
+   ],
+   "found": "first read, upheld on second"
+  }
+ ],
+ "units": [
+  {
+   "key": "var AnalysisSummaryGenerator.ProbableCause.confidenceLabel",
+   "hash": "86c1accd5997f650",
+   "does": "Returns the ProbableCause confidence in NarrativeLanguage by mapping the raw English key back to DetectedCause.CauseConfidence and reading its label; falls back to the raw key.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var DetectedCause.CauseConfidence.label"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "confidence string parses as a CauseConfidence rawValue ('?? confidence')",
+     "effect": "parsed → localized label; unparseable → raw English key string shown as-is"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::var DetectedCause.CauseConfidence.label": "7167d2f3f7427333"
+   }
+  },
+  {
+   "key": "init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+   "hash": "a97fb349c6e96919",
+   "does": "Stores all inputs; filters recentSessions to sessions that start strictly before this session and are not this session; clamps referenceDate to no later than max(session.startDate, session.endDate ?? startDate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+35",
+     "cond": "session.endDate is nil ('?? session.startDate')",
+     "effect": "nil end → startDate used as the session end for the referenceDate clamp; else endDate"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.generate()",
+   "hash": "f4ca1fc16ac2ec57",
+   "does": "Builds AnalysisSummary by evaluating analysisTitle, diagnosticIcon, computeDiagnosticScore(), headlineScore, analysisExplanation, probableCauses, keyFindings, actionableSteps and trendInsight.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.diagnosticIcon",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.computeDiagnosticScore()",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trendInsight"
+   ],
+   "reads": [
+    "mem:NarrativeLanguage.isEnglish"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "duplicate",
+     "sev": "low",
+     "text": "headlineScore → computeDiagnosticScore() is evaluated repeatedly per generate() (diagnosticScore field, headlineScore, analysisTitle, diagnosticIcon, actionableSteps each recompute headlineVerdict/headlineScore and hrvCategory); harmless but redundant work.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:153",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:155",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:156",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift:118",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift:30"
+     ],
+     "found": "first read, upheld on second"
+    },
+    {
+     "kind": "dead",
+     "sev": "low",
+     "text": "AnalysisSummary.diagnosticScore is consumed in production only by ContextBuilder, which copies it into AssistantContext.AnalysisSummarySnapshot.diagnosticScore; no code reads that snapshot field (only its declaration and the construction exist), so the field computed here never reaches the user or the assistant prompt (tests read it).",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:155",
+      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:205",
+      "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift:313",
+      "EmuquTests/AnalysisSummaryGeneratorTests.swift:102"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.computeDiagnosticScore()": "eaf5b56cd571bf90",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "617cc10550b1ed20",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "14b7d507978ba64d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.diagnosticIcon": "e50101eb5fbba11b",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "ae7af921e8c3faaa",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "2f2390113c3460a2",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.trendInsight": "44615b320b8e0ea3",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)",
+   "hash": "e02b767612ca7cb8",
+   "does": "Filters recentSessions to complete overnight sessions with an analysisResult that are reliable for HRV aggregates; returns TrendStats.empty when fewer than 2, else trendStats(for:referenceDate:).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.trendStats(for:referenceDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "fewer than 2 valid overnight sessions",
+     "effect": "return TrendStats.empty (hasData false → all trend findings/insights suppressed); else compute stats"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.trendStats(for:referenceDate:)": "5cbf07fa7c35f61d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "419d55931ca63cde",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.trendStats(for:referenceDate:)",
+   "hash": "68ac30a2d553d073",
+   "does": "Computes SessionAverages, returns empty when the RMSSD average is not positive; else builds TrendStats with averages, 5-night baselines, session count, day span between first and last session, trend7Day from TrendVerdict.weeklyRMSSDChange, trend30Day nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.sessionAverages(_:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func sessionBaselines(_:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "averages.rmssd <= 0",
+     "effect": "return TrendStats.empty; else continue"
+    },
+    {
+     "at": "+14",
+     "cond": "dates.min()/max() nil ('?? referenceDate')",
+     "effect": "unreachable: validSessions has >= 2 entries so min/max are non-nil; referenceDate is never used"
+    },
+    {
+     "at": "+15",
+     "cond": "dateComponents.day nil ('?? 0')",
+     "effect": "day nil → daySpan 0; otherwise the day difference"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "unreachable-branch",
+     "sev": "low",
+     "text": "The `?? referenceDate` fallbacks can never fire because computeTrendStats guarantees >= 2 sessions, so the injected referenceDate has no effect on the output.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:178",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:197"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.sessionAverages(_:)": "c6b65f5cafe7fd58",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func sessionBaselines(_:)": "0627b7cddad1aa95",
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "26eac7e02c76e2ca",
+    "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "419d55931ca63cde"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.sessionAverages(_:)",
+   "hash": "7b8bd32ab975bb3a",
+   "does": "Computes period averages: RMSSD = canonicalBaselineRMSSD if passed else geometric mean of session RMSSDs; HR = canonicalBaselineHR if passed else arithmetic mean (0 if none); stress and readiness = arithmetic means or nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.geometricMean(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "canonicalBaselineRMSSD nil ('??')",
+     "effect": "nil → geometricMean(rmssdValues); else the canonical score baseline (so the 'recent average' text quotes the score baseline, not these sessions)"
+    },
+    {
+     "at": "+9",
+     "cond": "canonicalBaselineHR nil ('??') / hrValues empty ('?:')",
+     "effect": "canonical present → used; else empty → 0, non-empty → arithmetic mean"
+    },
+    {
+     "at": "+10",
+     "cond": "stressValues empty",
+     "effect": "nil; else arithmetic mean"
+    },
+    {
+     "at": "+11",
+     "cond": "readinessValues empty",
+     "effect": "nil; else arithmetic mean"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "med",
+     "text": "The PDF report paths pass the tracker's full baseline (every stored night, including the reported night itself and any later nights) as canonicalBaselineRMSSD/HR, so a report for a past night quotes a 'recent baseline' and bands hrvCategory/diagnostic score against a baseline containing that night and the nights after it, contradicting init's rule (lines 130-134) and differing from the frozen score, which was computed against the excluding baseline.",
+     "evidence": [
+      "Emuqu/Sources/Views/ReportsListView.swift:330",
+      "Emuqu/Sources/Views/ReportsListView.swift:458",
+      "Emuqu/Sources/Views/MainTabView+Tabs.swift:304",
+      "Emuqu/Sources/Views/MainTabView+Reports.swift:102",
+      "Emuqu/Sources/Export/PDFReportGenerator+Summary.swift:90",
+      "Emuqu/Sources/Analysis/BaselineTracker.swift:184",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:228"
+     ],
+     "found": "second read"
+    },
+    {
+     "kind": "duplicate",
+     "sev": "med",
+     "text": "TrendComparisonCard.trendStats/trendAverages re-implement the same overnight filter, >=2 gate and averages, but diverge: without a canonical baseline the card's avgRMSSD is the ARITHMETIC mean while this unit uses the geometric mean, and the card's baselineRMSSD is the geometric baseline while the generator's is the 5-night (Morning-tagged) arithmetic average. Before the tracker has minimumDays nights the card and the summary/assistant quote different 'average' RMSSD for the same night.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:228",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:254",
+      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:154",
+      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:196",
+      "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:201"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.geometricMean(_:)": "b6a032261a75e9e8",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryGenerator.geometricMean(_:)",
+   "hash": "96382fc2665755f1",
+   "does": "Geometric mean of the positive values; returns the arithmetic mean (0 for empty) when no value is positive.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "arithmetic = 0; else arithmetic mean"
+    },
+    {
+     "at": "+3",
+     "cond": "no positive values",
+     "effect": "return arithmetic fallback; else exp(mean(ln v)) over positives only (non-positive values silently dropped)"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func sessionBaselines(_:)",
+   "hash": "1592a7418af43ed7",
+   "does": "File-scope: picks sessions tagged 'Morning' (falls back to all valid sessions when none), requires >= 3, then averages RMSSD, mean HR and stress index of the 5 most recent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no session tagged 'Morning'",
+     "effect": "use all valid sessions; else only Morning-tagged ones"
+    },
+    {
+     "at": "+5",
+     "cond": "fewer than 3 baseline sessions",
+     "effect": "return (nil,nil,nil); else averages of the 5 newest"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "hack",
+     "sev": "low",
+     "text": "Morning readings are selected by comparing ReadingTag.name to the literal \"Morning\" rather than the system tag's id, so any user-created tag named \"Morning\" also qualifies; and since validSessions are overnight-only (line 175), the Morning filter rarely matches and the fallback to all sessions is the normal path.",
+     "evidence": [
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:257",
+      "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift:175",
+      "Emuqu/Sources/Models/HRVSession.swift:84"
+     ],
+     "found": "second read"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func average(_:)",
+   "hash": "f05de34910c67b47",
+   "does": "File-scope: arithmetic mean of values, nil for empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "values empty",
+     "effect": "nil; else sum/count"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

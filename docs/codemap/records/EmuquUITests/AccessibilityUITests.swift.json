@@ -1,0 +1,360 @@
+{
+ "file": "EmuquUITests/AccessibilityUITests.swift",
+ "hash": "8920c83af573b399",
+ "role": "XCUITest accessibility checks: disclaimer CTA label/hit target, tab-bar labels, launch smoke (AccessibilityUITests), and XCTest's performAccessibilityAudit per tab against a committed per-tab issue budget (AccessibilityAuditUITests).",
+ "types": [
+  "AccessibilityUITests: class — hand-written a11y assertions",
+  "AccessibilityAuditUITests: class — per-tab automated audit with ratchet budget"
+ ],
+ "state": [
+  "mem:AccessibilityAuditUITests.issueBudget {tab.dashboard:1, tab.record:5, tab.fitness:8, tab.coach:0, tab.more:0}"
+ ],
+ "toplevel": "issueBudget static table; class doc says .textClipped and .dynamicType audit types are excluded.",
+ "flags": [
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
+   "evidence": [
+    "EmuquUITests/AccessibilityUITests.swift:29",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc claims the suite checks accessibilityHint on the I Agree and onboarding 'Take a reading' CTAs; no test reads a hint or touches the onboarding done page",
+   "evidence": [
+    "EmuquUITests/AccessibilityUITests.swift:11",
+    "EmuquUITests/AccessibilityUITests.swift:44"
+   ],
+   "found": "first read, upheld on second"
+  },
+  {
+   "kind": "spec-mismatch",
+   "sev": "low",
+   "text": "Class doc says Dynamic Type AX5 layout is not tested; DynamicTypeAX5UITests in the same target tests it and says so",
+   "evidence": [
+    "EmuquUITests/AccessibilityUITests.swift:17",
+    "EmuquUITests/DynamicTypeAX5UITests.swift:5"
+   ],
+   "found": "second read"
+  }
+ ],
+ "units": [
+  {
+   "key": "func AccessibilityUITests.setUp()",
+   "hash": "df85131ea44a9c16",
+   "does": "Sets continueAfterFailure=false, launches with -UITests, -UITests-FreshInstall and English; does NOT walk the gates, so the disclaimer is on screen for the first test.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0"
+   }
+  },
+  {
+   "key": "func AccessibilityUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AccessibilityUITests.testHealthDisclaimerButtonHitTargetAndLabel()",
+   "hash": "0881c7293171afe1",
+   "does": "Asserts disclaimer.agree appears within 30s and has a non-empty label; swipes the first scroll view up to 8 times while it is disabled; if its frame is non-zero asserts height >= 44pt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "a scroll view exists",
+     "effect": "swipe up to enable the button"
+    },
+    {
+     "at": "+16",
+     "cond": "for up to 8 swipes while the button is disabled",
+     "effect": "swipe up"
+    },
+    {
+     "at": "+18",
+     "cond": "button frame non-zero",
+     "effect": "assert height >= 44; zero frame → hit-target check skipped silently"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Hit-target assertion is skipped when the frame is .zero, and only height is checked (not width) despite the doc's 44x44 claim",
+     "evidence": [
+      "EmuquUITests/AccessibilityUITests.swift:62",
+      "EmuquUITests/AccessibilityUITests.swift:43"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "ed6a7c645cad9f24",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AccessibilityUITests.testEveryTabBarButtonHasUsableLabel()",
+   "hash": "0ee133f440dcde67",
+   "does": "Walks gates, asserts tab bar exists within 16s, at least 3 tab buttons, and every tab-bar button label is non-empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for each tab-bar button",
+     "effect": "assert non-empty label"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AccessibilityUITests.testAppReachesDashboardWithoutAnimationCrashes()",
+   "hash": "383b8cd642f05514",
+   "does": "Walks gates and asserts the tab bar exists within 16s.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "med",
+     "text": "The only assertion is tabBar exists, which the harness documents is true while the disclaimer cover is still up (EmuquUITests.swift:593-596); toMainUI's Bool is discarded. The test cannot detect animation problems or a failure to reach the Dashboard, contrary to its name",
+     "evidence": [
+      "EmuquUITests/AccessibilityUITests.swift:103",
+      "EmuquUITests/EmuquUITests.swift:593"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.setUp()",
+   "hash": "5afd054df2a6b2da",
+   "does": "Sets continueAfterFailure=false, creates XCUIApplication, appends launch arguments -UITests, -UITests-FreshInstall and English locale (UITestLanguage.english), launches the app (the app wipes onboarding/disclaimer/paywall flags, settings files and the session archive via AppLaunchRecovery.resetUITestStateIfRequested) and walks every first-run gate with UITestLaunch.toMainUI, ignoring its Bool result.",
+   "entry": "XCTest runner: setUp before each test in the class",
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)",
+    "ext:XCUIApplication.launch",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.tearDown()",
+   "hash": "c6f9bd9c44559741",
+   "does": "Releases the XCUIApplication (app = nil); does not terminate the app.",
+   "entry": "XCTest runner: tearDown after each test in the class",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var AccessibilityAuditUITests.auditTypes",
+   "hash": "0fec190c68927714",
+   "does": "Returns XCUIAccessibilityAuditType.all minus .textClipped and .dynamicType.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)",
+   "hash": "ca99fad7b19f6fce",
+   "does": "Selects the tab (XCTFail if unreachable), waits for any static text, runs performAccessibilityAudit with auditTypes collecting every issue (closure returns true to suppress per-issue failures), attaches the sorted list, and asserts issue count <= issueBudget[identifier] (default 0).",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
+    "EmuquUITests/AccessibilityUITests.swift::var AccessibilityAuditUITests.auditTypes",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIApplication.performAccessibilityAudit"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "tab not reachable",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+15",
+     "cond": "issue.element nil",
+     "effect": "?? 'unknown element'"
+    },
+    {
+     "at": "+23",
+     "cond": "no budget entry",
+     "effect": "?? 0"
+    },
+    {
+     "at": "+30",
+     "cond": "listing empty",
+     "effect": "?: '(none)'"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
+    "EmuquUITests/AccessibilityUITests.swift::var AccessibilityAuditUITests.auditTypes": "032ca2e3b5f09aea",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "1f6afb21d0621d1d",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.testDashboardTabPassesAccessibilityAudit()",
+   "hash": "baefa376074ce8c8",
+   "does": "Audits the Dashboard tab against budget 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.testRecordTabPassesAccessibilityAudit()",
+   "hash": "d63f4d8fd68616a6",
+   "does": "Audits the Record tab against budget 5.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.testFitnessTabPassesAccessibilityAudit()",
+   "hash": "e94f9a0fcb17f693",
+   "does": "Audits the Fitness tab against budget 8 (fails if the tab is hidden by settings).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.testCoachTabPassesAccessibilityAudit()",
+   "hash": "ae53340abee2ce3c",
+   "does": "Audits the Flo (coach) tab against budget 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [
+    {
+     "kind": "test-defect",
+     "sev": "low",
+     "text": "Does not accept the Flo first-run AI disclosure sheet before auditing, so on a fresh install (setUp passes -UITests-FreshInstall) the audit covers whatever the disclosure sheet presents rather than the chat surface",
+     "evidence": [
+      "EmuquUITests/AccessibilityUITests.swift:268",
+      "EmuquUITests/EmuquUITests.swift:913"
+     ],
+     "found": "first read, upheld on second"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+   }
+  },
+  {
+   "key": "func AccessibilityAuditUITests.testMoreTabPassesAccessibilityAudit()",
+   "hash": "a2412c76f176c236",
+   "does": "Audits the More tab against budget 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "e75feb0d323aa419"
+   }
+  }
+ ],
+ "deps": {}
+}
